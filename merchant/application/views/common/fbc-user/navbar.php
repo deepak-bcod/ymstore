@@ -146,21 +146,51 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
 
                     case 'order':
 
-                        $display_title = $this->lang->line('notif_order_title');
+    // ==========================================
+    // ORDER DELIVERED
+    // ==========================================
 
-                        $display_msg = str_replace(
-                            [
-                                'You have received a new B2B order',
-                                'from'
-                            ],
-                            [
-                                'Vous avez reçu une nouvelle commande B2B',
-                                'de'
-                            ],
-                            $display_msg
-                        );
+    if (stripos($display_msg, 'Delivered to Shopper') !== false) {
 
-                        break;
+        preg_match('/ES-\d+/i', $display_msg, $matches);
+
+        $orderNo = !empty($matches[0]) ? $matches[0] : '';
+
+        $display_title = 'Commande livrée';
+
+        if ($orderNo != '') {
+
+            $display_msg = 'La commande ' . $orderNo . ' a été livrée au client.';
+
+        } else {
+
+            $display_msg = 'La commande a été livrée au client.';
+        }
+
+    } else {
+
+        // ==========================================
+        // NORMAL ES ORDER
+        // ==========================================
+
+        $display_title = 'Nouvelle commande ES';
+
+        $display_msg = str_ireplace(
+            [
+                'You have received a new ES order',
+                'You have received a new B2B order',
+                'from'
+            ],
+            [
+                'Vous avez reçu une nouvelle commande ES',
+                'Vous avez reçu une nouvelle commande B2B',
+                'de'
+            ],
+            $display_msg
+        );
+    }
+
+    break;
 
 
                     case 'helpdesk':
