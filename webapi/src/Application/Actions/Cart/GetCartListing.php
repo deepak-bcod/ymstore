@@ -25,21 +25,40 @@ class GetCartListing {
         $comn_obj = new DbCommonFeature();
 		$cart_obj = new DbCart();
 		$wishlist_obj = new DbWishlistFeature();
-        if(!empty($customer_id)){
+        $cartDetails = null;
+        if (!empty($customer_id)) {
             if (!empty($quote_id)) {
                 $param = [$quote_id, $customer_id]; 
-                $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE (SQ.quote_id = ? AND SQ.customer_id = ?) ";
-            } else {
-                $param = [$customer_id]; 
-                $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE SQ.customer_id = ? ORDER BY SQ.quote_id DESC LIMIT 1 ";
+                $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ INNER JOIN sales_quote_items as SQI ON SQI.quote_id = SQ.quote_id WHERE (SQ.quote_id = ? AND SQ.customer_id = ?) LIMIT 1";
+                $cartDetails = $this->dbl->dbl_conn->rawQueryOne($query, $param);
             }
-        }else{
-
-            $param = [$session_id];
-            $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE SQ.session_id = ? ";
-
+            if (empty($cartDetails)) {
+                $param = [$customer_id]; 
+                $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ INNER JOIN sales_quote_items as SQI ON SQI.quote_id = SQ.quote_id WHERE SQ.customer_id = ? ORDER BY SQ.quote_id DESC LIMIT 1";
+                $cartDetails = $this->dbl->dbl_conn->rawQueryOne($query, $param);
+            }
+            if (empty($cartDetails)) {
+                if (!empty($quote_id)) {
+                    $param = [$quote_id, $customer_id]; 
+                    $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE (SQ.quote_id = ? AND SQ.customer_id = ?) ";
+                } else {
+                    $param = [$customer_id]; 
+                    $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE SQ.customer_id = ? ORDER BY SQ.quote_id DESC LIMIT 1 ";
+                }
+                $cartDetails = $this->dbl->dbl_conn->rawQueryOne($query, $param);
+            }
+        } else {
+            if (!empty($quote_id)) {
+                $param = [$quote_id];
+                $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ INNER JOIN sales_quote_items as SQI ON SQI.quote_id = SQ.quote_id WHERE SQ.quote_id = ? LIMIT 1";
+                $cartDetails = $this->dbl->dbl_conn->rawQueryOne($query, $param);
+            }
+            if (empty($cartDetails) && !empty($session_id)) {
+                $param = [$session_id];
+                $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE SQ.session_id = ? ";
+                $cartDetails = $this->dbl->dbl_conn->rawQueryOne($query, $param);
+            }
         }
-        $cartDetails = $this->dbl->dbl_conn->rawQueryOne($query,$param);
       
 
         if ($this->dbl->dbl_conn->getLastErrno() !== 0 || $this->dbl->dbl_conn->count === 0){

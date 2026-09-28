@@ -29,24 +29,49 @@ class CartList
         $quote_id = $this->ci->session->userdata('QuoteId') ?? '';
         $lang_code = $this->ci->session->userdata('lcode') ?? '';
         $customer_id = $this->ci->session->userdata('LoginID') ?? '';
-        $session_id = $this->ci->session->userdata('sis_session_id') ?? '';
+        $session_id = $this->ci->session->userdata('sis_session_id') ?: ($this->ci->session->userdata('LoginToken') ?? '');
 
-        if (empty($quote_id) && !empty($customer_id)) {
-            $active_quote = $this->ci->db->select('quote_id, session_id')
-                ->from('sales_quote')
-                ->where('customer_id', $customer_id)
-                ->order_by('quote_id', 'DESC')
-                ->limit(1)
-                ->get()
-                ->row();
-            if ($active_quote) {
-                $quote_id = $active_quote->quote_id;
-                $this->ci->session->set_userdata('QuoteId', $quote_id);
-                if (empty($session_id) && !empty($active_quote->session_id)) {
-                    $session_id = $active_quote->session_id;
-                    $this->ci->session->set_userdata('sis_session_id', $session_id);
+        if (!empty($customer_id)) {
+            $has_items = false;
+            if (!empty($quote_id)) {
+                $item_count = $this->ci->db->from('sales_quote_items')
+                    ->where('quote_id', $quote_id)
+                    ->count_all_results();
+                $has_items = ($item_count > 0);
+            }
+            if (!$has_items) {
+                $active_quote = $this->ci->db->select('SQ.quote_id, SQ.session_id')
+                    ->from('sales_quote SQ')
+                    ->join('sales_quote_items SQI', 'SQI.quote_id = SQ.quote_id')
+                    ->where('SQ.customer_id', $customer_id)
+                    ->order_by('SQ.quote_id', 'DESC')
+                    ->limit(1)
+                    ->get()
+                    ->row();
+                if (!$active_quote) {
+                    $active_quote = $this->ci->db->select('quote_id, session_id')
+                        ->from('sales_quote')
+                        ->where('customer_id', $customer_id)
+                        ->order_by('quote_id', 'DESC')
+                        ->limit(1)
+                        ->get()
+                        ->row();
+                }
+                if ($active_quote) {
+                    $quote_id = $active_quote->quote_id;
+                    $this->ci->session->set_userdata('QuoteId', $quote_id);
+                    if (!empty($active_quote->session_id)) {
+                        $session_id = $active_quote->session_id;
+                        $this->ci->session->set_userdata('sis_session_id', $session_id);
+                        $this->ci->session->set_userdata('LoginToken', $session_id);
+                    }
                 }
             }
+        }
+
+        if (empty($session_id)) {
+            $session_id = function_exists('generateToken') ? generateToken('50') : md5(uniqid((string)mt_rand(), true));
+            $this->ci->session->set_userdata('sis_session_id', $session_id);
         }
 
         $cc_post_arr = array('session_id' => $session_id, 'quote_id' => $quote_id, 'customer_id' => $customer_id, 'lang_code' => $lang_code);

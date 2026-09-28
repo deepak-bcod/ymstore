@@ -104,7 +104,13 @@ if (location.pathname === '/daily-deals') {
   if ($this->session->userdata('LoginID')) {
 
     $_sis_session_id = $this->session->userdata('LoginToken');
-
+    if (empty($_sis_session_id)) {
+      $_sis_session_id = $this->session->userdata('sis_session_id');
+      if (empty($_sis_session_id)) {
+        $_sis_session_id = function_exists('generateToken') ? generateToken('50') : md5(uniqid((string)mt_rand(), true));
+      }
+      $this->session->set_userdata('LoginToken', $_sis_session_id);
+    }
     $this->session->set_userdata('sis_session_id', $_sis_session_id);
 
   } else {
@@ -115,7 +121,7 @@ if (location.pathname === '/daily-deals') {
 
     } else {
 
-      $_sis_session_id = generateToken('50');
+      $_sis_session_id = function_exists('generateToken') ? generateToken('50') : md5(uniqid((string)mt_rand(), true));
 
       $this->session->set_userdata('sis_session_id', $_sis_session_id);
 

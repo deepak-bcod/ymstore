@@ -125,11 +125,55 @@ class Giftcards extends CI_Controller
 
         $order_id       = $order_response->id;
         $user_id        = $this->session->userdata('LoginID');
-        $lang_id        = $this->session->userdata('lid');
+        $lang_id        = $this->session->userdata('lid') ?: 1;
         $increment_id   = $order_response->order_number;
         $amount         = 1; // or $order_response->amount
         $quote_id       = $this->session->userdata('QuoteId');
-        $sis_session_id = $this->session->userdata('sis_session_id');
+        $sis_session_id = $this->session->userdata('sis_session_id') ?: $this->session->userdata('LoginToken');
+
+        // Look up active quote with items from database if not in session or current quote has no items
+        $has_items = false;
+        if (!empty($quote_id)) {
+            $item_count = $this->db->from('sales_quote_items')
+                ->where('quote_id', $quote_id)
+                ->count_all_results();
+            $has_items = ($item_count > 0);
+        }
+        if (!$has_items && !empty($user_id)) {
+            $active_quote = $this->db->select('SQ.quote_id, SQ.session_id')
+                ->from('sales_quote SQ')
+                ->join('sales_quote_items SQI', 'SQI.quote_id = SQ.quote_id')
+                ->where('SQ.customer_id', $user_id)
+                ->order_by('SQ.quote_id', 'DESC')
+                ->limit(1)
+                ->get()
+                ->row();
+            if (!$active_quote) {
+                $active_quote = $this->db->select('quote_id, session_id')
+                    ->from('sales_quote')
+                    ->where('customer_id', $user_id)
+                    ->order_by('quote_id', 'DESC')
+                    ->limit(1)
+                    ->get()
+                    ->row();
+            }
+            if ($active_quote) {
+                $quote_id = $active_quote->quote_id;
+                $this->session->set_userdata('QuoteId', $quote_id);
+                if (!empty($active_quote->session_id)) {
+                    $sis_session_id = $active_quote->session_id;
+                    $this->session->set_userdata('sis_session_id', $sis_session_id);
+                    $this->session->set_userdata('LoginToken', $sis_session_id);
+                }
+            }
+        }
+        if (empty($sis_session_id)) {
+            $sis_session_id = function_exists('generateToken') ? generateToken('50') : md5(uniqid((string)mt_rand(), true));
+            $this->session->set_userdata('sis_session_id', $sis_session_id);
+            if (!empty($user_id)) {
+                $this->session->set_userdata('LoginToken', $sis_session_id);
+            }
+        }
 
         $callbackParams = [
             'customer_id' => base64_encode($user_id),
@@ -341,21 +385,31 @@ public function success($order_id = null)
 
     // Auto-login customer if not already logged in
     $customer = null;
-    if (!$this->session->userdata('LoginID') && !empty($customer_id)) {
+    $target_customer_id = $this->session->userdata('LoginID') ?: $customer_id;
+    if (!$this->session->userdata('LoginID') && !empty($target_customer_id)) {
         $customer = $this->db
             ->select('id, first_name, last_name, email_id, customer_type_id, access_prelanch_product, allow_catlog_builder')
             ->from('customers')
-            ->where('id', $customer_id)
+            ->where('id', $target_customer_id)
             ->get()
             ->row();
 
         if ($customer) {
+            $active_token = !empty($session_id_param) ? base64_decode($session_id_param) : ($this->session->userdata('LoginToken') ?: $this->session->userdata('sis_session_id'));
+            if (empty($active_token)) {
+                $active_token = function_exists('generateToken') ? generateToken('50') : md5(uniqid((string)mt_rand(), true));
+            }
+
             $sessionArr = array(
                 'LoginID'        => $customer->id,
+                'LoginToken'     => $active_token,
+                'sis_session_id' => $active_token,
                 'FirstName'      => $customer->first_name,
                 'LastName'       => $customer->last_name,
                 'EmailID'        => $customer->email_id,
-                'CustomerTypeID' => $customer->customer_type_id
+                'LoginRole'      => 'customer',
+                'CustomerTypeID' => $customer->customer_type_id,
+                'is_logged_in'   => true
             );
 
             $this->session->set_userdata($sessionArr);
@@ -371,11 +425,11 @@ public function success($order_id = null)
         } else {
             log_message('error', "Giftcard success(): Customer not found for order user_id {$order->user_id}");
         }
-    } elseif (!empty($customer_id)) {
+    } elseif (!empty($target_customer_id)) {
         $customer = $this->db
             ->select('id, first_name, last_name, email_id, customer_type_id, access_prelanch_product, allow_catlog_builder')
             ->from('customers')
-            ->where('id', $customer_id)
+            ->where('id', $target_customer_id)
             ->get()
             ->row();
     }
@@ -391,23 +445,45 @@ public function success($order_id = null)
         $restored_session_id = base64_decode($session_id_param);
         if (!empty($restored_session_id)) {
             $this->session->set_userdata('sis_session_id', $restored_session_id);
+            $this->session->set_userdata('LoginToken', $restored_session_id);
         }
     }
 
-    // Fallback: If QuoteId is not in session, recover customer's active quote from DB
+    // Fallback: If QuoteId is missing or has no items, recover customer's active quote with items from DB
     $current_user_id = $this->session->userdata('LoginID') ?: $customer_id;
-    if (!$this->session->userdata('QuoteId') && !empty($current_user_id)) {
-        $active_quote = $this->db->select('quote_id, session_id')
-            ->from('sales_quote')
-            ->where('customer_id', $current_user_id)
-            ->order_by('quote_id', 'DESC')
-            ->limit(1)
-            ->get()
-            ->row();
-        if ($active_quote) {
-            $this->session->set_userdata('QuoteId', $active_quote->quote_id);
-            if (!$this->session->userdata('sis_session_id') && !empty($active_quote->session_id)) {
-                $this->session->set_userdata('sis_session_id', $active_quote->session_id);
+    if (!empty($current_user_id)) {
+        $has_items = false;
+        $current_quote_id = $this->session->userdata('QuoteId');
+        if (!empty($current_quote_id)) {
+            $item_count = $this->db->from('sales_quote_items')
+                ->where('quote_id', $current_quote_id)
+                ->count_all_results();
+            $has_items = ($item_count > 0);
+        }
+        if (!$has_items) {
+            $active_quote = $this->db->select('SQ.quote_id, SQ.session_id')
+                ->from('sales_quote SQ')
+                ->join('sales_quote_items SQI', 'SQI.quote_id = SQ.quote_id')
+                ->where('SQ.customer_id', $current_user_id)
+                ->order_by('SQ.quote_id', 'DESC')
+                ->limit(1)
+                ->get()
+                ->row();
+            if (!$active_quote) {
+                $active_quote = $this->db->select('quote_id, session_id')
+                    ->from('sales_quote')
+                    ->where('customer_id', $current_user_id)
+                    ->order_by('quote_id', 'DESC')
+                    ->limit(1)
+                    ->get()
+                    ->row();
+            }
+            if ($active_quote) {
+                $this->session->set_userdata('QuoteId', $active_quote->quote_id);
+                if (!empty($active_quote->session_id)) {
+                    $this->session->set_userdata('sis_session_id', $active_quote->session_id);
+                    $this->session->set_userdata('LoginToken', $active_quote->session_id);
+                }
             }
         }
     }
@@ -455,11 +531,13 @@ public function success($order_id = null)
                 'lang_id'     => base64_encode($language_id),
                 'key'         => base64_encode($increment_id)
             ];
-            if ($this->session->userdata('QuoteId')) {
-                $failParams['quote_id'] = base64_encode($this->session->userdata('QuoteId'));
+            $saved_quote_id = $this->session->userdata('QuoteId');
+            if (!empty($saved_quote_id)) {
+                $failParams['quote_id'] = base64_encode($saved_quote_id);
             }
-            if ($this->session->userdata('sis_session_id')) {
-                $failParams['session_id'] = base64_encode($this->session->userdata('sis_session_id'));
+            $saved_session_id = $this->session->userdata('sis_session_id') ?: $this->session->userdata('LoginToken');
+            if (!empty($saved_session_id)) {
+                $failParams['session_id'] = base64_encode($saved_session_id);
             }
             redirect('Giftcards/failed/' . $order->id . '/?' . http_build_query($failParams));
             return;
@@ -678,6 +756,51 @@ public function failed($order_id = null)
         $order_number = $order_id;
     }
 
+    // Determine target customer_id
+    $target_customer_id = null;
+    if (!empty($customer_id)) {
+        $decoded = base64_decode($customer_id);
+        $target_customer_id = ($decoded !== false && is_numeric($decoded)) ? $decoded : $customer_id;
+    }
+    if (empty($target_customer_id) && $order) {
+        $target_customer_id = $order->user_id;
+    }
+    if (empty($target_customer_id)) {
+        $target_customer_id = $this->session->userdata('LoginID');
+    }
+
+    // Auto-login customer if not already logged in
+    if (!$this->session->userdata('LoginID') && !empty($target_customer_id)) {
+        $customer = $this->db
+            ->select('id, first_name, last_name, email_id, customer_type_id, access_prelanch_product, allow_catlog_builder')
+            ->from('customers')
+            ->where('id', $target_customer_id)
+            ->get()
+            ->row();
+
+        if ($customer) {
+            $active_token = !empty($session_id_param) ? base64_decode($session_id_param) : ($this->session->userdata('LoginToken') ?: $this->session->userdata('sis_session_id'));
+            if (empty($active_token)) {
+                $active_token = function_exists('generateToken') ? generateToken('50') : md5(uniqid((string)mt_rand(), true));
+            }
+
+            $sessionArr = array(
+                'LoginID'        => $customer->id,
+                'LoginToken'     => $active_token,
+                'sis_session_id' => $active_token,
+                'FirstName'      => $customer->first_name,
+                'LastName'       => $customer->last_name,
+                'EmailID'        => $customer->email_id,
+                'LoginRole'      => 'customer',
+                'CustomerTypeID' => $customer->customer_type_id,
+                'is_logged_in'   => true
+            );
+
+            $this->session->set_userdata($sessionArr);
+            log_message('info', "Giftcard failed(): Customer auto-logged in (ID: {$customer->id})");
+        }
+    }
+
     // Restore Shopping Cart / QuoteId and session_id
     if (!empty($quote_id_param)) {
         $restored_quote_id = base64_decode($quote_id_param);
@@ -689,24 +812,55 @@ public function failed($order_id = null)
         $restored_session_id = base64_decode($session_id_param);
         if (!empty($restored_session_id)) {
             $this->session->set_userdata('sis_session_id', $restored_session_id);
+            $this->session->set_userdata('LoginToken', $restored_session_id);
         }
     }
 
-    // Fallback: If QuoteId is not in session, recover customer's active quote from DB
-    $current_user_id = $this->session->userdata('LoginID') ?: (!empty($customer_id) ? base64_decode($customer_id) : '');
-    if (!$this->session->userdata('QuoteId') && !empty($current_user_id)) {
-        $active_quote = $this->db->select('quote_id, session_id')
-            ->from('sales_quote')
-            ->where('customer_id', $current_user_id)
-            ->order_by('quote_id', 'DESC')
-            ->limit(1)
-            ->get()
-            ->row();
-        if ($active_quote) {
-            $this->session->set_userdata('QuoteId', $active_quote->quote_id);
-            if (!$this->session->userdata('sis_session_id') && !empty($active_quote->session_id)) {
-                $this->session->set_userdata('sis_session_id', $active_quote->session_id);
+    // Fallback: If QuoteId is missing or has no items, recover customer's active quote with items from DB
+    $current_user_id = $this->session->userdata('LoginID') ?: $target_customer_id;
+    if (!empty($current_user_id)) {
+        $has_items = false;
+        $current_quote_id = $this->session->userdata('QuoteId');
+        if (!empty($current_quote_id)) {
+            $item_count = $this->db->from('sales_quote_items')
+                ->where('quote_id', $current_quote_id)
+                ->count_all_results();
+            $has_items = ($item_count > 0);
+        }
+        if (!$has_items) {
+            $active_quote = $this->db->select('SQ.quote_id, SQ.session_id')
+                ->from('sales_quote SQ')
+                ->join('sales_quote_items SQI', 'SQI.quote_id = SQ.quote_id')
+                ->where('SQ.customer_id', $current_user_id)
+                ->order_by('SQ.quote_id', 'DESC')
+                ->limit(1)
+                ->get()
+                ->row();
+            if (!$active_quote) {
+                $active_quote = $this->db->select('quote_id, session_id')
+                    ->from('sales_quote')
+                    ->where('customer_id', $current_user_id)
+                    ->order_by('quote_id', 'DESC')
+                    ->limit(1)
+                    ->get()
+                    ->row();
             }
+            if ($active_quote) {
+                $this->session->set_userdata('QuoteId', $active_quote->quote_id);
+                if (!empty($active_quote->session_id)) {
+                    $this->session->set_userdata('sis_session_id', $active_quote->session_id);
+                    $this->session->set_userdata('LoginToken', $active_quote->session_id);
+                }
+            }
+        }
+    }
+
+    // Ensure session_id and LoginToken are never null
+    if (!$this->session->userdata('sis_session_id')) {
+        $token = $this->session->userdata('LoginToken') ?: (function_exists('generateToken') ? generateToken('50') : md5(uniqid((string)mt_rand(), true)));
+        $this->session->set_userdata('sis_session_id', $token);
+        if ($this->session->userdata('LoginID')) {
+            $this->session->set_userdata('LoginToken', $token);
         }
     }
 
