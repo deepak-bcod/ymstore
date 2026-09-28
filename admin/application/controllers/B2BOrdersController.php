@@ -18238,146 +18238,168 @@ public function MarkPickupReceived()
 
 
 public function MarkAsFailed()
-
 {
-
     if (isset($_POST['order_id']) && isset($_POST['attempt_no'])) {
 
         $User_id    = $this->session->userdata('LoginID');
-
         $order_id   = $_POST['order_id'];
-
         $attempt_no = (int)$_POST['attempt_no'];
-
         $reason     = $_POST['reason_for_attempt_failed'] ?? '';
 
-
-
         if (empty($reason)) {
-
-            echo json_encode(['status' => 500, 'message' => 'Reason for failure is required.']);
-
+            echo json_encode([
+                'status'  => 500,
+                'message' => 'Reason for failure is required.'
+            ]);
             exit;
-
         }
 
-
-
         // Map failed attempt status
-
         switch ($attempt_no) {
 
             case 1:
-
                 $failedStatus = 2; // Failed Attempt 1
-
                 break;
 
             case 2:
-
                 $failedStatus = 4; // Failed Attempt 2
-
                 break;
 
             case 3:
-
                 $failedStatus = 6; // Failed Attempt 3
-
                 break;
 
             default:
-
                 $failedStatus = 2;
-
         }
-
-
 
         // Check if delivery attempt exists
-
         $record = $this->CommonModel->getSingleDataByID(
-
             'b2b_orders_delivery_details',
-
-            ['order_id' => $order_id, 'delivery_attempt_no' => $attempt_no],
-
-            '*'  // select all columns
-
+            [
+                'order_id' => $order_id,
+                'delivery_attempt_no' => $attempt_no
+            ],
+            '*'
         );
-
-
 
         if (!$record) {
-
-            echo json_encode(['status' => 500, 'message' => 'Delivery attempt not found.']);
-
+            echo json_encode([
+                'status'  => 500,
+                'message' => 'Delivery attempt not found.'
+            ]);
             exit;
-
         }
-
-
 
         // Update delivery attempt
-
         $updated = $this->CommonModel->updateData(
-
             'b2b_orders_delivery_details',
-
-            ['order_id' => $order_id, 'delivery_attempt_no' => $attempt_no],
-
             [
-
+                'order_id' => $order_id,
+                'delivery_attempt_no' => $attempt_no
+            ],
+            [
                 'reason_for_attempt_failed' => $reason,
-
                 'delivery_status'           => $failedStatus,
-
                 'updated_at'                => date('Y-m-d H:i:s')
-
             ]
-
         );
 
+        if (!$updated) {
+            echo json_encode([
+                'status'  => 500,
+                'message' => 'No changes were made.'
+            ]);
+            exit;
+        }
 
-
-        // If this is the 3rd attempt, update main order status to 13 (Warehouse Pickup)
-
+        /*
+         * ==========================================================
+         * ATTEMPT 2 FAILED
+         * ==========================================================
+         */
         if ($attempt_no == 2) {
 
+            // Update B2B order status to 13 = Warehouse Pickup
             $this->CommonModel->updateData(
-
-                'b2b_orders',                   // Table
-
-                ['order_id' => $order_id],      // Condition
-
-                ['status' => 13]                 // Update status
-
+                'b2b_orders',
+                [
+                    'order_id' => $order_id
+                ],
+                [
+                    'status' => 13
+                ]
             );
 
+            /*
+             * Get B2B order
+             * webshop_order_id points to sales_order.order_id
+             */
+            $b2bOrder = $this->db
+                ->where('order_id', $order_id)
+                ->get('b2b_orders')
+                ->row();
+
+            if (!empty($b2bOrder) && !empty($b2bOrder->webshop_order_id)) {
+
+                // Get customer/order information
+                $salesOrder = $this->db
+                    ->where('order_id', $b2bOrder->webshop_order_id)
+                    ->get('sales_order')
+                    ->row();
+
+                if (!empty($salesOrder) && !empty($salesOrder->customer_email)) {
+
+                    $customerName = trim(
+                        ($salesOrder->customer_firstname ?? '') . ' ' .
+                        ($salesOrder->customer_lastname ?? '')
+                    );
+
+                    /*
+                     * Email template variables
+                     *
+                     * These names MUST match the placeholders
+                     * used in your email_template content.
+                     */
+                    $TempVars = [
+						'##CUSTOMERNAME##',
+						'##ORDERNO##',
+						'##REASON##'
+					];
+
+					$DynamicVars = [
+						$customerName,
+						$salesOrder->increment_id,
+						$reason
+					];
+
+                    // Send Attempt 2 Failed email
+                    $this->CommonModel->sendCommonHTMLEmail(
+                        $salesOrder->customer_email,
+                        'delivery-attempt-2-failed',
+                        $TempVars,
+                        $DynamicVars
+                    );
+                }
+            }
         }
 
-
-
-        if ($updated) {
-
-            echo json_encode(['status' => 200, 'message' => 'Delivery attempt marked as failed.']);
-
-        } else {
-
-            echo json_encode(['status' => 500, 'message' => 'No changes were made.']);
-
-        }
-
+        echo json_encode([
+            'status'  => 200,
+            'message' => 'Delivery attempt marked as failed.'
+        ]);
         exit;
 
     } else {
 
-        echo json_encode(['status' => 500, 'message' => 'Invalid data.']);
-
+        echo json_encode([
+            'status'  => 500,
+            'message' => 'Invalid data.'
+        ]);
         exit;
-
     }
-
 }
+
 
 
 
