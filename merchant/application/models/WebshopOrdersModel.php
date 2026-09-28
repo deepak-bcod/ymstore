@@ -1833,13 +1833,31 @@ class WebshopOrdersModel extends CI_Model
 						->where('payout_status !=', 4)
 						->update('b2b_orders', array_merge($b2b_update_data, ['payout_status' => 3]));
 				} elseif ($b2b_status == 19 || $b2b_status == 21) {
-					// Replaced (19) or Replacement Rejected (21) -> Payout RELEASED / ACTIVE (1)
-					$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
-						->where('payout_status', 3)
-						->update('b2b_orders', array_merge($b2b_update_data, ['payout_status' => 1]));
-					$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
-						->where('payout_status !=', 3)
-						->update('b2b_orders', $b2b_update_data);
+					// Check if there are unresolved returns on this order before releasing payout
+					$has_return_hold = false;
+					$order_returns = $this->db->select('return_order_id, status, refund_status')
+						->from('sales_order_return')
+						->group_start()->where('order_id', $b2b_id)->or_where('order_id', $webshop_id)->group_end()
+						->get()->result_array();
+					foreach ($order_returns as $oret) {
+						if ($oret['status'] != 4 && (!isset($oret['refund_status']) || $oret['refund_status'] != 1)) {
+							$has_return_hold = true;
+							break;
+						}
+					}
+					if (!$has_return_hold) {
+						// Replaced (19) or Replacement Rejected (21) -> Payout RELEASED / ACTIVE (1)
+						$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+							->where('payout_status', 3)
+							->update('b2b_orders', array_merge($b2b_update_data, ['payout_status' => 1]));
+						$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+							->where('payout_status !=', 3)
+							->update('b2b_orders', $b2b_update_data);
+					} else {
+						// Payout stays on hold due to unresolved return
+						$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+							->update('b2b_orders', array_merge($b2b_update_data, ['payout_status' => 3]));
+					}
 				} else {
 					$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
 						->update('b2b_orders', $b2b_update_data);
@@ -1902,18 +1920,12 @@ class WebshopOrdersModel extends CI_Model
 			$b2b_id = ($b2b_row && !empty($b2b_row->order_id)) ? $b2b_row->order_id : $order->order_id;
 
 			if ((int)$status === 2) {
-				// Rejected: update b2b_orders status to 20 (Return Rejected) & release held payout to active (1)
+				// Rejected: update b2b_orders status to 20 (Return Rejected) & Payout ON HOLD (3)
 				$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
-					->where('payout_status', 3)
+					->where('payout_status !=', 4)
 					->update('b2b_orders', [
 						'status' => 20,
-						'payout_status' => 1,
-						'updated_at' => time()
-					]);
-				$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
-					->where('payout_status !=', 3)
-					->update('b2b_orders', [
-						'status' => 20,
+						'payout_status' => 3,
 						'updated_at' => time()
 					]);
 
@@ -1943,20 +1955,50 @@ class WebshopOrdersModel extends CI_Model
 					$this->db->where_in('item_id', $order_item_ids)->update('b2b_order_items', ['status' => 22]);
 				}
 			} elseif ((int)$status === 4) {
-				// Refund Done: update b2b_orders status to 17 (Refund Paid) & RELEASE held payout to active (1)
-				$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
-					->where('payout_status', 3)
-					->update('b2b_orders', [
-						'status' => 17,
-						'payout_status' => 1,
-						'updated_at' => time()
-					]);
-				$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
-					->where('payout_status !=', 3)
-					->update('b2b_orders', [
-						'status' => 17,
-						'updated_at' => time()
-					]);
+				// Refund Done: update b2b_orders status to 17 (Refund Paid) & RELEASE held payout to active (1) if all returns/replacements resolved
+				$has_other_hold = false;
+				$other_returns = $this->db->select('return_order_id, status, refund_status')
+					->from('sales_order_return')
+					->group_start()->where('order_id', $b2b_id)->or_where('order_id', $webshop_id)->group_end()
+					->where('return_order_id !=', $return_id)
+					->get()->result_array();
+				foreach ($other_returns as $oret) {
+					if ($oret['status'] != 4 && (!isset($oret['refund_status']) || $oret['refund_status'] != 1)) {
+						$has_other_hold = true;
+						break;
+					}
+				}
+				if (!$has_other_hold) {
+					$pending_reps = $this->db->from('sales_order_replacement')
+						->group_start()->where('order_id', $b2b_id)->or_where('order_id', $webshop_id)->group_end()
+						->where_in('status', [0, 1, 2])
+						->count_all_results();
+					if ($pending_reps > 0) {
+						$has_other_hold = true;
+					}
+				}
+				if (!$has_other_hold) {
+					$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+						->where('payout_status', 3)
+						->update('b2b_orders', [
+							'status' => 17,
+							'payout_status' => 1,
+							'updated_at' => time()
+						]);
+					$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+						->where('payout_status !=', 3)
+						->update('b2b_orders', [
+							'status' => 17,
+							'updated_at' => time()
+						]);
+				} else {
+					$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+						->update('b2b_orders', [
+							'status' => 17,
+							'payout_status' => 3,
+							'updated_at' => time()
+						]);
+				}
 				$this->db->where('order_id', $webshop_id)->update('sales_order', ['status' => 17]);
 
 				$return_items = $this->db->select('order_item_id')->from('sales_order_return_items')->where('return_order_id', $return_id)->get()->result();

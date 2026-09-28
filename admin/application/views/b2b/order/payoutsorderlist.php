@@ -62,36 +62,23 @@
 								$orderDate = $order['purchase_timestamp'];
 								$daysDiff = floor(($today - $orderDate) / (60*60*24));
 								$payout_status = $order['payout_status'];
-
-								// Rule: If Order Status = 2, 8, or 9 → Payout must NOT be on hold, Payout should be Active, Admin can process payout
-								if (in_array((int)$order['status'], [2, 8, 9], true)) {
-									if ($payout_status == 3) {
-										$payout_status = 1;
-									}
-								}
+								$is_allowed = isset($order['is_payout_allowed']) ? (bool)$order['is_payout_allowed'] : ($payout_status != 3 && $payout_status != 4);
+								$blocked_reason = !empty($order['payout_blocked_reason']) ? $order['payout_blocked_reason'] : ($payout_status == 3 ? 'On Hold' : '');
+								$is_refunded = !empty($order['is_refunded']);
 
 								if($payout_status == 4){
 									$status = "Paid";
-								} elseif($payout_status == 3){
+								} elseif($payout_status == 3 || !$is_allowed){
 									$status = "On Hold";
 								} elseif($payout_status == 2){
 									$status = "Requested";
-								} elseif(in_array((int)$order['status'], [2, 8, 9, 17, 19, 20, 21], true) || $daysDiff >= 1){
+								} elseif($is_allowed && (in_array((int)$order['status'], [2, 8, 9, 17, 19, 21], true) || $daysDiff >= 1)){
 									$status = "To Pay";
 								} elseif($daysDiff == 0){
 									$status = "Pending";
 								} else {
 									$status = "Pending";
 								}
-
-								$is_allowed = isset($order['is_payout_allowed']) ? (bool)$order['is_payout_allowed'] : true;
-								if (in_array((int)$order['status'], [2, 8, 9], true)) {
-									$is_allowed = true;
-									$blocked_reason = '';
-								} else {
-									$blocked_reason = !empty($order['payout_blocked_reason']) ? $order['payout_blocked_reason'] : ($payout_status == 3 ? 'On Hold' : '');
-								}
-								$is_refunded = !empty($order['is_refunded']);
 
 								$disableCheckbox = ($payout_status == 4 || $payout_status == 3 || !$is_allowed) ? 'disabled' : '';
 

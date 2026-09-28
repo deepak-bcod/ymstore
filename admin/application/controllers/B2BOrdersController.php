@@ -12473,86 +12473,50 @@ class B2BOrdersController extends CI_Controller
 			return ['allowed' => false, 'reason' => 'Paid', 'is_refunded' => false, 'payout_status' => 4];
 		}
 
-		// Rule: If Order Status = 2, 8, or 9
-		// → Payout must NOT be on hold
-		// → Payout should be Active
-		// → Admin should be allowed to process the payout
-		if (in_array($b2b_status, [2, 8, 9], true)) {
-			if ($payout_status === 3) {
-				$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 1]);
-				$payout_status = 1;
-			}
-			return ['allowed' => true, 'reason' => '', 'is_refunded' => false, 'payout_status' => $payout_status];
-		}
-
 		$is_on_hold = false;
+		$hold_reason = 'On Hold';
+		$is_refund_done = false;
 
-		// 1. Check b2b sub-order status for pending / approved requests:
-		// Return Requested: 14, 16
-		// Return Approved: 22
-		// Replacement Requested: 15
-		// Replacement Approved: 18
-		// Refund in progress: 33
-		if (in_array($b2b_status, [14, 15, 16, 18, 22, 33], true)) {
-			$is_on_hold = true;
-		}
+		// -------------------------------------------------------------
+		// 1. Check Return requests in sales_order_return
+		// Per user rules:
+		// - Return Requested : Payout will be on hold
+		// - Return Approved  : Payout will be on hold
+		// - Refund Done      : Payouts will again become active
+		// - Return Rejected  : Payout will be on hold
+		// -------------------------------------------------------------
+		$returns = $this->db->select('return_order_id, status, refund_status')
+			->from('sales_order_return')
+			->where_in('order_id', $order_ids)
+			->get()
+			->result_array();
 
-		// 2. Check b2b_order_items for pending / approved return / replacement / refund status
-		// Only check if the order itself isn't already resolved (17=Refund Done, 19=Replaced, 20=Return Rejected, 21=Replacement Rejected)
-		if (!$is_on_hold && !in_array($b2b_status, [17, 19, 20, 21], true)) {
-			$item_hold_count = $this->db->from('b2b_order_items')
-				->where('order_id', $order_id)
-				->where_in('status', [14, 15, 16, 18, 22, 33])
-				->count_all_results();
-			if ($item_hold_count > 0) {
-				$is_on_hold = true;
-			}
-		}
-
-		// 3. Check sales_order_return for pending / approved returns
-		if (!$is_on_hold) {
-			$returns = $this->db->select('return_order_id, status, refund_status')
-				->from('sales_order_return')
-				->where_in('order_id', $order_ids)
-				->get()
-				->result_array();
-
+		if (!empty($returns)) {
 			foreach ($returns as $ret) {
 				$ret_st = (int)$ret['status'];
 				$ref_st = isset($ret['refund_status']) && $ret['refund_status'] !== null ? (int)$ret['refund_status'] : -1;
 
-				// Resolved conditions:
 				// Refund Done: refund_status == 1 OR status == 4
-				// Return/Refund Rejected: status in [2, 5, 20] OR refund_status == 2
-				$is_refund_done = ($ret_st === 4 || $ref_st === 1);
-				$is_ret_rejected = (in_array($ret_st, [2, 5, 20], true) || $ref_st === 2);
-
-				if ($is_refund_done || $is_ret_rejected) {
-					// Resolved -> do not place payout on hold
+				if ($ret_st === 4 || $ref_st === 1) {
+					$is_refund_done = true;
 					continue;
 				}
 
-				// Unresolved return requests:
-				// Return Requested: status in [0, 1, 2]
-				// Return Approved: status == 3 OR refund_status == 0
-				if (in_array($ret_st, [0, 1, 2, 3], true) || $ref_st === 0) {
-					$is_on_hold = true;
-					break;
-				}
-
-				// Check sales_order_return_items under this unresolved return
-				$ret_item_pending = $this->db->from('sales_order_return_items')
-					->where('return_order_id', $ret['return_order_id'])
-					->where_in('status', [0, 1, 3])
-					->count_all_results();
-				if ($ret_item_pending > 0) {
-					$is_on_hold = true;
-					break;
-				}
+				// Any return that is NOT Refund Done is ON HOLD (Return Requested, Return Approved, Return Rejected)
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+				break;
 			}
 		}
 
-		// 4. Check sales_order_replacement for pending / approved replacements
+		// -------------------------------------------------------------
+		// 2. Check Replacement requests in sales_order_replacement
+		// Per user rules:
+		// - Replacement Requested : Payout will be on hold
+		// - Replacement Approved  : Payout will be on hold
+		// - Replaced              : Payouts will again become active
+		// - Replacement Rejected  : Payouts will again become active
+		// -------------------------------------------------------------
 		if (!$is_on_hold) {
 			$replacements = $this->db->select('replacement_order_id, status')
 				->from('sales_order_replacement')
@@ -12560,58 +12524,80 @@ class B2BOrdersController extends CI_Controller
 				->get()
 				->result_array();
 
-			foreach ($replacements as $rep) {
-				$rep_st = (int)$rep['status'];
+			if (!empty($replacements)) {
+				foreach ($replacements as $rep) {
+					$rep_st = (int)$rep['status'];
 
-				// Resolved conditions:
-				// Replaced: status in [3, 5, 6]
-				// Replacement Rejected: status == 4
-				$is_replaced = in_array($rep_st, [3, 5, 6], true);
-				$is_rep_rejected = ($rep_st === 4);
+					// Replaced: status in [3, 5, 6] (resolved -> active)
+					// Replacement Rejected: status == 4 (resolved -> active)
+					if (in_array($rep_st, [3, 5, 6], true) || $rep_st === 4) {
+						continue;
+					}
 
-				if ($is_replaced || $is_rep_rejected) {
-					// Resolved -> do not place payout on hold
-					continue;
-				}
+					// Replacement Requested (0) or Replacement Approved (1, 2)
+					if (in_array($rep_st, [0, 1, 2], true)) {
+						$is_on_hold = true;
+						$hold_reason = 'On Hold';
+						break;
+					}
 
-				// Unresolved replacement requests:
-				// Replacement Requested: status == 0
-				// Replacement Approved: status in [1, 2]
-				if (in_array($rep_st, [0, 1, 2], true)) {
-					$is_on_hold = true;
-					break;
-				}
-
-				// Check sales_order_replacement_items under this unresolved replacement
-				$rep_item_pending = $this->db->from('sales_order_replacement_items')
-					->where('replacement_order_id', $rep['replacement_order_id'])
-					->where_in('status', [0, 1, 2])
-					->count_all_results();
-				if ($rep_item_pending > 0) {
-					$is_on_hold = true;
-					break;
+					// Check replacement items
+					$rep_item_pending = $this->db->from('sales_order_replacement_items')
+						->where('replacement_order_id', $rep['replacement_order_id'])
+						->where_in('status', [0, 1, 2])
+						->count_all_results();
+					if ($rep_item_pending > 0) {
+						$is_on_hold = true;
+						$hold_reason = 'On Hold';
+						break;
+					}
 				}
 			}
 		}
 
+		// -------------------------------------------------------------
+		// 3. Check b2b_orders status and b2b_order_items status
+		// -------------------------------------------------------------
+		if (!$is_on_hold) {
+			// Return Requested (14), Replacement Requested (15), Return Approved (16, 22), 
+			// Replacement Approved (18), Return Rejected (20, 31), Refund in Progress/Approved (32, 33)
+			if (in_array($b2b_status, [14, 15, 16, 18, 20, 22, 31, 32, 33], true)) {
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+			}
+		}
+
+		if (!$is_on_hold) {
+			$item_hold_count = $this->db->from('b2b_order_items')
+				->where('order_id', $order_id)
+				->where_in('status', [14, 15, 16, 18, 20, 22, 31, 32, 33])
+				->count_all_results();
+			if ($item_hold_count > 0) {
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+			}
+		}
+
+		// -------------------------------------------------------------
+		// 4. Update Database payout_status accordingly
+		// -------------------------------------------------------------
 		if ($is_on_hold) {
-			// Synchronize DB: Put Merchant payout ON HOLD (status 3) if not already 3 or 4
+			// Put Merchant payout ON HOLD (status 3) if not already 3 or 4
 			if ($payout_status !== 3 && $payout_status !== 4) {
 				$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 3]);
 				$payout_status = 3;
 			}
-			return ['allowed' => false, 'reason' => 'On Hold', 'is_refunded' => false, 'payout_status' => $payout_status];
+			return ['allowed' => false, 'reason' => $hold_reason, 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
 		}
 
-		// Customer request reached release status:
-		// Refund Done / Replacement Rejected / Replaced / Return Rejected / Normal completed order
-		// Release the held payout: Change payout status back to ACTIVE (1) if it was on hold (3)
+		// All return and replacement resolved or no hold condition:
+		// Release held payout back to ACTIVE (1) if it was on hold (3)
 		if ($payout_status === 3) {
 			$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 1]);
 			$payout_status = 1;
 		}
 
-		return ['allowed' => true, 'reason' => '', 'is_refunded' => false, 'payout_status' => $payout_status];
+		return ['allowed' => true, 'reason' => '', 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
 	}
 
 	public function isPayoutAllowed($order_id)

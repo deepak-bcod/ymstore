@@ -11471,10 +11471,137 @@ exit;*/
 		$LogindID = isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : '';
 		// print_r($LogindID);die;
 		$this->load->model('B2BOrdersModel');
-		$data['orders'] = $this->B2BOrdersModel->getPayoutOrders(10000,0,$LogindID); // load many at once
+		$orders = $this->B2BOrdersModel->getPayoutOrders(10000,0,$LogindID); // load many at once
+		if (!empty($orders)) {
+			foreach ($orders as &$order) {
+				$check = $this->checkPayoutEligibility($order['order_id']);
+				$order['is_payout_allowed'] = $check['allowed'];
+				$order['payout_blocked_reason'] = $check['reason'];
+				$order['is_refunded'] = $check['is_refunded'];
+				if (isset($check['payout_status'])) {
+					$order['payout_status'] = $check['payout_status'];
+				}
+			}
+		}
+		$data['orders'] = $orders;
 		$data['PageTitle'] = 'B2B - Orders';
 		$data['side_menu'] = 'b2b';
 		$this->load->view('b2b/order/payoutsorderlist', $data);
+	}
+
+	public function checkPayoutEligibility($order_id)
+	{
+		$order = $this->db->select('order_id, status, payout_status, webshop_order_id')->from('b2b_orders')->where('order_id', $order_id)->get()->row_array();
+		if (!$order) {
+			return ['allowed' => false, 'reason' => 'Order not found', 'is_refunded' => false, 'payout_status' => 1];
+		}
+
+		$b2b_status = (int)$order['status'];
+		$payout_status = isset($order['payout_status']) ? (int)$order['payout_status'] : 1;
+		$webshop_order_id = (int)$order['webshop_order_id'];
+		$order_ids = array_unique(array_filter([(int)$order_id, $webshop_order_id]));
+
+		// If payout is already Paid (4), keep as Paid
+		if ($payout_status === 4) {
+			return ['allowed' => false, 'reason' => 'Paid', 'is_refunded' => false, 'payout_status' => 4];
+		}
+
+		$is_on_hold = false;
+		$hold_reason = 'On Hold';
+		$is_refund_done = false;
+
+		// 1. Check Return requests in sales_order_return
+		$returns = $this->db->select('return_order_id, status, refund_status')
+			->from('sales_order_return')
+			->where_in('order_id', $order_ids)
+			->get()
+			->result_array();
+
+		if (!empty($returns)) {
+			foreach ($returns as $ret) {
+				$ret_st = (int)$ret['status'];
+				$ref_st = isset($ret['refund_status']) && $ret['refund_status'] !== null ? (int)$ret['refund_status'] : -1;
+
+				if ($ret_st === 4 || $ref_st === 1) {
+					$is_refund_done = true;
+					continue;
+				}
+
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+				break;
+			}
+		}
+
+		// 2. Check Replacement requests in sales_order_replacement
+		if (!$is_on_hold) {
+			$replacements = $this->db->select('replacement_order_id, status')
+				->from('sales_order_replacement')
+				->where_in('order_id', $order_ids)
+				->get()
+				->result_array();
+
+			if (!empty($replacements)) {
+				foreach ($replacements as $rep) {
+					$rep_st = (int)$rep['status'];
+
+					if (in_array($rep_st, [3, 5, 6], true) || $rep_st === 4) {
+						continue;
+					}
+
+					if (in_array($rep_st, [0, 1, 2], true)) {
+						$is_on_hold = true;
+						$hold_reason = 'On Hold';
+						break;
+					}
+
+					$rep_item_pending = $this->db->from('sales_order_replacement_items')
+						->where('replacement_order_id', $rep['replacement_order_id'])
+						->where_in('status', [0, 1, 2])
+						->count_all_results();
+					if ($rep_item_pending > 0) {
+						$is_on_hold = true;
+						$hold_reason = 'On Hold';
+						break;
+					}
+				}
+			}
+		}
+
+		// 3. Check b2b_orders status and b2b_order_items status
+		if (!$is_on_hold) {
+			if (in_array($b2b_status, [14, 15, 16, 18, 20, 22, 31, 32, 33], true)) {
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+			}
+		}
+
+		if (!$is_on_hold) {
+			$item_hold_count = $this->db->from('b2b_order_items')
+				->where('order_id', $order_id)
+				->where_in('status', [14, 15, 16, 18, 20, 22, 31, 32, 33])
+				->count_all_results();
+			if ($item_hold_count > 0) {
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+			}
+		}
+
+		// 4. Update Database payout_status accordingly
+		if ($is_on_hold) {
+			if ($payout_status !== 3 && $payout_status !== 4) {
+				$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 3]);
+				$payout_status = 3;
+			}
+			return ['allowed' => false, 'reason' => $hold_reason, 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
+		}
+
+		if ($payout_status === 3) {
+			$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 1]);
+			$payout_status = 1;
+		}
+
+		return ['allowed' => true, 'reason' => '', 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
 	}
 
 	// public function hold_payout_bulk()
