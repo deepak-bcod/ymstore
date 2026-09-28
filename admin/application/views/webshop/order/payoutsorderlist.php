@@ -63,22 +63,22 @@
             if($payout_status == 4){
                 $status = lang('paid');
             } elseif($payout_status == 3){
-                $status = lang('disputed');
+                $status = 'On Hold';
             } elseif($payout_status == 2){
                 $status = lang('requested');
             } else {
                 $status = lang('not_paid');
             }
         ?>
-        <tr class="<?= ($order['payout_status'] == 4) ? 'table-secondary' : '' ?>">
+        <tr class="<?= ($order['payout_status'] == 4 || $order['payout_status'] == 3) ? 'table-secondary' : '' ?>">
             <td>
                 <input type="checkbox" class="order_select" value="<?= $order['order_id']; ?>" 
                        data-publisher="<?= $order['publisher_id']; ?>" 
-                       <?= ($order['payout_status'] == 4) ? 'disabled' : ''; ?>>
+                       <?= ($order['payout_status'] == 4 || $order['payout_status'] == 3) ? 'disabled' : ''; ?>>
             </td>
 
             <td>
-                <?php if ($payout_status != 4) { ?>
+                <?php if ($payout_status != 4 && $payout_status != 3) { ?>
                     <button href="javascript:void(0);" 
                        class="single-request-btn" 
                        

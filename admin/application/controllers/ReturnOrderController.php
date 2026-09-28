@@ -392,15 +392,12 @@ class ReturnOrderController extends CI_Controller {
 			$wher_arr=array('return_order_id'=>$return_order_id);
 			$this->ReturnOrderModel->updateData('sales_order_return', $wher_arr,$nameUpdate);
 
-			// Update b2b_orders status to 20 (Return Rejected) and release held payout to active (1)
+			// Update b2b_orders status to 20 (Return Rejected) and keep/put payout ON HOLD (3)
 			$ret_order = $this->db->select('order_id')->from('sales_order_return')->where('return_order_id', $return_order_id)->get()->row();
 			if ($ret_order && !empty($ret_order->order_id)) {
 				$this->db->where('order_id', $ret_order->order_id)
-					->where('payout_status', 3)
-					->update('b2b_orders', ['status' => 20, 'payout_status' => 1, 'updated_at' => time()]);
-				$this->db->where('order_id', $ret_order->order_id)
-					->where('payout_status !=', 3)
-					->update('b2b_orders', ['status' => 20, 'updated_at' => time()]);
+					->where('payout_status !=', 4)
+					->update('b2b_orders', ['status' => 20, 'payout_status' => 3, 'updated_at' => time()]);
 			}
 
 			$arrResponse  = array('status' =>200 ,'message'=>'Request rejected successfully.');
@@ -740,7 +737,33 @@ class ReturnOrderController extends CI_Controller {
 			$ret_order = $this->db->select('order_id')->from('sales_order_return')->where('return_order_id', $return_order_id)->get()->row();
 			if ($ret_order && !empty($ret_order->order_id)) {
 				$this->db->where('order_id', $ret_order->order_id)->update('b2b_orders', ['status' => 17, 'updated_at' => time()]);
-				$this->db->where('order_id', $ret_order->order_id)->where('payout_status', 3)->update('b2b_orders', ['payout_status' => 1]);
+
+				// Check if there are other unresolved returns or replacements on this order before releasing payout
+				$has_other_hold = false;
+				$other_returns = $this->db->select('return_order_id, status, refund_status')
+					->from('sales_order_return')
+					->where('order_id', $ret_order->order_id)
+					->where('return_order_id !=', $return_order_id)
+					->get()->result_array();
+				foreach ($other_returns as $oret) {
+					if ($oret['status'] != 4 && (!isset($oret['refund_status']) || $oret['refund_status'] != 1)) {
+						$has_other_hold = true;
+						break;
+					}
+				}
+				if (!$has_other_hold) {
+					$pending_reps = $this->db->from('sales_order_replacement')
+						->where('order_id', $ret_order->order_id)
+						->where_in('status', [0, 1, 2])
+						->count_all_results();
+					if ($pending_reps > 0) {
+						$has_other_hold = true;
+					}
+				}
+				if (!$has_other_hold) {
+					$this->db->where('order_id', $ret_order->order_id)->where('payout_status', 3)->update('b2b_orders', ['payout_status' => 1]);
+				}
+
 				$return_items = $this->db->select('order_item_id')->from('sales_order_return_items')->where('return_order_id', $return_order_id)->get()->result();
 				if (!empty($return_items)) {
 					$order_item_ids = array_map(function($i) { return $i->order_item_id; }, $return_items);
@@ -1780,7 +1803,9 @@ class ReturnOrderController extends CI_Controller {
 
 			$ret_order = $this->db->select('order_id')->from('sales_order_return')->where('return_order_id', $return_order_id)->get()->row();
 			if ($ret_order && !empty($ret_order->order_id)) {
-				$this->db->where('order_id', $ret_order->order_id)->update('b2b_orders', ['status' => 31, 'updated_at' => time()]);
+				$this->db->where('order_id', $ret_order->order_id)
+					->where('payout_status !=', 4)
+					->update('b2b_orders', ['status' => 31, 'payout_status' => 3, 'updated_at' => time()]);
 				$return_items = $this->db->select('order_item_id')->from('sales_order_return_items')->where('return_order_id', $return_order_id)->get()->result();
 				if (!empty($return_items)) {
 					$order_item_ids = array_map(function($i) { return $i->order_item_id; }, $return_items);

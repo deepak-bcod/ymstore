@@ -55,33 +55,19 @@
 			
 
             $payout_status = $order['payout_status'];
-
-            // Rule: If Order Status = 2, 8, or 9 → Payout must NOT be on hold, Payout should be Active, Merchant can request
-            if (in_array((int)$order['status'], [2, 8, 9], true)) {
-                if ($payout_status == 3) {
-                    $payout_status = 1;
-                }
-            }
+            $is_allowed = isset($order['is_payout_allowed']) ? (bool)$order['is_payout_allowed'] : ($payout_status != 3 && $payout_status != 4);
+            $disable_reason = !empty($order['payout_blocked_reason']) ? $order['payout_blocked_reason'] : ($payout_status == 3 ? 'On Hold' : '');
+            $is_refunded = !empty($order['is_refunded']);
 
             if($payout_status == 4){
                 $status = lang('paid');
-            } elseif($payout_status == 3){
+            } elseif($payout_status == 3 || !$is_allowed){
                 $status = 'On Hold';
             } elseif($payout_status == 2){
                 $status = lang('requested');
             } else {
                 $status = lang('not_paid');
             }
-
-            // Return, Refund, and Replacement Rules for Payment Request
-            $is_allowed = isset($order['is_payout_allowed']) ? (bool)$order['is_payout_allowed'] : true;
-            if (in_array((int)$order['status'], [2, 8, 9], true)) {
-                $is_allowed = true;
-                $disable_reason = '';
-            } else {
-                $disable_reason = !empty($order['payout_blocked_reason']) ? $order['payout_blocked_reason'] : ($payout_status == 3 ? 'On Hold' : '');
-            }
-            $is_refunded = !empty($order['is_refunded']);
 
             if (isset($LANG) && $LANG == 'french' && !empty($disable_reason)) {
                 $disable_reason = "En attente";
