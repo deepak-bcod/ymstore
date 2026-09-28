@@ -896,102 +896,125 @@ class HomeController extends CI_Controller
         $data['faq_list'] = $this->CommonModel->getFaqData('Shopper');
         // echo "<pre>";print_r($data);die;
         $this->load->view('common/faqs', $data);
+        
 
     }
-    
     public function faqs_post()
-    {
-        header('Content-Type: application/json');
+{
+    header('Content-Type: application/json');
 
-        // 1️⃣ Get POST values safely
-        $name     = trim($this->input->post('name'));
-        $email    = trim($this->input->post('email'));
-        $question = trim($this->input->post('question'));
-        $recaptchaResponse = $this->input->post('g-recaptcha-response');
+    // 1. Get POST values
+    $name     = trim($this->input->post('name'));
+    $email    = trim($this->input->post('email'));
+    $question = trim($this->input->post('question'));
+    $recaptchaResponse = $this->input->post('g-recaptcha-response');
 
-        // 2️⃣ Validation
-        if (empty($name)) {
-            echo json_encode(['flag' => 0, 'msg' => 'Name is required.']);
-            return;
-        }
+    // 2. Validation
+    if (empty($name)) {
+        echo json_encode(['flag' => 0, 'msg' => 'Name is required.']);
+        return;
+    }
 
-        if (strlen($name) < 3) {
-            echo json_encode(['flag' => 0, 'msg' => 'Name must be at least 3 characters.']);
-            return;
-        }
+    if (strlen($name) < 3) {
+        echo json_encode(['flag' => 0, 'msg' => 'Name must be at least 3 characters.']);
+        return;
+    }
 
-        if (empty($email)) {
-            echo json_encode(['flag' => 0, 'msg' => 'Email is required.']);
-            return;
-        }
+    if (empty($email)) {
+        echo json_encode(['flag' => 0, 'msg' => 'Email is required.']);
+        return;
+    }
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            echo json_encode(['flag' => 0, 'msg' => 'Please enter a valid email address.']);
-            return;
-        }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(['flag' => 0, 'msg' => 'Please enter a valid email address.']);
+        return;
+    }
 
-        if (empty($question)) {
-            echo json_encode(['flag' => 0, 'msg' => 'Please enter your question.']);
-            return;
-        }
+    if (empty($question)) {
+        echo json_encode(['flag' => 0, 'msg' => 'Please enter your question.']);
+        return;
+    }
 
-        // if (strlen($question) < 10) {
-        //     echo json_encode(['flag' => 0, 'msg' => 'Question must be at least 10 characters long.']);
-        //     return;
-        // }
+    // 3. reCAPTCHA validation
+    if (empty($recaptchaResponse)) {
+        echo json_encode(['flag' => 0, 'msg' => 'Please complete the reCAPTCHA.']);
+        return;
+    }
 
-        // 3️⃣ reCAPTCHA validation
-        if (empty($recaptchaResponse)) {
-            echo json_encode(['flag' => 0, 'msg' => 'Please complete the reCAPTCHA.']);
-            return;
-        }
+    $verifyResponse = file_get_contents(
+        'https://www.google.com/recaptcha/api/siteverify?secret=' .
+        RECAPTCHA_SECRETE_KEY_V2 .
+        '&response=' . urlencode($recaptchaResponse)
+    );
 
-        $verifyResponse = file_get_contents(
-            'https://www.google.com/recaptcha/api/siteverify?secret=' .
-            RECAPTCHA_SECRETE_KEY_V2 .
-            '&response=' . $recaptchaResponse
-        );
+    $responseData = json_decode($verifyResponse);
 
-        $responseData = json_decode($verifyResponse);
+    if (empty($responseData->success)) {
+        echo json_encode([
+            'flag' => 0,
+            'msg' => 'reCAPTCHA verification failed.'
+        ]);
+        return;
+    }
 
-        if (empty($responseData->success) || !$responseData->success) {
-            echo json_encode(['flag' => 0, 'msg' => 'reCAPTCHA verification failed.']);
-            return;
-        }
+    // 4. Prepare FAQ data
+    $site_lang = $this->session->userdata('site_lang') ?? 'english';
+    $is_french = ($site_lang == 'french' || $site_lang == 'fr');
 
-        // 4️⃣ Insert Data
-        $site_lang = $this->session->userdata('site_lang') ?? 'english';
-        $is_french = ($site_lang == 'french' || $site_lang == 'fr');
+    $postArr = [
+        'name'        => $name,
+        'email'       => $email,
+        'question'    => $is_french ? '' : $question,
+        'question_fr' => $is_french ? $question : '',
+        'faq_type'    => 'Shopper',
+        'created_at'  => time(),
+        'ip'          => $this->input->ip_address(),
+    ];
 
-        $postArr = [
-            'name'        => $name,
-            'email'       => $email,
-            'question'    => $is_french ? '' : $question,
-            'question_fr' => $is_french ? $question : '',
-            'faq_type'    => 'Shopper',
-            'created_at'  => time(),
-            'ip'          => $this->input->ip_address(),
+    // 5. Insert FAQ
+    $this->db->insert('faqs', $postArr);
+
+    if ($this->db->affected_rows() > 0) {
+
+        // Get inserted FAQ ID
+        $faq_id = $this->db->insert_id();
+
+        // 6. Insert Admin Notification
+        $this->load->model('Notification_model');
+
+        $notification_data = [
+            'type'          => 'faq',
+            'subtype'       => 'new_faq_request',
+            'recipient_type'=> 'admin',
+            'recipient_id'  => NULL,
+            'title'         => 'New FAQ Request',
+            'message'       => 'FAQ request by ' . $name . ' - Shopper',
+            'data'          => [
+                'faq_id'       => $faq_id,
+                'shopper_name' => $name,
+                'shopper_email'=> $email,
+                'question'     => $question,
+                'faq_type'     => 'Shopper'
+            ],
+            'is_read'       => 0
         ];
 
-        $this->db->insert('faqs', $postArr);
+        $this->Notification_model->insert($notification_data);
 
-        if ($this->db->affected_rows() > 0) {
+        // 7. Success response
+        echo json_encode([
+            'flag' => 1,
+            'msg'  => $this->lang->line('faq_question_submitted')
+        ]);
 
-            echo json_encode([
-                'flag' => 1,
-               'msg'  => $this->lang->line('faq_question_submitted')
-            ]);
+    } else {
 
-        } else {
-
-            echo json_encode([
-                'flag' => 0,
-                'msg'  => 'Failed to submit ticket. Please try again.'
-            ]);
-        }
+        echo json_encode([
+            'flag' => 0,
+            'msg'  => 'Failed to submit ticket. Please try again.'
+        ]);
     }
-
-    
+}
     public function approve_merchant()
     {
         $id = $this->input->post('merchant_id');
