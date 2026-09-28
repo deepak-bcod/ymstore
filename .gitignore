@@ -1,0 +1,66 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache / temporary files
+/cache/
+/tmp/
+/temp/
+
+# CodeIgniter
+application/cache/*
+!application/cache/index.html
+
+application/logs/*
+!application/logs/index.html
+
+# Uploaded/generated files
+uploads/*
+!uploads/index.html
+
+# Runtime/session files
+application/sessions/*
+!application/sessions/index.html
+
+# Local configuration
+*.local.php
+config.local.php
+
+# Backup/database files
+*.sql
+*.sql.gz
+*.zip
+*.tar
+*.tar.gz
+
+# PHPUnit / coverage
+.phpunit.result.cache
+.phpunit.cache/
+coverage/
+
+# Frontend build files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Composer
+composer.phar

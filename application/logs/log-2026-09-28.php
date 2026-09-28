@@ -6036,3 +6036,68 @@ ERROR - 2026-09-28 11:11:37 --> Severity: Warning --> Undefined property: stdCla
 ERROR - 2026-09-28 11:11:37 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
 ERROR - 2026-09-28 11:11:37 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
 ERROR - 2026-09-28 11:12:43 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:12:44 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:12:44 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:12:44 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:12:45 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:12:46 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:12:46 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:12:46 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:13:26 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:13:26 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:13:27 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:13:27 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:14:15 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:14:16 --> Severity: Warning --> Undefined property: stdClass::$CategoryDetails /var/www/ymstore/application/controllers/ProductsController.php 227
+ERROR - 2026-09-28 11:14:16 --> Severity: Warning --> Attempt to read property "cat_description" on null /var/www/ymstore/application/controllers/ProductsController.php 227
+ERROR - 2026-09-28 11:14:17 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:14:17 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:18 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:14:27 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:14:31 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:14:31 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:14:32 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:14:32 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:14:50 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:14:51 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:14:51 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:14:51 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:15:01 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:16:10 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:16:11 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:16:11 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:16:11 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:16:49 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:16:49 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:16:49 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:16:49 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:17:26 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:17:27 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:17:28 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:17:28 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:18:01 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:18:02 --> Severity: Warning --> Undefined property: stdClass::$CategoryDetails /var/www/ymstore/application/controllers/ProductsController.php 227
+ERROR - 2026-09-28 11:18:02 --> Severity: Warning --> Attempt to read property "cat_description" on null /var/www/ymstore/application/controllers/ProductsController.php 227
+ERROR - 2026-09-28 11:18:02 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:18:03 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$price_sorting_configurable /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:03 --> Severity: Warning --> Undefined property: stdClass::$min_price /var/www/ymstore/application/presenters/BasePresenter.php 15
+ERROR - 2026-09-28 11:18:06 --> Cache: Failed to initialize APC; extension not loaded/enabled?
+ERROR - 2026-09-28 11:18:06 --> Could not find the language line "search_for_products_and_more"
+ERROR - 2026-09-28 11:18:07 --> Severity: Warning --> Undefined array key 0 /var/www/ymstore/application/views/product/product_list.php 137
+ERROR - 2026-09-28 11:18:07 --> Severity: Warning --> Attempt to read property "attr_options_name" on null /var/www/ymstore/application/views/product/product_list.php 137
