@@ -1,9 +1,6 @@
 <?php if (!empty($shops)): ?>
 
 <style>
-    /* =====================================
-       PRODUCT GRID
-    ===================================== */
 
     .category-product .product-item {
         height: auto !important;
@@ -35,10 +32,6 @@
     }
 
 
-    /* =====================================
-       VIEW PRODUCT BUTTON WRAPPER
-    ===================================== */
-
     .category-product .view-product-wrapper {
         display: block !important;
         width: 100% !important;
@@ -54,11 +47,6 @@
         overflow: visible !important;
     }
 
-
-    /* =====================================
-       VIEW PRODUCT BUTTON - DEFAULT
-    ===================================== */
-
     .category-product .view-product-btn {
         display: block !important;
 
@@ -72,12 +60,11 @@
         padding: 10px 15px !important;
         margin: 0 !important;
 
-        /* White button with grey border */
         background: #ffffff !important;
         border: 1px solid #777777 !important;
         border-radius: 3px !important;
 
-        /* Text */
+      
         color: #555555 !important;
         font-size: 16px !important;
         font-weight: 400 !important;
@@ -92,10 +79,6 @@
     }
 
 
-    /* =====================================
-       VIEW PRODUCT BUTTON - HOVER
-    ===================================== */
-
     .category-product .view-product-btn:hover,
     .category-product .view-product-btn:focus {
         background: #1261d5 !important;
@@ -106,11 +89,6 @@
 
         outline: none !important;
     }
-
-
-    /* =====================================
-       PREVENT PRODUCT CONTENT CLIPPING
-    ===================================== */
 
     .category-product .product-item,
     .category-product .product-item-info,
@@ -260,8 +238,8 @@
                             <div class="view-product-wrapper">
 
                                 <a href="<?php echo BASE_URL . 'product-detail/' . $product->url_key; ?>"
-                                class="view-product-btn">
-                                    View Product
+                                    class="view-product-btn">
+                                        <?php echo $this->lang->line('view_details'); ?>
                                 </a>
 
                             </div>
