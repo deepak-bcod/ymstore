@@ -110,13 +110,20 @@ if (!empty($cart_response) && isset($cart_response) && $cart_response->is_succes
 
 
         <a href="javascript:void(0);" class="top-cart-info-value">
-            <?php 
-if (is_object($CartData) && isset($CartData->cartDetails->base_grand_total)) {
-    echo ($CartData->cartDetails->base_grand_total > 0) ? 'MUR ' . $CartData->cartDetails->base_grand_total : 'MUR 0';
-} else {
-    echo 'MUR 0';
-}
-?></a>
+    <?php 
+    if (is_object($CartData) && isset($CartData->cartDetails->base_grand_total)) {
+
+        $grand_total = (float) $CartData->cartDetails->base_grand_total;
+
+        echo ($grand_total > 0)
+            ? 'MUR ' . number_format($grand_total, 2)
+            : 'MUR 0.00';
+
+    } else {
+        echo 'MUR 0.00';
+    }
+    ?>
+</a>
     </div>
     <i class="fa fa-shopping-cart"></i>
 

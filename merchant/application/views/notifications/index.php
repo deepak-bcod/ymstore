@@ -154,11 +154,51 @@
             
                                     case 'order':
 
+                                    // ==========================================
+                                    // ORDER DELIVERED
+                                    // ==========================================
+                                    if (stripos($raw_msg, 'Delivered to Shopper') !== false) {
+
+                                        // Get ES order number
+                                        preg_match('/ES-\d+/i', $raw_msg, $matches);
+
+                                        $orderNo = !empty($matches[0]) ? $matches[0] : '';
+
+                                        // French title
+                                        $title = 'Commande livrée';
+
+                                        // French message
+                                        if ($orderNo != '') {
+
+                                            $msg = 'La commande ' . $orderNo . ' a été livrée au client.';
+
+                                        } else {
+
+                                            $msg = 'La commande a été livrée au client.';
+                                        }
+
+                                    } else {
+
+                                        // ==========================================
+                                        // NORMAL NEW ES ORDER
+                                        // ==========================================
+
                                         $title = lang('notif_order_title');
 
-                                        $msg = str_replace(["You have received a new ES order", "from"], ["Vous avez reçu une nouvelle commande ES ", "de"], $raw_msg);
+                                        $msg = str_replace(
+                                            [
+                                                "You have received a new ES order",
+                                                "from"
+                                            ],
+                                            [
+                                                "Vous avez reçu une nouvelle commande ES ",
+                                                "de"
+                                            ],
+                                            $raw_msg
+                                        );
+                                    }
 
-                                        break;
+                                    break;
 
 
 
@@ -216,6 +256,22 @@
                                             $raw_msg
                                         );
 
+                                        break;
+                                    case 'es_order':
+
+                                        // Pickup received
+                                        if ($subtype == 'pickup_received') {
+
+                                            preg_match('/ES-\d+/i', $raw_title, $matches);
+
+                                            $orderNo = !empty($matches[0]) ? $matches[0] : '';
+
+                                            $title = '#' . $orderNo . ' reçu à l’entrepôt YM';
+
+                                            $msg = '#' . $orderNo . ' reçu à l’entrepôt YM';
+                                        }
+
+                                        
                                         break;
 
 
