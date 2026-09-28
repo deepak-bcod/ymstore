@@ -236,10 +236,13 @@
         <hr>
 
         <div class="d-flex justify-content-between fw-bold">
-			<div class="">
-				<label class="form-label fw-bold">Transaction ID</label>
-				 <input type="text" class="form-control" id="transactionId" required>
-			</div>
+			<div>
+            <label class="form-label fw-bold">
+                Transaction ID <span class="text-danger">*</span>
+            </label>
+
+            <input type="text" class="form-control" id="transactionId" name="transactionId" required >
+        </div>
 			<div class="">
 				<span id="totalPayableText"></span>
 			</div>
@@ -490,41 +493,56 @@
     // Pay Confirm
     $("#payConfirmBtn").click(function () {
 
-        let ids = $("#selectedOrderIds").val();
+    let ids = $("#selectedOrderIds").val();
 
-        let bankName = $("#bankName").val();
-        let branchNo = $("#branchNo").val();
-        let beneficiary = $("#beneficiaryName").val();
-        let beneficiaryAccNo = $("#beneficiaryAccNo").val();
-        let swift = $("#swiftCode").val();
-        let bank_address = $("#bank_address").val();
-        let iban = $("#iban").val();
+    let bankName = $("#bankName").val().trim();
+    let branchNo = $("#branchNo").val().trim();
+    let beneficiary = $("#beneficiaryName").val().trim();
+    let beneficiaryAccNo = $("#beneficiaryAccNo").val().trim();
+    let swift = $("#swiftCode").val().trim();
+    let bank_address = $("#bank_address").val().trim();
+    let iban = $("#iban").val().trim();
 
-        let comment = $("#comment").val();
-        let utr = $("#transactionId").val();
-        let total_amount = $("#totalPayableText").text();
+    let comment = $("#comment").val().trim();
+    let utr = $("#transactionId").val().trim();
+    let total_amount = $("#totalPayableText").text();
 
-        $.ajax({
-            url: BASE_URL + "B2BOrdersController/pay_payout",
-            type: "POST",
-            data: {
-                ids: ids,
-                bank_name: bankName,
-                branch_no: branchNo,
-                beneficiary: beneficiary,
-                beneficiary_acc_no: beneficiaryAccNo,
-                bank_address: bank_address,
-                iban: iban,
-                swift: swift,
-                comment: comment,
-                utr_no: utr,
-                total_amount: total_amount
-            },
-            success: function (res) {
-                location.reload();
-            }
+    // Transaction ID is compulsory
+    if (utr === '') {
+        $("#transactionId").addClass("is-invalid").focus();
+
+        Swal.fire({
+            icon: "warning",
+            title: "Transaction ID Required",
+            text: "Please enter the Transaction ID before marking the payout as PAID."
         });
+
+        return false;
+    }
+
+    $("#transactionId").removeClass("is-invalid");
+
+    $.ajax({
+        url: BASE_URL + "B2BOrdersController/pay_payout",
+        type: "POST",
+        data: {
+            ids: ids,
+            bank_name: bankName,
+            branch_no: branchNo,
+            beneficiary: beneficiary,
+            beneficiary_acc_no: beneficiaryAccNo,
+            bank_address: bank_address,
+            iban: iban,
+            swift: swift,
+            comment: comment,
+            utr_no: utr,
+            total_amount: total_amount
+        },
+        success: function (res) {
+            location.reload();
+        }
     });
+});
 
 
 	$("#bulk_hold").click(function(){
