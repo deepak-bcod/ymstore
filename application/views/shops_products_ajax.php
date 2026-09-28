@@ -91,6 +91,16 @@
                                     <?php endif; ?>
                                 </div>
 
+                                <!-- View Product button -->
+    <div class="bottom-action" style="margin-top: 15px; text-align: center;">
+
+        <a href="<?php echo BASE_URL . 'product-detail/' . $product->url_key; ?>"
+           class="btn btn-primary view-product-btn">
+            View Product
+        </a>
+
+    </div>
+
 
 
                             <!-- Add to cart button -->
@@ -100,16 +110,7 @@
                                 <button type="submit" id="add_to_cart" class="btn btn-primary subscr-now pull-left">Add To Cart</button>
 
                             </div> -->
-<!-- View Product Button -->
-<div class="bottom-action" style="margin-top: 15px; text-align: center;">
 
-    <a href="<?php echo BASE_URL . 'product-detail/' . $product->url_key; ?>"
-       class="btn btn-primary"
-       style="display: inline-block; padding: 10px 25px; border-radius: 4px; text-decoration: none;">
-        View Product
-    </a>
-
-</div>
                         </div>
 
                     </div>
