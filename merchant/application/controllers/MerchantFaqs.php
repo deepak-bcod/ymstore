@@ -70,113 +70,52 @@ class MerchantFaqs extends CI_Controller {
         $this->load->view('faqsadd', $data);
     }
     
-    public function save()
-{
-    $this->output->set_content_type('application/json');
+    public function save() {
+        
+        $this->output->set_content_type('application/json');
 
-    $question    = $this->input->post('question', TRUE);
-    $question_fr = $this->input->post('question_fr', TRUE);
+        $question = $this->input->post('question', TRUE);
+        $question_fr = $this->input->post('question_fr', TRUE);
 
-    if (empty($question)) {
-        echo json_encode([
-            'status'  => 'error',
-            'message' => $this->lang->line('faq_question_required')
-        ]);
-        return;
-    }
+        
 
-    $merchant_id = $this->session->userdata('LoginID');
+        $merchant_id = $this->session->userdata('LoginID');
+        $this->load->model('UserModel');
+        $user = $this->UserModel->getUserByMerchantId($merchant_id);
 
-    $this->load->model('UserModel');
+        $merchant_name  = (!empty($user) && !empty($user->vendor_name)) ? $user->vendor_name : 'Merchant';
+        $merchant_email = (!empty($user) && !empty($user->email)) ? $user->email : $this->session->userdata('EmailID');
 
-    $user = $this->UserModel->getUserByMerchantId($merchant_id);
+        if (empty($merchant_email)) {
+            echo json_encode([
+                'status'  => 'error',
+                'message' => $this->lang->line('merchant_email_not_found')
+            ]);
+            return;
+        }
 
-    $merchant_name  = (!empty($user) && !empty($user->vendor_name))
-        ? $user->vendor_name
-        : 'Merchant';
-
-    $merchant_email = (!empty($user) && !empty($user->email))
-        ? $user->email
-        : $this->session->userdata('EmailID');
-
-    if (empty($merchant_email)) {
-        echo json_encode([
-            'status'  => 'error',
-            'message' => $this->lang->line('merchant_email_not_found')
-        ]);
-        return;
-    }
-
-    $insert_data = [
-        'name'       => $merchant_name,
-        'email'      => $merchant_email,
-        'question'   => $question,
-        'question_fr'=> $question_fr,
-        'answer'     => NULL,
-        'faq_type'   => 'Merchant',
-        'status'     => 0,
-        'created_at' => time(),
-        'ip'         => $this->input->ip_address()
-    ];
-
-    /*
-     * Insert FAQ
-     */
-    if ($this->FaqModel->insert_faq($insert_data)) {
-
-        /*
-         * ==========================================
-         * ADMIN NOTIFICATION - NEW FAQ REQUEST
-         * ==========================================
-         */
-
-        $notificationData = [
-            'type'           => 'faq',
-            'subtype'        => 'new_faq_request',
-            'recipient_type' => 'admin',
-
-            'title'          => 'New FAQ Request',
-
-            'message'        => 'New FAQ added by ' . $merchant_name,
-
-            'data'           => json_encode([
-                'merchant_id'    => $merchant_id,
-                'merchant_name'  => $merchant_name,
-                'merchant_email' => $merchant_email,
-                'question'       => $question
-            ]),
-
-            'created_at'      => time()
+        $insert_data = [
+            'name'       => $merchant_name,
+            'email'      => $merchant_email,
+            'question'   => $question,
+            'question_fr'   => $question_fr,
+            'answer'     => NULL,
+            'faq_type'   => 'Merchant', 
+            'status'     => 0,           // 0 = Pending review
+            'created_at' => time(),
+            'ip'         => $this->input->ip_address()
         ];
 
-        /*
-         * Insert notification
-         *
-         * Change NotificationModel name/function below
-         * if your project uses a different notification model.
-         */
-        $this->load->model('NotificationModel');
-
-        $this->NotificationModel->insert_notification($notificationData);
-
-
-        /*
-         * ==========================================
-         * SUCCESS RESPONSE
-         * ==========================================
-         */
-
-        echo json_encode([
-            'status'  => 'success',
-            'message' => $this->lang->line('faq_added_success')
-        ]);
-
-    } else {
-
-        echo json_encode([
-            'status'  => 'error',
-            'message' => $this->lang->line('database_error')
-        ]);
+        if ($this->FaqModel->insert_faq($insert_data)) {
+            echo json_encode([
+                'status'  => 'success',
+                'message' => $this->lang->line('faq_added_success')
+            ]);
+        } else {
+            echo json_encode([
+                'status'  => 'error',
+                'message' => $this->lang->line('database_error')
+            ]);
+        }
     }
-}
 }
