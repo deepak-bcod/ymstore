@@ -259,19 +259,29 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
                         break;
                     case 'es_order':
 
-    // Pickup received to YM Warehouse
-    if ($subtype == 'pickup_received') {
+   
+                        if ($subtype == 'pickup_received') {
 
-        preg_match('/ES-\d+/i', $display_title, $matches);
+                            preg_match('/ES-\d+/i', $display_title, $matches);
 
-        $orderNo = !empty($matches[0]) ? $matches[0] : '';
+                            $orderNo = !empty($matches[0]) ? $matches[0] : '';
 
-        $display_title = '#' . $orderNo . ' reçu à l’entrepôt YM';
+                            $display_title = '#' . $orderNo . ' reçu à l’entrepôt YM';
 
-        $display_msg = '#' . $orderNo . ' reçu à l’entrepôt YM';
-    }
+                            $display_msg = '#' . $orderNo . ' reçu à l’entrepôt YM';
+                        }
 
-    break;
+                        break;
+                    case 'payout':
+                        $title = 'Paiement effectué';
+                        $msg = str_replace("Your payout has been successfully paid for", "Votre paiement a été effectué avec succès pour", $raw_msg);
+
+                        break;
+
+                                    
+
+                                       
+
                 }
             }
         ?>
