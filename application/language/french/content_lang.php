@@ -1152,6 +1152,7 @@ $lang['name'] = 'Nombre';
 $lang['category'] = 'Catégorie';
 $lang['select_category'] = 'Sélectionner une catégorie';
 $lang['merchant_delivery'] = 'Entrega de comerciante';
+$lang['general_enquiry_product'] = 'General Product Enquiry';
 $lang['message'] = 'Message';
 $lang['save_button'] = 'Sauvegarder';
 $lang['change_password_title'] = 'Changer le mot de passe';
