@@ -111,9 +111,13 @@ class Giftcards extends CI_Controller
                 }
             });
 
-            if (class_exists('\\phpseclib3\\Crypt\\RSA')) $rsaClass = '\\phpseclib3\\Crypt\\RSA';
-            elseif (class_exists('\\phpseclib\\Crypt\\RSA')) $rsaClass = '\\phpseclib3\\Crypt\\RSA';
-            else show_error('phpseclib RSA class not found.');
+            if (class_exists('\\phpseclib3\\Crypt\\RSA')) {
+                $rsaClass = '\\phpseclib3\\Crypt\\RSA';
+            } elseif (class_exists('\\phpseclib\\Crypt\\RSA')) {
+                $rsaClass = '\\phpseclib\\Crypt\\RSA';
+            } else {
+                show_error('phpseclib RSA class not found.');
+            }
         }
 
         $rsa = new $rsaClass();
