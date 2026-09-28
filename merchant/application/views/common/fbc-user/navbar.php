@@ -146,51 +146,46 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
 
                     case 'order':
 
-    // ==========================================
-    // ORDER DELIVERED
-    // ==========================================
+    
 
-    if (stripos($display_msg, 'Delivered to Shopper') !== false) {
+                        if (stripos($display_msg, 'Delivered to Shopper') !== false) {
 
-        preg_match('/ES-\d+/i', $display_msg, $matches);
+                            preg_match('/ES-\d+/i', $display_msg, $matches);
 
-        $orderNo = !empty($matches[0]) ? $matches[0] : '';
+                            $orderNo = !empty($matches[0]) ? $matches[0] : '';
 
-        $display_title = 'Commande livrée';
+                            $display_title = 'Commande livrée';
 
-        if ($orderNo != '') {
+                            if ($orderNo != '') {
 
-            $display_msg = 'La commande ' . $orderNo . ' a été livrée au client.';
+                                $display_msg = 'La commande ' . $orderNo . ' a été livrée au client.';
 
-        } else {
+                            } else {
 
-            $display_msg = 'La commande a été livrée au client.';
-        }
+                                $display_msg = 'La commande a été livrée au client.';
+                            }
 
-    } else {
+                        } else {
 
-        // ==========================================
-        // NORMAL ES ORDER
-        // ==========================================
 
-        $display_title = 'Nouvelle commande ES';
+                        $display_title = 'Nouvelle commande ES';
 
-        $display_msg = str_ireplace(
-            [
-                'You have received a new ES order',
-                'You have received a new B2B order',
-                'from'
-            ],
-            [
-                'Vous avez reçu une nouvelle commande ES',
-                'Vous avez reçu une nouvelle commande B2B',
-                'de'
-            ],
-            $display_msg
-        );
-    }
+                        $display_msg = str_ireplace(
+                            [
+                                'You have received a new ES order',
+                                'You have received a new B2B order',
+                                'from'
+                            ],
+                            [
+                                'Vous avez reçu une nouvelle commande ES',
+                                'Vous avez reçu une nouvelle commande B2B',
+                                'de'
+                            ],
+                            $display_msg
+                        );
+                    }
 
-    break;
+                    break;
 
 
                     case 'helpdesk':
@@ -273,8 +268,14 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
 
                         break;
                     case 'payout':
-                        $title = 'Paiement effectué';
-                        $msg = str_replace("Your payout has been successfully paid for", "Votre paiement a été effectué avec succès pour", $raw_msg);
+
+                        $display_title = 'Paiement effectué';
+
+                        $display_msg = str_replace(
+                            'Your payout has been successfully paid for',
+                            'Votre paiement a été effectué avec succès pour',
+                            $display_msg
+                        );
 
                         break;
 
