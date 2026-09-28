@@ -24,7 +24,7 @@
 
                                class="product photo product-item-photo">
 
-                                <!-- <span class="product-image-container" style="width: 240px;">
+                                <span class="product-image-container" style="width: 240px;">
 
                                     <span class="product-image-wrapper" style="padding-bottom: 100%;">
 
@@ -32,7 +32,7 @@
 
                                     </span>
 
-                                </span> -->
+                                </span>
 
                             </a>
 
