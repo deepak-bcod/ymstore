@@ -8347,18 +8347,13 @@ class DbCart
 
 
 
-			$params = array($quote_id, $customer_id);
-
-
-
-
-
-			// print_r($params);
-
-			// echo "SELECT count(sqi.item_id) as total_count FROM sales_quote_items as sqi LEFT JOIN sales_quote as sq ON sqi.quote_id = sq.quote_id where (sq.quote_id = ?  AND sq.customer_id= ? )";die();
-
-			$row  =   $this->dbl->dbl_conn->rawQueryOne("SELECT count(sqi.item_id) as total_count FROM sales_quote_items as sqi LEFT JOIN sales_quote as sq ON sqi.quote_id = sq.quote_id where (sq.quote_id = ?  AND sq.customer_id= ? )", $params);
-
+			if (!empty($quote_id)) {
+				$params = array($quote_id, $customer_id);
+				$row  =   $this->dbl->dbl_conn->rawQueryOne("SELECT count(sqi.item_id) as total_count FROM sales_quote_items as sqi LEFT JOIN sales_quote as sq ON sqi.quote_id = sq.quote_id where (sq.quote_id = ?  AND sq.customer_id= ? )", $params);
+			} else {
+				$params = array($customer_id);
+				$row  =   $this->dbl->dbl_conn->rawQueryOne("SELECT count(sqi.item_id) as total_count FROM sales_quote_items as sqi LEFT JOIN sales_quote as sq ON sqi.quote_id = sq.quote_id where sq.quote_id = (SELECT quote_id FROM sales_quote WHERE customer_id = ? ORDER BY quote_id DESC LIMIT 1)", $params);
+			}
 		}
 
 

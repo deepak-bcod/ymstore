@@ -27,13 +27,28 @@ class CartList
         // print_r($_SESSION);
         // die;
         $quote_id = $this->ci->session->userdata('QuoteId') ?? '';
-        // echo "quote_id: $quote_id </br>";
-        // die;
         $lang_code = $this->ci->session->userdata('lcode') ?? '';
         $customer_id = $this->ci->session->userdata('LoginID') ?? '';
         $session_id = $this->ci->session->userdata('sis_session_id') ?? '';
-        // echo "session_id: $session_id </br>";
-        // die;
+
+        if (empty($quote_id) && !empty($customer_id)) {
+            $active_quote = $this->ci->db->select('quote_id, session_id')
+                ->from('sales_quote')
+                ->where('customer_id', $customer_id)
+                ->order_by('quote_id', 'DESC')
+                ->limit(1)
+                ->get()
+                ->row();
+            if ($active_quote) {
+                $quote_id = $active_quote->quote_id;
+                $this->ci->session->set_userdata('QuoteId', $quote_id);
+                if (empty($session_id) && !empty($active_quote->session_id)) {
+                    $session_id = $active_quote->session_id;
+                    $this->ci->session->set_userdata('sis_session_id', $session_id);
+                }
+            }
+        }
+
         $cc_post_arr = array('session_id' => $session_id, 'quote_id' => $quote_id, 'customer_id' => $customer_id, 'lang_code' => $lang_code);
         $this->cart_list = CartRepository::cart_listing($cc_post_arr);
 
