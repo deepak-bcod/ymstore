@@ -126,7 +126,7 @@ class MerchantFaqs extends CI_Controller {
 
             'title'          => 'New FAQ Request',
 
-            'message'        => 'New FAQ added by ' . $merchant_name . ' - Merchant',
+            'message'        => 'New FAQ added by ' . $merchant_name . '  Merchant',
 
             'data'           => [
                 'faq_id'         => $faq_id,
