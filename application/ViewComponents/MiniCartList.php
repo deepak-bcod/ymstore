@@ -30,6 +30,24 @@ class MiniCartList {
         if ($this->ci->session->userdata('QuoteId')) {
             $cc_post_arr['quote_id'] = $this->ci->session->userdata('QuoteId');   
         }
+
+        if (empty($cc_post_arr['quote_id']) && !empty($cc_post_arr['customer_id'])) {
+            $active_quote = $this->ci->db->select('quote_id, session_id')
+                ->from('sales_quote')
+                ->where('customer_id', $cc_post_arr['customer_id'])
+                ->order_by('quote_id', 'DESC')
+                ->limit(1)
+                ->get()
+                ->row();
+            if ($active_quote) {
+                $cc_post_arr['quote_id'] = $active_quote->quote_id;
+                $this->ci->session->set_userdata('QuoteId', $active_quote->quote_id);
+                if (empty($cc_post_arr['session_id']) && !empty($active_quote->session_id)) {
+                    $cc_post_arr['session_id'] = $active_quote->session_id;
+                    $this->ci->session->set_userdata('sis_session_id', $active_quote->session_id);
+                }
+            }
+        }
         return $cc_post_arr;
     }
 }

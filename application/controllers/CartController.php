@@ -41,6 +41,24 @@ class CartController extends CI_Controller
             $customer_id=$this->session->userdata('LoginID');
         }
 
+        if (empty($quote_id) && !empty($customer_id)) {
+            $active_quote = $this->db->select('quote_id, session_id')
+                ->from('sales_quote')
+                ->where('customer_id', $customer_id)
+                ->order_by('quote_id', 'DESC')
+                ->limit(1)
+                ->get()
+                ->row();
+            if ($active_quote) {
+                $quote_id = $active_quote->quote_id;
+                $this->session->set_userdata('QuoteId', $quote_id);
+                if (empty($session_id) && !empty($active_quote->session_id)) {
+                    $session_id = $active_quote->session_id;
+                    $this->session->set_userdata('sis_session_id', $session_id);
+                }
+            }
+        }
+
         $lang_code='';
 		if(!empty($this->session->userdata('lcode')) && $this->session->userdata('lis_default_language')==0){
 			$lang_code=$this->session->userdata('lcode');
