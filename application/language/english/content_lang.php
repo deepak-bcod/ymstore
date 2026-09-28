@@ -1323,7 +1323,7 @@ $lang['name'] = 'Name';
 $lang['category'] = 'Category';
 $lang['select_category'] = 'Select Category';
 $lang['merchant_delivery'] = 'Merchant Delivery';
-$lang['general_enquiry'] = 'General Product Enquiry';
+$lang['general_enquiry_product'] = 'General Product Enquiry';
 
 $lang['message'] = 'Message';
 $lang['save_button'] = 'Send Message';
