@@ -156,6 +156,7 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
 
                                         $orderNo = !empty($matches[0]) ? $matches[0] : '';
 
+
                                         // French title
                                         $title = 'Commande livrée';
 
@@ -193,6 +194,7 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
                                     break;
 
 
+                                       
                     case 'helpdesk':
 
                         $display_title = $this->lang->line('notif_helpdesk_title');
