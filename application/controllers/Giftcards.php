@@ -69,9 +69,13 @@ class Giftcards extends CI_Controller
         // Create order_number
         $order_number = 'GCORD-' . time() . '-' . strtoupper(random_string('alnum', 6));
 
+        //Get user id 
+        $order_user_id=$this->Giftcard_model->get_user_id($receiver_email);
+
+        
         $order_data = [
             'order_number'   => $order_number,
-            'user_id'        => $user_id, // Store purchaser's ID so session is preserved
+            'user_id'        => $order_user_id, // Store purchaser's ID so session is preserved
             'value_id'       => $value->id,
             'amount'         => $value->amount,
             'receiver_name'  => $receiver_name,
@@ -119,27 +123,13 @@ class Giftcards extends CI_Controller
         $rsa = new $rsaClass();
         $rsa->setEncryptionMode($rsaClass::ENCRYPTION_OAEP);
 
-        $order_id       = $order_response->id;
-        $user_id        = $this->session->userdata('LoginID');
-        $lang_id        = $this->session->userdata('lid');
-        $increment_id   = $order_response->order_number;
-        $amount         = 1; // or $order_response->amount
-        $quote_id       = $this->session->userdata('QuoteId');
-        $sis_session_id = $this->session->userdata('sis_session_id');
-
-        $callbackParams = [
-            'customer_id' => base64_encode($user_id),
-            'lang_id'     => base64_encode($lang_id),
-            'key'         => base64_encode($increment_id)
-        ];
-        if (!empty($quote_id)) {
-            $callbackParams['quote_id'] = base64_encode($quote_id);
-        }
-        if (!empty($sis_session_id)) {
-            $callbackParams['session_id'] = base64_encode($sis_session_id);
-        }
-        $callbackUrl    = base_url('Giftcards/success/?' . http_build_query($callbackParams));
-        $notifyUrl      = base_url('Giftcards/mytNotify');
+        $order_id     = $order_response->id;
+        $user_id     = $this->session->userdata('LoginID');
+        $lang_id     = $this->session->userdata('lid');
+        $increment_id = $order_response->order_number;
+        $amount       = 1; // or $order_response->amount
+        $callbackUrl  = base_url('Giftcards/success/?customer_id='.base64_encode($user_id).'&lang_id='.base64_encode($lang_id).'&key=' . base64_encode($increment_id));
+        $notifyUrl    = base_url('Giftcards/mytNotify');
 
         // Insert transaction into new table
         $insertData = [
@@ -261,55 +251,26 @@ public function mytNotify()
 }
 
 // Payment success page
-public function success($order_id = null)
+public function success()
 {
-    if (!empty($order_id)) {
-        $order_id = rtrim($order_id, '/');
-    }
-
-    $key         = $this->input->get('key');
+    $key = $this->input->get('key');
     $customer_id = $this->input->get('customer_id');
-    $lang_id     = $this->input->get('lang_id');
-    $quote_id_param   = $this->input->get('quote_id');
-    $session_id_param = $this->input->get('session_id');
+    $lang_id = $this->input->get('lang_id');
 
-    // Retrieve order by increment_id (from key) or by order_id segment
-    $order = null;
-    $increment_id = null;
-    if (!empty($key)) {
-        $increment_id = base64_decode($key);
-        if (!empty($increment_id)) {
-            $order = $this->Giftcard_model->get_order_by_number($increment_id);
-        }
-    }
-    if (!$order && !empty($order_id)) {
-        if (is_numeric($order_id)) {
-            $order = $this->Giftcard_model->get_order((int)$order_id);
-        } else {
-            $order = $this->Giftcard_model->get_order_by_number($order_id);
-        }
-    }
+    if (!$key) show_404();
+    if (!$customer_id) show_404();
+
+    $increment_id = base64_decode($key);
+
+    // Fetch order
+    $order = $this->Giftcard_model->get_order_by_number($increment_id);
     if (!$order) show_404();
 
-    if (empty($increment_id)) {
-        $increment_id = $order->order_number;
-    }
-
-    // Determine customer_id (decode if base64)
-    if (!empty($customer_id)) {
-        $decoded_customer_id = base64_decode($customer_id);
-        if ($decoded_customer_id !== false && is_numeric($decoded_customer_id)) {
-            $customer_id = $decoded_customer_id;
-        }
-    }
-    if (empty($customer_id)) {
-        $customer_id = $this->session->userdata('LoginID') ?: $order->user_id;
-    }
-
-    if (!empty($lang_id)) {
+    $customer_id = base64_decode($customer_id);
+    if (!$customer_id) show_404();
+    
+    if ($lang_id != "") {
         $language_id = base64_decode($lang_id);
-    } elseif ($this->session->userdata('lid')) {
-        $language_id = $this->session->userdata('lid');
     } else {
         $language_id = 1;
     }
@@ -336,8 +297,8 @@ public function success($order_id = null)
     }
 
     // Auto-login customer if not already logged in
-    $customer = null;
-    if (!$this->session->userdata('LoginID') && !empty($customer_id)) {
+    if (!$this->session->userdata('LoginID') && $customer_id != '') {
+
         $customer = $this->db
             ->select('id, first_name, last_name, email_id, customer_type_id, access_prelanch_product, allow_catlog_builder')
             ->from('customers')
@@ -367,7 +328,7 @@ public function success($order_id = null)
         } else {
             log_message('error', "Giftcard success(): Customer not found for order user_id {$order->user_id}");
         }
-    } elseif (!empty($customer_id)) {
+    } elseif ($customer_id != "") {
         $customer = $this->db
             ->select('id, first_name, last_name, email_id, customer_type_id, access_prelanch_product, allow_catlog_builder')
             ->from('customers')
@@ -376,44 +337,13 @@ public function success($order_id = null)
             ->row();
     }
 
-    // Restore Shopping Cart / QuoteId and session_id so existing products remain in cart
-    if (!empty($quote_id_param)) {
-        $restored_quote_id = base64_decode($quote_id_param);
-        if (!empty($restored_quote_id)) {
-            $this->session->set_userdata('QuoteId', $restored_quote_id);
-        }
-    }
-    if (!empty($session_id_param)) {
-        $restored_session_id = base64_decode($session_id_param);
-        if (!empty($restored_session_id)) {
-            $this->session->set_userdata('sis_session_id', $restored_session_id);
-        }
-    }
-
-    // Fallback: If QuoteId is not in session, recover customer's active quote from DB
-    $current_user_id = $this->session->userdata('LoginID') ?: $customer_id;
-    if (!$this->session->userdata('QuoteId') && !empty($current_user_id)) {
-        $active_quote = $this->db->select('quote_id, session_id')
-            ->from('sales_quote')
-            ->where('customer_id', $current_user_id)
-            ->order_by('quote_id', 'DESC')
-            ->limit(1)
-            ->get()
-            ->row();
-        if ($active_quote) {
-            $this->session->set_userdata('QuoteId', $active_quote->quote_id);
-            if (!$this->session->userdata('sis_session_id') && !empty($active_quote->session_id)) {
-                $this->session->set_userdata('sis_session_id', $active_quote->session_id);
-            }
-        }
-    }
-
+    
     // Refresh order details from DB
     $order = $this->Giftcard_model->get_order($order->id);
 
-    // Check if payment transaction is successful in DB
+    // ✅ Check if payment transaction is successful in DB
     $txn = $this->db
-        ->select('status, transaction_ref')
+        ->select('status')
         ->from('giftcard_order_mytmoney_transactions')
         ->where('order_id', $order->id)
         ->order_by('id', 'DESC')
@@ -421,15 +351,11 @@ public function success($order_id = null)
         ->get()
         ->row();
 
-    $getTradeNo = $this->input->get('tradeNo') ?: ($txn->transaction_ref ?? ('GC-' . time()));
-    $getTradeStatus = $this->input->get('tradeStatus') ?: ($txn->status ?? '');
-    $getErrorCode = $this->input->get('errorCode') ?: '';
-
     $is_payment_success = ($order && $order->status == 1) || ($txn && strtolower($txn->status) === 'success');
 
     if (!$gift_card = $this->db->get_where('gift_cards', ['order_id' => $order->id])->row()) {
 
-        if ($is_payment_success) {
+        if ($txn && strtolower($txn->status) === 'success') {
             $this->Giftcard_model->mark_order_paid($order->id, $getTradeNo);
             $this->db->where('order_id', $order->id)->update('giftcard_order_mytmoney_transactions', [
                 'status'          => 'success',
@@ -446,23 +372,12 @@ public function success($order_id = null)
                 'updated_at' => date('Y-m-d H:i:s')
             ]);
             log_message('warn', "Giftcard payment failed/expired via gateway return params: OrderID {$order->id}, tradeStatus {$getTradeStatus}, errorCode {$getErrorCode}");
-            $failParams = [
-                'customer_id' => base64_encode($customer_id),
-                'lang_id'     => base64_encode($language_id),
-                'key'         => base64_encode($increment_id)
-            ];
-            if ($this->session->userdata('QuoteId')) {
-                $failParams['quote_id'] = base64_encode($this->session->userdata('QuoteId'));
-            }
-            if ($this->session->userdata('sis_session_id')) {
-                $failParams['session_id'] = base64_encode($this->session->userdata('sis_session_id'));
-            }
-            redirect('Giftcards/failed/' . $order->id . '/?' . http_build_query($failParams));
+            redirect('Giftcards/failed/' . $order->id.'/?customer_id='.base64_encode($customer_id).'&lang_id='.base64_encode($language_id).'&key=' . base64_encode($increment_id));
             return;
         }
     }
 
-    // Issue gift card only if payment success and not already issued
+    // ✅ Issue gift card only if payment success and not already issued
     if (!$gift_card = $this->db->get_where('gift_cards', ['order_id' => $order->id])->row()) {
         $gift_card = $this->Giftcard_model->issue_giftcard($order->id);
         if ($gift_card) {
@@ -472,18 +387,7 @@ public function success($order_id = null)
 
     if (!$gift_card) {
         log_message('error', "Giftcard success(): Failed to issue giftcard for OrderID {$order->id}");
-        $failParams = [
-            'customer_id' => base64_encode($customer_id),
-            'lang_id'     => base64_encode($language_id),
-            'key'         => base64_encode($increment_id)
-        ];
-        if ($this->session->userdata('QuoteId')) {
-            $failParams['quote_id'] = base64_encode($this->session->userdata('QuoteId'));
-        }
-        if ($this->session->userdata('sis_session_id')) {
-            $failParams['session_id'] = base64_encode($this->session->userdata('sis_session_id'));
-        }
-        redirect('Giftcards/failed/' . $order->id . '/?' . http_build_query($failParams));
+        redirect('Giftcards/failed/' . $order->id.'/?customer_id='.base64_encode($customer_id).'&lang_id='.base64_encode($language_id).'&key=' . base64_encode($increment_id));
         return;
     }
 
@@ -591,17 +495,13 @@ public function failed($order_id = null)
         $order_id = rtrim($order_id, '/');
     }
 
-    $key              = $this->input->get('key');
-    $customer_id      = $this->input->get('customer_id');
-    $lang_id          = $this->input->get('lang_id');
-    $quote_id_param   = $this->input->get('quote_id');
-    $session_id_param = $this->input->get('session_id');
+    $key         = $this->input->get('key');
+    $customer_id = $this->input->get('customer_id');
+    $lang_id     = $this->input->get('lang_id');
 
     // Decode language if provided
     if ($lang_id != "") {
         $language_id = base64_decode($lang_id);
-    } elseif ($this->session->userdata('lid')) {
-        $language_id = $this->session->userdata('lid');
     } else {
         $language_id = 1;
     }
@@ -672,38 +572,6 @@ public function failed($order_id = null)
         $this->Giftcard_model->mark_order_failed($order->id);
     } elseif (!empty($order_id) && !is_numeric($order_id)) {
         $order_number = $order_id;
-    }
-
-    // Restore Shopping Cart / QuoteId and session_id
-    if (!empty($quote_id_param)) {
-        $restored_quote_id = base64_decode($quote_id_param);
-        if (!empty($restored_quote_id)) {
-            $this->session->set_userdata('QuoteId', $restored_quote_id);
-        }
-    }
-    if (!empty($session_id_param)) {
-        $restored_session_id = base64_decode($session_id_param);
-        if (!empty($restored_session_id)) {
-            $this->session->set_userdata('sis_session_id', $restored_session_id);
-        }
-    }
-
-    // Fallback: If QuoteId is not in session, recover customer's active quote from DB
-    $current_user_id = $this->session->userdata('LoginID') ?: (!empty($customer_id) ? base64_decode($customer_id) : '');
-    if (!$this->session->userdata('QuoteId') && !empty($current_user_id)) {
-        $active_quote = $this->db->select('quote_id, session_id')
-            ->from('sales_quote')
-            ->where('customer_id', $current_user_id)
-            ->order_by('quote_id', 'DESC')
-            ->limit(1)
-            ->get()
-            ->row();
-        if ($active_quote) {
-            $this->session->set_userdata('QuoteId', $active_quote->quote_id);
-            if (!$this->session->userdata('sis_session_id') && !empty($active_quote->session_id)) {
-                $this->session->set_userdata('sis_session_id', $active_quote->session_id);
-            }
-        }
     }
 
     $data['order_number'] = $order_number;

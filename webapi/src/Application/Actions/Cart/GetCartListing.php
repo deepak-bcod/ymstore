@@ -26,13 +26,8 @@ class GetCartListing {
 		$cart_obj = new DbCart();
 		$wishlist_obj = new DbWishlistFeature();
         if(!empty($customer_id)){
-            if (!empty($quote_id)) {
-                $param = [$quote_id, $customer_id]; 
-                $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE (SQ.quote_id = ? AND SQ.customer_id = ?) ";
-            } else {
-                $param = [$customer_id]; 
-                $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE SQ.customer_id = ? ORDER BY SQ.quote_id DESC LIMIT 1 ";
-            }
+            $param = [$quote_id, $customer_id]; 
+            $query = "SELECT SQ.quote_id, SQ.base_grand_total, SQ.base_subtotal, SQ.grand_total, SQ.subtotal, SQ.total_qty_ordered, SQ.tax_amount,SQ.coupon_code,SQ.base_discount_amount,SQ.shipping_amount,SQ.voucher_code,SQ.voucher_amount,SQ.payment_final_charge,SQ.discount_percent,SQ.ym_charge FROM sales_quote as SQ WHERE (SQ.quote_id = ? AND SQ.customer_id = ?) ";
         }else{
 
             $param = [$session_id];
