@@ -451,7 +451,7 @@ $lang = $this->session->userdata('site_lang');
                                                         >
                                                         <option value=""><?= $this->lang->line('select_category'); ?></option>
                                                         <option value="Merchant"><?= $this->lang->line('merchant_delivery'); ?></option>
-                                                        <!-- <option value="General Enquiry">Enquiry - Product(s)</option> -->
+                                                        <option value="General Enquiry"><?= $this->lang->line('general_enquiry'); ?></option>
                                                     </select>
                                                 </div>
 
