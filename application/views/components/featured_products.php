@@ -21,9 +21,9 @@
     </div>
 </div>
 
-<!-- <div class="view-more-wrap" style="text-align:center; margin-top:20px;">
+<div class="view-more-wrap" style="text-align:center; margin-top:20px;">
     <a href="<?= base_url('trending-products') ?>" class="btn btn-primary">
         <?= lang('view_more') ?>
     </a>
-</div> -->
+</div>
 
