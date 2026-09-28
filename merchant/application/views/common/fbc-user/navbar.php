@@ -146,21 +146,51 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
 
                     case 'order':
 
-                        $display_title = $this->lang->line('notif_order_title');
+                                    // ==========================================
+                                    // ORDER DELIVERED
+                                    // ==========================================
+                                    if (stripos($raw_msg, 'Delivered to Shopper') !== false) {
 
-                        $display_msg = str_replace(
-                            [
-                                'You have received a new B2B order',
-                                'from'
-                            ],
-                            [
-                                'Vous avez reçu une nouvelle commande B2B',
-                                'de'
-                            ],
-                            $display_msg
-                        );
+                                        // Get ES order number
+                                        preg_match('/ES-\d+/i', $raw_msg, $matches);
 
-                        break;
+                                        $orderNo = !empty($matches[0]) ? $matches[0] : '';
+
+                                        // French title
+                                        $title = 'Commande livrée';
+
+                                        // French message
+                                        if ($orderNo != '') {
+
+                                            $msg = 'La commande ' . $orderNo . ' a été livrée au client.';
+
+                                        } else {
+
+                                            $msg = 'La commande a été livrée au client.';
+                                        }
+
+                                    } else {
+
+                                        // ==========================================
+                                        // NORMAL NEW ES ORDER
+                                        // ==========================================
+
+                                        $title = lang('notif_order_title');
+
+                                        $msg = str_replace(
+                                            [
+                                                "You have received a new ES order",
+                                                "from"
+                                            ],
+                                            [
+                                                "Vous avez reçu une nouvelle commande ES ",
+                                                "de"
+                                            ],
+                                            $raw_msg
+                                        );
+                                    }
+
+                                    break;
 
 
                     case 'helpdesk':
