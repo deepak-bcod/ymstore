@@ -1,7 +1,10 @@
 <?php if (!empty($shops)): ?>
 
 <style>
-    /* Product grid */
+    /* =====================================
+       PRODUCT GRID
+    ===================================== */
+
     .category-product .product-item {
         height: auto !important;
         min-height: 0 !important;
@@ -31,60 +34,91 @@
         overflow: visible !important;
     }
 
-    /* View Product button */
+
+    /* =====================================
+       VIEW PRODUCT BUTTON WRAPPER
+    ===================================== */
+
     .category-product .view-product-wrapper {
         display: block !important;
         width: 100% !important;
         height: auto !important;
         min-height: 0 !important;
+
         margin-top: 15px !important;
         margin-bottom: 15px !important;
         padding: 0 !important;
+
         text-align: center !important;
         clear: both !important;
         overflow: visible !important;
     }
 
+
+    /* =====================================
+       VIEW PRODUCT BUTTON - DEFAULT
+    ===================================== */
+
     .category-product .view-product-btn {
         display: block !important;
+
         visibility: visible !important;
         opacity: 1 !important;
+
         width: 100% !important;
         height: auto !important;
         min-height: 40px !important;
+
         padding: 10px 15px !important;
         margin: 0 !important;
 
-        background: #ff8c00 !important;
-        border: 1px solid #ff8c00 !important;
+        /* White button with grey border */
+        background: #ffffff !important;
+        border: 1px solid #777777 !important;
         border-radius: 3px !important;
 
-        color: #ffffff !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
+        /* Text */
+        color: #555555 !important;
+        font-size: 16px !important;
+        font-weight: 400 !important;
         line-height: 20px !important;
         text-align: center !important;
         text-decoration: none !important;
 
         box-sizing: border-box !important;
         cursor: pointer !important;
+
+        transition: all 0.2s ease-in-out !important;
     }
+
+
+    /* =====================================
+       VIEW PRODUCT BUTTON - HOVER
+    ===================================== */
 
     .category-product .view-product-btn:hover,
     .category-product .view-product-btn:focus {
-        background: #e67e00 !important;
-        border-color: #e67e00 !important;
+        background: #1261d5 !important;
+        border-color: #1261d5 !important;
+
         color: #ffffff !important;
         text-decoration: none !important;
+
+        outline: none !important;
     }
 
-    /* Make sure product content is not clipped */
+
+    /* =====================================
+       PREVENT PRODUCT CONTENT CLIPPING
+    ===================================== */
+
     .category-product .product-item,
     .category-product .product-item-info,
     .category-product .item-inner,
     .category-product .box-info {
         overflow: visible !important;
     }
+
 </style>
 
 
@@ -100,9 +134,7 @@
 
                     <div class="item-inner">
 
-                        <!-- =========================
-                             PRODUCT IMAGE
-                        ========================== -->
+              
                         <div class="box-image">
 
                             <a href="<?php echo BASE_URL . 'product-detail/' . $product->url_key; ?>"
@@ -127,10 +159,6 @@
 
                         </div>
 
-
-                        <!-- =========================
-                             PRODUCT DETAILS
-                        ========================== -->
                         <div class="product details product-item-details box-info">
 
                             <!-- PRODUCT NAME -->
@@ -166,17 +194,10 @@
 
                             </h2>
 
-
-                            <!-- =========================
-                                 PRICE
-                            ========================== -->
                             <div class="price-box price-final_price">
 
                                 <?php
 
-                                /*
-                                 * Get product price
-                                 */
                                 if ($product->product_type == 'configurable') {
 
                                     $finalPrice = !empty($product->price_sorting_configurable)
@@ -190,18 +211,10 @@
                                         : $product->webshop_price;
                                 }
 
-
-                                /*
-                                 * Special price
-                                 */
                                 $specialPrice = !empty($product->special_price)
                                     ? $product->special_price
                                     : 0;
 
-
-                                /*
-                                 * Display special price
-                                 */
                                 if ($specialPrice > 0):
 
                                 ?>
@@ -244,16 +257,10 @@
 
                             </div>
 
-
-                            <!-- =========================
-                                 VIEW PRODUCT BUTTON
-                            ========================== -->
                             <div class="view-product-wrapper">
 
-                                <a
-                                    href="<?php echo BASE_URL . 'product-detail/' . $product->url_key; ?>"
-                                    class="view-product-btn"
-                                >
+                                <a href="<?php echo BASE_URL . 'product-detail/' . $product->url_key; ?>"
+                                class="view-product-btn">
                                     View Product
                                 </a>
 
@@ -277,10 +284,6 @@
 
 </div>
 
-
-<!-- =========================
-     PAGINATION
-========================== -->
 <div class="pagination-wrap">
 
     <?php echo $pagination; ?>
