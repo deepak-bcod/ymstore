@@ -1312,129 +1312,328 @@ class CustomerController extends CI_Controller
 	}
 
 	public function update_faqs()
-	{
-		$id = $this->input->post('id');
-		$answer = $this->input->post('answer');
-		$answer_fr = $this->input->post('answer_fr');
-		$status = $this->input->post('status');
+{
+    $id        = (int) $this->input->post('id');
+    $answer    = $this->input->post('answer');
+    $answer_fr = $this->input->post('answer_fr');
+    $status    = $this->input->post('status');
 
-		$faqDetails = $this->CommonModel->get_faqs_details($id);
+    // Load notification model
+    $this->load->model('Notification_model');
 
-		$postArr = [
-			'answer' => $answer,
-			'answer_fr' => $answer_fr,
-			'status' => $status,
-			'updated_at' => strtotime(date('Y-m-d H:i:s')),
-		];
+    // Get existing FAQ details
+    $faqDetails = $this->CommonModel->get_faqs_details($id);
 
-		if ($this->input->post('question') !== null) {
-			$postArr['question'] = $this->input->post('question');
-		}
-		if ($this->input->post('question_fr') !== null) {
-			$postArr['question_fr'] = $this->input->post('question_fr');
-		}
-		if ($this->input->post('faq_type') !== null) {
-			$postArr['faq_type'] = $this->input->post('faq_type');
-		}
+    if (empty($faqDetails)) {
+        $this->session->set_flashdata('error', 'FAQ not found.');
+        redirect(base_url('faqs'));
+        return;
+    }
 
-		$this->db->where('id', $id);
-		$updated = $this->db->update('faqs', $postArr);
+    // Prepare update data
+    $postArr = [
+        'answer'     => $answer,
+        'answer_fr'  => $answer_fr,
+        'status'     => $status,
+        'updated_at' => time()
+    ];
 
-		if($updated){
-			// Send two separate email notifications (1 English, 1 French) triggered simultaneously using sendCommonHTMLEmail
-			$userEmail = !empty($faqDetails['email']) ? trim($faqDetails['email']) : '';
-			if (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
-				$name = !empty($faqDetails['name']) ? $faqDetails['name'] : 'User';
+    if ($this->input->post('question') !== null) {
+        $postArr['question'] = $this->input->post('question');
+    }
 
-				$q_en = !empty($postArr['question']) ? $postArr['question'] : (!empty($faqDetails['question']) ? $faqDetails['question'] : '');
-				$q_fr = !empty($postArr['question_fr']) ? $postArr['question_fr'] : (!empty($faqDetails['question_fr']) ? $faqDetails['question_fr'] : '');
+    if ($this->input->post('question_fr') !== null) {
+        $postArr['question_fr'] = $this->input->post('question_fr');
+    }
 
-				$a_en = !empty($answer) ? $answer : (!empty($postArr['answer']) ? $postArr['answer'] : (!empty($faqDetails['answer']) ? $faqDetails['answer'] : ''));
-				$a_fr = !empty($answer_fr) ? $answer_fr : (!empty($postArr['answer_fr']) ? $postArr['answer_fr'] : (!empty($faqDetails['answer_fr']) ? $faqDetails['answer_fr'] : ''));
+    if ($this->input->post('faq_type') !== null) {
+        $postArr['faq_type'] = $this->input->post('faq_type');
+    }
 
-				if (empty($q_en)) $q_en = $q_fr;
-				if (empty($q_fr)) $q_fr = $q_en;
+    // Update FAQ
+    $this->db->where('id', $id);
+    $updated = $this->db->update('faqs', $postArr);
 
-				if (empty($a_en) && !empty($a_fr)) $a_en = $a_fr;
-				if (empty($a_fr) && !empty($a_en)) $a_fr = $a_en;
+    if ($updated) {
 
-				$statusText_en = ($status == 1) ? 'Approved & Answered' : (($status == 2) ? 'Rejected' : 'Pending Review');
-				$statusText_fr = ($status == 1) ? 'Approuvé & Répondu' : (($status == 2) ? 'Rejeté' : 'En attente de révision');
+        // ==========================================
+        // 1. MERCHANT FAQ REPLY NOTIFICATION
+        // ==========================================
 
-				// Ensure English template exists in email_template table
-				$tplEn = $this->CommonModel->getEmailTemplateByIdentifier('faq_update_notification_en');
-				if (!$tplEn && $this->db->table_exists('email_template')) {
-					$this->db->insert('email_template', [
-						'title'        => 'FAQ Update Notification (English)',
-						'email_code'   => 'faq_update_notification_en',
-						'subject'      => 'YellowMarkets - Update on Your FAQ Question',
-						'content'      => '<p>Hello {name},</p><p>We have updated the status of your FAQ question on <strong>{site_name}</strong>.</p><div style="background-color: #f8f9fa; border-left: 4px solid #1E7EC8; padding: 15px; margin: 15px 0; border-radius: 4px;"><p style="margin: 0 0 10px 0;"><strong>Status:</strong> {status}</p><p style="margin: 0 0 10px 0;"><strong>Question:</strong> {question}</p><p style="margin: 0;"><strong>Answer:</strong> {answer}</p></div><p style="color: #777; font-size: 13px; margin-bottom: 0;">Thank you for using {site_name}.</p>',
-						'status'       => 1,
-						'created_at'   => time()
-					]);
-				}
+        // Only notify merchant FAQs when admin has provided an answer
+        $faqType = $faqDetails['faq_type'] ?? '';
 
-				// Ensure French template exists in email_template table
-				$tplFr = $this->CommonModel->getEmailTemplateByIdentifier('faq_update_notification_fr');
-				if (!$tplFr && $this->db->table_exists('email_template')) {
-					$this->db->insert('email_template', [
-						'title'        => 'FAQ Update Notification (French)',
-						'email_code'   => 'faq_update_notification_fr',
-						'subject'      => 'YellowMarkets - Mise à jour de votre question FAQ',
-						'content'      => '<p>Bonjour {name},</p><p>Le statut de votre question FAQ sur <strong>{site_name}</strong> a été mis à jour.</p><div style="background-color: #f8f9fa; border-left: 4px solid #1E7EC8; padding: 15px; margin: 15px 0; border-radius: 4px;"><p style="margin: 0 0 10px 0;"><strong>Statut:</strong> {status}</p><p style="margin: 0 0 10px 0;"><strong>Question:</strong> {question}</p><p style="margin: 0;"><strong>Réponse:</strong> {answer}</p></div><p style="color: #777; font-size: 13px; margin-bottom: 0;">Merci d\'utiliser {site_name}.</p>',
-						'status'       => 1,
-						'created_at'   => time()
-					]);
-				}
+        if (
+            strtolower($faqType) === 'merchant' &&
+            (!empty(trim((string)$answer)) || !empty(trim((string)$answer_fr)))
+        ) {
 
-				// Variables for English Template
-				$tempVars_en = ['{name}', '{status}', '{question}', '{answer}', '{site_name}', '{site_url}'];
-				$dynamicVars_en = [
-					htmlspecialchars($name),
-					htmlspecialchars($statusText_en),
-					htmlspecialchars($q_en),
-					!empty($a_en) ? nl2br(html_entity_decode($a_en, ENT_QUOTES, "UTF-8")) : '-',
-					'YellowMarkets',
-					base_url()
-				];
+            // Find merchant using FAQ email
+            $merchant = $this->db
+                ->select('id, vendor_name, email')
+                ->from('publisher')
+                ->where('email', trim($faqDetails['email']))
+                ->limit(1)
+                ->get()
+                ->row();
 
-				// Variables for French Template
-				$tempVars_fr = ['{name}', '{status}', '{question}', '{answer}', '{site_name}', '{site_url}'];
-				$dynamicVars_fr = [
-					htmlspecialchars($name),
-					htmlspecialchars($statusText_fr),
-					htmlspecialchars($q_fr),
-					!empty($a_fr) ? nl2br(html_entity_decode($a_fr, ENT_QUOTES, "UTF-8")) : '-',
-					'YellowMarkets',
-					base_url()
-				];
+            if (!empty($merchant)) {
 
-				// Send email in the matching language: English email if question is English, French email if question is French
-				$langAttr = strtolower(trim($faqDetails['lang'] ?? ''));
-				$isFrenchQuestion = ($langAttr === 'french' || $langAttr === 'fr') 
-					|| (!empty($faqDetails['question_fr']) && empty($faqDetails['question']));
+                $notification_data = [
+                    'type'           => 'faq',
+                    'subtype'        => 'admin_reply',
+                    'recipient_type' => 'merchant',
+                    'recipient_id'   => $merchant->id,
 
-				if (!empty($faqDetails['question_fr']) && !empty($faqDetails['question'])) {
-					// Send ONLY French email notification
-					$this->CommonModel->sendCommonHTMLEmail($userEmail, 'faq_update_notification_fr', $tempVars_fr, $dynamicVars_fr);
-					$this->CommonModel->sendCommonHTMLEmail($userEmail, 'faq_update_notification_en', $tempVars_en, $dynamicVars_en);
-				} elseif (!empty($faqDetails['question_fr']) && empty($faqDetails['question'])) {
-					$this->CommonModel->sendCommonHTMLEmail($userEmail, 'faq_update_notification_fr', $tempVars_fr, $dynamicVars_fr);
-				} elseif(empty($faqDetails['question_fr']) && !empty($faqDetails['question'])){
-					$this->CommonModel->sendCommonHTMLEmail($userEmail, 'faq_update_notification_en', $tempVars_en, $dynamicVars_en);
-				}else {
-					// Send ONLY English email notification
-					$this->CommonModel->sendCommonHTMLEmail($userEmail, 'faq_update_notification_en', $tempVars_en, $dynamicVars_en);
-				}
-			}
+                    'title'          => 'FAQ Reply',
 
-			$this->session->set_flashdata('success', "FAQ has been updated successfully and email notification sent.");
-			redirect(base_url('faqs'));
-		} else {
-			$this->session->set_flashdata('error', "Failed to update FAQ. Please try again.");
-			redirect($_SERVER['HTTP_REFERER']);
-		}
-	}
+                    'message'        => 'Admin has replied to your FAQ.',
+
+                    'data'           => [
+                        'faq_id'        => $id,
+                        'merchant_id'   => $merchant->id,
+                        'merchant_name' => $merchant->vendor_name,
+                        'merchant_email'=> $merchant->email,
+                        'question'      => $faqDetails['question'] ?? '',
+                        'question_fr'   => $faqDetails['question_fr'] ?? '',
+                        'answer'        => $answer,
+                        'answer_fr'     => $answer_fr,
+                        'status'        => $status
+                    ],
+
+                    'is_read' => 0
+                ];
+
+                $this->Notification_model->insert($notification_data);
+            }
+        }
+
+        // ==========================================
+        // 2. EMAIL NOTIFICATION
+        // ==========================================
+
+        $userEmail = !empty($faqDetails['email'])
+            ? trim($faqDetails['email'])
+            : '';
+
+        if (!empty($userEmail) && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+
+            $name = !empty($faqDetails['name'])
+                ? $faqDetails['name']
+                : 'User';
+
+            $q_en = !empty($postArr['question'])
+                ? $postArr['question']
+                : ($faqDetails['question'] ?? '');
+
+            $q_fr = !empty($postArr['question_fr'])
+                ? $postArr['question_fr']
+                : ($faqDetails['question_fr'] ?? '');
+
+            $a_en = !empty($answer)
+                ? $answer
+                : ($faqDetails['answer'] ?? '');
+
+            $a_fr = !empty($answer_fr)
+                ? $answer_fr
+                : ($faqDetails['answer_fr'] ?? '');
+
+            if (empty($q_en)) {
+                $q_en = $q_fr;
+            }
+
+            if (empty($q_fr)) {
+                $q_fr = $q_en;
+            }
+
+            if (empty($a_en) && !empty($a_fr)) {
+                $a_en = $a_fr;
+            }
+
+            if (empty($a_fr) && !empty($a_en)) {
+                $a_fr = $a_en;
+            }
+
+            $statusText_en = ($status == 1)
+                ? 'Approved & Answered'
+                : (($status == 2) ? 'Rejected' : 'Pending Review');
+
+            $statusText_fr = ($status == 1)
+                ? 'Approuvé & Répondu'
+                : (($status == 2) ? 'Rejeté' : 'En attente de révision');
+
+            // ==========================================
+            // English email template
+            // ==========================================
+
+            $tplEn = $this->CommonModel->getEmailTemplateByIdentifier(
+                'faq_update_notification_en'
+            );
+
+            if (!$tplEn && $this->db->table_exists('email_template')) {
+
+                $this->db->insert('email_template', [
+                    'title'      => 'FAQ Update Notification (English)',
+                    'email_code' => 'faq_update_notification_en',
+                    'subject'    => 'YellowMarkets - Update on Your FAQ Question',
+
+                    'content' => '<p>Hello {name},</p>
+                    <p>We have updated the status of your FAQ question on <strong>{site_name}</strong>.</p>
+                    <div style="background-color:#f8f9fa;border-left:4px solid #1E7EC8;padding:15px;margin:15px 0;border-radius:4px;">
+                    <p><strong>Status:</strong> {status}</p>
+                    <p><strong>Question:</strong> {question}</p>
+                    <p><strong>Answer:</strong> {answer}</p>
+                    </div>
+                    <p>Thank you for using {site_name}.</p>',
+
+                    'status'     => 1,
+                    'created_at' => time()
+                ]);
+            }
+
+            // ==========================================
+            // French email template
+            // ==========================================
+
+            $tplFr = $this->CommonModel->getEmailTemplateByIdentifier(
+                'faq_update_notification_fr'
+            );
+
+            if (!$tplFr && $this->db->table_exists('email_template')) {
+
+                $this->db->insert('email_template', [
+                    'title'      => 'FAQ Update Notification (French)',
+                    'email_code' => 'faq_update_notification_fr',
+                    'subject'    => 'YellowMarkets - Mise à jour de votre question FAQ',
+
+                    'content' => '<p>Bonjour {name},</p>
+                    <p>Le statut de votre question FAQ sur <strong>{site_name}</strong> a été mis à jour.</p>
+                    <div style="background-color:#f8f9fa;border-left:4px solid #1E7EC8;padding:15px;margin:15px 0;border-radius:4px;">
+                    <p><strong>Statut:</strong> {status}</p>
+                    <p><strong>Question:</strong> {question}</p>
+                    <p><strong>Réponse:</strong> {answer}</p>
+                    </div>
+                    <p>Merci d’utiliser {site_name}.</p>',
+
+                    'status'     => 1,
+                    'created_at' => time()
+                ]);
+            }
+
+            // ==========================================
+            // English variables
+            // ==========================================
+
+            $tempVars_en = [
+                '{name}',
+                '{status}',
+                '{question}',
+                '{answer}',
+                '{site_name}',
+                '{site_url}'
+            ];
+
+            $dynamicVars_en = [
+                htmlspecialchars($name, ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($statusText_en, ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($q_en, ENT_QUOTES, 'UTF-8'),
+                !empty($a_en)
+                    ? nl2br(htmlspecialchars_decode(htmlspecialchars($a_en, ENT_QUOTES, 'UTF-8')))
+                    : '-',
+                'YellowMarkets',
+                base_url()
+            ];
+
+            // ==========================================
+            // French variables
+            // ==========================================
+
+            $tempVars_fr = [
+                '{name}',
+                '{status}',
+                '{question}',
+                '{answer}',
+                '{site_name}',
+                '{site_url}'
+            ];
+
+            $dynamicVars_fr = [
+                htmlspecialchars($name, ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($statusText_fr, ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($q_fr, ENT_QUOTES, 'UTF-8'),
+                !empty($a_fr)
+                    ? nl2br(htmlspecialchars_decode(htmlspecialchars($a_fr, ENT_QUOTES, 'UTF-8')))
+                    : '-',
+                'YellowMarkets',
+                base_url()
+            ];
+
+            // ==========================================
+            // Send email according to FAQ language
+            // ==========================================
+
+            if (
+                !empty($faqDetails['question_fr']) &&
+                !empty($faqDetails['question'])
+            ) {
+
+                // Both languages available
+                $this->CommonModel->sendCommonHTMLEmail(
+                    $userEmail,
+                    'faq_update_notification_fr',
+                    $tempVars_fr,
+                    $dynamicVars_fr
+                );
+
+                $this->CommonModel->sendCommonHTMLEmail(
+                    $userEmail,
+                    'faq_update_notification_en',
+                    $tempVars_en,
+                    $dynamicVars_en
+                );
+
+            } elseif (
+                !empty($faqDetails['question_fr']) &&
+                empty($faqDetails['question'])
+            ) {
+
+                // French only
+                $this->CommonModel->sendCommonHTMLEmail(
+                    $userEmail,
+                    'faq_update_notification_fr',
+                    $tempVars_fr,
+                    $dynamicVars_fr
+                );
+
+            } else {
+
+                // English only
+                $this->CommonModel->sendCommonHTMLEmail(
+                    $userEmail,
+                    'faq_update_notification_en',
+                    $tempVars_en,
+                    $dynamicVars_en
+                );
+            }
+        }
+
+        $this->session->set_flashdata(
+            'success',
+            'FAQ has been updated successfully and email notification sent.'
+        );
+
+        redirect(base_url('faqs'));
+
+    } else {
+
+        $this->session->set_flashdata(
+            'error',
+            'Failed to update FAQ. Please try again.'
+        );
+
+        redirect($_SERVER['HTTP_REFERER']);
+    }
+}
 
 	public function faq_add() {
 		$this->load->view('add_faq');
