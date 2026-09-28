@@ -899,7 +899,7 @@ class HomeController extends CI_Controller
         
 
     }
-    public function faqs_post()
+public function faqs_post()
 {
     header('Content-Type: application/json');
 
@@ -937,7 +937,10 @@ class HomeController extends CI_Controller
 
     // 3. reCAPTCHA validation
     if (empty($recaptchaResponse)) {
-        echo json_encode(['flag' => 0, 'msg' => 'Please complete the reCAPTCHA.']);
+        echo json_encode([
+            'flag' => 0,
+            'msg' => 'Please complete the reCAPTCHA.'
+        ]);
         return;
     }
 
@@ -976,30 +979,38 @@ class HomeController extends CI_Controller
 
     if ($this->db->affected_rows() > 0) {
 
-        // Get inserted FAQ ID
         $faq_id = $this->db->insert_id();
 
         // 6. Insert Admin Notification
-        $this->load->model('Notification_model');
-
         $notification_data = [
-            'type'          => 'faq',
-            'subtype'       => 'new_faq_request',
-            'recipient_type'=> 'admin',
-            'recipient_id'  => NULL,
-            'title'         => 'New FAQ Request',
-            'message'       => 'FAQ request by ' . $name . ' - Shopper',
-            'data'          => [
-                'faq_id'       => $faq_id,
-                'shopper_name' => $name,
-                'shopper_email'=> $email,
-                'question'     => $question,
-                'faq_type'     => 'Shopper'
-            ],
-            'is_read'       => 0
+            'type'           => 'faq',
+            'subtype'        => 'new_faq_request',
+            'recipient_type' => 'admin',
+            'recipient_id'   => NULL,
+            'title'          => 'New FAQ Request',
+            'message'        => 'FAQ request by ' . $name . ' - Shopper',
+            'data'           => json_encode([
+                'faq_id'        => $faq_id,
+                'shopper_name'  => $name,
+                'shopper_email' => $email,
+                'question'      => $question,
+                'faq_type'      => 'Shopper'
+            ]),
+            'is_read'        => 0,
+            'created_at'     => date('Y-m-d H:i:s')
         ];
 
-        $this->Notification_model->insert($notification_data);
+        $this->db->insert('notifications', $notification_data);
+
+        // Log notification database error without failing FAQ submission
+        $notification_error = $this->db->error();
+
+        if (!empty($notification_error['code'])) {
+            log_message(
+                'error',
+                'FAQ Notification Error: ' . $notification_error['message']
+            );
+        }
 
         // 7. Success response
         echo json_encode([
