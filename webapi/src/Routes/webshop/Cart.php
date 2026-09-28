@@ -693,13 +693,15 @@ $app->post('/webshop/cart_listing', function (Request $request, Response $respon
 	extract($data);
 	$error = '';
 	// print_r($data);die();
-	if ($session_id == '') {
+	$session_id  = (isset($session_id) && $session_id != '') ? $session_id : '';
+	$quote_id    = (isset($quote_id) && $quote_id != '') ? $quote_id : '';
+	$customer_id = (isset($customer_id) && $customer_id != '') ? $customer_id : '';
+
+	if ($session_id == '' && $customer_id == '' && $quote_id == '') {
 		$error = 'Please pass all the mandatory values';
 	} else {
 
 		$cart_obj = new DbCart();
-		$quote_id = (isset($quote_id) && $quote_id != '') ? $quote_id : '';
-		$customer_id = (isset($customer_id) && $customer_id != '') ? $customer_id : '';
 		$cartData = $cart_obj->getCartListing($session_id, $quote_id, $customer_id);
 		if ($cartData == false) {
 			$error = 'No data found';
