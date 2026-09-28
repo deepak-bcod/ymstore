@@ -1,0 +1,5 @@
+Product Type,Product Name,Product Code,Category,Sub Category,Tags,Description,Highlights,Product Reviews Code,Launch Date,Estimate Delivery Time,Product Drop Shipment,SKU,Barcode,Inventory,Cost Price,Selling Price,Tax Percent,Status,Customer Types,Meta Title,Meta Keyword,Meta Description,Search Keywords,Promo Reference,Weight,Attribute,Variant
+simple,Simple product,smp_1,Men's Fashion,Shirts,"shirt,sweat shirt",Sample description,Sample description,,22-08-26,2 Days,1,smp_1,smp_1,20,50,40,,1,0,Simple product,Simple product Keyword,Simple product Description,,,40,"fabric,material","color,size"
+configurable,Config Product,conf_1,Women's Fashion,Skirts,"shirt,sweat shirt",Sample description,Sample description,,22-08-26,2 Days,1,,,,,,,1,0,CoSimple product,Simple product Keyword,Simple product Description,,,,,
+conf-simple,Config Product,conf_1,,,,,,,,,,conf-2-Red-S,124523566,25,50,50,,,,,,,,,500.3,"fabric,material","color,size"
+conf-simple,Config Product,conf_1,,,,,,,,,,conf-2-Red-M,124523566,25,50,50,,,,,,,,,400000,"fabric,material","color,size"

@@ -1,0 +1,46 @@
+name: "CI"
+
+on:
+  push:
+    branches: [master]
+  pull_request: ~
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: set up php
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+      - name: install dependencies
+        run: make install
+      - name: lint
+        run: make lint
+  run-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        phpversion: ["7.3", "7.4", "8.0", "8.1"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: set up php
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.phpversion }}
+      - name: get composer cache directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+      - name: cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-${{ matrix.phpversion }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.phpversion }}-composer-
+      - name: install dependencies
+        run: make install
+      - name: test with phpunit on ${{ matrix.phpversion }}
+        run: EASYPOST_TEST_API_KEY=123 EASYPOST_PROD_API_KEY=123 make test
+      - name: Security scan
+        run: make scan

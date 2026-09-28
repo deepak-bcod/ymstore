@@ -1,0 +1,237 @@
+<?php $this->load->view('common/fbc-user/header');
+$use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_variables', array('identifier' => 'use_advanced_warehouse'), 'value');
+
+?>
+<style>
+	.purple { color: purple; font-weight: bold; }
+	.green { color: green; font-weight: bold; }
+	.black { color: black; font-weight: bold; }
+	.blue { color: blue; font-weight: bold; }
+	.red { color: red; font-weight: bold; }
+
+</style>
+<main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
+	<div class="inner-nav">
+		<ul class="nav nav-pills">
+			<li >
+				<a href="<?php echo base_url() ?>webshop/return-orders/">Returns</a></li>
+			<li class="active">
+				<a href="<?php echo base_url() ?>webshop/replacement-orders/">Replacements</a>
+			</li>
+		</ul>
+	</div>
+
+	<div class="tab-content">
+		<div id="new-orders" class="tab-pane fade in active min-height-480  common-tab-section admin-shop-details-table" style="opacity:1;">
+			
+			<div class="content-main form-dashboard">
+				<div class="table-responsive text-center">
+					<table class="table table-bordered table-style" id="DataTables_Table_Replacements">
+						<thead>
+							<tr>
+								<th>Merchant <br>Order No.</th>
+								<th>YM <br>Order No.</th>
+								<th>Purchased On</th>
+								<th>Customer Name</th>
+								<th>Merchant<br>Name</th>
+								<th>Status</th>
+								<th>Action</th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php if(!empty($orders)) { ?>
+								<?php foreach ($orders as $order) {
+
+									$purchaseDate = date('d/m/Y', $order['purchase_timestamp']);
+									$purchaseTime = date('h:i A', $order['purchase_timestamp']);
+									$purchaseOnFull = $purchaseDate . ' | ' . $purchaseTime;
+
+									switch ($order['replacement_status']) {
+										case 18:
+											$statusText = "Replacement approved";
+											$statusClass = "green";
+											break;
+
+										case 19:
+											$statusText = "Replaced";
+											$statusClass = "blue";
+											break;
+
+										case 21:
+											$statusText = "Rejected";
+											$statusClass = "red";
+											break;
+
+										default:
+											$statusText = "Pending";
+											$statusClass = "purple";
+											break;
+									}
+
+								?>
+								<tr>
+									<td><?= $order['order_barcode']; ?></td>
+									<td><?= $order['shopper_order_id']; ?></td>
+									<td><?= $purchaseOnFull; ?></td>
+									<td><?= $order['customer_name']; ?></td>
+									<td><?= $order['publication_name']; ?></td>
+									<td>
+										<span style="color: <?= $statusClass ?>; font-weight: bold;">
+											<?= $statusText ?>
+										</span>
+									</td>
+									<td>
+										<?php if($order['status'] == 0){ ?>
+											<button class="btn btn-primary btn-view-order"
+												data-id="<?= $order['replacement_order_id'] ?>"
+												data-status="<?= $order['replacement_status'] ?>"
+												data-products="<?= htmlspecialchars(json_encode($order['products']), ENT_QUOTES, 'UTF-8') ?>">
+												View
+											</button>
+										<?php } ?>
+									</td>
+								</tr>
+								<?php } ?>
+							<?php } else { ?>
+							<tr><td colspan="6" class="text-center">No records found</td></tr>
+							<?php } ?>
+						</tbody>
+
+					</table>
+
+				</div>
+			</div>
+			<!--end form-->
+		</div>
+	</div>
+</main>
+<div class="modal fade" id="order-action-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+     <div class="modal-content">
+       <div class="modal-header"><h5>Replacement Items Details </h5><button type="button" class="btn-close" data-dismiss="modal" style="border: 0; font-weight: bold; background: transparent;">X</button></div>
+
+       <div class="modal-body" id="order-action-modal-body"></div>
+       <div class="modal-footer" id="order-action-modal-footer"></div>
+     </div>
+  </div>
+</div>
+
+
+
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<?php $this->load->view('common/fbc-user/footer'); ?>
+
+<script type="text/javascript">
+	$(document).ready(function () {
+
+		// Destroy existing instance if already initialized
+		if ($.fn.DataTable.isDataTable('#DataTables_Table_Replacements')) {
+			$('#DataTables_Table_Replacements').DataTable().clear().destroy();
+		}
+
+		// Initialize DataTable
+		$('#DataTables_Table_Replacements').DataTable({
+			responsive: true,
+			autoWidth: false,
+			pageLength: 10,
+			ordering: true,
+			searching: true,
+			lengthChange: true,
+			info: true,
+			order: [[0, 'desc']], // sort latest first
+			language: {
+				emptyTable: "No records available"
+			},
+			columnDefs: [
+				{
+					targets: -1, 
+					orderable: false
+				}
+			]
+		});
+
+	});
+
+	
+	$(document).on('click', '.btn-view-order', function () {
+
+		var products = $(this).data('products');
+		var id = $(this).data('id');
+		var status = $(this).data('status');
+
+		$('#order-action-modal').data('id', id);
+		$('#order-action-modal').data('status', status);
+
+		if (typeof products === "string") {
+			products = JSON.parse(products);
+		}
+
+		var productHtml = `
+			<table class="table table-bordered">
+				<thead>
+					<tr><th>Product</th><th>Qty</th><th>Price (MUR)</th><th>Total (MUR)</th></tr>
+				</thead>
+				<tbody>
+		`;
+
+		products.forEach(p => {
+			productHtml += `
+				<tr>
+					<td>${p.product_name}</td>
+					<td>${p.qty}</td>
+					<td>${p.price}</td>
+					<td>${p.total_price}</td>
+				</tr>
+			`;
+		});
+
+		productHtml += `</tbody></table>`;
+
+		$('#order-action-modal-body').html(productHtml);
+
+		// FOOTER BUTTON CONDITION BASED ON STATUS
+		let footerHtml = '';
+
+		switch (status) {
+			// case 0:
+			// 	footerHtml = `<button class="btn btn-success" id="modal-approve-btn">Approve</button>
+			// 				<button class="btn btn-danger" id="modal-reject-btn">Reject</button>`;
+			// 	break;
+
+			case 2:
+				footerHtml = `<button class="btn btn-success" id="confirm-ym-replacement-done">YM Replacement Done</button>`;
+				break;
+
+			default:
+				footerHtml = ``; // ONLY close with X button in header
+		}
+		$('#order-action-modal-footer').html(footerHtml);
+
+		var myModal = new bootstrap.Modal(document.getElementById('order-action-modal'));
+		myModal.show();
+	});
+	$(document).on('click', '#confirm-ym-replacement-done', function () {
+		updateStatus(6);
+	});
+	// AJAX FUNCTION
+	function updateStatus(status) {
+		var id = $('#order-action-modal').data('id');
+		$.post('<?= base_url("WebshopOrdersController/replacement_update_status") ?>',
+			{ id: id, status: status },
+			function () {
+				location.reload();
+			},
+			'json'
+		);
+	}
+
+	
+
+</script>

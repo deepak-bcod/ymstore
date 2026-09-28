@@ -1,0 +1,41 @@
+[0;1;32m●[0m httpd.service - The Apache HTTP Server
+   Loaded: loaded (/usr/lib/systemd/system/httpd.service; enabled; vendor preset: disabled)
+  Drop-In: /etc/systemd/system/httpd.service.d
+           └─php-fpm.conf, php74-php-fpm.conf, php81-php-fpm.conf
+   Active: [0;1;32mactive (running)[0m since Thu 2026-02-12 08:37:57 UTC; 3 days ago
+     Docs: man:httpd.service(8)
+  Process: 28932 ExecReload=/usr/sbin/httpd $OPTIONS -k graceful (code=exited, status=0/SUCCESS)
+ Main PID: 1053 (httpd)
+   Status: "Running, listening on: port 443, port 80"
+    Tasks: 1018 (limit: 101954)
+   Memory: 328.7M
+   CGroup: /system.slice/httpd.service
+           ├─ 1053 /usr/sbin/httpd -DFOREGROUND
+           ├─21063 /usr/sbin/httpd -DFOREGROUND
+           ├─21064 /usr/sbin/httpd -DFOREGROUND
+           ├─21065 /usr/sbin/httpd -DFOREGROUND
+           ├─21282 /usr/sbin/httpd -DFOREGROUND
+           ├─25293 /usr/sbin/httpd -DFOREGROUND
+           ├─25365 /usr/sbin/httpd -DFOREGROUND
+           ├─25473 /usr/sbin/httpd -DFOREGROUND
+           ├─25585 /usr/sbin/httpd -DFOREGROUND
+           ├─25666 /usr/sbin/httpd -DFOREGROUND
+           ├─25743 /usr/sbin/httpd -DFOREGROUND
+           ├─25809 /usr/sbin/httpd -DFOREGROUND
+           ├─25875 /usr/sbin/httpd -DFOREGROUND
+           ├─25941 /usr/sbin/httpd -DFOREGROUND
+           ├─26007 /usr/sbin/httpd -DFOREGROUND
+           ├─26073 /usr/sbin/httpd -DFOREGROUND
+           ├─26139 /usr/sbin/httpd -DFOREGROUND
+           └─28933 /usr/sbin/httpd -DFOREGROUND
+
+Feb 12 08:37:57 srv1094364.hstgr.cloud httpd[1053]: Server configured, listening on: port 443, port 80
+Feb 15 03:30:01 srv1094364.hstgr.cloud systemd[1]: Reloading The Apache HTTP Server.
+Feb 15 03:30:01 srv1094364.hstgr.cloud systemd[1]: Reloaded The Apache HTTP Server.
+Feb 15 03:30:01 srv1094364.hstgr.cloud httpd[1053]: Server configured, listening on: port 443, port 80
+Feb 16 04:44:51 srv1094364.hstgr.cloud systemd[1]: Reloading The Apache HTTP Server.
+Feb 16 04:44:51 srv1094364.hstgr.cloud systemd[1]: Reloaded The Apache HTTP Server.
+Feb 16 04:44:51 srv1094364.hstgr.cloud httpd[1053]: Server configured, listening on: port 443, port 80
+Feb 16 04:48:11 srv1094364.hstgr.cloud systemd[1]: Reloading The Apache HTTP Server.
+Feb 16 04:48:11 srv1094364.hstgr.cloud httpd[1053]: Server configured, listening on: port 443, port 80
+Feb 16 04:48:11 srv1094364.hstgr.cloud systemd[1]: Reloaded The Apache HTTP Server.

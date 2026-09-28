@@ -1,0 +1,5 @@
+product_type,product_name,product_code,category,sub_category,description,highlights,product_reviews_code,launch_date,estimate_delivery_time,sku,inventory,cost_price,selling_price,tax_percent,weight,status,meta_title,meta_description,meta_keyword,search_keywords,promo_reference,pub_com_per_type,pub_com_percent,attribute_key_features,master_variant,variant_color,variant_size
+configurable,Men Jacket,MJ,Men's Fashion,Outerwear,Men Jacket,Men Jacket,,29/08/2026,5,,,,,,,1,Men Jacket,Men Jacket,Men Jacket,Men Jacket,,0,4,Nice,"color,size",,
+conf-simple,Men Jacket,,,,,,,,,MJ,87,500,500,15,,,,,,,,,,,,Yellow,L
+conf-simple,Men Jacket,,,,,,,,,MJ,,500,500,15,,1,,,,,,,,,,Red,S
+simple,Men Blazers,MB,Men's Fashion,Outerwear,Men Blazers,Men Blazers,,29/06/2026,5,MB,100,100,100,15,20000,1,Men Blazers,Men Blazers,Men Blazers,Men Blazers,,0,4,Nice,,,
