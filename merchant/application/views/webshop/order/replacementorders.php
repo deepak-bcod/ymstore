@@ -253,36 +253,28 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 			let statusClass = '';
 			let actionButtons = '';
 
+			let shipmentType = '';
+			if (p.shipment_type !== undefined && p.shipment_type !== null) {
+				shipmentType = String(p.shipment_type).trim();
+			}
+
 			switch (parseInt(p.item_status)) {
 				case 0:
-
-    statusText = "<?php echo $this->lang->line('pending_label') ? $this->lang->line('pending_label') : 'Pending'; ?>";
-    statusClass = "purple";
-
-    let shipmentType = '';
-
-    if (p.shipment_type !== undefined && p.shipment_type !== null) {
-    shipmentType = String(p.shipment_type).trim();
-}
-
-    console.log('Shipment Type:', shipmentType);
-
-    actionButtons = `
-        <button
-            class="btn btn-success btn-sm approve-item"
-            data-item-id="${p.replacement_item_id}"
-            data-shipment-type="${shipmentType}">
-            <?php echo $this->lang->line('approve_label'); ?>
-        </button>
-
-        <button
-            class="btn btn-danger btn-sm reject-item"
-            data-item-id="${p.replacement_item_id}">
-            <?php echo $this->lang->line('reject_label'); ?>
-        </button>
-    `;
-
-    break;
+					if (shipmentType === '2') {
+						// YM Replacement is managed exclusively by Admin Panel
+						statusText = "Pending (YM Delivery)";
+						statusClass = "purple";
+						actionButtons = '<span class="badge bg-secondary" style="font-size: 11px; padding: 4px 8px; background: #6c757d; color: #fff; border-radius: 4px;">Managed by Admin</span>';
+					} else {
+						// Own Replacement managed by Merchant Panel
+						statusText = "Pending (Own Delivery)";
+						statusClass = "purple";
+						actionButtons = `
+							<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
+							<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
+						`;
+					}
+					break;
 				case 1:
 					statusText = "Own Replacement";
 					statusClass = "green";
@@ -293,9 +285,8 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 				case 2:
 					statusText = "YM Replacement";
 					statusClass = "black";
-					actionButtons = `
-						<button class="btn btn-success btn-sm complete-ym" data-item-id="${p.replacement_item_id}">Done</button>
-					`;
+					// YM Replacement is processed exclusively by Admin Panel; Merchant cannot complete it
+					actionButtons = '<span class="badge bg-secondary" style="font-size: 11px; padding: 4px 8px; background: #6c757d; color: #fff; border-radius: 4px;">In Admin Process</span>';
 					break;
 				case 3:
 					statusText = "Replaced";
@@ -319,12 +310,18 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 					actionButtons = '';
 					break;
 				default:
-					statusText = "Pending";
-					statusClass = "purple";
-					actionButtons = `
-						<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
-						<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
-					`;
+					if (shipmentType === '2') {
+						statusText = "Pending (YM Delivery)";
+						statusClass = "purple";
+						actionButtons = '<span class="badge bg-secondary" style="font-size: 11px; padding: 4px 8px; background: #6c757d; color: #fff; border-radius: 4px;">Managed by Admin</span>';
+					} else {
+						statusText = "Pending";
+						statusClass = "purple";
+						actionButtons = `
+							<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
+							<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
+						`;
+					}
 					break;
 			}
 
@@ -356,140 +353,26 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 		myModal.show();
 	});
 
-	// Per-item status update handlers
+	// Per-item status update handlers for Own Replacement
 	$(document).on('click', '.approve-item', function () {
-
-    var itemId = $(this).data('item-id');
-    var shipmentType = $(this).data('shipment-type');
-
-    console.log('Item ID:', itemId);
-    console.log('Shipment Type:', shipmentType);
-
-    showReplacementTypeModal(itemId, shipmentType);
-});
+		var itemId = $(this).data('item-id');
+		if (confirm("Approve this item for Own Replacement?")) {
+			updateItemStatus(itemId, 1); // 1 = Own Replacement Approved
+		}
+	});
 
 	$(document).on('click', '.reject-item', function () {
 		var itemId = $(this).data('item-id');
-		updateItemStatus(itemId, 4); // Rejected
+		if (confirm("Reject this replacement request item?")) {
+			updateItemStatus(itemId, 4); // 4 = Rejected
+		}
 	});
 
 	$(document).on('click', '.complete-own', function () {
 		var itemId = $(this).data('item-id');
-		updateItemStatus(itemId, 5); // Replaced (Own)
-	});
-
-	$(document).on('click', '.complete-ym', function () {
-		var itemId = $(this).data('item-id');
-		updateItemStatus(itemId, 6); // Replaced (YM)
-	});
-
-	// Show replacement type selection modal
-	function showReplacementTypeModal(itemId, shipmentType) {
-
-    // Convert to string so 1 / "1" and 2 / "2" work correctly
-    shipmentType = String(shipmentType || '').trim();
-
-    console.log('showReplacementTypeModal');
-    console.log('Item ID:', itemId);
-    console.log('Shipment Type:', shipmentType);
-
-    let radioHtml = '';
-
-    // ==========================================
-    // OWN DELIVERY
-    // shipment_type = 1
-    // ONLY Own Replacement
-    // ==========================================
-    if (shipmentType === '1') {
-
-        radioHtml = `
-            <label>
-                <input
-                    type="radio"
-                    name="replacement_type"
-                    value="1"
-                    checked>
-                Own Replacement
-            </label>
-        `;
-
-    }
-
-    // ==========================================
-    // YM DELIVERY
-    // shipment_type = 2
-    // BOTH options
-    // ==========================================
-    else if (shipmentType === '2') {
-
-        radioHtml = `
-            <label>
-                <input
-                    type="radio"
-                    name="replacement_type"
-                    value="1">
-                Own Replacement
-            </label>
-
-            <br>
-
-            <label>
-                <input
-                    type="radio"
-                    name="replacement_type"
-                    value="2">
-                YM Replacement
-            </label>
-        `;
-
-    }
-
-    // ==========================================
-    // UNKNOWN / NOT APPLICABLE
-    // ==========================================
-    else {
-
-        radioHtml = `
-            <p style="color:red;">
-                Shipment type is not available.
-            </p>
-        `;
-    }
-
-
-    $('#order-action-modal-body').html(`
-        <p>
-            Select replacement type for this item:
-        </p>
-
-        ${radioHtml}
-    `);
-
-
-    $('#order-action-modal-footer').html(`
-        <button
-            class="btn btn-primary"
-            id="submit-replacement-type"
-            data-item-id="${itemId}">
-            Submit
-        </button>
-
-        <button
-            class="btn btn-secondary"
-            data-dismiss="modal">
-            Cancel
-        </button>
-    `);
-}
-
-	$(document).on('click', '#submit-replacement-type', function () {
-		var itemId = $(this).data('item-id');
-		var type = $('input[name="replacement_type"]:checked').val();
-		if (!type) {
-			alert("Please select replacement type!");
-			return;
+		if (confirm("Mark Own Replacement as completed?")) {
+			updateItemStatus(itemId, 5); // 5 = Replaced (Own)
 		}
-		updateItemStatus(itemId, type);
 	});
 
 	// AJAX function for per-item status updates
@@ -500,7 +383,7 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 				if (response.success) {
 					location.reload();
 				} else {
-					alert('Failed to update status');
+					alert(response.error || 'Failed to update status');
 				}
 			},
 			'json'

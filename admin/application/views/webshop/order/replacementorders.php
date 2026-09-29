@@ -94,14 +94,12 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 										</span>
 									</td>
 									<td>
-										<?php if($order['status'] == 0 || $order['status'] == 18){ ?>
-											<button class="btn btn-primary btn-view-order yelllo-text"
-												data-id="<?= $order['replacement_order_id'] ?>"
-												data-status="<?= $order['replacement_status'] ?>"
-												data-products="<?= htmlspecialchars(json_encode($order['products']), ENT_QUOTES, 'UTF-8') ?>">
-												View
-											</button>
-										<?php } ?>
+										<button class="btn btn-primary btn-view-order yelllo-text"
+											data-id="<?= $order['replacement_order_id'] ?>"
+											data-status="<?= $order['replacement_status'] ?>"
+											data-products="<?= htmlspecialchars(json_encode($order['products']), ENT_QUOTES, 'UTF-8') ?>">
+											View
+										</button>
 									</td>
 								</tr>
 								<?php } ?>
@@ -148,7 +146,6 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 		}
 
 		// Initialize DataTable
-		// Locate this section in your script:
 		$('#DataTables_Table_Replacements').DataTable({
 			responsive: true,
 			autoWidth: false,
@@ -159,9 +156,9 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 			info: true,
 			order: [[0, 'desc']], 
 			language: {
-				emptyTable: "No records available", // <--- Added missing comma
-				search: "_INPUT_",                 // <--- Hides the external "Search:" label
-				searchPlaceholder: "Search"      // <--- Adds text inside the box
+				emptyTable: "No records available",
+				search: "_INPUT_",
+				searchPlaceholder: "Search"
 			},
 			columnDefs: [
 				{
@@ -190,13 +187,22 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 		var productHtml = `
 			<table class="table table-bordered">
 				<thead>
-					<tr><th>Product</th><th>Qty</th><th>Price (MUR)</th><th>Total (MUR)</th></tr>
+					<tr>
+						<th>Product</th>
+						<th>Qty</th>
+						<th>Price (MUR)</th>
+						<th>Total (MUR)</th>
+						<th>Replacement Type</th>
+						<th>Status</th>
+						<th>Action</th>
+					</tr>
 				</thead>
 				<tbody>
 		`;
 
 		var hasYM = false;
 		var hasOwn = false;
+		var hasPendingYM = false;
 
 		products.forEach(p => {
 
@@ -220,32 +226,117 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 					// JSON parse error - ignore
 				}
 			}
+
+			let shipmentType = (p.shipment_type !== undefined && p.shipment_type !== null) ? String(p.shipment_type).trim() : '';
+			let itemStatus = parseInt(p.item_status || 0);
+
+			let itemTypeLabel = '';
+			let itemStatusLabel = '';
+			let itemStatusClass = '';
+			let itemActionButtons = '';
+
+			if (shipmentType === '2' || itemStatus === 2 || itemStatus === 6) {
+				hasYM = true;
+				itemTypeLabel = '<span style="font-weight: bold; color: #000;">YM Replacement</span>';
+
+				switch (itemStatus) {
+					case 0: // Pending
+						hasPendingYM = true;
+						itemStatusLabel = 'Pending';
+						itemStatusClass = 'purple';
+						itemActionButtons = `
+							<button class="btn btn-success btn-sm admin-approve-ym" data-item-id="${p.replacement_item_id}">Approve</button>
+							<button class="btn btn-danger btn-sm admin-reject-ym" data-item-id="${p.replacement_item_id}">Reject</button>
+						`;
+						break;
+					case 2: // Approved (YM Replacement)
+						itemStatusLabel = 'YM Replacement Approved';
+						itemStatusClass = 'green';
+						itemActionButtons = `
+							<button class="btn btn-success btn-sm admin-complete-ym" data-item-id="${p.replacement_item_id}">YM Replacement Done</button>
+						`;
+						break;
+					case 3:
+					case 6: // Replaced (YM)
+						itemStatusLabel = 'Replaced (YM)';
+						itemStatusClass = 'black';
+						itemActionButtons = '<span class="badge bg-success" style="font-size: 11px; padding: 4px 8px; background: #28a745; color: #fff; border-radius: 4px;">Completed</span>';
+						break;
+					case 4:
+					case 21: // Rejected
+						itemStatusLabel = 'Rejected';
+						itemStatusClass = 'red';
+						itemActionButtons = '<span class="badge bg-danger" style="font-size: 11px; padding: 4px 8px; background: #dc3545; color: #fff; border-radius: 4px;">Rejected</span>';
+						break;
+					default:
+						itemStatusLabel = 'Pending';
+						itemStatusClass = 'purple';
+						itemActionButtons = `
+							<button class="btn btn-success btn-sm admin-approve-ym" data-item-id="${p.replacement_item_id}">Approve</button>
+							<button class="btn btn-danger btn-sm admin-reject-ym" data-item-id="${p.replacement_item_id}">Reject</button>
+						`;
+						break;
+				}
+			} else {
+				hasOwn = true;
+				itemTypeLabel = '<span style="font-weight: bold; color: green;">Own Replacement</span>';
+
+				switch (itemStatus) {
+					case 0:
+						itemStatusLabel = 'Pending';
+						itemStatusClass = 'purple';
+						break;
+					case 1:
+						itemStatusLabel = 'Own Replacement Approved';
+						itemStatusClass = 'green';
+						break;
+					case 5:
+					case 3:
+						itemStatusLabel = 'Replaced (Own)';
+						itemStatusClass = 'green';
+						break;
+					case 4:
+					case 21:
+						itemStatusLabel = 'Rejected';
+						itemStatusClass = 'red';
+						break;
+					default:
+						itemStatusLabel = 'Pending';
+						itemStatusClass = 'purple';
+						break;
+				}
+
+				// The Admin Panel should NOT provide the option to process or approve the Own Replacement.
+				itemActionButtons = '<span class="badge bg-secondary" style="font-size: 11px; padding: 4px 8px; background: #6c757d; color: #fff; border-radius: 4px;">Managed by Merchant</span>';
+			}
+
 			productHtml += `
 				<tr>
 					<td>${p.product_name}${variantDisplay}</td>
 					<td>${p.qty}</td>
 					<td>${p.price}</td>
 					<td>${p.total_price}</td>
+					<td>${itemTypeLabel}</td>
+					<td><span style="color: ${itemStatusClass === 'purple' ? '#800080' : itemStatusClass === 'green' ? '#008000' : itemStatusClass === 'black' ? '#000000' : itemStatusClass === 'blue' ? '#0000FF' : '#FF0000'}; font-weight: bold;">${itemStatusLabel}</span></td>
+					<td>${itemActionButtons}</td>
 				</tr>
 			`;
-			if (p.item_status == 2) hasYM = true;
-			if (p.item_status == 1) hasOwn = true;
 		});
 
 		productHtml += `</tbody></table>`;
 
 		$('#order-action-modal-body').html(productHtml);
 
-		// FOOTER BUTTON CONDITION BASED ON STATUS AND ITEMS
-		let footerHtml = '';
+		// FOOTER BUTTON: Only for YM Replacement Done at order level if approved
+		let footerHtml = `
+			<button class="btn btn-secondary" data-dismiss="modal">Close</button>
+		`;
 
-		if (status == 18) {
-			if (hasYM) {
-				footerHtml = `<button class="btn btn-success" id="confirm-ym-replacement-done">YM Replacement Done</button>`;
-			} 
-			// else if (hasOwn) {
-			// 	footerHtml = `<button class="btn btn-success" id="confirm-own-replacement-done">Own Replacement Done</button>`;
-			// }
+		if (hasYM && (status == 18 || status == 2)) {
+			footerHtml = `
+				<button class="btn btn-success" id="confirm-ym-replacement-done">YM Replacement Done</button>
+				<button class="btn btn-secondary" data-dismiss="modal">Close</button>
+			`;
 		}
 
 		$('#order-action-modal-footer').html(footerHtml);
@@ -253,24 +344,63 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 		var myModal = new bootstrap.Modal(document.getElementById('order-action-modal'));
 		myModal.show();
 	});
+
+	// Item-level handlers for YM Replacement in Admin Panel
+	$(document).on('click', '.admin-approve-ym', function () {
+		var itemId = $(this).data('item-id');
+		if (confirm("Approve this item for YM Replacement?")) {
+			updateItemStatus(itemId, 2); // 2 = YM Replacement Approved
+		}
+	});
+
+	$(document).on('click', '.admin-reject-ym', function () {
+		var itemId = $(this).data('item-id');
+		if (confirm("Reject this YM Replacement request item?")) {
+			updateItemStatus(itemId, 4); // 4 = Rejected
+		}
+	});
+
+	$(document).on('click', '.admin-complete-ym', function () {
+		var itemId = $(this).data('item-id');
+		if (confirm("Mark YM Replacement as completed for this item?")) {
+			updateItemStatus(itemId, 6); // 6 = Replaced (YM)
+		}
+	});
+
+	// Order-level handler for YM Replacement Done in Admin Panel
 	$(document).on('click', '#confirm-ym-replacement-done', function () {
-		updateStatus(6);
+		if (confirm("Confirm YM Replacement Done for this order?")) {
+			updateOrderStatus(6);
+		}
 	});
-	$(document).on('click', '#confirm-own-replacement-done', function () {
-		updateStatus(5);
-	});
-	// AJAX FUNCTION
-	function updateStatus(status) {
-		var id = $('#order-action-modal').data('id');
-		$.post('<?= base_url("WebshopOrdersController/replacement_update_status") ?>',
-			{ id: id, status: status },
-			function () {
-				location.reload();
+
+	// AJAX FUNCTIONS
+	function updateItemStatus(itemId, status) {
+		$.post('<?= base_url("WebshopOrdersController/replacement_update_item_status") ?>',
+			{ replacement_item_id: itemId, status: status },
+			function (response) {
+				if (response.success) {
+					location.reload();
+				} else {
+					alert(response.error || 'Failed to update status');
+				}
 			},
 			'json'
 		);
 	}
 
-	
-
+	function updateOrderStatus(status) {
+		var id = $('#order-action-modal').data('id');
+		$.post('<?= base_url("WebshopOrdersController/replacement_update_status") ?>',
+			{ id: id, status: status },
+			function (response) {
+				if (response.success) {
+					location.reload();
+				} else {
+					alert(response.error || 'Failed to update status');
+				}
+			},
+			'json'
+		);
+	}
 </script>

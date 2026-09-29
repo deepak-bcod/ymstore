@@ -6371,6 +6371,37 @@ class WebshopOrdersController extends CI_Controller
 		$status = $this->input->post('status');
 
 		if ($id && $status !== null) {
+			$status = (int)$status;
+
+			// ENFORCEMENT: Own Replacement can ONLY be processed from Merchant Panel
+			// YM Replacement can ONLY be processed from Admin Panel
+			$repOrder = $this->db->select('sor.replacement_order_id, bo.shipment_type')
+				->from('sales_order_replacement sor')
+				->join('b2b_orders bo', '(bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
+				->where('sor.replacement_order_id', $id)
+				->get()
+				->row();
+
+			if (!$repOrder) {
+				echo json_encode(['success' => false, 'error' => 'Replacement order not found']);
+				return;
+			}
+
+			if ((int)$repOrder->shipment_type === 1 || in_array($status, [1, 5])) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Own Replacement can only be processed from Merchant Panel.'
+				]);
+				return;
+			}
+
+			if (!in_array($status, [2, 4, 6])) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Invalid status update for Admin Panel.'
+				]);
+				return;
+			}
 
 			$updated = $this->WebshopOrdersModel->replacement_update_status($id, $status);
 
@@ -6395,7 +6426,7 @@ class WebshopOrdersController extends CI_Controller
 						'recipient_type' => 'merchant',
 						'recipient_id'   => $merchant_id,
 						'title'          => 'Replacement Status Updated',
-						'message'        => 'Replacement request #'.$b2b_id.' status updated.',
+						'message'        => 'Replacement request #'.$b2b_id.' status updated by Admin.',
 						'data'           => json_encode([
 												'replacement_id' => $b2b_id,
 												'status'         => $status
@@ -6413,6 +6444,86 @@ class WebshopOrdersController extends CI_Controller
 				'success' => $updated ? true : false
 			]);
 
+		} else {
+			echo json_encode([
+				'success' => false,
+				'error'   => 'Invalid request'
+			]);
+		}
+	}
+
+	public function replacement_update_item_status()
+	{
+		$replacement_item_id = $this->input->post('replacement_item_id');
+		$status = $this->input->post('status');
+
+		if ($replacement_item_id && $status !== null) {
+			$status = (int)$status;
+
+			$itemRow = $this->db
+				->select('sori.replacement_item_id, sori.replacement_order_id, bo.shipment_type, bo.publisher_id')
+				->from('sales_order_replacement_items sori')
+				->join('sales_order_replacement sor', 'sor.replacement_order_id = sori.replacement_order_id', 'left')
+				->join('b2b_orders bo', '(bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
+				->where('sori.replacement_item_id', $replacement_item_id)
+				->get()
+				->row();
+
+			if (!$itemRow) {
+				echo json_encode(['success' => false, 'error' => 'Replacement item not found']);
+				return;
+			}
+
+			// ENFORCEMENT: Own Replacement can ONLY be processed from Merchant Panel
+			if ((int)$itemRow->shipment_type === 1 || in_array($status, [1, 5])) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Own Replacement can only be processed from Merchant Panel.'
+				]);
+				return;
+			}
+
+			// Only allow Admin YM actions: 2 (Approve YM), 4 (Reject), 6 (YM Done)
+			if (!in_array($status, [2, 4, 6])) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Invalid status update for Admin Panel.'
+				]);
+				return;
+			}
+
+			$updated = $this->WebshopOrdersModel->replacement_update_item_status($replacement_item_id, $status);
+
+			if ($updated) {
+				$replacementData = $this->WebshopOrdersModel->getReplacementMerchantId($itemRow->replacement_order_id);
+				if (!empty($replacementData) && !empty($replacementData['publisher_id'])) {
+					$merchant_id = $replacementData['publisher_id'];
+					$b2b_id = $replacementData['order_barcode'];
+
+					$notification = [
+						'type'           => 'replacement',
+						'subtype'        => 'status_updated',
+						'recipient_type' => 'merchant',
+						'recipient_id'   => $merchant_id,
+						'title'          => 'Replacement Status Updated',
+						'message'        => 'Replacement request #'.$b2b_id.' item status updated by Admin.',
+						'data'           => json_encode([
+							'replacement_id'      => $b2b_id,
+							'replacement_item_id' => $replacement_item_id,
+							'status'              => $status
+						]),
+						'is_read'        => 0,
+						'created_at'     => date('Y-m-d H:i:s'),
+						'updated_at'     => date('Y-m-d H:i:s')
+					];
+					$this->db->insert('notifications', $notification);
+				}
+			}
+
+			echo json_encode([
+				'success' => $updated ? true : false,
+				'status'  => $status
+			]);
 		} else {
 			echo json_encode([
 				'success' => false,

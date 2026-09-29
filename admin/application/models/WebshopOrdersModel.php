@@ -1833,12 +1833,10 @@ ORDER BY sor.created_at DESC
 
 	public function getReplacementOrderProducts($replacement_order_id)
 	{
-		$this->db->select('sori.replacement_item_id, sori.status AS item_status, boi.product_name, sori.qty_replacement AS qty, boi.price, ,boi.product_type, boi.product_variants, boi.total_price');
+		$this->db->select('sori.replacement_item_id, sori.status AS item_status, boi.product_name, sori.qty_replacement AS qty, boi.price, boi.product_type, boi.product_variants, boi.total_price, bo.shipment_type');
 		$this->db->from('sales_order_replacement_items AS sori');
 		$this->db->join('b2b_order_items AS boi', 'boi.item_id = sori.order_item_id', 'left');
 		$this->db->join('b2b_orders AS bo', 'bo.order_id = boi.order_id', 'left');
-		// $this->db->join('sales_order AS so', 'so.order_id = bo.webshop_order_id', 'left');
-		// $this->db->join('sales_order_items AS soi', 'so.order_id = soi.order_id', 'left');
 		$this->db->where('sori.replacement_order_id', $replacement_order_id);
 		return $this->db->get()->result_array();
 	}
@@ -1854,8 +1852,20 @@ ORDER BY sor.created_at DESC
 
 		if(!$updated) return false;
 
-		// ✅ UPDATE: When marking as replaced (YM replacement done), set item status to 3
-		if ($status == 6) { // YM Replacement Done
+		// Update items status based on replacement order status
+		if ($status == 2) { // YM Replacement Approved
+			$this->db->where('replacement_order_id', $id);
+			$this->db->update('sales_order_replacement_items', [
+				'status' => 2,
+				'updated_at' => time()
+			]);
+		} elseif ($status == 4) { // Rejected
+			$this->db->where('replacement_order_id', $id);
+			$this->db->update('sales_order_replacement_items', [
+				'status' => 4,
+				'updated_at' => time()
+			]);
+		} elseif ($status == 6) { // YM Replacement Done
 			$this->db->where('replacement_order_id', $id);
 			$this->db->update('sales_order_replacement_items', [
 				'status' => 3, // Replacement done
@@ -1972,6 +1982,109 @@ ORDER BY sor.created_at DESC
 		}
 
 		return true;
+	}
+
+	public function replacement_update_item_status($replacement_item_id, $status)
+	{
+		// Update sales_order_replacement_items table
+		$this->db->where('replacement_item_id', $replacement_item_id);
+		$updated = $this->db->update('sales_order_replacement_items', [
+			'status' => ($status == 6) ? 3 : $status,
+			'updated_at' => time()
+		]);
+
+		// Get the replacement_order_id for updating the order status
+		$item = $this->db->select('replacement_order_id')->from('sales_order_replacement_items')->where('replacement_item_id', $replacement_item_id)->get()->row();
+		if ($item) {
+			$this->db->where('replacement_order_id', $item->replacement_order_id);
+			$this->db->update('sales_order_replacement', [
+				'status' => $status,
+				'updated_at' => time(),
+				'status_updated_date' => time()
+			]);
+		}
+
+		// Update related B2B order status for replacement lifecycle changes
+		$b2b_status = null;
+		switch ($status) {
+			case 1:
+			case 2:
+				$b2b_status = 18; // Replacement approved
+				break;
+			case 3:
+			case 5:
+			case 6:
+				$b2b_status = 19; // Replaced
+				break;
+			case 4:
+				$b2b_status = 21; // Rejected
+				break;
+		}
+
+		if ($b2b_status !== null) {
+			$order = $this->db
+				->select('sor.order_id')
+				->from('sales_order_replacement_items AS sori')
+				->join('sales_order_replacement AS sor', 'sor.replacement_order_id = sori.replacement_order_id', 'left')
+				->where('sori.replacement_item_id', $replacement_item_id)
+				->get()
+				->row();
+
+			if ($order && isset($order->order_id)) {
+				$b2b_row = $this->db->select('order_id, webshop_order_id')->from('b2b_orders')
+					->group_start()->where('order_id', $order->order_id)->or_where('webshop_order_id', $order->order_id)->group_end()
+					->get()->row();
+				$webshop_id = ($b2b_row && !empty($b2b_row->webshop_order_id)) ? $b2b_row->webshop_order_id : $order->order_id;
+				$b2b_id = ($b2b_row && !empty($b2b_row->order_id)) ? $b2b_row->order_id : $order->order_id;
+
+				$b2b_update_data = [
+					'status' => $b2b_status,
+					'updated_at' => time()
+				];
+				if ($b2b_status == 18) {
+					$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+						->where('payout_status !=', 4)
+						->update('b2b_orders', array_merge($b2b_update_data, ['payout_status' => 3]));
+				} elseif ($b2b_status == 19 || $b2b_status == 21) {
+					$has_return_hold = false;
+					$order_returns = $this->db->select('return_order_id, status, refund_status')
+						->from('sales_order_return')
+						->group_start()->where('order_id', $b2b_id)->or_where('order_id', $webshop_id)->group_end()
+						->get()->result_array();
+					foreach ($order_returns as $oret) {
+						if ($oret['status'] != 4 && (!isset($oret['refund_status']) || $oret['refund_status'] != 1)) {
+							$has_return_hold = true;
+							break;
+						}
+					}
+					if (!$has_return_hold) {
+						$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+							->where('payout_status', 3)
+							->update('b2b_orders', array_merge($b2b_update_data, ['payout_status' => 1]));
+						$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+							->where('payout_status !=', 3)
+							->update('b2b_orders', $b2b_update_data);
+					} else {
+						$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+							->update('b2b_orders', array_merge($b2b_update_data, ['payout_status' => 3]));
+					}
+				} else {
+					$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
+						->update('b2b_orders', $b2b_update_data);
+				}
+
+				// Also update sales_order status
+				$this->db->where('order_id', $webshop_id)->update('sales_order', ['status' => $b2b_status]);
+
+				// Update item status in b2b_order_items
+				$rep_item = $this->db->select('order_item_id')->from('sales_order_replacement_items')->where('replacement_item_id', $replacement_item_id)->get()->row();
+				if ($rep_item && !empty($rep_item->order_item_id)) {
+					$this->db->where('item_id', $rep_item->order_item_id)->update('b2b_order_items', ['status' => $b2b_status]);
+				}
+			}
+		}
+
+		return $updated;
 	}
 
 	public function getReturnMerchantId($return_order_id)
