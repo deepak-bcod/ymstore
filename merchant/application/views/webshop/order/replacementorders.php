@@ -272,7 +272,10 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 						// YM Replacement is managed exclusively by Admin Panel
 						statusText = "Pending (YM Delivery)";
 						statusClass = "purple";
-						actionButtons = '<span class="badge bg-secondary" style="font-size: 11px; padding: 4px 8px; background: #6c757d; color: #fff; border-radius: 4px;">Managed by Admin</span>';
+						actionButtons = `
+							<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
+							<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
+						`;
 					} else {
 						// Own Replacement managed by Merchant Panel
 						statusText = "Pending (Own Delivery)";
