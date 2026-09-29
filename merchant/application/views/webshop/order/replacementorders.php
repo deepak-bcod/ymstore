@@ -415,9 +415,37 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 
 		$('#order-action-modal-footer').html(footerHtml);
 
-		var myModal = new bootstrap.Modal(document.getElementById('order-action-modal'));
-		myModal.show();
+		openModal('order-action-modal');
 	});
+
+	// Helper functions to open and close modals cleanly across Bootstrap versions
+	function openModal(id) {
+		var el = document.getElementById(id);
+		if (!el) return;
+		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+			try {
+				var inst = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+				inst.show();
+				return;
+			} catch(e) {}
+		}
+		$('#' + id).modal('show');
+	}
+
+	function closeModal(id) {
+		var el = document.getElementById(id);
+		if (!el) return;
+		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+			try {
+				var inst = bootstrap.Modal.getInstance(el);
+				if (inst) {
+					inst.hide();
+					return;
+				}
+			} catch(e) {}
+		}
+		$('#' + id).modal('hide');
+	}
 
 	// Trigger replacement approval popup
 	$(document).on('click', '.approve-item', function () {
@@ -429,13 +457,19 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 		$('.replacement-option-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
 		$('#opt-card-own').css({'border-color': '#28a745', 'background': '#f9fff9'});
 
-		var approvalModalEl = document.getElementById('replacement-approval-modal');
-		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-			var approvalModal = bootstrap.Modal.getInstance(approvalModalEl) || new bootstrap.Modal(approvalModalEl);
-			approvalModal.show();
-		} else {
-			$('#replacement-approval-modal').modal('show');
-		}
+		// Close the details modal first to prevent modal backdrop and focus trap conflicts
+		closeModal('order-action-modal');
+		setTimeout(function () {
+			openModal('replacement-approval-modal');
+		}, 250);
+	});
+
+	// Return to details modal if approval modal is closed or cancelled
+	$(document).on('click', '#replacement-approval-modal .btn-secondary, #replacement-approval-modal .btn-close', function () {
+		closeModal('replacement-approval-modal');
+		setTimeout(function () {
+			openModal('order-action-modal');
+		}, 250);
 	});
 
 	// Selection styling on click
@@ -474,14 +508,7 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 			return;
 		}
 
-		var approvalModalEl = document.getElementById('replacement-approval-modal');
-		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-			var approvalModal = bootstrap.Modal.getInstance(approvalModalEl);
-			if (approvalModal) approvalModal.hide();
-		} else {
-			$('#replacement-approval-modal').modal('hide');
-		}
-
+		closeModal('replacement-approval-modal');
 		updateItemStatus(itemId, selectedStatus);
 	});
 
@@ -504,20 +531,26 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 	// AJAX function for per-item status updates
 	function updateItemStatus(itemId, status) {
 		var repType = (status === 1 || status === 5) ? 'own' : ((status === 2 || status === 6) ? 'ym' : '');
-		$.post('<?= base_url("WebshopOrdersController/replacement_update_item_status") ?>',
-			{ 
+		$.ajax({
+			url: '<?= base_url("WebshopOrdersController/replacement_update_item_status") ?>',
+			type: 'POST',
+			data: { 
 				replacement_item_id: itemId, 
 				status: status,
 				replacement_type: repType
 			},
-			function (response) {
+			dataType: 'json',
+			success: function (response) {
 				if (response.success) {
 					location.reload();
 				} else {
 					alert(response.error || 'Failed to update status');
 				}
 			},
-			'json'
-		);
+			error: function (xhr, status, error) {
+				console.error('AJAX Error:', xhr.responseText);
+				alert('An error occurred while updating status. Please try again.');
+			}
+		});
 	}
 </script>
