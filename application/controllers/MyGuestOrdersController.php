@@ -188,30 +188,33 @@ class MyGuestOrdersController extends CI_Controller
         }
 
         if (!empty($created_ids) && is_array($created_ids)) {
-            $created_rows = $this->db->select('order_id')
+            $q = $this->db->select('order_id')
                 ->from('sales_order_return')
                 ->where_in('return_order_id', $created_ids)
-                ->get()
-                ->result();
-            foreach ($created_rows as $cr) {
-                if (!empty($cr->order_id)) {
-                    $b2b_order_ids[] = (int)$cr->order_id;
+                ->get();
+            if ($q && is_object($q)) {
+                foreach ($q->result() as $cr) {
+                    if (!empty($cr->order_id)) {
+                        $b2b_order_ids[] = (int)$cr->order_id;
+                    }
                 }
             }
         }
 
         if (!empty($b2b_item_ids)) {
-            $item_rows = $this->db->select('order_id, publisher_id')
-                ->from('b2b_order_items')
-                ->where_in('item_id', array_unique($b2b_item_ids))
-                ->get()
-                ->result();
-            foreach ($item_rows as $ir) {
-                if (!empty($ir->order_id)) {
-                    $b2b_order_ids[] = (int)$ir->order_id;
-                }
-                if (!empty($ir->publisher_id)) {
-                    $direct_publisher_ids[] = (int)$ir->publisher_id;
+            $item_q = $this->db->select('boi.order_id, bo.publisher_id')
+                ->from('b2b_order_items boi')
+                ->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'left')
+                ->where_in('boi.item_id', array_unique($b2b_item_ids))
+                ->get();
+            if ($item_q && is_object($item_q)) {
+                foreach ($item_q->result() as $ir) {
+                    if (!empty($ir->order_id)) {
+                        $b2b_order_ids[] = (int)$ir->order_id;
+                    }
+                    if (!empty($ir->publisher_id)) {
+                        $direct_publisher_ids[] = (int)$ir->publisher_id;
+                    }
                 }
             }
         }
@@ -219,40 +222,42 @@ class MyGuestOrdersController extends CI_Controller
         $b2b_order_ids = array_values(array_unique(array_filter($b2b_order_ids)));
 
         if (!empty($b2b_order_ids)) {
-            $b2b_orders = $this->db->select('order_id, publisher_id, order_barcode, increment_id')
+            $bo_q = $this->db->select('order_id, publisher_id, order_barcode, increment_id')
                 ->from('b2b_orders')
                 ->where_in('order_id', $b2b_order_ids)
-                ->get()
-                ->result_array();
-
-            foreach ($b2b_orders as $bo) {
-                if (!empty($bo['publisher_id'])) {
-                    $pub_id = (int)$bo['publisher_id'];
-                    $merchants[$pub_id] = [
-                        'publisher_id'  => $pub_id,
-                        'b2b_order_id'  => (int)$bo['order_id'],
-                        'order_barcode' => !empty($bo['order_barcode']) ? $bo['order_barcode'] : (!empty($bo['increment_id']) ? $bo['increment_id'] : ''),
-                        'increment_id'  => !empty($bo['increment_id']) ? $bo['increment_id'] : (!empty($bo['order_barcode']) ? $bo['order_barcode'] : '')
-                    ];
+                ->get();
+            if ($bo_q && is_object($bo_q)) {
+                foreach ($bo_q->result_array() as $bo) {
+                    if (!empty($bo['publisher_id'])) {
+                        $pub_id = (int)$bo['publisher_id'];
+                        $merchants[$pub_id] = [
+                            'publisher_id'  => $pub_id,
+                            'b2b_order_id'  => (int)$bo['order_id'],
+                            'order_barcode' => !empty($bo['order_barcode']) ? $bo['order_barcode'] : (!empty($bo['increment_id']) ? $bo['increment_id'] : ''),
+                            'increment_id'  => !empty($bo['increment_id']) ? $bo['increment_id'] : (!empty($bo['order_barcode']) ? $bo['order_barcode'] : '')
+                        ];
+                    }
                 }
             }
         }
 
         if (empty($merchants) && !empty($order_id)) {
-            $fallback = $this->db->select('order_id, publisher_id, order_barcode, increment_id')
+            $fb_q = $this->db->select('order_id, publisher_id, order_barcode, increment_id')
                 ->from('b2b_orders')
                 ->where('webshop_order_id', $order_id)
                 ->limit(1)
-                ->get()
-                ->row_array();
-            if (!empty($fallback) && !empty($fallback['publisher_id'])) {
-                $pub_id = (int)$fallback['publisher_id'];
-                $merchants[$pub_id] = [
-                    'publisher_id'  => $pub_id,
-                    'b2b_order_id'  => (int)$fallback['order_id'],
-                    'order_barcode' => !empty($fallback['order_barcode']) ? $fallback['order_barcode'] : (!empty($fallback['increment_id']) ? $fallback['increment_id'] : ''),
-                    'increment_id'  => !empty($fallback['increment_id']) ? $fallback['increment_id'] : (!empty($fallback['order_barcode']) ? $fallback['order_barcode'] : '')
-                ];
+                ->get();
+            if ($fb_q && is_object($fb_q)) {
+                $fallback = $fb_q->row_array();
+                if (!empty($fallback) && !empty($fallback['publisher_id'])) {
+                    $pub_id = (int)$fallback['publisher_id'];
+                    $merchants[$pub_id] = [
+                        'publisher_id'  => $pub_id,
+                        'b2b_order_id'  => (int)$fallback['order_id'],
+                        'order_barcode' => !empty($fallback['order_barcode']) ? $fallback['order_barcode'] : (!empty($fallback['increment_id']) ? $fallback['increment_id'] : ''),
+                        'increment_id'  => !empty($fallback['increment_id']) ? $fallback['increment_id'] : (!empty($fallback['order_barcode']) ? $fallback['order_barcode'] : '')
+                    ];
+                }
             }
         }
 
@@ -275,30 +280,34 @@ class MyGuestOrdersController extends CI_Controller
             // print_R($selected_item);die();
             $response = OrdersRepository::return_order_request($shopcode, $shop_id, $postArr);
             if (!empty($response) && isset($response) && $response->statusCode == '200') {
-                $created_ret_ids = [];
-                if (!empty($response->return_order_id)) {
-                    $created_ret_ids = is_array($response->return_order_id)
-                        ? $response->return_order_id
-                        : [$response->return_order_id];
-                }
+                try {
+                    $created_ret_ids = [];
+                    if (!empty($response->return_order_id)) {
+                        $created_ret_ids = is_array($response->return_order_id)
+                            ? $response->return_order_id
+                            : [$response->return_order_id];
+                    }
 
-                $target_merchants = $this->getMerchantsForRequest($order_id, $selected_item, $created_ret_ids, 'return');
-                foreach ($target_merchants as $merchant_id => $m_info) {
-                    $actual_b2b_order_id = (int)$m_info['b2b_order_id'];
-                    $this->db->insert('notifications', [
-                        'type'           => 'return',
-                        'recipient_type' => 'merchant',
-                        'recipient_id'   => (int)$merchant_id,
-                        'title'          => 'New Return Request',
-                        'message'        => 'Shopper has submitted a return request order #' . $increment_id . '.',
-                        'data'           => json_encode([
-                            'order_id'     => $order_id,
-                            'b2b_order_id' => $actual_b2b_order_id,
-                            'increment_id' => $increment_id
-                        ]),
-                        'is_read'        => 0,
-                        'created_at'     => date('Y-m-d H:i:s')
-                    ]);
+                    $target_merchants = $this->getMerchantsForRequest($order_id, $selected_item, $created_ret_ids, 'return');
+                    foreach ($target_merchants as $merchant_id => $m_info) {
+                        $actual_b2b_order_id = (int)$m_info['b2b_order_id'];
+                        $this->db->insert('notifications', [
+                            'type'           => 'return',
+                            'recipient_type' => 'merchant',
+                            'recipient_id'   => (int)$merchant_id,
+                            'title'          => 'New Return Request',
+                            'message'        => 'Shopper has submitted a return request order #' . $increment_id . '.',
+                            'data'           => json_encode([
+                                'order_id'     => $order_id,
+                                'b2b_order_id' => $actual_b2b_order_id,
+                                'increment_id' => $increment_id
+                            ]),
+                            'is_read'        => 0,
+                            'created_at'     => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    log_message('error', 'Guest return notification error: ' . $e->getMessage());
                 }
 
                 $message = $response->message;
