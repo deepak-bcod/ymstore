@@ -278,18 +278,29 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
                         );
 
                         break;
-
                     case 'faq':
 
                         if ($subtype == 'admin_reply') {
 
-                        $title = "Réponse à la FAQ";
+                            if ($current_lang == 'french') {
 
-                        $msg = "L'administrateur a répondu à votre question FAQ.";
+                                $display_title = 'Réponse à la FAQ';
+
+                                $display_msg = "L'administrateur a répondu à votre question FAQ.";
+
+                            } else {
+
+                                $display_title = 'FAQ Reply';
+
+                                $display_msg = 'Admin has replied to your FAQ.';
+
+                            }
 
                         }
 
                         break;
+
+                    
 
                                     
 
