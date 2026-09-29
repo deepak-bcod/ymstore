@@ -222,16 +222,8 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 
 
 
-
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <?php $this->load->view('common/fbc-user/footer'); ?>
-<!-- <script type="text/javascript" src="<?php echo SKIN_JS; ?>webshop_order_list.js?v=<?php echo CSSJS_VERSION; ?>"></script> -->
+<script type="text/javascript" src="<?php echo SKIN_JS; ?>webshop_order_list.js?v=<?php echo CSSJS_VERSION; ?>"></script>
 
 <script type="text/javascript">
 	$(document).ready(function () {
@@ -422,6 +414,10 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 	function openModal(id) {
 		var el = document.getElementById(id);
 		if (!el) return;
+		if (typeof $.fn !== 'undefined' && typeof $.fn.modal !== 'undefined') {
+			$('#' + id).modal('show');
+			return;
+		}
 		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
 			try {
 				var inst = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
@@ -429,12 +425,22 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 				return;
 			} catch(e) {}
 		}
-		$('#' + id).modal('show');
+		// Pure DOM fallback
+		el.classList.add('show');
+		el.style.display = 'block';
+		document.body.classList.add('modal-open');
+		if (!$('.modal-backdrop').length) {
+			$('<div class="modal-backdrop fade show"></div>').appendTo('body');
+		}
 	}
 
 	function closeModal(id) {
 		var el = document.getElementById(id);
 		if (!el) return;
+		if (typeof $.fn !== 'undefined' && typeof $.fn.modal !== 'undefined') {
+			$('#' + id).modal('hide');
+			return;
+		}
 		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
 			try {
 				var inst = bootstrap.Modal.getInstance(el);
@@ -444,7 +450,11 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 				}
 			} catch(e) {}
 		}
-		$('#' + id).modal('hide');
+		// Pure DOM fallback
+		el.classList.remove('show');
+		el.style.display = 'none';
+		document.body.classList.remove('modal-open');
+		$('.modal-backdrop').remove();
 	}
 
 	// Trigger replacement approval popup
