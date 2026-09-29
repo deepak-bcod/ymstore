@@ -2029,5 +2029,87 @@ class WebshopOrdersModel extends CI_Model
 
 		return true;
 	}
+
+	public function getReturnMerchantId($return_order_id)
+	{
+		// 1. Try to find merchant directly from return items -> b2b_order_items -> b2b_orders
+		$row = $this->db
+			->select('COALESCE(bo.publisher_id, p.publisher_id) AS publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_return sor')
+			->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'inner')
+			->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+			->join('b2b_orders bo', 'bo.order_id = boi.order_id OR bo.order_id = sor.order_id', 'left')
+			->join('products p', 'p.id = boi.product_id', 'left')
+			->where('sor.return_order_id', $return_order_id)
+			->where('bo.publisher_id IS NOT NULL', null, false)
+			->limit(1)
+			->get()
+			->row_array();
+
+		if (!empty($row) && !empty($row['publisher_id'])) {
+			return $row;
+		}
+
+		// 2. Fallback: check if sor.order_id directly matches b2b_orders.order_id
+		$row = $this->db
+			->select('bo.publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_return sor')
+			->join('b2b_orders bo', 'bo.order_id = sor.order_id', 'inner')
+			->where('sor.return_order_id', $return_order_id)
+			->limit(1)
+			->get()
+			->row_array();
+
+		return $row ?: [];
+	}
+
+	public function getReplacementMerchantId($replacement_id)
+	{
+		// 1. Try to find merchant via replacement items -> b2b_order_items -> b2b_orders
+		$row = $this->db
+			->select('COALESCE(bo.publisher_id, p.publisher_id) AS publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_replacement sor')
+			->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'inner')
+			->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+			->join('b2b_orders bo', 'bo.order_id = boi.order_id OR bo.order_id = sor.order_id', 'left')
+			->join('products p', 'p.id = boi.product_id', 'left')
+			->where('sor.replacement_order_id', $replacement_id)
+			->where('bo.publisher_id IS NOT NULL', null, false)
+			->limit(1)
+			->get()
+			->row_array();
+
+		if (!empty($row) && !empty($row['publisher_id'])) {
+			return $row;
+		}
+
+		// 2. Fallback: check if sor.order_id directly matches b2b_orders.order_id
+		$row = $this->db
+			->select('bo.publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_replacement sor')
+			->join('b2b_orders bo', 'bo.order_id = sor.order_id', 'inner')
+			->where('sor.replacement_order_id', $replacement_id)
+			->limit(1)
+			->get()
+			->row_array();
+
+		if (!empty($row) && !empty($row['publisher_id'])) {
+			return $row;
+		}
+
+		// 3. Fallback: if $replacement_id was a replacement_item_id
+		$row = $this->db
+			->select('COALESCE(bo.publisher_id, p.publisher_id) AS publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_replacement_items sori')
+			->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+			->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'left')
+			->join('products p', 'p.id = boi.product_id', 'left')
+			->where('sori.replacement_item_id', $replacement_id)
+			->limit(1)
+			->get()
+			->row_array();
+
+		return $row ?: [];
+	}
 }
 

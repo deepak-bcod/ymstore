@@ -400,6 +400,28 @@ class ReturnOrderController extends CI_Controller {
 					->update('b2b_orders', ['status' => 20, 'payout_status' => 3, 'updated_at' => time()]);
 			}
 
+			$returnData = $this->WebshopOrdersModel->getReturnMerchantId($return_order_id);
+			if (!empty($returnData) && !empty($returnData['publisher_id'])) {
+				$merchant_id = $returnData['publisher_id'];
+				$b2b_id = !empty($returnData['order_barcode']) ? $returnData['order_barcode'] : $return_order_id;
+				$notification = [
+					'type'           => 'return',
+					'subtype'        => 'status_updated',
+					'recipient_type' => 'merchant',
+					'recipient_id'   => $merchant_id,
+					'title'          => 'Return Status Updated',
+					'message'        => 'Return request #'.$b2b_id.' status updated.',
+					'data'           => json_encode([
+						'return_order_id' => $b2b_id,
+						'status'          => 20
+					]),
+					'is_read'        => 0,
+					'created_at'     => date('Y-m-d H:i:s'),
+					'updated_at'     => date('Y-m-d H:i:s')
+				];
+				$this->db->insert('notifications', $notification);
+			}
+
 			$arrResponse  = array('status' =>200 ,'message'=>'Request rejected successfully.');
 			echo json_encode($arrResponse);exit;
 
@@ -539,6 +561,28 @@ class ReturnOrderController extends CI_Controller {
 				$this->db->where('order_id', $ret_order->order_id)
 					->where('payout_status !=', 4)
 					->update('b2b_orders', ['status' => 22, 'payout_status' => 3, 'updated_at' => time()]);
+			}
+
+			$returnData = $this->WebshopOrdersModel->getReturnMerchantId($return_order_id);
+			if (!empty($returnData) && !empty($returnData['publisher_id'])) {
+				$merchant_id = $returnData['publisher_id'];
+				$b2b_id = !empty($returnData['order_barcode']) ? $returnData['order_barcode'] : $return_order_id;
+				$notification = [
+					'type'           => 'return',
+					'subtype'        => 'status_updated',
+					'recipient_type' => 'merchant',
+					'recipient_id'   => $merchant_id,
+					'title'          => 'Return Status Updated',
+					'message'        => 'Return request #'.$b2b_id.' status updated.',
+					'data'           => json_encode([
+						'return_order_id' => $b2b_id,
+						'status'          => 22
+					]),
+					'is_read'        => 0,
+					'created_at'     => date('Y-m-d H:i:s'),
+					'updated_at'     => date('Y-m-d H:i:s')
+				];
+				$this->db->insert('notifications', $notification);
 			}
 
 			$arrResponse  = array('status' =>200 ,'message'=>'Order return confirmed successfully.');
@@ -1811,6 +1855,28 @@ class ReturnOrderController extends CI_Controller {
 					$order_item_ids = array_map(function($i) { return $i->order_item_id; }, $return_items);
 					$this->db->where_in('item_id', $order_item_ids)->update('b2b_order_items', ['status' => 31]);
 				}
+			}
+
+			$returnData = $this->WebshopOrdersModel->getReturnMerchantId($return_order_id);
+			if (!empty($returnData) && !empty($returnData['publisher_id'])) {
+				$merchant_id = $returnData['publisher_id'];
+				$b2b_id = !empty($returnData['order_barcode']) ? $returnData['order_barcode'] : $return_order_id;
+				$notification = [
+					'type'           => 'return',
+					'subtype'        => 'status_updated',
+					'recipient_type' => 'merchant',
+					'recipient_id'   => $merchant_id,
+					'title'          => 'Return Status Updated',
+					'message'        => 'Return request #'.$b2b_id.' status updated.',
+					'data'           => json_encode([
+						'return_order_id' => $b2b_id,
+						'status'          => 31
+					]),
+					'is_read'        => 0,
+					'created_at'     => date('Y-m-d H:i:s'),
+					'updated_at'     => date('Y-m-d H:i:s')
+				];
+				$this->db->insert('notifications', $notification);
 			}
 
 			$arrResponse  = array('status' =>200 ,'message'=>'Refund rejected successfully.');

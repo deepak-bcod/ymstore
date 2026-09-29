@@ -186,6 +186,7 @@ class MyOrdersController extends CI_Controller
                             $is_refund_paid = true;
                             $b2b_order_id = $pair['b2b_order_id'];
                             $b2b_item_id  = $pair['b2b_item_id'];
+                            $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
                             break;
                         }
 
@@ -194,6 +195,7 @@ class MyOrdersController extends CI_Controller
                             $is_requested = true;
                             $b2b_order_id = $pair['b2b_order_id'];
                             $b2b_item_id  = $pair['b2b_item_id'];
+                            $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
                             break;
                         }
                     }
@@ -217,6 +219,7 @@ class MyOrdersController extends CI_Controller
                         $is_replacement_done = true;
                         $b2b_order_id = $pair['b2b_order_id'];
                         $b2b_item_id  = $pair['b2b_item_id'];
+                        $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
                         break;
                     }
 
@@ -226,6 +229,7 @@ class MyOrdersController extends CI_Controller
                         $is_requested = true;
                         $b2b_order_id = $pair['b2b_order_id'];
                         $b2b_item_id  = $pair['b2b_item_id'];
+                        $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
                         break;
                     }
                 }
@@ -233,6 +237,7 @@ class MyOrdersController extends CI_Controller
                     // No request
                     $b2b_order_id = $pair['b2b_order_id'];
                     $b2b_item_id  = $pair['b2b_item_id'];
+                    $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
                 }
             }
            
@@ -257,12 +262,16 @@ class MyOrdersController extends CI_Controller
                                 data-id="' . $item->item_id . '"
                                 data-b2b="' . $b2b_order_id . '"
                                 data-b2b-item="' . $b2b_item_id . '"
+                                data-publisher="' . $publisher_id . '"
                                 id="return_chk_' . $item->item_id . '">';
                 }
 
             $html .= '<input type="hidden"
                         id="b2b_order_id_' . $item->item_id . '"
                         value="' . $b2b_order_id . '">
+                    <input type="hidden"
+                        id="publisher_id_' . $item->item_id . '"
+                        value="' . $publisher_id . '">
                     </div>
 
                     <div class="col-md-3 text-center">
@@ -310,6 +319,165 @@ class MyOrdersController extends CI_Controller
 
 
 
+
+    protected function getMerchantsForRequest($order_id, $selected_item = [], $created_ids = [], $type = 'return')
+    {
+        $merchants = [];
+        $b2b_order_ids = [];
+        $b2b_item_ids = [];
+        $direct_publisher_ids = [];
+
+        // 1. Collect IDs directly from $selected_item
+        if (!empty($selected_item) && is_array($selected_item)) {
+            foreach ($selected_item as $item) {
+                if (!empty($item['b2b_order_id'])) {
+                    $b2b_order_ids[] = (int)$item['b2b_order_id'];
+                }
+                if (!empty($item['item_id'])) {
+                    $b2b_item_ids[] = (int)$item['item_id'];
+                }
+                if (!empty($item['publisher_id'])) {
+                    $direct_publisher_ids[] = (int)$item['publisher_id'];
+                }
+            }
+        }
+
+        // 2. Collect b2b_order_ids from newly created return/replacement orders
+        if (!empty($created_ids) && is_array($created_ids)) {
+            if ($type === 'return') {
+                $created_rows = $this->db->select('order_id')
+                    ->from('sales_order_return')
+                    ->where_in('return_order_id', $created_ids)
+                    ->get()
+                    ->result();
+                foreach ($created_rows as $cr) {
+                    if (!empty($cr->order_id)) {
+                        $b2b_order_ids[] = (int)$cr->order_id;
+                    }
+                }
+            } elseif ($type === 'replacement') {
+                $created_rows = $this->db->select('order_id')
+                    ->from('sales_order_replacement')
+                    ->where_in('replacement_order_id', $created_ids)
+                    ->get()
+                    ->result();
+                foreach ($created_rows as $cr) {
+                    if (!empty($cr->order_id)) {
+                        $b2b_order_ids[] = (int)$cr->order_id;
+                    }
+                }
+            }
+        }
+
+        // 3. Resolve b2b_order_id from b2b_order_items if we have item_ids
+        if (!empty($b2b_item_ids)) {
+            $item_rows = $this->db->select('order_id, publisher_id')
+                ->from('b2b_order_items')
+                ->where_in('item_id', array_unique($b2b_item_ids))
+                ->get()
+                ->result();
+            foreach ($item_rows as $ir) {
+                if (!empty($ir->order_id)) {
+                    $b2b_order_ids[] = (int)$ir->order_id;
+                }
+                if (!empty($ir->publisher_id)) {
+                    $direct_publisher_ids[] = (int)$ir->publisher_id;
+                }
+            }
+
+            // Also check sales_order_items in case item_id came from sales_order_items
+            $so_items = $this->db->select('product_id')
+                ->from('sales_order_items')
+                ->where_in('item_id', array_unique($b2b_item_ids))
+                ->get()
+                ->result();
+            if (!empty($so_items)) {
+                $p_ids = array_map(function($r) { return (int)$r->product_id; }, $so_items);
+                $b2b_from_p = $this->db->select('bo.order_id, bo.publisher_id')
+                    ->from('b2b_order_items boi')
+                    ->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'inner')
+                    ->where('bo.webshop_order_id', $order_id)
+                    ->where_in('boi.product_id', $p_ids)
+                    ->get()
+                    ->result();
+                foreach ($b2b_from_p as $bp) {
+                    if (!empty($bp->order_id)) {
+                        $b2b_order_ids[] = (int)$bp->order_id;
+                    }
+                    if (!empty($bp->publisher_id)) {
+                        $direct_publisher_ids[] = (int)$bp->publisher_id;
+                    }
+                }
+            }
+        }
+
+        $b2b_order_ids = array_values(array_unique(array_filter($b2b_order_ids)));
+
+        // 4. Query b2b_orders for resolved b2b_order_ids
+        if (!empty($b2b_order_ids)) {
+            $b2b_orders = $this->db->select('order_id, publisher_id, order_barcode, increment_id')
+                ->from('b2b_orders')
+                ->where_in('order_id', $b2b_order_ids)
+                ->get()
+                ->result_array();
+
+            foreach ($b2b_orders as $bo) {
+                if (!empty($bo['publisher_id'])) {
+                    $pub_id = (int)$bo['publisher_id'];
+                    $merchants[$pub_id] = [
+                        'publisher_id'  => $pub_id,
+                        'b2b_order_id'  => (int)$bo['order_id'],
+                        'order_barcode' => !empty($bo['order_barcode']) ? $bo['order_barcode'] : (!empty($bo['increment_id']) ? $bo['increment_id'] : ''),
+                        'increment_id'  => !empty($bo['increment_id']) ? $bo['increment_id'] : (!empty($bo['order_barcode']) ? $bo['order_barcode'] : '')
+                    ];
+                }
+            }
+        }
+
+        // 5. If any direct_publisher_ids are still not in $merchants, query them by publisher_id & webshop_order_id
+        $missing_pubs = array_diff(array_unique(array_filter($direct_publisher_ids)), array_keys($merchants));
+        if (!empty($missing_pubs)) {
+            $b2b_orders = $this->db->select('order_id, publisher_id, order_barcode, increment_id')
+                ->from('b2b_orders')
+                ->where('webshop_order_id', $order_id)
+                ->where_in('publisher_id', $missing_pubs)
+                ->get()
+                ->result_array();
+            foreach ($b2b_orders as $bo) {
+                $pub_id = (int)$bo['publisher_id'];
+                if (!isset($merchants[$pub_id])) {
+                    $merchants[$pub_id] = [
+                        'publisher_id'  => $pub_id,
+                        'b2b_order_id'  => (int)$bo['order_id'],
+                        'order_barcode' => !empty($bo['order_barcode']) ? $bo['order_barcode'] : (!empty($bo['increment_id']) ? $bo['increment_id'] : ''),
+                        'increment_id'  => !empty($bo['increment_id']) ? $bo['increment_id'] : (!empty($bo['order_barcode']) ? $bo['order_barcode'] : '')
+                    ];
+                }
+            }
+        }
+
+        // 6. Absolute fallback: only if no merchant could be determined from items or b2b orders,
+        // fallback to b2b_orders for this webshop_order_id
+        if (empty($merchants) && !empty($order_id)) {
+            $fallback = $this->db->select('order_id, publisher_id, order_barcode, increment_id')
+                ->from('b2b_orders')
+                ->where('webshop_order_id', $order_id)
+                ->limit(1)
+                ->get()
+                ->row_array();
+            if (!empty($fallback) && !empty($fallback['publisher_id'])) {
+                $pub_id = (int)$fallback['publisher_id'];
+                $merchants[$pub_id] = [
+                    'publisher_id'  => $pub_id,
+                    'b2b_order_id'  => (int)$fallback['order_id'],
+                    'order_barcode' => !empty($fallback['order_barcode']) ? $fallback['order_barcode'] : (!empty($fallback['increment_id']) ? $fallback['increment_id'] : ''),
+                    'increment_id'  => !empty($fallback['increment_id']) ? $fallback['increment_id'] : (!empty($fallback['order_barcode']) ? $fallback['order_barcode'] : '')
+                ];
+            }
+        }
+
+        return $merchants;
+    }
 
     public function addReplacementRequest()
 {
@@ -365,53 +533,47 @@ class MyOrdersController extends CI_Controller
         exit;
     }
 
+    // Determine the exact merchant(s) for the replacement items
+    $created_rep_ids = [];
+    if (!empty($response->replacement_order_id)) {
+        $created_rep_ids = is_array($response->replacement_order_id)
+            ? $response->replacement_order_id
+            : [$response->replacement_order_id];
+    }
 
-    
-    $merchant = $this->db
-        ->select('order_id, publisher_id')
-        ->from('b2b_orders')
-        ->where('webshop_order_id', $order_id)
-        ->limit(1)
-        ->get()
-        ->row();
+    $target_merchants = $this->getMerchantsForRequest($order_id, $selected_item, $created_rep_ids, 'replacement');
 
+    if (!empty($target_merchants)) {
+        foreach ($target_merchants as $merchant_id => $m_info) {
+            $actual_b2b_order_id = (int)$m_info['b2b_order_id'];
 
-    if (!empty($merchant) && !empty($merchant->publisher_id)) {
-
-        $merchant_id = (int) $merchant->publisher_id;
-
-        $actual_b2b_order_id = (int) $merchant->order_id;
-
-        $notification_data = array(
-            'type'           => 'replacement',
-            'subtype'        => 'new_replacement',
-            'recipient_type' => 'merchant',
-            'recipient_id'   => $merchant_id,
-            'title'          => 'New Replacement Request',
-            'message'        => 'Shopper has submitted a replacement request order #' . $increment_id . '.',
-            'data'           => json_encode(array(
-                'order_id'     => $order_id,
-                'b2b_order_id' => $actual_b2b_order_id,
-                'increment_id' => $increment_id
-            )),
-            'is_read'        => 0,
-            'created_at'     => date('Y-m-d H:i:s')
-        );
-
-        $this->db->insert('notifications', $notification_data);
-
-
-        if ($this->db->affected_rows() <= 0) {
-
-            log_message(
-                'error',
-                'Replacement notification insert failed: ' .
-                json_encode($this->db->error())
+            $notification_data = array(
+                'type'           => 'replacement',
+                'subtype'        => 'new_replacement',
+                'recipient_type' => 'merchant',
+                'recipient_id'   => (int)$merchant_id,
+                'title'          => 'New Replacement Request',
+                'message'        => 'Shopper has submitted a replacement request order #' . $increment_id . '.',
+                'data'           => json_encode(array(
+                    'order_id'     => $order_id,
+                    'b2b_order_id' => $actual_b2b_order_id,
+                    'increment_id' => $increment_id
+                )),
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s')
             );
+
+            $this->db->insert('notifications', $notification_data);
+
+            if ($this->db->affected_rows() <= 0) {
+                log_message(
+                    'error',
+                    'Replacement notification insert failed: ' .
+                    json_encode($this->db->error())
+                );
+            }
         }
-
     } else {
-
         log_message(
             'error',
             'Replacement notification merchant not found. ' .
@@ -604,33 +766,42 @@ class MyOrdersController extends CI_Controller
 
         if (!empty($response) && $response->statusCode == '200') {
 
-            $merchant = $this->db
-                ->select('publisher_id')
-                ->from('b2b_orders')
-                ->where('webshop_order_id', $order_id)
-                ->limit(1)
-                ->get()
-                ->row();
+            // Determine the exact merchant(s) for the return items
+            $created_ret_ids = [];
+            if (!empty($response->return_order_id)) {
+                $created_ret_ids = is_array($response->return_order_id)
+                    ? $response->return_order_id
+                    : [$response->return_order_id];
+            }
 
-            if ($merchant && !empty($merchant->publisher_id)) {
+            $target_merchants = $this->getMerchantsForRequest($order_id, $selected_item, $created_ret_ids, 'return');
 
-                $merchant_id = (int) $merchant->publisher_id;
+            if (!empty($target_merchants)) {
+                foreach ($target_merchants as $merchant_id => $m_info) {
+                    $actual_b2b_order_id = (int)$m_info['b2b_order_id'];
 
-                $notification_data = array(
-                    'type'           => 'return',
-                    'recipient_type' => 'merchant',
-                    'recipient_id'   => $merchant_id,
-                    'title'          => 'New Return Request',
-                    'message'        => 'Shopper has submitted a return request order #' . $increment_id . '.',
-                    'data'           => json_encode(array(
-                        'order_id'     => $order_id,
-                        'increment_id' => $increment_id
-                    )),
-                    'is_read'        => 0,
-                    'created_at'     => date('Y-m-d H:i:s')
+                    $notification_data = array(
+                        'type'           => 'return',
+                        'recipient_type' => 'merchant',
+                        'recipient_id'   => (int)$merchant_id,
+                        'title'          => 'New Return Request',
+                        'message'        => 'Shopper has submitted a return request order #' . $increment_id . '.',
+                        'data'           => json_encode(array(
+                            'order_id'     => $order_id,
+                            'b2b_order_id' => $actual_b2b_order_id,
+                            'increment_id' => $increment_id
+                        )),
+                        'is_read'        => 0,
+                        'created_at'     => date('Y-m-d H:i:s')
+                    );
+
+                    $this->db->insert('notifications', $notification_data);
+                }
+            } else {
+                log_message(
+                    'error',
+                    'Return notification merchant not found. order_id=' . $order_id
                 );
-
-                $this->db->insert('notifications', $notification_data);
             }
 
     

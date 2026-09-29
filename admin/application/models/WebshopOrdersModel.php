@@ -1976,32 +1976,84 @@ ORDER BY sor.created_at DESC
 
 	public function getReturnMerchantId($return_order_id)
 	{
-		return $this->db
-			->select('p.publisher_id,bo.order_barcode')
+		// 1. Try to find merchant directly from return items -> b2b_order_items -> b2b_orders
+		$row = $this->db
+			->select('COALESCE(bo.publisher_id, p.publisher_id) AS publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
 			->from('sales_order_return sor')
-			->join('sales_order so', 'so.order_id = sor.order_id', 'left')
-			->join('sales_order_items soi', 'soi.order_id = so.order_id', 'left')
-			->join('b2b_orders bo', 'so.order_id = bo.webshop_order_id', 'left')
-			->join('products p', 'p.id = soi.product_id', 'left')
+			->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'inner')
+			->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+			->join('b2b_orders bo', 'bo.order_id = boi.order_id OR bo.order_id = sor.order_id', 'left')
+			->join('products p', 'p.id = boi.product_id', 'left')
 			->where('sor.return_order_id', $return_order_id)
-			->limit(1) // one merchant is enough for notification
+			->where('bo.publisher_id IS NOT NULL', null, false)
+			->limit(1)
 			->get()
 			->row_array();
+
+		if (!empty($row) && !empty($row['publisher_id'])) {
+			return $row;
+		}
+
+		// 2. Fallback: check if sor.order_id directly matches b2b_orders.order_id
+		$row = $this->db
+			->select('bo.publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_return sor')
+			->join('b2b_orders bo', 'bo.order_id = sor.order_id', 'inner')
+			->where('sor.return_order_id', $return_order_id)
+			->limit(1)
+			->get()
+			->row_array();
+
+		return $row ?: [];
 	}
 
 	public function getReplacementMerchantId($replacement_id)
 	{
-		return $this->db
-			->select('p.publisher_id,bo.order_barcode')
-			->from('sales_order_replacement orp')
-			->join('sales_order so', 'so.order_id = orp.order_id', 'left')
-			->join('sales_order_items soi', 'soi.order_id = so.order_id', 'left')
-			->join('b2b_orders bo', 'so.order_id = bo.webshop_order_id', 'left')
-			->join('products p', 'p.id = soi.product_id', 'left')
-			->where('orp.replacement_order_id', $replacement_id)
-			->limit(1) // one merchant is enough
+		// 1. Try to find merchant via replacement items -> b2b_order_items -> b2b_orders
+		$row = $this->db
+			->select('COALESCE(bo.publisher_id, p.publisher_id) AS publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_replacement sor')
+			->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'inner')
+			->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+			->join('b2b_orders bo', 'bo.order_id = boi.order_id OR bo.order_id = sor.order_id', 'left')
+			->join('products p', 'p.id = boi.product_id', 'left')
+			->where('sor.replacement_order_id', $replacement_id)
+			->where('bo.publisher_id IS NOT NULL', null, false)
+			->limit(1)
 			->get()
 			->row_array();
+
+		if (!empty($row) && !empty($row['publisher_id'])) {
+			return $row;
+		}
+
+		// 2. Fallback: check if sor.order_id directly matches b2b_orders.order_id
+		$row = $this->db
+			->select('bo.publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_replacement sor')
+			->join('b2b_orders bo', 'bo.order_id = sor.order_id', 'inner')
+			->where('sor.replacement_order_id', $replacement_id)
+			->limit(1)
+			->get()
+			->row_array();
+
+		if (!empty($row) && !empty($row['publisher_id'])) {
+			return $row;
+		}
+
+		// 3. Fallback: if $replacement_id was a replacement_item_id
+		$row = $this->db
+			->select('COALESCE(bo.publisher_id, p.publisher_id) AS publisher_id, bo.order_barcode, bo.order_id AS b2b_order_id')
+			->from('sales_order_replacement_items sori')
+			->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+			->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'left')
+			->join('products p', 'p.id = boi.product_id', 'left')
+			->where('sori.replacement_item_id', $replacement_id)
+			->limit(1)
+			->get()
+			->row_array();
+
+		return $row ?: [];
 	}
 
 
