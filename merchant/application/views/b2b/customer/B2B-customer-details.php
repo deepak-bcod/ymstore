@@ -243,7 +243,7 @@ $displayChangePrice = (isset($customer_details->perm_to_change_price) && $custom
 					  		$order_status=$this->CommonModel->getOrderStatusLabel($order->status);
 					  		$shipment_type_label=$this->CommonModel->getOrderShipmentLabel($order->shipment_type);
 					  		if (($order->parent_id==0  && $order->main_parent_id==0) && !in_array($order->status, array('4','5','6'))) {
-					  			$order_url=base_url().'b2b/order/detail/'.$order->order_id;
+					  			$order_url=base_url().'ES/order/detail/'.$order->order_id;
 					  		} elseif (($order->parent_id==0  && $order->main_parent_id==0) && in_array($order->status, array('4','5','6'))) {
 					  			$order_url=base_url().'b2b/shipped-order/detail/'.$order->order_id;
 					  		} elseif ($order->parent_id>0) {
