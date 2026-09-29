@@ -161,64 +161,6 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
   </div>
 </div>
 
-<!-- Replacement Approval Workflow Selection Modal -->
-<div class="modal fade" id="replacement-approval-modal" tabindex="-1" role="dialog" aria-labelledby="replacementApprovalModalLabel" aria-hidden="true" style="z-index: 1070;">
-  <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 520px;">
-    <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); border: none;">
-      <div class="modal-header" style="background: #f8f9fa; border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom: 1px solid #e9ecef; padding: 16px 20px;">
-        <h5 class="modal-title" id="replacementApprovalModalLabel" style="font-weight: 700; color: #333; margin: 0; font-size: 18px;">
-          <i class="fas fa-exchange-alt" style="color: #6f42c1; margin-right: 8px;"></i> Approve Replacement
-        </h5>
-        <button type="button" class="btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" style="border: 0; font-weight: bold; background: transparent; font-size: 18px; cursor: pointer;">&times;</button>
-      </div>
-      <div class="modal-body" style="padding: 24px 20px;">
-        <p style="color: #555; font-size: 14px; margin-bottom: 18px;">
-          Please select the replacement workflow for this item:
-        </p>
-
-        <!-- Option 1: Own Replacement -->
-        <label class="replacement-option-card" id="opt-card-own" for="rep_opt_own" style="display: block; border: 2px solid #28a745; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; cursor: pointer; background: #f9fff9; transition: all 0.2s ease;">
-          <div style="display: flex; align-items: flex-start;">
-            <input type="radio" name="replacement_type_choice" id="rep_opt_own" value="1" checked style="width: 18px; height: 18px; margin-top: 3px; margin-right: 12px; cursor: pointer; accent-color: #28a745;">
-            <div>
-              <strong style="color: #28a745; font-size: 15px; display: block; margin-bottom: 4px;">
-                1. Own Replacement
-              </strong>
-              <div style="font-size: 13px; color: #555; line-height: 1.4;">
-                Completed <strong>entirely from the Merchant Panel</strong>. You can proceed with and complete the replacement without involving the Admin Panel.
-              </div>
-              <span class="badge" style="background: #28a745; color: #fff; font-size: 11px; margin-top: 8px; display: inline-block; padding: 3px 8px; border-radius: 4px;">Merchant Panel Only</span>
-            </div>
-          </div>
-        </label>
-
-        <!-- Option 2: YM Replacement -->
-        <label class="replacement-option-card" id="opt-card-ym" for="rep_opt_ym" style="display: block; border: 2px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 0; cursor: pointer; background: #fff; transition: all 0.2s ease;">
-          <div style="display: flex; align-items: flex-start;">
-            <input type="radio" name="replacement_type_choice" id="rep_opt_ym" value="2" style="width: 18px; height: 18px; margin-top: 3px; margin-right: 12px; cursor: pointer; accent-color: #6f42c1;">
-            <div>
-              <strong style="color: #6f42c1; font-size: 15px; display: block; margin-bottom: 4px;">
-                2. YM Replacement
-              </strong>
-              <div style="font-size: 13px; color: #555; line-height: 1.4;">
-                Approved by the merchant, but the <strong>actual replacement process is handled from the Admin Panel</strong>. Forwarded to Admin for fulfillment.
-              </div>
-              <span class="badge" style="background: #6f42c1; color: #fff; font-size: 11px; margin-top: 8px; display: inline-block; padding: 3px 8px; border-radius: 4px;">Admin Panel Only</span>
-            </div>
-          </div>
-        </label>
-
-        <input type="hidden" id="selected_replacement_item_id" value="">
-      </div>
-      <div class="modal-footer" style="background: #f8f9fa; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; border-top: 1px solid #e9ecef; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px;">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal" style="padding: 7px 16px; border-radius: 6px;">Cancel</button>
-        <button type="button" class="btn btn-success" id="btn-confirm-replacement-approval" style="padding: 7px 20px; border-radius: 6px; font-weight: 600;">
-          Confirm Approval
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
 
 
@@ -415,109 +357,189 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 
 		$('#order-action-modal-footer').html(footerHtml);
 
-		var myModal = new bootstrap.Modal(document.getElementById('order-action-modal'));
-		myModal.show();
+		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+			try {
+				var modalEl = document.getElementById('order-action-modal');
+				var myModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+				myModal.show();
+			} catch(e) {
+				$('#order-action-modal').modal('show');
+			}
+		} else {
+			$('#order-action-modal').modal('show');
+		}
 	});
 
-	// Trigger replacement approval popup
+	// Trigger replacement approval popup using SweetAlert2
 	$(document).on('click', '.approve-item', function () {
 		var itemId = $(this).data('item-id');
-		$('#selected_replacement_item_id').val(itemId);
+		
+		Swal.fire({
+			title: '<div style="font-size: 20px; font-weight: 700; color: #2d3748; padding-top: 4px;"><i class="fas fa-exchange-alt" style="color: #6f42c1; margin-right: 8px;"></i> Approve Replacement</div>',
+			html: `
+				<div style="text-align: left; margin-top: 10px;">
+					<p style="color: #4a5568; font-size: 14px; margin-bottom: 14px;">Please select the replacement fulfillment workflow for this item:</p>
+					
+					<!-- Option 1: Own Replacement -->
+					<label class="swal-rep-card" id="swal-card-own" style="display: block; border: 2px solid #28a745; border-radius: 10px; padding: 13px 15px; margin-bottom: 12px; cursor: pointer; background: #f9fff9; transition: all 0.2s ease;">
+						<div style="display: flex; align-items: flex-start;">
+							<input type="radio" name="swal_replacement_choice" id="swal_rep_own" value="1" checked style="width: 18px; height: 18px; margin-top: 2px; margin-right: 12px; cursor: pointer; accent-color: #28a745;">
+							<div>
+								<strong style="color: #28a745; font-size: 15px; display: block; margin-bottom: 3px;">1. Own Replacement</strong>
+								<div style="font-size: 13px; color: #4a5568; line-height: 1.4;">
+									Completed <strong>entirely from Merchant Panel</strong>. You can proceed with and complete the replacement without involving Admin.
+								</div>
+								<span style="background: #28a745; color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 4px; display: inline-block; margin-top: 6px; font-weight: 600;">Merchant Panel Only</span>
+							</div>
+						</div>
+					</label>
 
-		// Reset to default (Own Replacement)
-		$('#rep_opt_own').prop('checked', true);
-		$('.replacement-option-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
-		$('#opt-card-own').css({'border-color': '#28a745', 'background': '#f9fff9'});
-
-		var approvalModalEl = document.getElementById('replacement-approval-modal');
-		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-			var approvalModal = bootstrap.Modal.getInstance(approvalModalEl) || new bootstrap.Modal(approvalModalEl);
-			approvalModal.show();
-		} else {
-			$('#replacement-approval-modal').modal('show');
-		}
-	});
-
-	// Selection styling on click
-	$(document).on('click', '.replacement-option-card', function () {
-		var radio = $(this).find('input[type="radio"]');
-		radio.prop('checked', true);
-		$('.replacement-option-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
-		if (radio.val() === '1') {
-			$(this).css({'border-color': '#28a745', 'background': '#f9fff9'});
-		} else {
-			$(this).css({'border-color': '#6f42c1', 'background': '#faf7ff'});
-		}
-	});
-
-	$(document).on('change', 'input[name="replacement_type_choice"]', function () {
-		$('.replacement-option-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
-		if ($(this).val() === '1') {
-			$('#opt-card-own').css({'border-color': '#28a745', 'background': '#f9fff9'});
-		} else {
-			$('#opt-card-ym').css({'border-color': '#6f42c1', 'background': '#faf7ff'});
-		}
-	});
-
-	// Confirm approval selection
-	$(document).on('click', '#btn-confirm-replacement-approval', function () {
-		var itemId = $('#selected_replacement_item_id').val();
-		var selectedStatus = parseInt($('input[name="replacement_type_choice"]:checked').val() || 1);
-
-		if (!itemId) {
-			alert('No replacement item selected.');
-			return;
-		}
-
-		var typeLabel = (selectedStatus === 1) ? 'Own Replacement (Merchant Panel)' : 'YM Replacement (Admin Panel)';
-		if (!confirm('Confirm approval as ' + typeLabel + '?')) {
-			return;
-		}
-
-		var approvalModalEl = document.getElementById('replacement-approval-modal');
-		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-			var approvalModal = bootstrap.Modal.getInstance(approvalModalEl);
-			if (approvalModal) approvalModal.hide();
-		} else {
-			$('#replacement-approval-modal').modal('hide');
-		}
-
-		updateItemStatus(itemId, selectedStatus);
+					<!-- Option 2: YM Replacement -->
+					<label class="swal-rep-card" id="swal-card-ym" style="display: block; border: 2px solid #e2e8f0; border-radius: 10px; padding: 13px 15px; margin-bottom: 0; cursor: pointer; background: #fff; transition: all 0.2s ease;">
+						<div style="display: flex; align-items: flex-start;">
+							<input type="radio" name="swal_replacement_choice" id="swal_rep_ym" value="2" style="width: 18px; height: 18px; margin-top: 2px; margin-right: 12px; cursor: pointer; accent-color: #6f42c1;">
+							<div>
+								<strong style="color: #6f42c1; font-size: 15px; display: block; margin-bottom: 3px;">2. YM Replacement</strong>
+								<div style="font-size: 13px; color: #4a5568; line-height: 1.4;">
+									Approved by merchant, but <strong>actual replacement process is handled from Admin Panel</strong>. Forwarded to Admin for fulfillment.
+								</div>
+								<span style="background: #6f42c1; color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 4px; display: inline-block; margin-top: 6px; font-weight: 600;">Admin Panel Only</span>
+							</div>
+						</div>
+					</label>
+				</div>
+			`,
+			showCancelButton: true,
+			confirmButtonText: '<i class="fas fa-check"></i> Confirm Approval',
+			cancelButtonText: 'Cancel',
+			confirmButtonColor: '#28a745',
+			cancelButtonColor: '#6c757d',
+			focusConfirm: false,
+			customClass: {
+				popup: 'swal2-custom-popup'
+			},
+			didOpen: () => {
+				$(Swal.getPopup()).on('click', '.swal-rep-card', function () {
+					var radio = $(this).find('input[type="radio"]');
+					radio.prop('checked', true);
+					$('.swal-rep-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
+					if (radio.val() === '1') {
+						$('#swal-card-own').css({'border-color': '#28a745', 'background': '#f9fff9'});
+					} else {
+						$('#swal-card-ym').css({'border-color': '#6f42c1', 'background': '#faf7ff'});
+					}
+				});
+				$(Swal.getPopup()).on('change', 'input[name="swal_replacement_choice"]', function () {
+					$('.swal-rep-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
+					if ($(this).val() === '1') {
+						$('#swal-card-own').css({'border-color': '#28a745', 'background': '#f9fff9'});
+					} else {
+						$('#swal-card-ym').css({'border-color': '#6f42c1', 'background': '#faf7ff'});
+					}
+				});
+			},
+			preConfirm: () => {
+				var selected = $('input[name="swal_replacement_choice"]:checked').val();
+				if (!selected) {
+					Swal.showValidationMessage('Please select a replacement option');
+					return false;
+				}
+				return parseInt(selected);
+			}
+		}).then((result) => {
+			if (result.isConfirmed) {
+				updateItemStatus(itemId, result.value);
+			}
+		});
 	});
 
 	// Reject item handler
 	$(document).on('click', '.reject-item', function () {
 		var itemId = $(this).data('item-id');
-		if (confirm("Reject this replacement request item?")) {
-			updateItemStatus(itemId, 4); // 4 = Rejected
-		}
+		Swal.fire({
+			title: 'Reject Replacement Request?',
+			text: 'Are you sure you want to reject this replacement request item?',
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#dc3545',
+			cancelButtonColor: '#6c757d',
+			confirmButtonText: '<i class="fas fa-times"></i> Yes, Reject',
+			cancelButtonText: 'Cancel'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				updateItemStatus(itemId, 4); // 4 = Rejected
+			}
+		});
 	});
 
 	// Complete Own Replacement handler
 	$(document).on('click', '.complete-own', function () {
 		var itemId = $(this).data('item-id');
-		if (confirm("Mark Own Replacement as completed?")) {
-			updateItemStatus(itemId, 5); // 5 = Replaced (Own)
-		}
+		Swal.fire({
+			title: 'Complete Own Replacement?',
+			text: 'Mark this replacement as completed by merchant?',
+			icon: 'question',
+			showCancelButton: true,
+			confirmButtonColor: '#28a745',
+			cancelButtonColor: '#6c757d',
+			confirmButtonText: '<i class="fas fa-check-circle"></i> Yes, Mark as Done',
+			cancelButtonText: 'Cancel'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				updateItemStatus(itemId, 5); // 5 = Replaced (Own)
+			}
+		});
 	});
 
 	// AJAX function for per-item status updates
 	function updateItemStatus(itemId, status) {
 		var repType = (status === 1 || status === 5) ? 'own' : ((status === 2 || status === 6) ? 'ym' : '');
-		$.post('<?= base_url("WebshopOrdersController/replacement_update_item_status") ?>',
-			{ 
+
+		Swal.fire({
+			title: 'Updating status...',
+			text: 'Please wait...',
+			allowOutsideClick: false,
+			didOpen: () => {
+				Swal.showLoading();
+			}
+		});
+
+		$.ajax({
+			url: '<?= base_url("WebshopOrdersController/replacement_update_item_status") ?>',
+			type: 'POST',
+			data: { 
 				replacement_item_id: itemId, 
 				status: status,
 				replacement_type: repType
 			},
-			function (response) {
+			dataType: 'json',
+			success: function (response) {
 				if (response.success) {
-					location.reload();
+					Swal.fire({
+						icon: 'success',
+						title: 'Success!',
+						text: 'Replacement status updated successfully.',
+						timer: 1500,
+						showConfirmButton: false
+					}).then(() => {
+						location.reload();
+					});
 				} else {
-					alert(response.error || 'Failed to update status');
+					Swal.fire({
+						icon: 'error',
+						title: 'Failed',
+						text: response.error || 'Failed to update status.'
+					});
 				}
 			},
-			'json'
-		);
+			error: function (xhr, status, error) {
+				console.error('AJAX Error:', xhr.responseText);
+				Swal.fire({
+					icon: 'error',
+					title: 'Error',
+					text: 'An error occurred while updating the status. Please try again.'
+				});
+			}
+		});
 	}
 </script>

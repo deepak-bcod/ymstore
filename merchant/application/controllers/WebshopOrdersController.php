@@ -4962,14 +4962,15 @@ class WebshopOrdersController extends CI_Controller {
 		if ($replacement_item_id && $status !== null) {
 
 			$status = (int)$status;
-			$LogindID = isset($_SESSION['LoginID']) ? (int)$_SESSION['LoginID'] : 0;
+			$LogindID = (int)($this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 0));
 
 			// Fetch item details including shipment_type and publisher_id
 			$itemRow = $this->db
 				->select('sori.replacement_item_id, sori.status as item_status, sori.replacement_order_id, bo.shipment_type, bo.publisher_id')
 				->from('sales_order_replacement_items sori')
 				->join('sales_order_replacement sor', 'sor.replacement_order_id = sori.replacement_order_id', 'left')
-				->join('b2b_orders bo', '(bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
+				->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+				->join('b2b_orders bo', '(bo.order_id = boi.order_id OR bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
 				->where('sori.replacement_item_id', $replacement_item_id)
 				->get()
 				->row();
@@ -4980,7 +4981,7 @@ class WebshopOrdersController extends CI_Controller {
 			}
 
 			// Validate ownership
-			if ($LogindID > 0 && (int)$itemRow->publisher_id !== $LogindID) {
+			if ($LogindID > 0 && !empty($itemRow->publisher_id) && (int)$itemRow->publisher_id !== $LogindID) {
 				echo json_encode(['success' => false, 'error' => 'Unauthorized action']);
 				return;
 			}
