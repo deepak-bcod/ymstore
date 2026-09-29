@@ -26,11 +26,11 @@ if ($lang == 'french' && !empty($prod->lang_title)) {
 
         </a>
 
-        <div>
+        <!-- <div>
 
             <a href="javascript:QuickViewProdDetails('<?php echo $prod->url_key; ?>','<?= $product_url ?>')" class="btn btn-default"><?= lang('view_label') ?></a>
 
-        </div>
+        </div> -->
 
     </div>
 
