@@ -458,7 +458,21 @@ $route['webshop/b2b/shipped-orders'] = 'B2BOrdersController/index';
 $route['webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
 $route['webshop/b2b/order/process/(:num)'] = 'B2BOrdersController/process/$1';
 $route['webshop/b2b/shipped-order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['webshop/b2b/split-order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
 $route['webshop/b2b/order/print/(:num)'] = 'B2BOrdersController/printdetails/$1';
+$route['webshop/b2b-order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+
+$route['merchant/webshop/b2b-orders'] = 'B2BOrdersController/index';
+$route['merchant/webshop/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
+$route['merchant/b2b-orders'] = 'B2BOrdersController/index';
+$route['merchant/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
+$route['merchant/webshop/b2b/shipped-orders'] = 'B2BOrdersController/index';
+$route['merchant/webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['merchant/webshop/b2b/order/process/(:num)'] = 'B2BOrdersController/process/$1';
+$route['merchant/webshop/b2b/shipped-order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['merchant/webshop/b2b/split-order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['merchant/webshop/b2b/order/print/(:num)'] = 'B2BOrdersController/printdetails/$1';
+$route['merchant/webshop/b2b-order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
 
 $route['b2b-orders'] = 'B2BOrdersController/index';
 $route['b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
@@ -466,10 +480,15 @@ $route['b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
 $route['webshop/ES-orders'] = 'B2BOrdersController/index';
 $route['webshop/ES-orders/(:any)'] = 'B2BOrdersController/index/$1';
 $route['webshop/ES/shipped-orders'] = 'B2BOrdersController/index';
-$route['webshop/ES/order/detail/(:num)'] = 'B2BOrdersController/detail';
-$route['webshop/ES/order/process/(:num)'] = 'B2BOrdersController/process';
-$route['webshop/ES/shipped-order/detail/(:num)'] = 'B2BOrdersController/detail';
-$route['webshop/ES/order/print/(:num)'] = 'B2BOrdersController/printdetails';
+$route['webshop/ES/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['webshop/ES/order/process/(:num)'] = 'B2BOrdersController/process/$1';
+$route['webshop/ES/shipped-order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['webshop/ES/order/print/(:num)'] = 'B2BOrdersController/printdetails/$1';
+
+$route['merchant/webshop/ES/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['merchant/webshop/ES/order/process/(:num)'] = 'B2BOrdersController/process/$1';
+$route['merchant/webshop/ES/shipped-order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['merchant/webshop/ES/order/print/(:num)'] = 'B2BOrdersController/printdetails/$1';
 
 $route['webshop/split-order/detail/(:num)'] = 'WebshopOrdersController/detail';
 

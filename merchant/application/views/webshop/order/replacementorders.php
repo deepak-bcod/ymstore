@@ -85,7 +85,15 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 
 								?>
 								<tr>
-									<td><?= $order['order_barcode']; ?></td>
+									<td>
+										<?php 
+										$order_link_id = !empty($order['b2b_order_id']) ? $order['b2b_order_id'] : (!empty($order['webshop_order_id']) ? $order['webshop_order_id'] : '');
+										if (!empty($order_link_id)) { ?>
+											<a class="link-purple" href="<?= base_url('webshop/b2b/order/detail/' . $order_link_id); ?>" target="_blank"><?= $order['order_barcode']; ?></a>
+										<?php } else { ?>
+											<?= $order['order_barcode']; ?>
+										<?php } ?>
+									</td>
 									<td><?= $order['shopper_order_id']; ?></td>
 									<td><?= $purchaseOnFull; ?></td>
 									<td><?= $order['customer_name']; ?></td>

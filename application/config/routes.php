@@ -449,3 +449,10 @@ $route['driver_logout'] = 'Api/driver_logout';
 
 
 $route['payment/status/(:any)'] = 'HomeController/payment_status_show/$1';
+
+$route['merchant/webshop/b2b-orders'] = 'B2BOrdersController/index';
+$route['merchant/webshop/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
+$route['merchant/webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+$route['webshop/b2b-orders'] = 'B2BOrdersController/index';
+$route['webshop/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
+$route['webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';

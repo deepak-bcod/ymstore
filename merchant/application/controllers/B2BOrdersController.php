@@ -143,37 +143,35 @@ class B2BOrdersController extends CI_Controller
 
 			$order_url = '';
 
-			if ($current_tab == 'ES-orders') {
+			if ($current_tab == 'ES-orders' || $current_tab == 'b2b-orders' || $current_tab == 'orders' || empty($current_tab)) {
 
-				$order_url = base_url() . 'webshop/ES/order/detail/' . $readData->order_id;
+				$order_url = base_url() . 'webshop/b2b/order/detail/' . $readData->order_id;
 
 				$print_url = base_url() . 'webshop/b2b/order/print/' . $readData->order_id;
 
 			} else if ($current_tab == 'split-orders') {
 
+				$order_url = base_url() . 'webshop/b2b/split-order/detail/' . $readData->order_id;
 
-
-				$order_url = base_url() . 'b2b/split-order/detail/' . $readData->order_id;
-
-				$print_url = base_url() . 'b2b/order/print/' . $readData->order_id;
+				$print_url = base_url() . 'webshop/b2b/order/print/' . $readData->order_id;
 
 			} else if ($current_tab == 'shipped-orders') {
 
-				$order_url = base_url() . 'b2b/shipped-order/detail/' . $readData->order_id;
+				$order_url = base_url() . 'webshop/b2b/shipped-order/detail/' . $readData->order_id;
 
-				$print_url = base_url() . 'b2b/shipped-order/print/' . $readData->order_id;
+				$print_url = base_url() . 'webshop/b2b/shipped-order/print/' . $readData->order_id;
 
 			} else if ($current_tab == 'cancel-orders') {
 
-				$order_url = base_url() . 'webshop/ES/order/detail/' . $readData->order_id;
+				$order_url = base_url() . 'webshop/b2b/order/detail/' . $readData->order_id;
 
 				$print_url = base_url() . 'webshop/b2b/order/print/' . $readData->order_id;
 
 			} else {
 
-				$order_url = base_url();
+				$order_url = base_url() . 'webshop/b2b/order/detail/' . $readData->order_id;
 
-				$print_url = base_url();
+				$print_url = base_url() . 'webshop/b2b/order/print/' . $readData->order_id;
 
 			}
 
@@ -329,7 +327,8 @@ class B2BOrdersController extends CI_Controller
 
 			$row[] = '<a class="link-purple" href="' . $order_url . '">' . $readData->increment_id . '</a>';
 
-			$row[] = (isset($_sales_order->increment_id) ? $_sales_order->increment_id : '');
+			$es_order_no = (isset($_sales_order->increment_id) && $_sales_order->increment_id != '') ? $_sales_order->increment_id : ((isset($_sales_order->order_barcode) && $_sales_order->order_barcode != '') ? $_sales_order->order_barcode : '');
+			$row[] = ($es_order_no != '') ? '<a class="link-purple" href="' . $order_url . '">' . $es_order_no . '</a>' : '';
 
 			// $row[]=date(SIS_DATE_FM_WT,$readData->created_at);$_sales_order->increment_id
 
@@ -449,25 +448,36 @@ class B2BOrdersController extends CI_Controller
 
 	{
 
-
-
-		$increment_id = $_POST['increment_id'];
+		$increment_id = trim($this->input->post('increment_id'));
 
 		$orderdata = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('increment_id' => $increment_id), 'order_id,increment_id,parent_id,main_parent_id,status');
+		if (empty($orderdata)) {
+			$orderdata = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('order_barcode' => $increment_id), 'order_id,increment_id,parent_id,main_parent_id,status');
+		}
+		if (empty($orderdata)) {
+			$this->load->model('ShopProductModel');
+			$salesOrder = $this->ShopProductModel->getSingleDataByID('sales_order', array('increment_id' => $increment_id), 'order_id');
+			if (empty($salesOrder)) {
+				$salesOrder = $this->ShopProductModel->getSingleDataByID('sales_order', array('order_barcode' => $increment_id), 'order_id');
+			}
+			if (!empty($salesOrder)) {
+				$orderdata = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('webshop_order_id' => $salesOrder->order_id), 'order_id,increment_id,parent_id,main_parent_id,status');
+			}
+		}
 
-		if (isset($orderdata)) {
+		if (isset($orderdata) && !empty($orderdata)) {
 
 			if ($orderdata->main_parent_id != 0) {
 
-				$redirect_url = base_url() . 'b2b/split-order/detail/' . $orderdata->order_id;
+				$redirect_url = base_url() . 'webshop/b2b/split-order/detail/' . $orderdata->order_id;
 
 			} else if ($orderdata->status == 4 || $orderdata->status == 5 || $orderdata->status == 6) {
 
-				$redirect_url = base_url() . 'b2b/shipped-order/detail/' . $orderdata->order_id;
+				$redirect_url = base_url() . 'webshop/b2b/shipped-order/detail/' . $orderdata->order_id;
 
 			} else {
 
-				$redirect_url = base_url() . 'ES/order/detail/' . $orderdata->order_id;
+				$redirect_url = base_url() . 'webshop/b2b/order/detail/' . $orderdata->order_id;
 
 			}
 
@@ -491,13 +501,28 @@ class B2BOrdersController extends CI_Controller
 
 
 
-	function detail()
+	function detail($order_id = 0)
 
 	{
 
-		$current_tab = $this->uri->segment(3);
+		$segments = $this->uri->segment_array();
+		if (empty($order_id) || !is_numeric($order_id)) {
+			$last_seg = end($segments);
+			if (is_numeric($last_seg)) {
+				$order_id = $last_seg;
+			} else {
+				$order_id = $this->uri->segment(5);
+			}
+		}
 
-		$order_id = $this->uri->segment(5);
+		$current_tab = $this->uri->segment(3);
+		if (in_array('shipped-order', $segments) || $current_tab == 'shipped-order') {
+			$current_tab = 'shipped-order';
+		} elseif (in_array('split-order', $segments) || $current_tab == 'split-order') {
+			$current_tab = 'split-order';
+		} else {
+			$current_tab = 'order';
+		}
 
 		if (isset($order_id) && $order_id > 0) {
 
@@ -505,7 +530,7 @@ class B2BOrdersController extends CI_Controller
 
 			$data['side_menu'] = 'b2b';
 
-			$data['current_tab'] = (isset($current_tab) && $current_tab != '') ? $current_tab : '';
+			$data['current_tab'] = (isset($current_tab) && $current_tab != '') ? $current_tab : 'order';
 
 
 
@@ -517,15 +542,17 @@ class B2BOrdersController extends CI_Controller
 
 			$data['OrderData'] = $OrderData = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('order_id' => $order_id), '');
 
-			// echo $this->db->last_query();
-
-			// die();
+			if (empty($OrderData)) {
+				// Fallback: check if $order_id was webshop_order_id (sales_order ID)
+				$data['OrderData'] = $OrderData = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('webshop_order_id' => $order_id), '');
+			}
 
 			if (empty($OrderData)) {
 
-				redirect('webshop/ES-orders');
+				redirect('webshop/b2b-orders');
 
 			}
+			$order_id = $OrderData->order_id;
 
 			$data['OrderItems'] = $OrderItems = $this->B2BOrdersModel->getOrderItems($order_id);
 
@@ -651,13 +678,13 @@ class B2BOrdersController extends CI_Controller
 
 			} else {
 
-				redirect('/b2b/orders');
+				$this->load->view('b2b/order/main-order-detail', $data);
 
 			}
 
 		} else {
 
-			redirect('/b2b/orders');
+			redirect('webshop/b2b-orders');
 
 		}
 		
