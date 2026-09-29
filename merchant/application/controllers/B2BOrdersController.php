@@ -145,7 +145,7 @@ class B2BOrdersController extends CI_Controller
 
 			if ($current_tab == 'ES-orders') {
 
-				$order_url = base_url() . 'webshop/b2b/order/detail/' . $readData->order_id;
+				$order_url = base_url() . 'webshop/ES/order/detail/' . $readData->order_id;
 
 				$print_url = base_url() . 'webshop/b2b/order/print/' . $readData->order_id;
 
@@ -165,7 +165,7 @@ class B2BOrdersController extends CI_Controller
 
 			} else if ($current_tab == 'cancel-orders') {
 
-				$order_url = base_url() . 'webshop/b2b/order/detail/' . $readData->order_id;
+				$order_url = base_url() . 'webshop/ES/order/detail/' . $readData->order_id;
 
 				$print_url = base_url() . 'webshop/b2b/order/print/' . $readData->order_id;
 
@@ -467,7 +467,7 @@ class B2BOrdersController extends CI_Controller
 
 			} else {
 
-				$redirect_url = base_url() . 'b2b/order/detail/' . $orderdata->order_id;
+				$redirect_url = base_url() . 'ES/order/detail/' . $orderdata->order_id;
 
 			}
 
