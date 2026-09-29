@@ -1735,58 +1735,73 @@ class WebshopOrdersModel extends CI_Model
 
 
 	public function getReplacementOrderProducts($replacement_order_id)
-{
-    $this->db->select('
-        sori.replacement_item_id,
-        sori.status AS item_status,
-        boi.product_name,
-        boi.product_type,
-        boi.product_variants,
-        sori.qty_replacement AS qty,
-        boi.price,
-        boi.total_price,
-        bo.shipment_type
-    ');
-
-    $this->db->from('sales_order_replacement_items AS sori');
-
-    $this->db->join(
-        'b2b_order_items AS boi',
-        'boi.item_id = sori.order_item_id',
-        'left'
-    );
-
-    // Get shipment type from B2B order
-    $this->db->join(
-        'b2b_orders AS bo',
-        'bo.order_id = boi.order_id',
-        'left'
-    );
-
-    $this->db->where(
-        'sori.replacement_order_id',
-        $replacement_order_id
-    );
-
-    return $this->db->get()->result_array();
-}
-	public function replacement_update_item_status($replacement_item_id, $status)
 	{
-		// Update sales_order_replacement_items table
-		$this->db->where('replacement_item_id', $replacement_item_id);
-		$updated = $this->db->update('sales_order_replacement_items', [
+		$select_fields = '
+			sori.replacement_item_id,
+			sori.status AS item_status,
+			boi.product_name,
+			boi.product_type,
+			boi.product_variants,
+			sori.qty_replacement AS qty,
+			boi.price,
+			boi.total_price,
+			bo.shipment_type
+		';
+		if ($this->db->field_exists('replacement_type', 'sales_order_replacement_items')) {
+			$select_fields .= ', sori.replacement_type';
+		}
+
+		$this->db->select($select_fields);
+		$this->db->from('sales_order_replacement_items AS sori');
+		$this->db->join('b2b_order_items AS boi', 'boi.item_id = sori.order_item_id', 'left');
+		$this->db->join('b2b_orders AS bo', 'bo.order_id = boi.order_id', 'left');
+		$this->db->where('sori.replacement_order_id', $replacement_order_id);
+
+		return $this->db->get()->result_array();
+	}
+
+	public function replacement_update_item_status($replacement_item_id, $status, $replacement_type = null)
+	{
+		if (empty($replacement_type)) {
+			if (in_array($status, [1, 5])) {
+				$replacement_type = 'own';
+			} elseif (in_array($status, [2, 6])) {
+				$replacement_type = 'ym';
+			}
+		}
+
+		// Ensure replacement_type column exists if needed
+		if ($replacement_type !== null && !$this->db->field_exists('replacement_type', 'sales_order_replacement_items')) {
+			@$this->db->query("ALTER TABLE sales_order_replacement_items ADD COLUMN replacement_type VARCHAR(20) NULL DEFAULT NULL AFTER status");
+		}
+		if ($replacement_type !== null && !$this->db->field_exists('replacement_type', 'sales_order_replacement')) {
+			@$this->db->query("ALTER TABLE sales_order_replacement ADD COLUMN replacement_type VARCHAR(20) NULL DEFAULT NULL AFTER status");
+		}
+
+		$item_update_data = [
 			'status' => $status,
 			'updated_at' => time()
-		]);
+		];
+		if ($replacement_type !== null && $this->db->field_exists('replacement_type', 'sales_order_replacement_items')) {
+			$item_update_data['replacement_type'] = $replacement_type;
+		}
+
+		// Update sales_order_replacement_items table
+		$this->db->where('replacement_item_id', $replacement_item_id);
+		$updated = $this->db->update('sales_order_replacement_items', $item_update_data);
 
 		// Get the replacement_order_id for updating the order status
 		$item = $this->db->select('replacement_order_id')->from('sales_order_replacement_items')->where('replacement_item_id', $replacement_item_id)->get()->row();
 		if ($item) {
-			$this->db->where('replacement_order_id', $item->replacement_order_id);
-			$this->db->update('sales_order_replacement', [
+			$order_update_data = [
 				'status' => $status,
 				'updated_at' => time()
-			]);
+			];
+			if ($replacement_type !== null && $this->db->field_exists('replacement_type', 'sales_order_replacement')) {
+				$order_update_data['replacement_type'] = $replacement_type;
+			}
+			$this->db->where('replacement_order_id', $item->replacement_order_id);
+			$this->db->update('sales_order_replacement', $order_update_data);
 		}
 
 		// Update related B2B order status for replacement lifecycle changes

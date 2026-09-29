@@ -4957,6 +4957,7 @@ class WebshopOrdersController extends CI_Controller {
 	{
 		$replacement_item_id = $this->input->post('replacement_item_id');
 		$status = $this->input->post('status');
+		$replacement_type = $this->input->post('replacement_type');
 
 		if ($replacement_item_id && $status !== null) {
 
@@ -4965,7 +4966,7 @@ class WebshopOrdersController extends CI_Controller {
 
 			// Fetch item details including shipment_type and publisher_id
 			$itemRow = $this->db
-				->select('sori.replacement_item_id, sori.status as item_status, bo.shipment_type, bo.publisher_id')
+				->select('sori.replacement_item_id, sori.status as item_status, sori.replacement_order_id, bo.shipment_type, bo.publisher_id')
 				->from('sales_order_replacement_items sori')
 				->join('sales_order_replacement sor', 'sor.replacement_order_id = sori.replacement_order_id', 'left')
 				->join('b2b_orders bo', '(bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
@@ -4984,39 +4985,92 @@ class WebshopOrdersController extends CI_Controller {
 				return;
 			}
 
-			// ENFORCEMENT: YM Replacement can ONLY be processed from Admin Panel
-			// Own Replacement can ONLY be processed from Merchant Panel
-			if ((int)$itemRow->shipment_type === 2 || in_array($status, [2, 6])) {
+			$currentItemStatus = (int)$itemRow->item_status;
+
+			// BACKEND ENFORCEMENT:
+			// 1. If currently status 2 (YM Replacement Approved):
+			//    Merchant CANNOT process or complete it from the Merchant Panel!
+			if ($currentItemStatus === 2) {
 				echo json_encode([
 					'success' => false,
-					'error'   => 'YM Replacement can only be processed from Admin Panel.'
+					'error'   => 'YM Replacement can only be processed and completed from Admin Panel.'
 				]);
 				return;
 			}
 
-			// Only allow merchant actions for Own Replacement:
-			// 1: Approve (Own Replacement), 4: Reject, 5: Done (Own Replacement Done)
-			if (!in_array($status, [1, 4, 5])) {
+			// 2. Merchant CANNOT set status 6 (Replaced YM)
+			if ($status === 6) {
 				echo json_encode([
 					'success' => false,
-					'error'   => 'Invalid status update for Merchant Panel.'
+					'error'   => 'YM Replacement can only be completed from Admin Panel.'
 				]);
 				return;
+			}
+
+			// 3. Status transition validations for Merchant Panel:
+			if ($currentItemStatus === 0) {
+				// From Pending: Merchant can approve as Own (1), approve as YM (2), or reject (4)
+				if (!in_array($status, [1, 2, 4])) {
+					echo json_encode([
+						'success' => false,
+						'error'   => 'Invalid status update for pending replacement request.'
+					]);
+					return;
+				}
+			} elseif ($currentItemStatus === 1) {
+				// From Own Replacement Approved: Merchant can complete (5) or reject (4)
+				if (!in_array($status, [4, 5])) {
+					echo json_encode([
+						'success' => false,
+						'error'   => 'Invalid status update for Own Replacement.'
+					]);
+					return;
+				}
+			} elseif (in_array($currentItemStatus, [3, 5, 6])) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Replacement request has already been completed.'
+				]);
+				return;
+			} elseif (in_array($currentItemStatus, [4, 21])) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Replacement request has already been rejected.'
+				]);
+				return;
+			} else {
+				if (!in_array($status, [1, 2, 4, 5])) {
+					echo json_encode([
+						'success' => false,
+						'error'   => 'Invalid status update for Merchant Panel.'
+					]);
+					return;
+				}
+			}
+
+			// Determine replacement_type string
+			if (empty($replacement_type)) {
+				if (in_array($status, [1, 5])) {
+					$replacement_type = 'own';
+				} elseif (in_array($status, [2, 6])) {
+					$replacement_type = 'ym';
+				}
 			}
 
 			// ---------------------------------------
-			// 1. Update replacement item status
+			// 1. Update replacement item status & type
 			// ---------------------------------------
 			$updated = $this->WebshopOrdersModel
 				->replacement_update_item_status(
 					$replacement_item_id,
-					$status
+					$status,
+					$replacement_type
 				);
 
 			// ---------------------------------------
 			// 2. Notify Admin on status change
 			// ---------------------------------------
-			if ($updated && in_array($status, [1, 4, 5])) {
+			if ($updated && in_array($status, [1, 2, 4, 5])) {
 
 				// ---------------------------------------
 				// 3. Get replacement + order
@@ -5053,6 +5107,11 @@ class WebshopOrdersController extends CI_Controller {
 						$message = 'Own replacement request approved by merchant for order '
 								 . $replacement->increment_id . '.';
 						$subtype = 'own_replacement_approved';
+					} elseif ($status === 2) {
+						$title = 'YM Replacement Request Approved';
+						$message = 'YM replacement request approved by merchant for order '
+								 . $replacement->increment_id . '. Awaiting processing from Admin Panel.';
+						$subtype = 'ym_replacement_approved';
 					} elseif ($status === 5) {
 						$title = 'Own Replacement Completed';
 						$message = 'Own replacement marked as done by merchant for order '
@@ -5076,10 +5135,11 @@ class WebshopOrdersController extends CI_Controller {
 						'title'          => $title,
 						'message'        => $message,
 						'data'           => json_encode([
-							'order_id'       => $replacement->order_id,
-							'increment_id'   => $replacement->increment_id,
-							'replacement_id' => $replacement_item_id,
-							'status'         => $status
+							'order_id'         => $replacement->order_id,
+							'increment_id'     => $replacement->increment_id,
+							'replacement_id'   => $replacement_item_id,
+							'replacement_type' => $replacement_type,
+							'status'           => $status
 						]),
 						'is_read'         => 0,
 						'created_at'      => date('Y-m-d H:i:s'),
@@ -5094,8 +5154,9 @@ class WebshopOrdersController extends CI_Controller {
 			// 5. AJAX response
 			// ---------------------------------------
 			echo json_encode([
-				'success' => $updated ? true : false,
-				'status'  => $status
+				'success'          => $updated ? true : false,
+				'status'           => $status,
+				'replacement_type' => $replacement_type
 			]);
 
 		} else {

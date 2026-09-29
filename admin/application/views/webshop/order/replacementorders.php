@@ -53,6 +53,8 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 									// Check item-level statuses if items exist
 									$hasRejectedItem = false;
 									$hasReplacedItem = false;
+									$hasOwnApproved = false;
+									$hasYmApproved = false;
 									$hasApprovedItem = false;
 									if (!empty($order['products'])) {
 										foreach ($order['products'] as $prod) {
@@ -61,7 +63,11 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 												$hasRejectedItem = true;
 											} elseif (in_array($ist, [3, 5, 6, 19])) {
 												$hasReplacedItem = true;
-											} elseif (in_array($ist, [1, 2, 18])) {
+											} elseif ($ist === 1) {
+												$hasOwnApproved = true;
+											} elseif ($ist === 2) {
+												$hasYmApproved = true;
+											} elseif (in_array($ist, [18])) {
 												$hasApprovedItem = true;
 											}
 										}
@@ -73,7 +79,13 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 									} else if ($repStatus === 21 || $repStatus === 4 || $sorStatus === 4 || $sorStatus === 21 || $hasRejectedItem) {
 										$statusText = $this->lang->line('model_status_replacement_rejected') ?: "Replacement Rejected";
 										$statusClass = "red";
-									} else if ($repStatus === 18 || in_array($repStatus, [1, 2]) || in_array($sorStatus, [1, 2]) || $hasApprovedItem) {
+									} else if ($hasOwnApproved || $repStatus === 1 || $sorStatus === 1) {
+										$statusText = "Own Replacement";
+										$statusClass = "green";
+									} else if ($hasYmApproved || $repStatus === 2 || $sorStatus === 2) {
+										$statusText = "YM Replacement";
+										$statusClass = "black";
+									} else if ($repStatus === 18 || $hasApprovedItem) {
 										$statusText = $this->lang->line('model_status_replacement_approved') ?: "Replacement Approved";
 										$statusClass = "green";
 									} else {
@@ -230,29 +242,46 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 			let shipmentType = (p.shipment_type !== undefined && p.shipment_type !== null) ? String(p.shipment_type).trim() : '';
 			let itemStatus = parseInt(p.item_status || 0);
 
+			let isYM = false;
+			let isOwn = false;
+
+			if (itemStatus === 2 || itemStatus === 6) {
+				isYM = true;
+			} else if (itemStatus === 1 || itemStatus === 5) {
+				isOwn = true;
+			} else if (p.replacement_type === 'ym') {
+				isYM = true;
+			} else if (p.replacement_type === 'own') {
+				isOwn = true;
+			} else if (shipmentType === '2') {
+				isYM = true;
+			} else {
+				isOwn = true;
+			}
+
 			let itemTypeLabel = '';
 			let itemStatusLabel = '';
 			let itemStatusClass = '';
 			let itemActionButtons = '';
 
-			if (shipmentType === '2' || itemStatus === 2 || itemStatus === 6) {
+			if (isYM) {
 				hasYM = true;
 				itemTypeLabel = '<span style="font-weight: bold; color: #000;">YM Replacement</span>';
 
 				switch (itemStatus) {
-					case 0: // Pending
-						hasPendingYM = true;
-						itemStatusLabel = 'Pending';
+					case 0: // Pending Merchant Approval
+						itemStatusLabel = 'Pending Merchant Approval';
 						itemStatusClass = 'purple';
-						itemActionButtons = `
-							<button class="btn btn-success btn-sm admin-approve-ym" data-item-id="${p.replacement_item_id}">Approve</button>
-							<button class="btn btn-danger btn-sm admin-reject-ym" data-item-id="${p.replacement_item_id}">Reject</button>
-						`;
+						itemActionButtons = '<span class="badge bg-warning text-dark" style="font-size: 11px; padding: 4px 8px; background: #ffc107; color: #212529; border-radius: 4px;">Awaiting Merchant</span>';
 						break;
-					case 2: // Approved (YM Replacement)
+					case 2: // Approved (YM Replacement) -> Admin can process and complete!
+						hasPendingYM = true;
 						itemStatusLabel = 'YM Replacement Approved';
 						itemStatusClass = 'green';
-						itemActionButtons = ' - ';
+						itemActionButtons = `
+							<button class="btn btn-success btn-sm admin-complete-ym" data-item-id="${p.replacement_item_id}">Done</button>
+							<button class="btn btn-danger btn-sm admin-reject-ym" data-item-id="${p.replacement_item_id}">Reject</button>
+						`;
 						break;
 					case 3:
 					case 6: // Replaced (YM)
@@ -267,12 +296,9 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 						itemActionButtons = '<span class="badge bg-danger" style="font-size: 11px; padding: 4px 8px; background: #dc3545; color: #fff; border-radius: 4px;">Rejected</span>';
 						break;
 					default:
-						itemStatusLabel = 'Pending';
+						itemStatusLabel = 'Pending Merchant Approval';
 						itemStatusClass = 'purple';
-						itemActionButtons = `
-							<button class="btn btn-success btn-sm admin-approve-ym" data-item-id="${p.replacement_item_id}">Approve</button>
-							<button class="btn btn-danger btn-sm admin-reject-ym" data-item-id="${p.replacement_item_id}">Reject</button>
-						`;
+						itemActionButtons = '<span class="badge bg-warning text-dark" style="font-size: 11px; padding: 4px 8px; background: #ffc107; color: #212529; border-radius: 4px;">Awaiting Merchant</span>';
 						break;
 				}
 			} else {
@@ -281,7 +307,7 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 
 				switch (itemStatus) {
 					case 0:
-						itemStatusLabel = 'Pending';
+						itemStatusLabel = 'Pending Merchant Approval';
 						itemStatusClass = 'purple';
 						break;
 					case 1:
@@ -299,7 +325,7 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 						itemStatusClass = 'red';
 						break;
 					default:
-						itemStatusLabel = 'Pending';
+						itemStatusLabel = 'Pending Merchant Approval';
 						itemStatusClass = 'purple';
 						break;
 				}
@@ -327,13 +353,13 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 
 		// FOOTER BUTTON: Only for YM Replacement Done at order level if approved
 		let footerHtml = `
-			<button class="btn btn-secondary" data-dismiss="modal">Close</button>
+			<button class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
 		`;
 
-		if (hasYM && (status == 18 || status == 2)) {
+		if (hasPendingYM) {
 			footerHtml = `
 				<button class="btn btn-success" id="confirm-ym-replacement-done">YM Replacement Done</button>
-				<button class="btn btn-secondary" data-dismiss="modal">Close</button>
+				<button class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
 			`;
 		}
 
@@ -344,13 +370,6 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 	});
 
 	// Item-level handlers for YM Replacement in Admin Panel
-	$(document).on('click', '.admin-approve-ym', function () {
-		var itemId = $(this).data('item-id');
-		if (confirm("Approve this item for YM Replacement?")) {
-			updateItemStatus(itemId, 2); // 2 = YM Replacement Approved
-		}
-	});
-
 	$(document).on('click', '.admin-reject-ym', function () {
 		var itemId = $(this).data('item-id');
 		if (confirm("Reject this YM Replacement request item?")) {
@@ -374,8 +393,13 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 
 	// AJAX FUNCTIONS
 	function updateItemStatus(itemId, status) {
+		var repType = (status === 2 || status === 6) ? 'ym' : 'own';
 		$.post('<?= base_url("WebshopOrdersController/replacement_update_item_status") ?>',
-			{ replacement_item_id: itemId, status: status },
+			{ 
+				replacement_item_id: itemId, 
+				status: status,
+				replacement_type: repType 
+			},
 			function (response) {
 				if (response.success) {
 					location.reload();

@@ -54,6 +54,8 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 									// Check item-level statuses if items exist
 									$hasRejectedItem = false;
 									$hasReplacedItem = false;
+									$hasOwnApproved = false;
+									$hasYmApproved = false;
 									$hasApprovedItem = false;
 									if (!empty($order['products'])) {
 										foreach ($order['products'] as $prod) {
@@ -62,7 +64,11 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 												$hasRejectedItem = true;
 											} elseif (in_array($ist, [3, 5, 6, 19])) {
 												$hasReplacedItem = true;
-											} elseif (in_array($ist, [1, 2, 18])) {
+											} elseif ($ist === 1) {
+												$hasOwnApproved = true;
+											} elseif ($ist === 2) {
+												$hasYmApproved = true;
+											} elseif (in_array($ist, [18])) {
 												$hasApprovedItem = true;
 											}
 										}
@@ -74,7 +80,13 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 									} else if ($repStatus === 21 || $repStatus === 4 || $sorStatus === 4 || $sorStatus === 21 || $hasRejectedItem) {
 										$statusText = $this->lang->line('model_status_replacement_rejected') ?: "Replacement Rejected";
 										$statusClass = "red";
-									} else if ($repStatus === 18 || in_array($repStatus, [1, 2]) || in_array($sorStatus, [1, 2]) || $hasApprovedItem) {
+									} else if ($hasOwnApproved || $repStatus === 1 || $sorStatus === 1) {
+										$statusText = "Own Replacement";
+										$statusClass = "green";
+									} else if ($hasYmApproved || $repStatus === 2 || $sorStatus === 2) {
+										$statusText = "YM Replacement";
+										$statusClass = "black";
+									} else if ($repStatus === 18 || $hasApprovedItem) {
 										$statusText = $this->lang->line('model_status_replacement_approved') ?: "Replacement Approved";
 										$statusClass = "green";
 									} else {
@@ -129,24 +141,82 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 <!-- Order Action Modal -->
 <!-- Single modal for all actions -->
 
-
 <div class="modal fade" id="order-action-modal" tabindex="-1">
   <div class="modal-dialog modal-lg">
      <div class="modal-content">
        <div class="modal-header">
          <h5><?php echo $this->lang->line('replacement_details_title') ? $this->lang->line('replacement_details_title') : 'Replacement Item Details'; ?></h5>
          
-         <button type="button" class="btn-close" data-dismiss="modal" style="border: 0; font-weight: bold; background: transparent;">X</button>
+         <button type="button" class="btn-close" data-dismiss="modal" data-bs-dismiss="modal" style="border: 0; font-weight: bold; background: transparent;">X</button>
        </div>
        
        <div class="modal-body" id="order-action-modal-body"></div>
        
        <div class="modal-footer" id="order-action-modal-footer">
-          <button class="btn btn-secondary" data-dismiss="modal">
+          <button class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">
             <?php echo $this->lang->line('close_label') ? $this->lang->line('close_label') : 'Close'; ?>
           </button>
        </div>
      </div>
+  </div>
+</div>
+
+<!-- Replacement Approval Workflow Selection Modal -->
+<div class="modal fade" id="replacement-approval-modal" tabindex="-1" role="dialog" aria-labelledby="replacementApprovalModalLabel" aria-hidden="true" style="z-index: 1070;">
+  <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 520px;">
+    <div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); border: none;">
+      <div class="modal-header" style="background: #f8f9fa; border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom: 1px solid #e9ecef; padding: 16px 20px;">
+        <h5 class="modal-title" id="replacementApprovalModalLabel" style="font-weight: 700; color: #333; margin: 0; font-size: 18px;">
+          <i class="fas fa-exchange-alt" style="color: #6f42c1; margin-right: 8px;"></i> Approve Replacement
+        </h5>
+        <button type="button" class="btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close" style="border: 0; font-weight: bold; background: transparent; font-size: 18px; cursor: pointer;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 24px 20px;">
+        <p style="color: #555; font-size: 14px; margin-bottom: 18px;">
+          Please select the replacement workflow for this item:
+        </p>
+
+        <!-- Option 1: Own Replacement -->
+        <label class="replacement-option-card" id="opt-card-own" for="rep_opt_own" style="display: block; border: 2px solid #28a745; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; cursor: pointer; background: #f9fff9; transition: all 0.2s ease;">
+          <div style="display: flex; align-items: flex-start;">
+            <input type="radio" name="replacement_type_choice" id="rep_opt_own" value="1" checked style="width: 18px; height: 18px; margin-top: 3px; margin-right: 12px; cursor: pointer; accent-color: #28a745;">
+            <div>
+              <strong style="color: #28a745; font-size: 15px; display: block; margin-bottom: 4px;">
+                1. Own Replacement
+              </strong>
+              <div style="font-size: 13px; color: #555; line-height: 1.4;">
+                Completed <strong>entirely from the Merchant Panel</strong>. You can proceed with and complete the replacement without involving the Admin Panel.
+              </div>
+              <span class="badge" style="background: #28a745; color: #fff; font-size: 11px; margin-top: 8px; display: inline-block; padding: 3px 8px; border-radius: 4px;">Merchant Panel Only</span>
+            </div>
+          </div>
+        </label>
+
+        <!-- Option 2: YM Replacement -->
+        <label class="replacement-option-card" id="opt-card-ym" for="rep_opt_ym" style="display: block; border: 2px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 0; cursor: pointer; background: #fff; transition: all 0.2s ease;">
+          <div style="display: flex; align-items: flex-start;">
+            <input type="radio" name="replacement_type_choice" id="rep_opt_ym" value="2" style="width: 18px; height: 18px; margin-top: 3px; margin-right: 12px; cursor: pointer; accent-color: #6f42c1;">
+            <div>
+              <strong style="color: #6f42c1; font-size: 15px; display: block; margin-bottom: 4px;">
+                2. YM Replacement
+              </strong>
+              <div style="font-size: 13px; color: #555; line-height: 1.4;">
+                Approved by the merchant, but the <strong>actual replacement process is handled from the Admin Panel</strong>. Forwarded to Admin for fulfillment.
+              </div>
+              <span class="badge" style="background: #6f42c1; color: #fff; font-size: 11px; margin-top: 8px; display: inline-block; padding: 3px 8px; border-radius: 4px;">Admin Panel Only</span>
+            </div>
+          </div>
+        </label>
+
+        <input type="hidden" id="selected_replacement_item_id" value="">
+      </div>
+      <div class="modal-footer" style="background: #f8f9fa; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; border-top: 1px solid #e9ecef; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal" style="padding: 7px 16px; border-radius: 6px;">Cancel</button>
+        <button type="button" class="btn btn-success" id="btn-confirm-replacement-approval" style="padding: 7px 20px; border-radius: 6px; font-weight: 600;">
+          Confirm Approval
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -266,25 +336,16 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 				shipmentType = String(p.shipment_type).trim();
 			}
 
-			switch (parseInt(p.item_status)) {
+			let itemStatus = parseInt(p.item_status || 0);
+
+			switch (itemStatus) {
 				case 0:
-					if (shipmentType === '2') {
-						// YM Replacement is managed exclusively by Admin Panel
-						statusText = "Pending (YM Delivery)";
-						statusClass = "purple";
-						actionButtons = `
-							<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
-							<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
-						`;
-					} else {
-						// Own Replacement managed by Merchant Panel
-						statusText = "Pending (Own Delivery)";
-						statusClass = "purple";
-						actionButtons = `
-							<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
-							<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
-						`;
-					}
+					statusText = "Pending";
+					statusClass = "purple";
+					actionButtons = `
+						<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
+						<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
+					`;
 					break;
 				case 1:
 					statusText = "Own Replacement";
@@ -297,45 +358,36 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 					statusText = "YM Replacement";
 					statusClass = "black";
 					// YM Replacement is processed exclusively by Admin Panel; Merchant cannot complete it
-					actionButtons = ' - ';
+					actionButtons = '<span class="badge" style="font-size: 11px; padding: 4px 8px; background: #6f42c1; color: #fff; border-radius: 4px;">Sent to Admin</span>';
 					break;
 				case 3:
 					statusText = "Replaced";
 					statusClass = "blue";
-					actionButtons = '';
+					actionButtons = '<span class="badge" style="font-size: 11px; padding: 4px 8px; background: #007bff; color: #fff; border-radius: 4px;">Replaced</span>';
 					break;
 				case 4:
 				case 21:
 					statusText = "Rejected";
 					statusClass = "red";
-					actionButtons = '';
+					actionButtons = '<span class="badge" style="font-size: 11px; padding: 4px 8px; background: #dc3545; color: #fff; border-radius: 4px;">Rejected</span>';
 					break;
 				case 5:
 					statusText = "Replaced (Own)";
 					statusClass = "green";
-					actionButtons = '';
+					actionButtons = '<span class="badge" style="font-size: 11px; padding: 4px 8px; background: #28a745; color: #fff; border-radius: 4px;">Replaced</span>';
 					break;
 				case 6:
 					statusText = "Replaced (YM)";
 					statusClass = "black";
-					actionButtons = '';
+					actionButtons = '<span class="badge" style="font-size: 11px; padding: 4px 8px; background: #343a40; color: #fff; border-radius: 4px;">Replaced</span>';
 					break;
 				default:
-					if (shipmentType === '2') {
-						statusText = "Pending (YM Delivery)";
-						statusClass = "purple";
-						actionButtons = `
-							<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
-							<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
-						`;
-					} else {
-						statusText = "Pending";
-						statusClass = "purple";
-						actionButtons = `
-							<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
-							<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
-						`;
-					}
+					statusText = "Pending";
+					statusClass = "purple";
+					actionButtons = `
+						<button class="btn btn-success btn-sm approve-item" data-item-id="${p.replacement_item_id}">Approve</button>
+						<button class="btn btn-danger btn-sm reject-item" data-item-id="${p.replacement_item_id}">Reject</button>
+					`;
 					break;
 			}
 
@@ -356,9 +408,9 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 		$('#order-action-modal-body').html(productHtml);
 
 		let footerHtml = `
-			<button class="btn btn-secondary" data-dismiss="modal">
-        <?php echo $this->lang->line('close_label') ? $this->lang->line('close_label') : 'Close'; ?>
-    </button>
+			<button class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">
+				<?php echo $this->lang->line('close_label') ? $this->lang->line('close_label') : 'Close'; ?>
+			</button>
 		`;
 
 		$('#order-action-modal-footer').html(footerHtml);
@@ -367,14 +419,73 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 		myModal.show();
 	});
 
-	// Per-item status update handlers for Own Replacement
+	// Trigger replacement approval popup
 	$(document).on('click', '.approve-item', function () {
 		var itemId = $(this).data('item-id');
-		if (confirm("Approve this item for Own Replacement?")) {
-			updateItemStatus(itemId, 1); // 1 = Own Replacement Approved
+		$('#selected_replacement_item_id').val(itemId);
+
+		// Reset to default (Own Replacement)
+		$('#rep_opt_own').prop('checked', true);
+		$('.replacement-option-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
+		$('#opt-card-own').css({'border-color': '#28a745', 'background': '#f9fff9'});
+
+		var approvalModalEl = document.getElementById('replacement-approval-modal');
+		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+			var approvalModal = bootstrap.Modal.getInstance(approvalModalEl) || new bootstrap.Modal(approvalModalEl);
+			approvalModal.show();
+		} else {
+			$('#replacement-approval-modal').modal('show');
 		}
 	});
 
+	// Selection styling on click
+	$(document).on('click', '.replacement-option-card', function () {
+		var radio = $(this).find('input[type="radio"]');
+		radio.prop('checked', true);
+		$('.replacement-option-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
+		if (radio.val() === '1') {
+			$(this).css({'border-color': '#28a745', 'background': '#f9fff9'});
+		} else {
+			$(this).css({'border-color': '#6f42c1', 'background': '#faf7ff'});
+		}
+	});
+
+	$(document).on('change', 'input[name="replacement_type_choice"]', function () {
+		$('.replacement-option-card').css({'border-color': '#e2e8f0', 'background': '#fff'});
+		if ($(this).val() === '1') {
+			$('#opt-card-own').css({'border-color': '#28a745', 'background': '#f9fff9'});
+		} else {
+			$('#opt-card-ym').css({'border-color': '#6f42c1', 'background': '#faf7ff'});
+		}
+	});
+
+	// Confirm approval selection
+	$(document).on('click', '#btn-confirm-replacement-approval', function () {
+		var itemId = $('#selected_replacement_item_id').val();
+		var selectedStatus = parseInt($('input[name="replacement_type_choice"]:checked').val() || 1);
+
+		if (!itemId) {
+			alert('No replacement item selected.');
+			return;
+		}
+
+		var typeLabel = (selectedStatus === 1) ? 'Own Replacement (Merchant Panel)' : 'YM Replacement (Admin Panel)';
+		if (!confirm('Confirm approval as ' + typeLabel + '?')) {
+			return;
+		}
+
+		var approvalModalEl = document.getElementById('replacement-approval-modal');
+		if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+			var approvalModal = bootstrap.Modal.getInstance(approvalModalEl);
+			if (approvalModal) approvalModal.hide();
+		} else {
+			$('#replacement-approval-modal').modal('hide');
+		}
+
+		updateItemStatus(itemId, selectedStatus);
+	});
+
+	// Reject item handler
 	$(document).on('click', '.reject-item', function () {
 		var itemId = $(this).data('item-id');
 		if (confirm("Reject this replacement request item?")) {
@@ -382,6 +493,7 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 		}
 	});
 
+	// Complete Own Replacement handler
 	$(document).on('click', '.complete-own', function () {
 		var itemId = $(this).data('item-id');
 		if (confirm("Mark Own Replacement as completed?")) {
@@ -391,8 +503,13 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 
 	// AJAX function for per-item status updates
 	function updateItemStatus(itemId, status) {
+		var repType = (status === 1 || status === 5) ? 'own' : ((status === 2 || status === 6) ? 'ym' : '');
 		$.post('<?= base_url("WebshopOrdersController/replacement_update_item_status") ?>',
-			{ replacement_item_id: itemId, status: status },
+			{ 
+				replacement_item_id: itemId, 
+				status: status,
+				replacement_type: repType
+			},
 			function (response) {
 				if (response.success) {
 					location.reload();
@@ -403,6 +520,4 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 			'json'
 		);
 	}
-
-	
 </script>

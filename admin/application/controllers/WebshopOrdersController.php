@@ -6375,7 +6375,7 @@ class WebshopOrdersController extends CI_Controller
 
 			// ENFORCEMENT: Own Replacement can ONLY be processed from Merchant Panel
 			// YM Replacement can ONLY be processed from Admin Panel
-			$repOrder = $this->db->select('sor.replacement_order_id, bo.shipment_type')
+			$repOrder = $this->db->select('sor.replacement_order_id, sor.status as sor_status, bo.shipment_type')
 				->from('sales_order_replacement sor')
 				->join('b2b_orders bo', '(bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
 				->where('sor.replacement_order_id', $id)
@@ -6387,7 +6387,8 @@ class WebshopOrdersController extends CI_Controller
 				return;
 			}
 
-			if ((int)$repOrder->shipment_type === 1 || in_array($status, [1, 5])) {
+			// If already Own Replacement, Admin cannot touch it
+			if ((int)$repOrder->sor_status === 1 || (int)$repOrder->sor_status === 5 || in_array($status, [1, 5])) {
 				echo json_encode([
 					'success' => false,
 					'error'   => 'Own Replacement can only be processed from Merchant Panel.'
@@ -6395,7 +6396,16 @@ class WebshopOrdersController extends CI_Controller
 				return;
 			}
 
-			if (!in_array($status, [2, 4, 6])) {
+			// If still pending, merchant must approve first
+			if ((int)$repOrder->sor_status === 0) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Replacement request must first be approved by the merchant in the Merchant Panel.'
+				]);
+				return;
+			}
+
+			if (!in_array($status, [4, 6])) {
 				echo json_encode([
 					'success' => false,
 					'error'   => 'Invalid status update for Admin Panel.'
@@ -6420,16 +6430,23 @@ class WebshopOrdersController extends CI_Controller
 					/* ================================
 					ADD NOTIFICATION
 					================================= */
+					$title = ($status === 6) ? 'YM Replacement Completed' : 'Replacement Status Updated';
+					$message = ($status === 6)
+						? 'YM replacement request #'.$b2b_id.' has been processed and completed by Admin.'
+						: 'Replacement request #'.$b2b_id.' status updated by Admin.';
+					$subtype = ($status === 6) ? 'ym_replacement_completed' : 'status_updated';
+
 					$notification = [
 						'type'           => 'replacement',
-						'subtype'        => 'status_updated',
+						'subtype'        => $subtype,
 						'recipient_type' => 'merchant',
 						'recipient_id'   => $merchant_id,
-						'title'          => 'Replacement Status Updated',
-						'message'        => 'Replacement request #'.$b2b_id.' status updated by Admin.',
+						'title'          => $title,
+						'message'        => $message,
 						'data'           => json_encode([
-												'replacement_id' => $b2b_id,
-												'status'         => $status
+												'replacement_id'   => $b2b_id,
+												'replacement_type' => 'ym',
+												'status'           => $status
 											]),
 						'is_read'        => 0,
 						'created_at'     => date('Y-m-d H:i:s'),
@@ -6456,12 +6473,13 @@ class WebshopOrdersController extends CI_Controller
 	{
 		$replacement_item_id = $this->input->post('replacement_item_id');
 		$status = $this->input->post('status');
+		$replacement_type = $this->input->post('replacement_type');
 
 		if ($replacement_item_id && $status !== null) {
 			$status = (int)$status;
 
 			$itemRow = $this->db
-				->select('sori.replacement_item_id, sori.replacement_order_id, bo.shipment_type, bo.publisher_id')
+				->select('sori.replacement_item_id, sori.status as item_status, sori.replacement_order_id, bo.shipment_type, bo.publisher_id')
 				->from('sales_order_replacement_items sori')
 				->join('sales_order_replacement sor', 'sor.replacement_order_id = sori.replacement_order_id', 'left')
 				->join('b2b_orders bo', '(bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
@@ -6474,8 +6492,11 @@ class WebshopOrdersController extends CI_Controller
 				return;
 			}
 
-			// ENFORCEMENT: Own Replacement can ONLY be processed from Merchant Panel
-			if ((int)$itemRow->shipment_type === 1 || in_array($status, [1, 5])) {
+			$currentItemStatus = (int)$itemRow->item_status;
+
+			// BACKEND ENFORCEMENT:
+			// 1. Own Replacement can ONLY be processed and completed from Merchant Panel!
+			if ($currentItemStatus === 1 || $currentItemStatus === 5 || in_array($status, [1, 5])) {
 				echo json_encode([
 					'success' => false,
 					'error'   => 'Own Replacement can only be processed from Merchant Panel.'
@@ -6483,8 +6504,18 @@ class WebshopOrdersController extends CI_Controller
 				return;
 			}
 
-			// Only allow Admin YM actions: 2 (Approve YM), 4 (Reject), 6 (YM Done)
-			if (!in_array($status, [2, 4, 6])) {
+			// 2. Replacement Approval must be initiated and managed from the Merchant Panel!
+			// If item is still pending (status 0), Admin cannot process before merchant approval:
+			if ($currentItemStatus === 0) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Replacement request must first be approved by the merchant in the Merchant Panel.'
+				]);
+				return;
+			}
+
+			// 3. Only allow Admin YM actions: 6 (YM Done) or 4 (Reject)
+			if (!in_array($status, [4, 6])) {
 				echo json_encode([
 					'success' => false,
 					'error'   => 'Invalid status update for Admin Panel.'
@@ -6492,7 +6523,29 @@ class WebshopOrdersController extends CI_Controller
 				return;
 			}
 
-			$updated = $this->WebshopOrdersModel->replacement_update_item_status($replacement_item_id, $status);
+			// 4. If already completed:
+			if (in_array($currentItemStatus, [3, 5, 6])) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Replacement request has already been completed.'
+				]);
+				return;
+			}
+
+			// 5. If already rejected:
+			if (in_array($currentItemStatus, [4, 21])) {
+				echo json_encode([
+					'success' => false,
+					'error'   => 'Replacement request has already been rejected.'
+				]);
+				return;
+			}
+
+			if (empty($replacement_type)) {
+				$replacement_type = 'ym';
+			}
+
+			$updated = $this->WebshopOrdersModel->replacement_update_item_status($replacement_item_id, $status, $replacement_type);
 
 			if ($updated) {
 				$replacementData = $this->WebshopOrdersModel->getReplacementMerchantId($itemRow->replacement_order_id);
@@ -6500,16 +6553,23 @@ class WebshopOrdersController extends CI_Controller
 					$merchant_id = $replacementData['publisher_id'];
 					$b2b_id = $replacementData['order_barcode'];
 
+					$title = ($status === 6) ? 'YM Replacement Completed' : 'Replacement Status Updated';
+					$message = ($status === 6) 
+						? 'YM replacement request #'.$b2b_id.' has been processed and completed by Admin.'
+						: 'Replacement request #'.$b2b_id.' item status updated by Admin.';
+					$subtype = ($status === 6) ? 'ym_replacement_completed' : 'status_updated';
+
 					$notification = [
 						'type'           => 'replacement',
-						'subtype'        => 'status_updated',
+						'subtype'        => $subtype,
 						'recipient_type' => 'merchant',
 						'recipient_id'   => $merchant_id,
-						'title'          => 'Replacement Status Updated',
-						'message'        => 'Replacement request #'.$b2b_id.' item status updated by Admin.',
+						'title'          => $title,
+						'message'        => $message,
 						'data'           => json_encode([
 							'replacement_id'      => $b2b_id,
 							'replacement_item_id' => $replacement_item_id,
+							'replacement_type'    => $replacement_type,
 							'status'              => $status
 						]),
 						'is_read'        => 0,
@@ -6521,8 +6581,9 @@ class WebshopOrdersController extends CI_Controller
 			}
 
 			echo json_encode([
-				'success' => $updated ? true : false,
-				'status'  => $status
+				'success'          => $updated ? true : false,
+				'status'           => $status,
+				'replacement_type' => $replacement_type
 			]);
 		} else {
 			echo json_encode([
