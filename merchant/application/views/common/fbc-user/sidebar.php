@@ -128,7 +128,7 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
 
             <div class="submenu <?php echo (isset($side_menu) && in_array($side_menu,['webShop','webshop','webshopThemes','webshopStaticBlocks','webshopPayment','webshopProductBlocks','webshopContactUsRequests','webshopPromoTextBanners']))?'collapse show':'collapse'; ?>" id="SubMenu2">
                <?php if(empty($this->session->userdata('userPermission')) || in_array('webshop/orders',$this->session->userdata('userPermission'))){ ?>
-                  <a href="<?php echo !$profile_incomplete ? base_url('webshop/ES-orders') : 'javascript:void(0);'; ?>" 
+                  <a href="<?php echo !$profile_incomplete ? base_url('webshop/b2b-orders') : 'javascript:void(0);'; ?>" 
                      class="list-submenu <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" 
                      data-parent="#SubMenu2"><?= $this->lang->line('sidebar_orders') ?></a>
                <?php } ?>

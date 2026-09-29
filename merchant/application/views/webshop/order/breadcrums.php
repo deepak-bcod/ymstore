@@ -1,5 +1,5 @@
 <ul class="nav nav-pills">
-    <li class="<?php echo (isset($current_tab) && ($current_tab=='orders' || $current_tab=='order'))?'active':''; ?>"><a  href="<?php echo base_url() ?>webshop/ES-orders/"><?= lang('b2b_orders') ?></a></li>
+    <li class="<?php echo (isset($current_tab) && in_array($current_tab, ['orders', 'order', 'b2b-orders', 'ES-orders'])) ? 'active' : ''; ?>"><a  href="<?php echo base_url() ?>webshop/b2b-orders/"><?= lang('b2b_orders') ?></a></li>
     <!-- <li class="<?php //echo (isset($current_tab) && ($current_tab=='split-orders' || $current_tab=='split-order'))?'active':''; ?>"><a  href="<?php //echo base_url() ?>webshop/split-orders/"><?= lang('split_orders') ?></a></li> -->
     <!-- <li class="<?php echo (isset($current_tab) && ($current_tab=='ES-orders' || $current_tab=='ES-order'))?'active':''; ?>"><a  href="<?php echo base_url() ?>webshop/b2b-orders/"><?= lang('b2b_orders') ?></a></li> -->
     <!-- <li class="<?php echo (isset($current_tab) && ($current_tab=='shipped-orders' || $current_tab=='shipped-order'))?'active':''; ?>"><a  href="<?php echo base_url() ?>webshop/shipped-orders/"><?= lang('shipped_orders') ?></a></li> -->
