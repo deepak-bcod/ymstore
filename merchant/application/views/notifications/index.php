@@ -273,6 +273,18 @@
 
                                         
                                         break;
+                                        
+                                    case 'faq':
+
+                                    if ($subtype == 'admin_reply') {
+
+                                        $title = "Réponse à la FAQ";
+
+                                        $msg = "L'administrateur a répondu à votre question FAQ.";
+
+                                    }
+
+                                    break;
 
 
                                     
