@@ -286,7 +286,7 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 					statusText = "YM Replacement";
 					statusClass = "black";
 					// YM Replacement is processed exclusively by Admin Panel; Merchant cannot complete it
-					actionButtons = '<span class="badge bg-secondary" style="font-size: 11px; padding: 4px 8px; background: #6c757d; color: #fff; border-radius: 4px;">In Admin Process</span>';
+					actionButtons = ' - ';
 					break;
 				case 3:
 					statusText = "Replaced";

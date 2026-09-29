@@ -252,15 +252,13 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
 					case 2: // Approved (YM Replacement)
 						itemStatusLabel = 'YM Replacement Approved';
 						itemStatusClass = 'green';
-						itemActionButtons = `
-							<button class="btn btn-success btn-sm admin-complete-ym" data-item-id="${p.replacement_item_id}">YM Replacement Done</button>
-						`;
+						itemActionButtons = '<span class="badge bg-success" style="font-size: 11px; padding: 4px 8px; background: #28a745; color: #fff; border-radius: 4px;">Approved</span>';
 						break;
 					case 3:
 					case 6: // Replaced (YM)
 						itemStatusLabel = 'Replaced (YM)';
 						itemStatusClass = 'black';
-						itemActionButtons = '<span class="badge bg-success" style="font-size: 11px; padding: 4px 8px; background: #28a745; color: #fff; border-radius: 4px;">Completed</span>';
+						itemActionButtons = '<span class="badge bg-success" style="font-size: 11px; padding: 4px 8px; background: #28a745; color: #fff; border-radius: 4px;">Replaced</span>';
 						break;
 					case 4:
 					case 21: // Rejected
