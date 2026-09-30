@@ -470,9 +470,11 @@ $app->post('/webshop/add_to_cart', function (Request $request, Response $respons
 			
 			/*----------------------------------------------------------*/
 
-			if ((($product_quantity <= 0 || $product_quantity < $quantity_total_check)  && $productData['product_type'] != 'bundle')  || (isset($bundle_qty_flag) && $bundle_qty_flag == 0 && $productData['product_type'] == 'bundle')) {
+			if ((($product_quantity < $quantity_total_check)  && $productData['product_type'] != 'bundle')  || (isset($bundle_qty_flag) && $bundle_qty_flag == 0 && $productData['product_type'] == 'bundle')) {
 
-				$error = 'Product is Out of Stock';
+
+
+				$error = 'Product quantity is not available';
 			} else {
 
 

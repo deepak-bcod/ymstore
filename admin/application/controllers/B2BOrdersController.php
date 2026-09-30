@@ -15239,12 +15239,10 @@ class B2BOrdersController extends CI_Controller
 				if (!empty($orderItems)) {
 					foreach ($orderItems as $item) {
 
-						$product_id = (int)$item->product_id;
-						$ordered_qty = (int)$item->qty_ordered;
+						$product_id = $item->product_id;
+						$ordered_qty = $item->qty_ordered;
 
 						$this->db->set('available_qty', "available_qty + $ordered_qty", FALSE);
-						$this->db->set('qty', "qty + $ordered_qty", FALSE);
-						$this->db->set('is_in_stock', 1);
 						$this->db->where('product_id', $product_id);
 						$this->db->update('products_inventory');
 					}
@@ -17964,12 +17962,11 @@ class B2BOrdersController extends CI_Controller
 			if (!empty($orderItems)) {
 				foreach ($orderItems as $item) {
 
-					$product_id = (int)$item->product_id;
-					$ordered_qty = (int)$item->qty_ordered;
+					$product_id = $item->product_id;
+					$ordered_qty = $item->qty_ordered;
 
-					$this->db->set('qty', "CASE WHEN qty >= $ordered_qty THEN qty - $ordered_qty ELSE 0 END", FALSE);
-					$this->db->set('available_qty', "CASE WHEN available_qty >= $ordered_qty THEN available_qty - $ordered_qty ELSE 0 END", FALSE);
-					$this->db->set('is_in_stock', "CASE WHEN (CASE WHEN qty >= $ordered_qty THEN qty - $ordered_qty ELSE 0 END) <= 0 THEN 2 ELSE 1 END", FALSE);
+					// Reduce only available_qty
+					$this->db->set('qty', "qty - $ordered_qty", FALSE);
 					$this->db->where('product_id', $product_id);
 					$this->db->update('products_inventory');
 				}
@@ -18925,12 +18922,10 @@ public function AssignParentDeliveryPopup()
 			if (!empty($orderItems)) {
 				foreach ($orderItems as $item) {
 
-					$product_id = (int)$item->product_id;
-					$ordered_qty = (int)$item->qty_ordered;
+					$product_id = $item->product_id;
+					$ordered_qty = $item->qty_ordered;
 
-					$this->db->set('qty', "CASE WHEN qty >= $ordered_qty THEN qty - $ordered_qty ELSE 0 END", FALSE);
-					$this->db->set('available_qty', "CASE WHEN available_qty >= $ordered_qty THEN available_qty - $ordered_qty ELSE 0 END", FALSE);
-					$this->db->set('is_in_stock', "CASE WHEN (CASE WHEN qty >= $ordered_qty THEN qty - $ordered_qty ELSE 0 END) <= 0 THEN 2 ELSE 1 END", FALSE);
+					$this->db->set('qty', "qty - $ordered_qty", FALSE);
 					$this->db->where('product_id', $product_id);
 					$this->db->update('products_inventory');
 				}

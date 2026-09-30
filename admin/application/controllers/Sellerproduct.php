@@ -117,11 +117,11 @@ class Sellerproduct extends CI_Controller
 
     if ($readData->product_type == 'configurable') {
         $Row = $this->SellerProductModel->getStockForConfigProduct($readData->id);
-        $qty = ($Row && isset($Row->qty) && is_numeric($Row->qty)) ? max(0, (int)$Row->qty) : '-';
+        $qty = ($Row) ? $Row->qty : '-';
         $price = '-';
         $webshop_price = '-';
     } else {
-        $qty = (isset($readData->qty) && is_numeric($readData->qty)) ? max(0, (int)$readData->qty) : 0;
+        $qty = $readData->qty;
         $price = number_format($readData->price, 2);
         $webshop_price = number_format($readData->webshop_price, 2);
     }

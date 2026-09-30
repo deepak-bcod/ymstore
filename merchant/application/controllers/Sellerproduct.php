@@ -207,9 +207,9 @@ class Sellerproduct extends CI_Controller {
 
 				$Row=$this->SellerProductModel->getStockForConfigProduct($readData->id);
 
-				if($Row && isset($Row->qty) && is_numeric($Row->qty)){
+				if($Row){
 
-					$qty=max(0, (int)$Row->qty);
+					$qty=$Row->qty;
 
 				}else{
 
@@ -223,7 +223,7 @@ class Sellerproduct extends CI_Controller {
 
 			}else{
 
-				$qty=(isset($readData->qty) && is_numeric($readData->qty)) ? max(0, (int)$readData->qty) : 0;
+				$qty=$readData->qty;
 
 				$price=number_format($readData->price,2);
 

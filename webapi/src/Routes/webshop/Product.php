@@ -390,10 +390,10 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 		$product_inv = $webshop_obj->getAvailableInventory($productData['id']);
 		if ($product_inv['available_qty'] > 0) {
 			$productData['stock_status'] = 'Instock';
-			$productData['total_qty'] = max(0, (int)$product_inv['available_qty']);
+			$productData['total_qty'] = $product_inv['available_qty'];
 		} else {
 			$productData['stock_status'] = 'OutofStock';
-			$productData['total_qty'] = 0;
+			$productData['total_qty'] = $product_inv['available_qty'];
 		}
 		$ProDelTime1 = ($productData['estimate_delivery_time'] != '') ? $productData['estimate_delivery_time'] : 0;
 		$estimate_delivery_time = $ProDelTime1;
@@ -678,10 +678,10 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 
 			$productData['stock_status'] = 'Instock';
 
-			$productData['total_qty'] = max(0, (int)$qty);
+			$productData['total_qty'] = $qty;
 		} else { // else check stock
 
-			$productData['stock_status'] = 'OutofStock';
+			$productData['stock_status'] = 'Notavailable';
 
 			$productData['total_qty'] = 0;
 		}
@@ -905,9 +905,9 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 				$productData['display_original'] = $display_original[0];
 			}
 
-			$productData['stock_status'] = ($qty > 0) ? 'Instock' : 'OutofStock';
+			$productData['stock_status'] = 'Instock';
 
-			$productData['total_qty'] = max(0, (int)$qty);
+			$productData['total_qty'] = $qty;
 
 			// print_r($configProduct);
 			// die();
@@ -986,7 +986,7 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 			}
 		} else { // else check stock
 
-			$productData['stock_status'] = 'OutofStock';
+			$productData['stock_status'] = 'Notavailable';
 
 			$productData['total_qty'] = 0;
 		}

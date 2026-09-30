@@ -4236,25 +4236,57 @@ class DbCheckout
 
 
 	function decrementAvailableQty($product_id, $qty_ordered)
+
 	{
-		$qty = (int)$qty_ordered;
-		$pid = (int)$product_id;
-		if ($qty <= 0 || $pid <= 0) {
-			return false;
-		}
 
-		$params = array($qty, $qty, $qty, $qty, $pid);
 
-		$update_row = $this->dbl->dbl_conn->rawQueryOne("UPDATE products_inventory 
-			SET available_qty = CASE WHEN available_qty >= ? THEN available_qty - ? ELSE 0 END,
-				is_in_stock = CASE WHEN (CASE WHEN available_qty >= ? THEN available_qty - ? ELSE 0 END) <= 0 THEN 2 ELSE 1 END
-			WHERE product_id = ?", $params);
+
+		$params = array($qty_ordered, $product_id);
+
+
+
+
+
+
+
+		$update_row = $this->dbl->dbl_conn->rawQueryOne("UPDATE products_inventory SET available_qty = available_qty - ?  WHERE product_id = ?  ", $params);
+
+
+
+
+
+
 
 		if ($this->dbl->dbl_conn->getLastErrno() === 0) {
-			return true;
+
+
+
+			$flag = true;
+
+
+
+			if ($this->dbl->dbl_conn->count > 0) {
+
+
+
+				return $flag;
+
+			} else {
+
+
+
+				return false;
+
+			}
+
 		} else {
+
+
+
 			return false;
+
 		}
+
 	}
 
 
@@ -6162,11 +6194,11 @@ class DbCheckout
 			return false;
 		}
 
-		$params = array($qty, $qty, $qty, $qty, $qty, $qty, $pid);
+		$params = array($qty, $qty, $qty, $qty, $qty, $pid);
 		$sql = "UPDATE products_inventory 
 				SET qty = CASE WHEN qty >= ? THEN qty - ? ELSE 0 END,
 					available_qty = CASE WHEN available_qty >= ? THEN available_qty - ? ELSE 0 END,
-					is_in_stock = CASE WHEN (CASE WHEN available_qty >= ? THEN available_qty - ? ELSE 0 END) <= 0 THEN 2 ELSE 1 END 
+					is_in_stock = CASE WHEN (available_qty - ?) <= 0 THEN 0 ELSE 1 END 
 				WHERE product_id = ?";
 		$this->dbl->dbl_conn->rawQuery($sql, $params);
 		return true;
@@ -6259,13 +6291,15 @@ class DbCheckout
 				WHERE pi.product_id = ? FOR UPDATE";
 		$row = $this->dbl->dbl_conn->rawQueryOne($sql, array($product_id));
 		if ($row) {
-			if ($row['product_inv_type'] !== 'dropship') {
+			if ($row['product_inv_type'] !== 'dropship' && $row['product_inv_type'] !== 'virtual') {
 				$avail = (int)$row['available_qty'];
-				if ($avail <= 0 || $avail < $needed_qty) {
+				$phys = (int)$row['qty'];
+				$effective = ($avail > 0) ? $avail : $phys;
+				if ($effective < $needed_qty) {
 					return array(
 						'status' => false,
 						'product_name' => $row['name'],
-						'available_qty' => max(0, $avail),
+						'available_qty' => $effective,
 						'requested_qty' => $needed_qty
 					);
 				}
