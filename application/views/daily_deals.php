@@ -165,9 +165,9 @@
     display: block;
     width: 100%;
     padding: 14px 20px;
-    background: #ffd200;
+    background: #0f5cd0;
     color: #fff !important;
-    border: 1px solid #ffd200;
+    border: 1px solid #0f5cd0;
     border-radius: 5px;
     font-size: 16px;
     font-weight: 600;
@@ -180,7 +180,7 @@
 }
 
 .view-product-btn:hover {
-    bcolor: #fff !important;
+    background: #000;
     color: #fff !important;
     border-color: #000;
 }
