@@ -162,25 +162,27 @@
 }
 
 .view-product-btn {
-    display: inline-block;
-    padding: 10px 22px;
+    display: block;
+    width: 100%;
+    padding: 14px 20px;
     background: #ffd200;
-    color: #000 !important;
+    color: #fff !important;
     border: 1px solid #ffd200;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 5px;
+    font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
+    text-align: center;
     text-decoration: none !important;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
 .view-product-btn:hover {
     background: #000;
     color: #fff !important;
     border-color: #000;
-    text-decoration: none !important;
 }
 
 </style>
