@@ -156,15 +156,31 @@
     margin-bottom: 10px;
 }
 
-.product-details .btn {
-    width: 100%;
-    margin-top: 5px;
+.view-product-wrapper {
+    margin-top: 12px;
+    text-align: center;
 }
 
-.product-details .btn-primary:hover {
-    background-color: #ffd200;
-    border-color: #ffd200;
+.view-product-btn {
+    display: inline-block;
+    padding: 10px 22px;
+    background: #ffd200;
+    color: #000 !important;
+    border: 1px solid #ffd200;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-product-btn:hover {
+    background: #000;
     color: #fff !important;
+    border-color: #000;
+    text-decoration: none !important;
 }
 
 </style>
@@ -537,26 +553,17 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                             <!-- VIEW PRODUCT -->
 
-                                             <div class="view-product-wrapper">
-
-                                <a
-                                    href="<?php
-                                    echo BASE_URL .
-                                        'product-detail/' .
-                                        $product->url_key;
-                                    ?>"
-                                    class="view-product-btn"
-                                >
-
-                                    <?php
-                                    echo $this->lang->line(
-                                        'view_details'
-                                    );
-                                    ?>
-
-                                </a>
-
-                            </div>
+                                            <!-- VIEW PRODUCT -->
+<div class="view-product-wrapper">
+    <a
+        href="<?php echo BASE_URL . 'product-detail/' . $p->url_key; ?>"
+        class="view-product-btn"
+    >
+        <?php
+        echo $this->lang->line('view_details');
+        ?>
+    </a>
+</div>
 
 
                                         </div>
