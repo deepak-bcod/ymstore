@@ -1311,86 +1311,48 @@ class B2BOrdersModel extends CI_Model
 
 
 
-	function getOrderCustomerNameByOrderId($order_id)
-
-
-
+	public function getOrderCustomerNameByOrderId($order_id)
 	{
-
-
-
 		$full_name = '';
-
-
 
 		$this->db->reset_query();
 
+		$_order = $this->db->get_where(
+			'b2b_orders',
+			array('order_id' => $order_id)
+		)->row();
 
+		if (!$_order) {
+			return '';
+		}
 
+		/*
+		* For child/split orders, get the customer
+		* information from the parent order.
+		*/
+		if ($_order->parent_id > 0) {
 
+			$_order_data = $this->db->get_where(
+				'b2b_orders',
+				array('order_id' => $_order->parent_id)
+			)->row();
 
-
-
-		$_order = $this->db->get_where('b2b_orders', array('order_id' => $order_id))->row();
-
-
-
-		$shop_id = $_order->shop_id;
-
-
-
-		//print_r($_order);
-
-
-
-		if ($_order->shipment_type == 1) {
-
-
-
-
-
-
-
-			$result = $this->db->get_where('fbc_users', array('shop_id' => $shop_id, 'parent_id' => 0, 'created_by' => 0))->row();
-
-
-
-			if (isset($result) && ($result->owner_name != '')) {
-
-
-
-				$full_name = $result->owner_name;
-
-			} else {
-
-
-
-				$full_name = 'Unknown';
-
+			if ($_order_data) {
+				$full_name = trim(
+					$_order_data->customer_firstname . ' ' .
+					$_order_data->customer_lastname
+				);
 			}
 
 		} else {
 
-
-
-			if ($_order->parent_id > 0) {
-
-				$_order_data = $this->db->get_where('b2b_orders', array('order_id' => $_order->parent_id))->row();
-
-				$full_name = $_order_data->customer_firstname . ' ' . $_order_data->customer_lastname;
-
-			} else {
-
-				$full_name = $_order->customer_firstname . ' ' . $_order->customer_lastname;
-
-			}
-
+			$full_name = trim(
+				$_order->customer_firstname . ' ' .
+				$_order->customer_lastname
+			);
 		}
 
-
-
 		return $full_name;
-
 	}
 
 
