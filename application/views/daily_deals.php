@@ -32,7 +32,7 @@
 
 
 /* =========================================================
-   PRODUCT IMAGE
+   PRODUCT IMAGE CONTAINER
 ========================================================= */
 
 .product-image {
@@ -44,30 +44,26 @@
 }
 
 
-/* Product image itself */
+/* =========================================================
+   PRODUCT IMAGE
+========================================================= */
 
 .product-image .product-image-photo {
     width: 100%;
     height: auto;
     display: block;
 
-    transition:
-        opacity 0.25s ease,
-        transform 0.25s ease;
+    transition: opacity 0.25s ease;
 }
 
 
 /* =========================================================
-   IMAGE HOVER OVERLAY
+   DARK TRANSPARENT OVERLAY
 ========================================================= */
-
-/*
-   This creates the transparent dark layer
-   over the product image.
-*/
 
 .product-image::after {
     content: "";
+
     position: absolute;
 
     top: 0;
@@ -75,20 +71,27 @@
     right: 0;
     bottom: 0;
 
-    background: rgba(0, 0, 0, 0.30);
+    background: rgba(0, 0, 0, 0.35);
 
     opacity: 0;
     visibility: hidden;
 
-    transition: all 0.25s ease;
+    transition:
+        opacity 0.25s ease,
+        visibility 0.25s ease;
 
+    /*
+     * Overlay is behind View button
+     */
     z-index: 5;
 
     pointer-events: none;
 }
 
 
-/* Show overlay when mouse is over image */
+/* =========================================================
+   SHOW OVERLAY WHEN MOUSE IS ON IMAGE
+========================================================= */
 
 .product-image:hover::after {
     opacity: 1;
@@ -101,6 +104,7 @@
 ========================================================= */
 
 .product-image .quick-view-btn {
+
     position: absolute;
 
     top: 50%;
@@ -108,37 +112,62 @@
 
     transform: translate(-50%, -50%);
 
-    /*
-       IMPORTANT:
-       Background was missing in your code.
-    */
+
+    /* BLACK TRANSPARENT BUTTON */
 
     background: rgba(0, 0, 0, 0.75);
 
     color: #fff;
 
+
+    /* BUTTON SIZE */
+
     padding: 9px 14px;
 
+
+    /* BORDER */
+
     border: 1px solid #fff;
+
     border-radius: 3px;
 
+
+    /* TEXT */
+
     font-size: 14px;
+
     font-weight: 500;
+
+
+    /* LINK */
 
     text-decoration: none;
 
     cursor: pointer;
 
+
+    /*
+     * Button must be above overlay
+     */
+
     z-index: 10;
 
+
+    /* Hidden by default */
+
     opacity: 0;
+
     visibility: hidden;
+
+
+    /* Animation */
 
     transition:
         opacity 0.25s ease,
         visibility 0.25s ease,
-        background 0.2s ease,
-        color 0.2s ease;
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
 }
 
 
@@ -147,17 +176,21 @@
 ========================================================= */
 
 .product-image:hover .quick-view-btn {
+
     opacity: 1;
+
     visibility: visible;
 }
 
 
 /* =========================================================
-   VIEW BUTTON HOVER
+   VIEW BUTTON HOVER = YELLOW
 ========================================================= */
 
 .product-image .quick-view-btn:hover {
+
     background: #ffd200;
+
     color: #000;
 
     border-color: #ffd200;
@@ -165,12 +198,15 @@
 
 
 /* =========================================================
-   IMAGE HOVER
+   IMPORTANT
+   DO NOT CHANGE IMAGE OPACITY
 ========================================================= */
 
+/*
 .product-image:hover .product-image-photo {
     opacity: 0.75;
 }
+*/
 
 
 /* =========================================================
@@ -178,8 +214,11 @@
 ========================================================= */
 
 .product-name {
+
     font-size: 14px;
+
     font-weight: 600;
+
     margin: 10px 0 6px;
 }
 
@@ -189,24 +228,37 @@
 ========================================================= */
 
 .price-box {
+
     margin-bottom: 8px;
 }
 
+
 .special-price {
+
     color: #ff7a00;
+
     font-size: 17px;
+
     font-weight: 500;
+
     margin-right: 8px;
 }
 
+
 .old-price {
+
     color: #999;
+
     font-size: 14px;
 }
 
+
 .regular-price {
+
     color: #ff7a00;
+
     font-size: 17px;
+
     font-weight: 500;
 }
 
@@ -216,7 +268,9 @@
 ========================================================= */
 
 .deal-ends {
+
     font-size: 13px;
+
     margin-bottom: 10px;
 }
 
@@ -226,29 +280,23 @@
 ========================================================= */
 
 .product-details .btn {
+
     width: 100%;
+
     margin-top: 5px;
 }
 
+
 .product-details .btn-primary:hover {
+
     background-color: #ffd200;
+
     border-color: #ffd200;
+
     color: #fff !important;
 }
 
 
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 767px) {
-
-    .product-image .quick-view-btn {
-        opacity: 1;
-        visibility: visible;
-    }
-
-}
 
 </style>
 
