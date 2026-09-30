@@ -1312,45 +1312,49 @@ class B2BOrdersModel extends CI_Model
 
 
 	
-function getOrderCustomerNameByOrderId($order_id)
-{
-    $this->db->reset_query();
+public function getOrderCustomerNameByOrderId($order_id)
+	{
+		$full_name = '';
 
-    // Get the selected B2B order
-    $_order = $this->db
-        ->get_where('b2b_orders', array('order_id' => $order_id))
-        ->row();
+		$this->db->reset_query();
 
-    if (empty($_order)) {
-        return 'Unknown';
-    }
+		$_order = $this->db->get_where(
+			'b2b_orders',
+			array('order_id' => $order_id)
+		)->row();
 
-    // For split/child orders, get customer details from parent order
-    if (!empty($_order->parent_id) && $_order->parent_id > 0) {
+		if (!$_order) {
+			return '';
+		}
 
-        $_order_data = $this->db
-            ->get_where('b2b_orders', array(
-                'order_id' => $_order->parent_id
-            ))
-            ->row();
+		/*
+		* For child/split orders, get the customer
+		* information from the parent order.
+		*/
+		if ($_order->parent_id > 0) {
 
-    } else {
+			$_order_data = $this->db->get_where(
+				'b2b_orders',
+				array('order_id' => $_order->parent_id)
+			)->row();
 
-        $_order_data = $_order;
-    }
+			if ($_order_data) {
+				$full_name = trim(
+					$_order_data->customer_firstname . ' ' .
+					$_order_data->customer_lastname
+				);
+			}
 
-    if (empty($_order_data)) {
-        return 'Unknown';
-    }
+		} else {
 
-    // Always get actual shopper name, irrespective of shipment type
-    $firstname = trim($_order_data->customer_firstname ?? '');
-    $lastname  = trim($_order_data->customer_lastname ?? '');
+			$full_name = trim(
+				$_order->customer_firstname . ' ' .
+				$_order->customer_lastname
+			);
+		}
 
-    $full_name = trim($firstname . ' ' . $lastname);
-
-    return !empty($full_name) ? $full_name : 'Unknown';
-}
+		return $full_name;
+	}
 
 
 
