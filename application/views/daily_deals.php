@@ -159,6 +159,11 @@
 .product-details .btn {
     width: 100%;
     margin-top: 5px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 46px;
+    border-radius: 4px;
 }
 
 .product-details .btn-primary:hover {
