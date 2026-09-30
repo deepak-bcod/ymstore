@@ -182,7 +182,7 @@
 .view-product-btn:hover {
     background: #0f5cd0;
     color: #fff !important;
-    border-color: #0f5cd0;
+    border-color: #0d1218;
 }
 </style>
 
