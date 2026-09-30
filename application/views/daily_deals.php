@@ -157,13 +157,16 @@
 }
 
 .product-details .btn {
+    display: block;
     width: 100%;
-    margin-top: 5px;
-    padding: 12px 20px;
+    height: 50px;
+    line-height: 50px;
+    padding: 0 20px;
+    margin-top: 8px;
     font-size: 16px;
     font-weight: 600;
-    min-height: 46px;
     border-radius: 4px;
+    box-sizing: border-box;
 }
 
 .product-details .btn-primary:hover {
