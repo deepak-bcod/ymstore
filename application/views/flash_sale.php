@@ -1,4 +1,9 @@
 <style>
+
+/* =========================================================
+   CATEGORY TREE
+========================================================= */
+
 .category-tree .toggle {
     display: inline-block;
     min-width: 18px;
@@ -15,19 +20,87 @@
     color: #444d5c;
 }
 
-/* PRODUCT IMAGE */
+
+/* =========================================================
+   PRODUCT ITEM
+========================================================= */
+
+.product-item {
+    background: #fff;
+    position: relative;
+}
+
+
+/* =========================================================
+   PRODUCT IMAGE
+========================================================= */
+
 .product-image {
     position: relative;
     overflow: hidden;
     text-align: center;
+    width: 100%;
+    background: #fff;
 }
+
+
+/* Actual product image */
 
 .product-image .product-image-photo {
     width: 100%;
     height: auto;
     display: block;
-    transition: opacity 0.2s ease;
+
+    /* Keep original image unchanged */
+    opacity: 1 !important;
+    transform: none !important;
+
+    /* No image fade/zoom */
+    transition: none;
 }
+
+
+/* =========================================================
+   TRANSPARENT DARK OVERLAY
+========================================================= */
+
+.product-image::after {
+    content: "";
+    position: absolute;
+
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    /* Transparent dark background */
+    background: rgba(0, 0, 0, 0.35);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transition:
+        opacity 0.2s ease,
+        visibility 0.2s ease;
+
+    z-index: 5;
+
+    /* Allows View button to remain clickable */
+    pointer-events: none;
+}
+
+
+/* Show overlay when image is hovered */
+
+.product-image:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+
+/* =========================================================
+   QUICK VIEW BUTTON
+========================================================= */
 
 .product-image .quick-view-btn {
     position: absolute;
@@ -37,8 +110,10 @@
 
     transform: translate(-50%, -50%);
 
-    
     color: #fff;
+
+    /* Transparent dark button */
+    background: rgba(0, 0, 0, 0.35);
 
     padding: 9px 14px;
 
@@ -53,19 +128,28 @@
 
     z-index: 10;
 
-    /* Hidden normally */
+    /* Hidden initially */
     opacity: 0;
     visibility: hidden;
 
-    transition: all 0.2s ease;
+    transition:
+        opacity 0.2s ease,
+        visibility 0.2s ease,
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
 }
 
+
+/* Show View button on image hover */
 
 .product-image:hover .quick-view-btn {
     opacity: 1;
     visibility: visible;
 }
 
+
+/* View button hover */
 
 .product-image .quick-view-btn:hover {
     background: #ffd200;
@@ -74,25 +158,21 @@
 }
 
 
-.product-image:hover .product-image-photo {
-    opacity: 0.85;
-}
+/* =========================================================
+   PRODUCT NAME
+========================================================= */
 
-
-/* PRODUCT ITEM */
-.product-item {
-    background: #fff;
-    position: relative;
-}
-
-/* PRODUCT NAME */
 .product-name {
     font-size: 14px;
     font-weight: 600;
     margin: 10px 0 6px;
 }
 
-/* PRICE */
+
+/* =========================================================
+   PRICE
+========================================================= */
+
 .price-box {
     margin-bottom: 8px;
 }
@@ -115,30 +195,59 @@
     font-weight: 500;
 }
 
-/* DEAL ENDS */
+
+/* =========================================================
+   DEAL ENDS
+========================================================= */
+
 .deal-ends {
     font-size: 13px;
     margin-bottom: 10px;
 }
 
-/* VIEW PRODUCT BUTTON */
+
+/* =========================================================
+   VIEW PRODUCT BUTTON
+========================================================= */
+
 .product-details .btn {
     width: 100%;
     margin-top: 5px;
 }
+
+
+/* Existing danger button hover */
 
 .product-details .btn-danger:hover {
     background-color: #ffd200;
     border-color: #ffd200;
     color: #fff !important;
 }
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 767px) {
+
+    .product-image .quick-view-btn {
+        opacity: 1;
+        visibility: visible;
+    }
+
+}
+
 </style>
 
 
 <?php $this->load->view('common/header'); ?>
 
 
-<!-- INTRO SECTION -->
+<!-- =========================================================
+     INTRO SECTION
+========================================================= -->
+
 <div class="daily-deal-intro">
 
     <h1>
@@ -146,7 +255,9 @@
     </h1>
 
     <table class="daily-deal-table">
+
         <tbody>
+
             <tr>
 
                 <td class="deal-img">
@@ -183,13 +294,19 @@
                 </td>
 
             </tr>
+
         </tbody>
+
     </table>
 
 </div>
 
 
 <?php
+
+/* =========================================================
+   CATEGORY TREE
+========================================================= */
 
 function buildCategoryTree($categories, $parent_id = 0)
 {
@@ -203,22 +320,28 @@ function buildCategoryTree($categories, $parent_id = 0)
             if (!$hasChild) {
 
                 $html .= '<ul>';
-                $hasChild = true;
 
+                $hasChild = true;
             }
+
 
             $children = array_filter(
                 $categories,
                 function ($c) use ($cat) {
+
                     return $c->parent_id == $cat->id;
+
                 }
             );
 
+
             $hasChildren = !empty($children);
+
 
             $html .= '<li class="tree-node' .
                 ($hasChildren ? ' dropdown' : '') .
                 '">';
+
 
             if ($hasChildren) {
 
@@ -226,15 +349,20 @@ function buildCategoryTree($categories, $parent_id = 0)
 
             }
 
+
             $html .= '<a href="' .
                 site_url('flash-sale/category/' . $cat->id) .
                 '">';
 
+
             $html .= '<i class="fa fa-angle-right"></i> ';
+
 
             $html .= $cat->cat_name;
 
+
             $html .= '</a>';
+
 
             if ($hasChildren) {
 
@@ -245,9 +373,13 @@ function buildCategoryTree($categories, $parent_id = 0)
 
             }
 
+
             $html .= '</li>';
+
         }
+
     }
+
 
     if ($hasChild) {
 
@@ -255,10 +387,16 @@ function buildCategoryTree($categories, $parent_id = 0)
 
     }
 
+
     return $html;
 }
+
 ?>
 
+
+<!-- =========================================================
+     MAIN CONTENT
+========================================================= -->
 
 <main id="maincontent" class="page-main">
 
@@ -267,6 +405,9 @@ function buildCategoryTree($categories, $parent_id = 0)
         <div class="row">
 
 
+            <!-- =================================================
+                 SIDEBAR
+            ================================================= -->
 
             <div class="col-md-3 order-md-1">
 
@@ -285,6 +426,9 @@ function buildCategoryTree($categories, $parent_id = 0)
             </div>
 
 
+            <!-- =================================================
+                 PRODUCTS
+            ================================================= -->
 
             <div class="col-md-9 order-md-2">
 
@@ -314,6 +458,9 @@ function buildCategoryTree($categories, $parent_id = 0)
                                     <div class="product-item border p-2 h-100">
 
 
+                                        <!-- =================================================
+                                             PRODUCT IMAGE
+                                        ================================================= -->
 
                                         <div class="product-image text-center mb-2">
 
@@ -367,8 +514,7 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                             <!-- =================================================
                                                  QUICK VIEW BUTTON
-                                                 SAME AS DAILY DEALS
-                                                 ================================================= -->
+                                            ================================================= -->
 
                                             <a
                                                 href="javascript:void(0);"
@@ -402,6 +548,10 @@ function buildCategoryTree($categories, $parent_id = 0)
                                         </div>
 
 
+                                        <!-- =================================================
+                                             PRODUCT DETAILS
+                                        ================================================= -->
+
                                         <div class="product-details text-center">
 
 
@@ -420,6 +570,10 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </h3>
 
 
+                                            <!-- =================================================
+                                                 PRICE
+                                            ================================================= -->
+
                                             <div class="price-box mb-2">
 
 
@@ -433,6 +587,7 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                     <span class="special-price">
 
                                                         MUR
+
                                                         <?php
                                                         echo number_format(
                                                             $p->special_price,
@@ -450,6 +605,7 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                         <s>
 
                                                             MUR
+
                                                             <?php
                                                             echo number_format(
                                                                 $p->webshop_price,
@@ -470,6 +626,7 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                     <span class="regular-price">
 
                                                         MUR
+
                                                         <?php
                                                         echo number_format(
                                                             $p->webshop_price,
@@ -486,19 +643,29 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </div>
 
 
+                                            <!-- =================================================
+                                                 SALE ENDS
+                                            ================================================= -->
 
                                             <p class="deal-ends mb-2">
 
                                                 <?= lang('sale_ends'); ?>:
 
                                                 <?php
+
                                                 echo date(
                                                     "d M Y, H:i",
                                                     $p->flash_sale_ends_at
                                                 );
+
                                                 ?>
 
                                             </p>
+
+
+                                            <!-- =================================================
+                                                 VIEW PRODUCT
+                                            ================================================= -->
 
                                             <a
                                                 href="<?php
@@ -530,6 +697,10 @@ function buildCategoryTree($categories, $parent_id = 0)
                         <?php else: ?>
 
 
+                            <!-- =================================================
+                                 NO PRODUCTS
+                            ================================================= -->
+
                             <div class="col-12">
 
                                 <div class="alert alert-info">
@@ -547,6 +718,9 @@ function buildCategoryTree($categories, $parent_id = 0)
                     </div>
 
 
+                    <!-- =================================================
+                         PAGINATION
+                    ================================================= -->
 
                     <div class="pagination-wrapper mt-4">
 
@@ -568,7 +742,12 @@ function buildCategoryTree($categories, $parent_id = 0)
 </main>
 
 
+<!-- =========================================================
+     CATEGORY TREE JAVASCRIPT
+========================================================= -->
+
 <script>
+
 (function (w, d) {
 
     function boot() {
@@ -578,7 +757,9 @@ function buildCategoryTree($categories, $parent_id = 0)
             setTimeout(boot, 50);
 
             return;
+
         }
+
 
         var $ = w.jQuery;
 
@@ -586,19 +767,23 @@ function buildCategoryTree($categories, $parent_id = 0)
         /*
          * Collapse child categories initially
          */
+
         $('.category-tree .tree-node > ul').hide();
 
 
         /*
          * Open active category path
          */
+
         var $active = $('.category-tree a.active');
+
 
         if ($active.length) {
 
             $active.parents('ul').show();
 
-            $active.parents('li.tree-node')
+            $active
+                .parents('li.tree-node')
                 .children('.toggle')
                 .text('-')
                 .attr('aria-expanded', true);
@@ -609,6 +794,7 @@ function buildCategoryTree($categories, $parent_id = 0)
         /*
          * Category toggle
          */
+
         $(d).on(
             'click',
             '.category-tree .toggle',
@@ -645,8 +831,13 @@ function buildCategoryTree($categories, $parent_id = 0)
                     $child.slideToggle(150);
 
 
+                    /*
+                     * > = collapsed
+                     * - = expanded
+                     */
+
                     $(this)
-                        .text(isVisible ? '>' : '>')
+                        .text(isVisible ? '>' : '-')
                         .attr(
                             'aria-expanded',
                             !isVisible
@@ -663,6 +854,7 @@ function buildCategoryTree($categories, $parent_id = 0)
     boot();
 
 })(window, document);
+
 </script>
 
 
