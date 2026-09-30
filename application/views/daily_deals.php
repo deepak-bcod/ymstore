@@ -1,9 +1,4 @@
 <style>
-
-/* =========================================================
-   CATEGORY TREE
-========================================================= */
-
 .category-tree .toggle {
     display: inline-block;
     min-width: 18px;
@@ -20,20 +15,10 @@
     color: #444d5c;
 }
 
-
-/* =========================================================
-   PRODUCT CARD
-========================================================= */
-
 .product-item {
     background: #fff;
     position: relative;
 }
-
-
-/* =========================================================
-   PRODUCT IMAGE
-========================================================= */
 
 .product-image {
     position: relative;
@@ -44,18 +29,12 @@
 }
 
 
-/* PRODUCT IMAGE - NO CHANGE */
-
 .product-image .product-image-photo {
     width: 100%;
     height: auto;
     display: block;
 }
 
-
-/* =========================================================
-   IMAGE HOVER - TRANSPARENT BACKGROUND
-========================================================= */
 
 .product-image::after {
     content: "";
@@ -82,18 +61,11 @@
     pointer-events: none;
 }
 
-
-/* SHOW TRANSPARENT BACKGROUND */
-
 .product-image:hover::after {
     opacity: 1;
     visibility: visible;
 }
 
-
-/* =========================================================
-   QUICK VIEW BUTTON
-========================================================= */
 
 .product-image .quick-view-btn {
     position: absolute;
@@ -105,11 +77,6 @@
 
     color: #fff;
 
-    /*
-     * IMPORTANT:
-     * Transparent button
-     * NOT solid black
-     */
     background: rgba(0, 0, 0, 0.35);
 
     padding: 9px 14px;
@@ -136,20 +103,10 @@
         border-color 0.2s ease;
 }
 
-
-/* =========================================================
-   SHOW VIEW BUTTON
-========================================================= */
-
 .product-image:hover .quick-view-btn {
     opacity: 1;
     visibility: visible;
 }
-
-
-/* =========================================================
-   VIEW BUTTON HOVER = YELLOW
-========================================================= */
 
 .product-image .quick-view-btn:hover {
     background: #ffd200;
@@ -157,21 +114,11 @@
     border-color: #ffd200;
 }
 
-
-/* =========================================================
-   PRODUCT NAME
-========================================================= */
-
 .product-name {
     font-size: 14px;
     font-weight: 600;
     margin: 10px 0 6px;
 }
-
-
-/* =========================================================
-   PRICE
-========================================================= */
 
 .price-box {
     margin-bottom: 8px;
@@ -195,11 +142,6 @@
     font-weight: 500;
 }
 
-
-/* =========================================================
-   DEAL ENDS
-========================================================= */
-
 .deal-ends {
     font-size: 13px;
     margin-bottom: 10px;
@@ -219,11 +161,6 @@
 </style>
 
 <?php $this->load->view('common/header'); ?>
-
-
-<!-- =========================================================
-     INTRO SECTION
-========================================================= -->
 
 <div class="daily-deal-intro">
 
@@ -365,20 +302,12 @@ function buildCategoryTree($categories, $parent_id = 0)
 ?>
 
 
-<!-- =========================================================
-     MAIN CONTENT
-========================================================= -->
-
 <main id="maincontent" class="page-main">
 
     <div class="container-fluid">
 
         <div class="row">
 
-
-            <!-- =================================================
-                 SIDEBAR
-            ================================================== -->
 
             <div class="col-md-3 order-md-1">
 
@@ -396,10 +325,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
             </div>
 
-
-            <!-- =================================================
-                 MAIN PRODUCTS
-            ================================================== -->
 
             <div class="col-md-9 order-md-2">
 
@@ -428,10 +353,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                     <div class="product-item border p-2 h-100">
 
-
-                                        <!-- =================================
-                                             PRODUCT IMAGE
-                                        ================================== -->
 
                                         <div class="product-image text-center mb-2">
 
@@ -482,11 +403,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                             <?php endif; ?>
 
-
-                                            <!-- =================================
-                                                 QUICK VIEW BUTTON
-                                            ================================== -->
-
                                             <a
                                                 href="javascript:void(0);"
                                                 class="quick-view-btn"
@@ -517,11 +433,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
 
                                         </div>
-
-
-                                        <!-- =================================
-                                             PRODUCT DETAILS
-                                        ================================== -->
 
                                         <div class="product-details text-center">
 
@@ -669,9 +580,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                     </div>
 
-
-                    <!-- PAGINATION -->
-
                     <div class="pagination-wrapper mt-4">
 
                         <?php
@@ -690,11 +598,6 @@ function buildCategoryTree($categories, $parent_id = 0)
     </div>
 
 </main>
-
-
-<!-- =========================================================
-     CATEGORY SCRIPT
-========================================================= -->
 
 <script>
 
