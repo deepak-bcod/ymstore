@@ -719,7 +719,7 @@ $lang['all_categories'] = "Toutes les catégories";
 $lang['daily_deals'] = "Offres du jour";
 $lang['deal_ends'] = "Fin de l'offre :";
 $lang['view'] = "Voir";
-$lang['view_product'] = "Voir le produit";
+$lang['view_product'] = "Voir les détails";
 $lang['no_deals'] = "Aucune offre du jour trouvée.";
 
 $lang['flash_sale_title'] = "Les ventes flash sur Yellow Markets offrent des réductions incroyables !";
