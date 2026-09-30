@@ -184,10 +184,6 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
               <strong style="color: #28a745; font-size: 15px; display: block; margin-bottom: 4px;">
                 1. Own Replacement
               </strong>
-              <div style="font-size: 13px; color: #555; line-height: 1.4;">
-                Completed <strong>entirely from the Merchant Panel</strong>. You can proceed with and complete the replacement without involving the Admin Panel.
-              </div>
-              <span class="badge" style="background: #28a745; color: #fff; font-size: 11px; margin-top: 8px; display: inline-block; padding: 3px 8px; border-radius: 4px;">Merchant Panel Only</span>
             </div>
           </div>
         </label>
@@ -200,10 +196,6 @@ $use_advanced_warehouse = $this->CommonModel->getSingleShopDataByID('custom_vari
               <strong style="color: #6f42c1; font-size: 15px; display: block; margin-bottom: 4px;">
                 2. YM Replacement
               </strong>
-              <div style="font-size: 13px; color: #555; line-height: 1.4;">
-                Approved by the merchant, but the <strong>actual replacement process is handled from the Admin Panel</strong>. Forwarded to Admin for fulfillment.
-              </div>
-              <span class="badge" style="background: #6f42c1; color: #fff; font-size: 11px; margin-top: 8px; display: inline-block; padding: 3px 8px; border-radius: 4px;">Admin Panel Only</span>
             </div>
           </div>
         </label>
