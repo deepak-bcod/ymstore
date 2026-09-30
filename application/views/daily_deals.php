@@ -122,24 +122,33 @@
 
 .price-box {
     margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
 }
 
 .special-price {
     color: #ff7a00;
     font-size: 17px;
     font-weight: 500;
-    margin-right: 8px;
+    margin-right: 0;
+    white-space: nowrap;
 }
 
 .old-price {
     color: #999;
     font-size: 14px;
+    white-space: nowrap;
 }
 
 .regular-price {
     color: #ff7a00;
     font-size: 17px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .deal-ends {
