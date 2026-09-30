@@ -1,9 +1,4 @@
 <style>
-
-/* =========================================================
-   CATEGORY TREE
-========================================================= */
-
 .category-tree .toggle {
     display: inline-block;
     min-width: 18px;
@@ -20,20 +15,10 @@
     color: #444d5c;
 }
 
-
-/* =========================================================
-   PRODUCT ITEM
-========================================================= */
-
 .product-item {
     background: #fff;
     position: relative;
 }
-
-
-/* =========================================================
-   PRODUCT IMAGE
-========================================================= */
 
 .product-image {
     position: relative;
@@ -42,9 +27,6 @@
     width: 100%;
     background: #fff;
 }
-
-
-/* Actual product image */
 
 .product-image .product-image-photo {
     width: 100%;
@@ -59,11 +41,6 @@
     transition: none;
 }
 
-
-/* =========================================================
-   TRANSPARENT DARK OVERLAY
-========================================================= */
-
 .product-image::after {
     content: "";
     position: absolute;
@@ -73,7 +50,6 @@
     right: 0;
     bottom: 0;
 
-    /* Transparent dark background */
     background: rgba(0, 0, 0, 0.35);
 
     opacity: 0;
@@ -85,22 +61,14 @@
 
     z-index: 5;
 
-    /* Allows View button to remain clickable */
     pointer-events: none;
 }
 
-
-/* Show overlay when image is hovered */
 
 .product-image:hover::after {
     opacity: 1;
     visibility: visible;
 }
-
-
-/* =========================================================
-   QUICK VIEW BUTTON
-========================================================= */
 
 .product-image .quick-view-btn {
     position: absolute;
@@ -140,16 +108,10 @@
         border-color 0.2s ease;
 }
 
-
-/* Show View button on image hover */
-
 .product-image:hover .quick-view-btn {
     opacity: 1;
     visibility: visible;
 }
-
-
-/* View button hover */
 
 .product-image .quick-view-btn:hover {
     background: #ffd200;
@@ -157,21 +119,12 @@
     border-color: #ffd200;
 }
 
-
-/* =========================================================
-   PRODUCT NAME
-========================================================= */
-
 .product-name {
     font-size: 14px;
     font-weight: 600;
     margin: 10px 0 6px;
 }
 
-
-/* =========================================================
-   PRICE
-========================================================= */
 
 .price-box {
     margin-bottom: 8px;
@@ -195,28 +148,15 @@
     font-weight: 500;
 }
 
-
-/* =========================================================
-   DEAL ENDS
-========================================================= */
-
 .deal-ends {
     font-size: 13px;
     margin-bottom: 10px;
 }
 
-
-/* =========================================================
-   VIEW PRODUCT BUTTON
-========================================================= */
-
 .product-details .btn {
     width: 100%;
     margin-top: 5px;
 }
-
-
-/* Existing danger button hover */
 
 .product-details .btn-danger:hover {
     background-color: #ffd200;
@@ -225,28 +165,10 @@
 }
 
 
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 767px) {
-
-    .product-image .quick-view-btn {
-        opacity: 1;
-        visibility: visible;
-    }
-
-}
-
 </style>
 
 
 <?php $this->load->view('common/header'); ?>
-
-
-<!-- =========================================================
-     INTRO SECTION
-========================================================= -->
 
 <div class="daily-deal-intro">
 
@@ -303,10 +225,6 @@
 
 
 <?php
-
-/* =========================================================
-   CATEGORY TREE
-========================================================= */
 
 function buildCategoryTree($categories, $parent_id = 0)
 {
@@ -394,20 +312,12 @@ function buildCategoryTree($categories, $parent_id = 0)
 ?>
 
 
-<!-- =========================================================
-     MAIN CONTENT
-========================================================= -->
-
 <main id="maincontent" class="page-main">
 
     <div class="container-fluid">
 
         <div class="row">
 
-
-            <!-- =================================================
-                 SIDEBAR
-            ================================================= -->
 
             <div class="col-md-3 order-md-1">
 
@@ -425,10 +335,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
             </div>
 
-
-            <!-- =================================================
-                 PRODUCTS
-            ================================================= -->
 
             <div class="col-md-9 order-md-2">
 
@@ -457,10 +363,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                     <div class="product-item border p-2 h-100">
 
-
-                                        <!-- =================================================
-                                             PRODUCT IMAGE
-                                        ================================================= -->
 
                                         <div class="product-image text-center mb-2">
 
@@ -512,10 +414,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             <?php endif; ?>
 
 
-                                            <!-- =================================================
-                                                 QUICK VIEW BUTTON
-                                            ================================================= -->
-
                                             <a
                                                 href="javascript:void(0);"
                                                 class="quick-view-btn"
@@ -547,11 +445,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                         </div>
 
-
-                                        <!-- =================================================
-                                             PRODUCT DETAILS
-                                        ================================================= -->
-
                                         <div class="product-details text-center">
 
 
@@ -568,11 +461,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                 ?>
 
                                             </h3>
-
-
-                                            <!-- =================================================
-                                                 PRICE
-                                            ================================================= -->
 
                                             <div class="price-box mb-2">
 
@@ -643,10 +531,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </div>
 
 
-                                            <!-- =================================================
-                                                 SALE ENDS
-                                            ================================================= -->
-
                                             <p class="deal-ends mb-2">
 
                                                 <?= lang('sale_ends'); ?>:
@@ -662,10 +546,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                             </p>
 
-
-                                            <!-- =================================================
-                                                 VIEW PRODUCT
-                                            ================================================= -->
 
                                             <a
                                                 href="<?php
@@ -696,11 +576,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                         <?php else: ?>
 
-
-                            <!-- =================================================
-                                 NO PRODUCTS
-                            ================================================= -->
-
                             <div class="col-12">
 
                                 <div class="alert alert-info">
@@ -716,11 +591,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
 
                     </div>
-
-
-                    <!-- =================================================
-                         PAGINATION
-                    ================================================= -->
 
                     <div class="pagination-wrapper mt-4">
 
@@ -741,11 +611,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
 </main>
 
-
-<!-- =========================================================
-     CATEGORY TREE JAVASCRIPT
-========================================================= -->
-
 <script>
 
 (function (w, d) {
@@ -764,16 +629,8 @@ function buildCategoryTree($categories, $parent_id = 0)
         var $ = w.jQuery;
 
 
-        /*
-         * Collapse child categories initially
-         */
-
         $('.category-tree .tree-node > ul').hide();
 
-
-        /*
-         * Open active category path
-         */
 
         var $active = $('.category-tree a.active');
 
@@ -790,10 +647,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
         }
 
-
-        /*
-         * Category toggle
-         */
 
         $(d).on(
             'click',
@@ -829,12 +682,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
 
                     $child.slideToggle(150);
-
-
-                    /*
-                     * > = collapsed
-                     * - = expanded
-                     */
 
                     $(this)
                         .text(isVisible ? '>' : '-')
