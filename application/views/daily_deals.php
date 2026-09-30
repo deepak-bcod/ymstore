@@ -1,21 +1,146 @@
 <style>
-/* Make the +/– a solid clickable target and keep it above any <a> overlay */
-.category-tree .toggle{
-  display:inline-block;
-  min-width:18px;
-  text-align:center;
-  border:none;
-  border-radius:3px;
-  line-height:16px;
-  font-weight:600;
-  cursor:pointer;
-  user-select:none;
-  margin-right:6px;
-  position:relative;
-  z-index:2;
-color: #444d5c;
+
+.category-tree .toggle {
+    display: inline-block;
+    min-width: 18px;
+    text-align: center;
+    border: none;
+    border-radius: 3px;
+    line-height: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    margin-right: 6px;
+    position: relative;
+    z-index: 2;
+    color: #444d5c;
 }
-/* keep links inline so they don't cover the toggle */
+
+
+.product-image {
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.product-image .product-image-photo {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: opacity 0.2s ease;
+}
+
+
+.product-image .quick-view-btn {
+    position: absolute;
+
+    top: 50%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    
+    color: #fff;
+
+    padding: 9px 14px;
+
+    border: 1px solid #fff;
+    border-radius: 3px;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    text-decoration: none;
+    cursor: pointer;
+
+    z-index: 10;
+
+    /* Hidden normally */
+    opacity: 0;
+    visibility: hidden;
+
+    transition: all 0.2s ease;
+}
+
+
+.product-image:hover .quick-view-btn {
+    opacity: 1;
+    visibility: visible;
+}
+
+
+.product-image .quick-view-btn:hover {
+    background: #ffd200;
+    color: #000;
+    border-color: #ffd200;
+}
+
+
+.product-image:hover .product-image-photo {
+    opacity: 0.85;
+}
+
+
+
+.product-item {
+    background: #fff;
+    position: relative;
+}
+
+
+.product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 10px 0 6px;
+}
+
+
+.price-box {
+    margin-bottom: 8px;
+}
+
+.special-price {
+    color: #ff7a00;
+    font-size: 17px;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.old-price {
+    color: #999;
+    font-size: 14px;
+}
+
+.regular-price {
+    color: #ff7a00;
+    font-size: 17px;
+    font-weight: 500;
+}
+
+
+
+
+.deal-ends {
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+
+
+
+.product-details .btn {
+    width: 100%;
+    margin-top: 5px;
+}
+
+
+
+
+.product-details .btn-primary:hover {
+    background-color: #ffd200;
+    border-color: #ffd200;
+    color: #fff !important;
+}
 
 </style>
 
@@ -104,42 +229,110 @@ function buildCategoryTree($categories, $parent_id = 0) {
                               
                             ?>
                                 <div class="col-md-4 col-sm-6 mb-4">
-                                    <div class="product-item border p-2 h-100">
-                                        <div class="product-image text-center mb-2">
-                                            <?php 
-                                            $imgPath = FCPATH.'uploads/products/thumb/'.$p->base_image;
-                                            if(!empty($p->base_image) && file_exists($imgPath)): ?>
-                                                <img class="product-image-photo img-fluid" 
-                                                     src="<?php echo base_url('uploads/products/thumb/'.$p->base_image); ?>" 
-                                                     alt="<?php echo $p->name; ?>">
-                                            <?php else: ?>
-                                                <img class="product-image-photo img-fluid" 
-                                                     src="https://via.placeholder.com/300x300?text=No+Image" 
-                                                     alt="No Image">
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="product-details text-center">
-                                            <h3 class="product-name"><?php echo $p->name; ?></h3>
-                                            <div class="price-box mb-2">
-                                                <?php if (!empty($p->special_price)): ?>
-                                                    <span class="special-price">
-                                                        MUR <?php echo number_format($p->special_price, 2); ?>
-                                                    </span>
 
-                                                    <span class="old-price text-muted">
-                                                        <s>MUR <?php echo number_format($p->webshop_price, 2); ?></s>
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="regular-price">
-                                                        MUR <?php echo number_format($p->webshop_price, 2); ?>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </div>
-                                            <p class="deal-ends mb-2"><?php echo $this->lang->line('deal_ends'); ?> <?php echo date("d M Y, H:i", $p->daily_deal_ends_at); ?></p>
-                                            <a href="<?php echo site_url('product-detail/'.$p->url_key); ?>" class="btn btn-sm btn-primary"><?php echo $this->lang->line('view_product'); ?></a>
-                                        </div>
+                                <div class="product-item border p-2 h-100">
+
+                                    <!-- PRODUCT IMAGE -->
+                                    <div class="product-image text-center mb-2">
+
+                                        <?php 
+                                        $imgPath = FCPATH . 'uploads/products/thumb/' . $p->base_image;
+
+                                        if (!empty($p->base_image) && file_exists($imgPath)):
+                                        ?>
+
+                                            <img
+                                                class="product-image-photo img-fluid"
+                                                src="<?php echo base_url('uploads/products/thumb/' . $p->base_image); ?>"
+                                                alt="<?php echo htmlspecialchars($p->name); ?>"
+                                            >
+
+                                        <?php else: ?>
+
+                                            <img
+                                                class="product-image-photo img-fluid"
+                                                src="https://via.placeholder.com/300x300?text=No+Image"
+                                                alt="No Image"
+                                            >
+
+                                        <?php endif; ?>
+
+
+                                        <!-- YELLOW VIEW BUTTON -->
+                                        <a
+                                            href="javascript:void(0);"
+                                            class="quick-view-btn"
+                                            onclick="QuickViewProdDetails(
+                                                '<?php echo htmlspecialchars($p->url_key, ENT_QUOTES, 'UTF-8'); ?>',
+                                                '<?php echo site_url('product-detail/' . $p->url_key); ?>'
+                                            );"
+                                        >
+                                            <?php echo $this->lang->line('view'); ?>
+                                        </a>
+
                                     </div>
+
+
+                                    <!-- PRODUCT DETAILS -->
+                                    <div class="product-details text-center">
+
+                                        <h3 class="product-name">
+                                            <?php echo $p->name; ?>
+                                        </h3>
+
+
+                                        <!-- PRICE -->
+                                        <div class="price-box mb-2">
+
+                                            <?php if (!empty($p->special_price)): ?>
+
+                                                <span class="special-price">
+                                                    MUR <?php echo number_format($p->special_price, 2); ?>
+                                                </span>
+
+                                                <span class="old-price text-muted">
+                                                    <s>
+                                                        MUR <?php echo number_format($p->webshop_price, 2); ?>
+                                                    </s>
+                                                </span>
+
+                                            <?php else: ?>
+
+                                                <span class="regular-price">
+                                                    MUR <?php echo number_format($p->webshop_price, 2); ?>
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </div>
+
+
+                                        <!-- DEAL ENDS -->
+                                        <p class="deal-ends mb-2">
+
+                                            <?php echo $this->lang->line('deal_ends'); ?>
+
+                                            <?php echo date(
+                                                "d M Y, H:i",
+                                                $p->daily_deal_ends_at
+                                            ); ?>
+
+                                        </p>
+
+
+                                        <!-- EXISTING VIEW PRODUCT BUTTON -->
+                                        <a
+                                            href="<?php echo site_url('product-detail/' . $p->url_key); ?>"
+                                            class="btn btn-sm btn-primary"
+                                        >
+                                            <?php echo $this->lang->line('view_product'); ?>
+                                        </a>
+
+                                    </div>
+
                                 </div>
+
+                            </div>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <div class="col-12">
