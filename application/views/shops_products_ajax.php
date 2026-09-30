@@ -2,10 +2,6 @@
 
 <style>
 
-/* =========================================================
-   PRODUCT HEIGHT FIX
-   ========================================================= */
-
 .category-product .product-item {
     height: auto !important;
     min-height: 0 !important;
@@ -34,11 +30,6 @@
     height: auto !important;
     overflow: visible !important;
 }
-
-
-/* =========================================================
-   PRODUCT IMAGE
-   ========================================================= */
 
 .category-product .box-image {
     position: relative !important;
@@ -86,20 +77,10 @@
 }
 
 
-/* =========================================================
-   SHOW VIEW BUTTON WHEN IMAGE IS HOVERED
-   ========================================================= */
-
 .category-product .box-image:hover .quick-view-btn {
     opacity: 1 !important;
     visibility: visible !important;
 }
-
-
-/* =========================================================
-   HOVER ON VIEW BUTTON
-   Yellow background + black text
-   ========================================================= */
 
 .category-product .quick-view-btn:hover,
 .category-product .quick-view-btn:focus {
@@ -115,17 +96,9 @@
 }
 
 
-/* =========================================================
-   IMAGE HOVER
-   ========================================================= */
-
 .category-product .box-image:hover .product-image-photo {
     opacity: 0.85 !important;
 }
-
-/* =========================================================
-   EXISTING VIEW PRODUCT BUTTON
-   ========================================================= */
 
 .category-product .view-product-wrapper {
     display: block !important;
@@ -174,8 +147,6 @@
 }
 
 
-/* EXISTING BUTTON HOVER */
-
 .category-product .view-product-btn:hover,
 .category-product .view-product-btn:focus {
     background: #1261d5 !important;
@@ -187,10 +158,6 @@
     outline: none !important;
 }
 
-
-/* =========================================================
-   OVERFLOW FIX
-   ========================================================= */
 
 .category-product .product-item,
 .category-product .product-item-info,
@@ -214,10 +181,6 @@
 
                     <div class="item-inner">
 
-
-                        <!-- =================================================
-                             PRODUCT IMAGE
-                             ================================================= -->
 
                         <div class="box-image">
 
@@ -247,10 +210,6 @@
                             </a>
 
 
-                            <!-- =================================================
-                                 YELLOW VIEW BUTTON ON IMAGE HOVER
-                                 ================================================= -->
-
                             <a
                                 href="javascript:void(0);"
                                 class="quick-view-btn"
@@ -270,10 +229,6 @@
                         </div>
                         <!-- END PRODUCT IMAGE -->
 
-
-                        <!-- =================================================
-                             PRODUCT DETAILS
-                             ================================================= -->
 
                         <div class="product details product-item-details box-info">
 
@@ -319,10 +274,6 @@
 
                             </h2>
 
-
-                            <!-- =================================================
-                                 PRICE
-                                 ================================================= -->
 
                             <div class="price-box price-final_price">
 
@@ -422,9 +373,6 @@
                             </div>
 
 
-                            <!-- =================================================
-                                 EXISTING VIEW DETAILS BUTTON
-                                 ================================================= -->
 
                             <div class="view-product-wrapper">
 
@@ -461,11 +409,6 @@
     </ol>
 
 </div>
-
-
-<!-- =========================================================
-     PAGINATION
-     ========================================================= -->
 
 <div class="pagination-wrap">
 

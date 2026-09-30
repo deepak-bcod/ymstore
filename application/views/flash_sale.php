@@ -190,9 +190,6 @@
 
 
 <?php
-/* =========================================================
- * CATEGORY TREE
- * ========================================================= */
 
 function buildCategoryTree($categories, $parent_id = 0)
 {
@@ -270,9 +267,6 @@ function buildCategoryTree($categories, $parent_id = 0)
         <div class="row">
 
 
-            <!-- =====================================================
-                 SIDEBAR
-                 ===================================================== -->
 
             <div class="col-md-3 order-md-1">
 
@@ -291,9 +285,6 @@ function buildCategoryTree($categories, $parent_id = 0)
             </div>
 
 
-            <!-- =====================================================
-                 MAIN CONTENT
-                 ===================================================== -->
 
             <div class="col-md-9 order-md-2">
 
@@ -323,9 +314,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                                     <div class="product-item border p-2 h-100">
 
 
-                                        <!-- =================================================
-                                             PRODUCT IMAGE
-                                             ================================================= -->
 
                                         <div class="product-image text-center mb-2">
 
@@ -414,10 +402,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                                         </div>
 
 
-                                        <!-- =================================================
-                                             PRODUCT DETAILS
-                                             ================================================= -->
-
                                         <div class="product-details text-center">
 
 
@@ -435,10 +419,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                             </h3>
 
-
-                                            <!-- =================================================
-                                                 PRICE
-                                                 ================================================= -->
 
                                             <div class="price-box mb-2">
 
@@ -506,9 +486,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </div>
 
 
-                                            <!-- =================================================
-                                                 FLASH SALE ENDS
-                                                 ================================================= -->
 
                                             <p class="deal-ends mb-2">
 
@@ -522,11 +499,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                 ?>
 
                                             </p>
-
-
-                                            <!-- =================================================
-                                                 VIEW PRODUCT BUTTON
-                                                 ================================================= -->
 
                                             <a
                                                 href="<?php
@@ -558,10 +530,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                         <?php else: ?>
 
 
-                            <!-- =================================================
-                                 NO FLASH SALE PRODUCTS
-                                 ================================================= -->
-
                             <div class="col-12">
 
                                 <div class="alert alert-info">
@@ -579,9 +547,6 @@ function buildCategoryTree($categories, $parent_id = 0)
                     </div>
 
 
-                    <!-- =====================================================
-                         PAGINATION
-                         ===================================================== -->
 
                     <div class="pagination-wrapper mt-4">
 
@@ -602,10 +567,6 @@ function buildCategoryTree($categories, $parent_id = 0)
 
 </main>
 
-
-<!-- =============================================================
-     CATEGORY TREE JAVASCRIPT
-     ============================================================= -->
 
 <script>
 (function (w, d) {
