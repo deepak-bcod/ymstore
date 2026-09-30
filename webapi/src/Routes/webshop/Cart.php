@@ -392,21 +392,12 @@ $app->post('/webshop/add_to_cart', function (Request $request, Response $respons
 
 				$product_quantity = 0;
 
-				if ($productData['product_inv_type'] == 'buy'  && $productData['product_type'] != 'bundle') {
-
-
+				if ($productData['product_inv_type'] != 'dropship' && $productData['product_type'] != 'bundle') {
 
 					$product_inv = $webshop_obj->getAvailableInventory($productData['id']);
 
-					if (is_numeric($product_inv['available_qty'])) {
-
-						if ($product_inv['available_qty'] > 0) {
-
-							$product_quantity = $product_inv['available_qty'];
-						} else {
-
-							$product_quantity = 0;
-						}
+					if (is_array($product_inv) && isset($product_inv['available_qty']) && is_numeric($product_inv['available_qty'])) {
+						$product_quantity = max(0, (int)$product_inv['available_qty']);
 					}
 				}
 
@@ -470,11 +461,9 @@ $app->post('/webshop/add_to_cart', function (Request $request, Response $respons
 			
 			/*----------------------------------------------------------*/
 
-			if ((($product_quantity < $quantity_total_check)  && $productData['product_type'] != 'bundle')  || (isset($bundle_qty_flag) && $bundle_qty_flag == 0 && $productData['product_type'] == 'bundle')) {
+			if ((($product_quantity <= 0 || $product_quantity < $quantity_total_check) && $productData['product_type'] != 'bundle') || (isset($bundle_qty_flag) && $bundle_qty_flag == 0 && $productData['product_type'] == 'bundle')) {
 
-
-
-				$error = 'Product quantity is not available';
+				$error = 'Product is Out of Stock';
 			} else {
 
 

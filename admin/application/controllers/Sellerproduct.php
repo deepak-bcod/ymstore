@@ -117,11 +117,11 @@ class Sellerproduct extends CI_Controller
 
     if ($readData->product_type == 'configurable') {
         $Row = $this->SellerProductModel->getStockForConfigProduct($readData->id);
-        $qty = ($Row) ? $Row->qty : '-';
+        $qty = ($Row && isset($Row->qty)) ? max(0, (int)$Row->qty) : '-';
         $price = '-';
         $webshop_price = '-';
     } else {
-        $qty = $readData->qty;
+        $qty = (isset($readData->qty) && $readData->qty !== '') ? max(0, (int)$readData->qty) : 0;
         $price = number_format($readData->price, 2);
         $webshop_price = number_format($readData->webshop_price, 2);
     }
@@ -3463,7 +3463,10 @@ class Sellerproduct extends CI_Controller
 										}
 
 
-										$stock_update = array('qty' => $stock_qty, 'available_qty' => $new_available_qty);
+										$clean_qty = max(0, (int)$stock_qty);
+										$clean_avail = max(0, (int)$new_available_qty);
+										$is_in_stock = ($clean_qty > 0 && $clean_avail > 0) ? 1 : 2;
+										$stock_update = array('qty' => $clean_qty, 'available_qty' => $clean_avail, 'is_in_stock' => $is_in_stock);
 										$whr_qty_arr = array('product_id' => $product_id);
 										$this->SellerProductModel->updateData('products_inventory', $whr_qty_arr, $stock_update);
 									}
@@ -3834,7 +3837,10 @@ class Sellerproduct extends CI_Controller
 														}
 													}
 
-													$stock_update = array('qty' => $simple_stock, 'available_qty' => $new_available_qty);
+													$clean_qty = max(0, (int)$simple_stock);
+													$clean_avail = max(0, (int)$new_available_qty);
+													$is_in_stock = ($clean_qty > 0 && $clean_avail > 0) ? 1 : 2;
+													$stock_update = array('qty' => $clean_qty, 'available_qty' => $clean_avail, 'is_in_stock' => $is_in_stock);
 													$whr_qty_arr = array('product_id' => $simple_product_id);
 													$this->SellerProductModel->updateData('products_inventory', $whr_qty_arr, $stock_update);
 												}
@@ -6749,7 +6755,10 @@ class Sellerproduct extends CI_Controller
 									$new_available_qty = ($new_available_qty <= 0) ? 0 : $new_available_qty;
 								}
 							}
-							$inventory_update = array('qty' => $stock_qty, 'available_qty' => $new_available_qty);
+							$clean_qty = max(0, (int)$stock_qty);
+							$clean_avail = max(0, (int)$new_available_qty);
+							$is_in_stock = ($clean_qty > 0 && $clean_avail > 0) ? 1 : 2;
+							$inventory_update = array('qty' => $clean_qty, 'available_qty' => $clean_avail, 'is_in_stock' => $is_in_stock);
 							$whr_qty_arr = array('product_id' => $product_id);
 							// echo "<pre>";print_r($inventory_update);//die();
 							if (isset($stock_qty) && $stock_qty != '') {
@@ -7943,7 +7952,10 @@ class Sellerproduct extends CI_Controller
 											}
 										}
 
-										$stock_update = array('qty' => $stock_qty, 'available_qty' => $new_available_qty);
+										$clean_qty = max(0, (int)$stock_qty);
+										$clean_avail = max(0, (int)$new_available_qty);
+										$is_in_stock = ($clean_qty > 0 && $clean_avail > 0) ? 1 : 2;
+										$stock_update = array('qty' => $clean_qty, 'available_qty' => $clean_avail, 'is_in_stock' => $is_in_stock);
 										$whr_qty_arr = array('product_id' => $product_id);
 										$this->SellerProductModel->updateData('products_inventory', $whr_qty_arr, $stock_update);
 									}
@@ -8273,7 +8285,10 @@ class Sellerproduct extends CI_Controller
 										}
 									}
 
-									$stock_update = array('qty' => $simple_stock, 'available_qty' => $new_available_qty);
+									$clean_qty = max(0, (int)$simple_stock);
+									$clean_avail = max(0, (int)$new_available_qty);
+									$is_in_stock = ($clean_qty > 0 && $clean_avail > 0) ? 1 : 2;
+									$stock_update = array('qty' => $clean_qty, 'available_qty' => $clean_avail, 'is_in_stock' => $is_in_stock);
 									$whr_qty_arr = array('product_id' => $simple_product_id);
 									$this->SellerProductModel->updateData('products_inventory', $whr_qty_arr, $stock_update);
 								}

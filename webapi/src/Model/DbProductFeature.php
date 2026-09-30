@@ -1320,7 +1320,18 @@ class DbProductFeature
 		if ($this->dbl->dbl_conn->getLastErrno() === 0) {
 			if ($this->dbl->dbl_conn->count > 0) {
 				$temp = $inventory;
-
+				foreach ($temp as &$row) {
+					if (isset($row['available_qty'])) {
+						$row['available_qty'] = max(0, (int)$row['available_qty']);
+					}
+					if (isset($row['qty'])) {
+						$row['qty'] = max(0, (int)$row['qty']);
+					}
+					if (isset($row['available_qty']) && (int)$row['available_qty'] <= 0) {
+						$row['is_in_stock'] = 2;
+					}
+				}
+				unset($row);
 				return $temp;  // return result
 			} else {
 
@@ -1359,6 +1370,15 @@ class DbProductFeature
 
 					if ($this->dbl->dbl_conn->getLastErrno() === 0) {
 						if ($this->dbl->dbl_conn->count > 0) {
+							if (isset($inventory1['available_qty'])) {
+								$inventory1['available_qty'] = max(0, (int)$inventory1['available_qty']);
+							}
+							if (isset($inventory1['qty'])) {
+								$inventory1['qty'] = max(0, (int)$inventory1['qty']);
+							}
+							if (isset($inventory1['available_qty']) && (int)$inventory1['available_qty'] <= 0) {
+								$inventory1['is_in_stock'] = 2;
+							}
 							return $inventory1;  // return result
 						} else {
 							return false;
@@ -1370,7 +1390,15 @@ class DbProductFeature
 					return false;
 				}
 			} else {
-
+				if (isset($inventory['available_qty'])) {
+					$inventory['available_qty'] = max(0, (int)$inventory['available_qty']);
+				}
+				if (isset($inventory['qty'])) {
+					$inventory['qty'] = max(0, (int)$inventory['qty']);
+				}
+				if (isset($inventory['available_qty']) && (int)$inventory['available_qty'] <= 0) {
+					$inventory['is_in_stock'] = 2;
+				}
 				return $inventory; // return result
 			}
 		} else {

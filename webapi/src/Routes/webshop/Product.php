@@ -388,12 +388,13 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 	if ($productData['product_type'] === 'simple') {
 
 		$product_inv = $webshop_obj->getAvailableInventory($productData['id']);
-		if ($product_inv['available_qty'] > 0) {
+		$clean_available = (is_array($product_inv) && isset($product_inv['available_qty'])) ? max(0, (int)$product_inv['available_qty']) : 0;
+		if ($clean_available > 0) {
 			$productData['stock_status'] = 'Instock';
-			$productData['total_qty'] = $product_inv['available_qty'];
+			$productData['total_qty'] = $clean_available;
 		} else {
 			$productData['stock_status'] = 'OutofStock';
-			$productData['total_qty'] = $product_inv['available_qty'];
+			$productData['total_qty'] = 0;
 		}
 		$ProDelTime1 = ($productData['estimate_delivery_time'] != '') ? $productData['estimate_delivery_time'] : 0;
 		$estimate_delivery_time = $ProDelTime1;
@@ -674,14 +675,15 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 		}
 
 
-		if (($qty > 0) && $bundle_child_NotInv == 0 && $notAvailable == '') { // check stock
+		$clean_bundle_qty = max(0, (int)$qty);
+		if (($clean_bundle_qty > 0) && $bundle_child_NotInv == 0 && $notAvailable == '') { // check stock
 
 			$productData['stock_status'] = 'Instock';
 
-			$productData['total_qty'] = $qty;
+			$productData['total_qty'] = $clean_bundle_qty;
 		} else { // else check stock
 
-			$productData['stock_status'] = 'Notavailable';
+			$productData['stock_status'] = 'OutofStock';
 
 			$productData['total_qty'] = 0;
 		}
@@ -732,18 +734,18 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 		$allSpecialPrices = array_combine(array_column($allSpecialPrices, 'product_id'), $allSpecialPrices);
 		
 		foreach ($configProduct as $value) {
-			
+			$quantity = 0;
 			
 			$gift_master = $webshop_obj->getGiftMaster($value['gift_id']);
 		
-			
 
-			$product_inv = $buyInventory[$value['id']];
-			if (is_numeric($product_inv['available_qty']) && $product_inv['available_qty'] > 0) {
+			$product_inv = $buyInventory[$value['id']] ?? null;
+			$child_avail = (is_array($product_inv) && isset($product_inv['available_qty'])) ? max(0, (int)$product_inv['available_qty']) : 0;
+			if ($child_avail > 0) {
 
-				$qty += $product_inv['available_qty'];
+				$qty += $child_avail;
 
-				$quantity = $product_inv['available_qty'];
+				$quantity = $child_avail;
 
 				//Estimated Delivery for Simple (Configurable)
 
@@ -884,7 +886,8 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 		
 
 
-		if ($qty > 0) { // check stock
+		$clean_config_qty = max(0, (int)$qty);
+		if ($clean_config_qty > 0) { // check stock
 
 
 
@@ -907,7 +910,7 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 
 			$productData['stock_status'] = 'Instock';
 
-			$productData['total_qty'] = $qty;
+			$productData['total_qty'] = $clean_config_qty;
 
 			// print_r($configProduct);
 			// die();
@@ -986,7 +989,7 @@ $app->post('/webshop/product_detail', function (Request $request, Response $resp
 			}
 		} else { // else check stock
 
-			$productData['stock_status'] = 'Notavailable';
+			$productData['stock_status'] = 'OutofStock';
 
 			$productData['total_qty'] = 0;
 		}
@@ -1479,10 +1482,7 @@ $app->post('/webshop/get_conf_simprod_by_variants_new', function (Request $reque
 
 			$product_inv = $webshop_obj->getAvailableInventory($ConfSimpleData['id']);
 
-			if (is_numeric($product_inv['available_qty']) && $product_inv['available_qty'] > 0) {
-
-				$quantity = $product_inv['available_qty'];
-			}
+			$quantity = (is_array($product_inv) && isset($product_inv['available_qty'])) ? max(0, (int)$product_inv['available_qty']) : 0;
 
 
 

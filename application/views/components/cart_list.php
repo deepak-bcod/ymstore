@@ -2,6 +2,30 @@
 <div class="col-md-12 col-sm-12 <?php echo (isset($CartData->cartItems) && count($CartData->cartItems) > 0)?'':'text-center'?>">
     <h1><?php echo $this->lang->line('shopping_cart'); ?></h1>
 
+    <?php if ($this->session->flashdata('error_message')): ?>
+        <div class="alert alert-danger" style="margin-top: 15px;">
+            <i class="fa fa-exclamation-circle"></i> <?php echo $this->session->flashdata('error_message'); ?>
+        </div>
+    <?php endif; ?>
+
+    <?php 
+    $has_out_of_stock = false;
+    if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
+        foreach ($CartData->cartItems as $chk) {
+            if (isset($chk->available_qty) && (int)$chk->available_qty <= 0) {
+                $has_out_of_stock = true;
+                break;
+            }
+        }
+    }
+    ?>
+
+    <?php if ($has_out_of_stock): ?>
+        <div class="alert alert-danger" style="margin-top: 15px;">
+            <i class="fa fa-exclamation-triangle"></i> <strong>Notice:</strong> One or more items in your cart are currently <strong>Out of Stock</strong>. Please remove them before proceeding to checkout.
+        </div>
+    <?php endif; ?>
+
     <?php if(isset($CartData->cartItems) && count($CartData->cartItems) > 0){ ?>
         <div class="goods-page">
             <div class="row">
@@ -59,6 +83,9 @@
                                             <?php if(isset($value->product_type) && $value->product_type == 'bundle') { ?>
                                                 <em><?php echo (!empty($value->bundleData) ? $value->bundleData : '');?></em>
                                             <?php } ?>
+                                            <?php if (isset($value->available_qty) && (int)$value->available_qty <= 0): ?>
+                                                <p><span class="label label-danger" style="font-size: 12px; padding: 4px 8px;"><?= $this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'; ?></span></p>
+                                            <?php endif; ?>
                                             <p id="qtyError_<?php echo $value->item_id;?>" class="qty-error"></p>
                                             <p class="delivery-time"><?= ($value->estimate_delivery_time != '') ? $this->lang->line('delivery_in_days').' '.$value->estimate_delivery_time.' '.$this->lang->line('days') : '';?></p>
                                         </td>
@@ -133,9 +160,15 @@
                                 <?php (new CartList())->cartPriceDetails($CartData,'cartPage'); ?>
                             </div>
                             <div class="divcent text-center">
-                                <a href="<?php echo base_url(); ?>checkout" class="btn btn-primary chkout" type="submit">
-                                    <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-check"></i>
-                                </a>
+                                <?php if ($has_out_of_stock): ?>
+                                    <button type="button" class="btn btn-primary chkout" disabled style="opacity:0.6; cursor:not-allowed;" title="Please remove out-of-stock items to proceed">
+                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-ban"></i>
+                                    </button>
+                                <?php else: ?>
+                                    <a href="<?php echo base_url(); ?>checkout" class="btn btn-primary chkout" type="submit">
+                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-check"></i>
+                                    </a>
+                                <?php endif; ?>
                                 <a href="<?php echo base_url(); ?>" class="btn btn-default">
                                     <?php echo $this->lang->line('continue_shopping'); ?> <i class="fa fa-shopping-cart"></i>
                                 </a>

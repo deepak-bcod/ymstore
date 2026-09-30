@@ -2262,7 +2262,7 @@ public function getOrderStatusLabel($id)
 
 		$params = array($qty_ordered, $product_id);
 
-		$update_row = $this->db->query("UPDATE products_inventory SET available_qty = available_qty + ?  WHERE product_id = ?  ", $params);
+		$update_row = $this->db->query("UPDATE products_inventory SET available_qty = available_qty + ?, is_in_stock = 1  WHERE product_id = ?  ", $params);
 	}
 
 
@@ -2276,7 +2276,7 @@ public function getOrderStatusLabel($id)
 
 		$sql = "SELECT * FROM $shop_db.products_inventory where product_id=$product_id";
 
-		$update_row = $this->db->query("UPDATE $shop_db.products_inventory SET available_qty = available_qty + ?  WHERE product_id = ?  ", $params);
+		$update_row = $this->db->query("UPDATE $shop_db.products_inventory SET available_qty = available_qty + ?, is_in_stock = 1  WHERE product_id = ?  ", $params);
 	}
 
 	/*end cancel order*/

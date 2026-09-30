@@ -6,7 +6,7 @@
     // echo "<pre>";
     // print_R($ProductData);
     // die();
-    if ($ProductData->stock_status == 'Instock') {
+    if ($ProductData->stock_status == 'Instock' && (!isset($ProductData->total_qty) || (int)$ProductData->total_qty > 0)) {
         if ($ProductData->product_type == "configurable") {
             if (isset($ProductData->product_variants) && count($ProductData->product_variants) > 0 && isset($ProductData->childProducts) && count($ProductData->childProducts) > 0) { ?>
                 <input type="hidden" id="variant_main_count" value="<?= count($ProductData->product_variants) ?>">
@@ -63,17 +63,22 @@
 
                             <?php $variant_options = [];
                             $count = 1;
+                            $first_instock_checked = false;
                             foreach ($ProductData->childProducts as $child_key => $child_val) {
-                                if ($count == 1) {
+                                $child_qty = isset($child_val->qty) ? (int)$child_val->qty : 0;
+                                $is_child_in_stock = ($child_qty > 0);
+                                if ($is_child_in_stock && !$first_instock_checked) {
                                     $selected = 'checked';
+                                    $first_instock_checked = true;
                                 } else {
                                     $selected = '';
                                 }
+                                $disabled = $is_child_in_stock ? '' : 'disabled';
                             ?>
-                                <tr>
+                                <tr class="<?php echo $is_child_in_stock ? '' : 'variant-out-of-stock text-muted'; ?>" style="<?php echo $is_child_in_stock ? '' : 'opacity: 0.55;'; ?>">
                                     <td>
                                         <label>
-                                            <input id="<?php echo $variant_code; ?>" type="radio" name="variant_options_data" <?php echo $selected; ?> value="<?php echo $child_val->id ?>,<?php echo $ProductData->id ?>" class="single_variant required-field" onclick="GetVariantProduct()" />
+                                            <input id="<?php echo $variant_code; ?>" type="radio" name="variant_options_data" <?php echo $selected; ?> <?php echo $disabled; ?> value="<?php echo $child_val->id ?>,<?php echo $ProductData->id ?>" class="single_variant required-field" onclick="GetVariantProduct()" />
                                         </label>
                                         <input type="hidden" id="variant_option_count" value="">
 
@@ -93,7 +98,9 @@
                                                 if (isset($attr_options_name) && !empty($attr_options_name)) {
                                                     echo $attr_options_name ;
                                                 }
-                                               
+                                                if (!$is_child_in_stock) {
+                                                    echo ' <span class="label label-danger" style="margin-left: 5px; font-size: 10px; padding: 2px 5px;">' . ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock') . '</span>';
+                                                }
                                                 ?>
                                             </td>
                                         <?php } ?>

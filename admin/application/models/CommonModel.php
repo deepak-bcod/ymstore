@@ -1184,7 +1184,7 @@ class CommonModel extends CI_Model
 	function incrementAvailableQty($product_id, $qty_ordered)
 	{
 		$params = array($qty_ordered, $product_id);
-		$update_row = $this->db->query("UPDATE products_inventory SET available_qty = available_qty + ?  WHERE product_id = ?  ", $params);
+		$update_row = $this->db->query("UPDATE products_inventory SET available_qty = available_qty + ?, is_in_stock = 1  WHERE product_id = ?  ", $params);
 	}
 
 	function incrementAvailableQtyByShopCode($shopcode, $product_id, $qty_ordered)
@@ -1192,7 +1192,7 @@ class CommonModel extends CI_Model
 		$params = array($qty_ordered, $product_id);
 		$shop_db =  DB_NAME_PREFIX . $shopcode;
 		$sql = "SELECT * FROM $shop_db.products_inventory where product_id=$product_id";
-		$update_row = $this->db->query("UPDATE $shop_db.products_inventory SET available_qty = available_qty + ?  WHERE product_id = ?  ", $params);
+		$update_row = $this->db->query("UPDATE $shop_db.products_inventory SET available_qty = available_qty + ?, is_in_stock = 1  WHERE product_id = ?  ", $params);
 	}
 	/*end cancel order*/
 

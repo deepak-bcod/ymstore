@@ -132,6 +132,14 @@ class CartController extends CI_Controller
                 if (!empty($ResponseData) && isset($ResponseData) && $ResponseData->statusCode=='200') {
                     $ProductData=$ResponseData->ProductData;
 
+                    if (isset($ProductData->stock_status) && $ProductData->stock_status !== 'Instock') {
+                        echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
+                        exit;
+                    }
+                    if ($ProductData->product_type == 'simple' && isset($ProductData->total_qty) && (int)$ProductData->total_qty <= 0) {
+                        echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
+                        exit;
+                    }
 
                     if ($ProductData->product_type=='configurable') {
                         $conf_simple_pid=$_POST['conf_simple_pid'];
