@@ -615,11 +615,11 @@ class B2BOrdersModel extends CI_Model
 
 
 		if (isset($order_status) && $order_status != '') {
-
-
-
-			$this->db->where("o.status", $order_status);
-
+			if ($order_status == 16) {
+				$this->db->where_in("o.status", [16, 22]);
+			} else {
+				$this->db->where("o.status", $order_status);
+			}
 		}
 
 

@@ -521,8 +521,30 @@ if ($term != '') {
     if (strpos($term_lower, 'shipped') !== false) {
         $this->db->or_where('o.status', 4);
     }
+    if (strpos($term_lower, 'replacement requested') !== false) {
+        $this->db->or_where('o.status', 15);
+    }
+    if (strpos($term_lower, 'replacement approved') !== false) {
+        $this->db->or_where('o.status', 18);
+    }
     if (strpos($term_lower, 'replacement rejected') !== false) {
         $this->db->or_where('o.status', 21);
+    }
+    if (strpos($term_lower, 'replaced') !== false) {
+        $this->db->or_where('o.status', 19);
+    }
+    if (strpos($term_lower, 'return requested') !== false) {
+        $this->db->or_where('o.status', 14);
+    }
+    if (strpos($term_lower, 'return approved') !== false) {
+        $this->db->or_where('o.status', 16);
+        $this->db->or_where('o.status', 22);
+    }
+    if (strpos($term_lower, 'refund paid') !== false) {
+        $this->db->or_where('o.status', 17);
+    }
+    if (strpos($term_lower, 'return rejected') !== false) {
+        $this->db->or_where('o.status', 20);
     }
 	
 
@@ -577,9 +599,11 @@ else if (strpos($term_lower, 'pickup') !== false) {
 
 
     if (isset($order_status) && $order_status != '') {
-
-        $this->db->where("o.status", $order_status);
-
+        if ($order_status == 16) {
+            $this->db->where_in("o.status", [16, 22]);
+        } else {
+            $this->db->where("o.status", $order_status);
+        }
     }
 
 

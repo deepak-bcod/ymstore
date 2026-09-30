@@ -48,6 +48,14 @@
 										<option value="1">Processing</option>
 										<option value="2">Complete</option>
 										<option value="3">Cancelled</option>
+										<option value="14">Return Requested</option>
+										<option value="16">Return Approved</option>
+										<option value="20">Return Rejected</option>
+										<option value="17">Refund Paid</option>
+										<option value="15">Replacement Requested</option>
+										<option value="18">Replacement Approved</option>
+										<option value="21">Replacement Rejected</option>
+										<option value="19">Replaced</option>
 									<?php } ?>
 								</select>
 							</div>

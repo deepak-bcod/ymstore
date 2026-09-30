@@ -49,10 +49,14 @@
 										<option value="1"><?php echo lang('processing'); ?></option>
 										<option value="2"><?php echo lang('complete'); ?></option>
 										<option value="3"><?php echo lang('cancelled'); ?></option>
-										<option value="15"><?php echo lang('model_status_replacement_requested'); ?></option>
-										<option value="18"><?php echo lang('model_status_replacement_approved'); ?></option>
 										<option value="14"><?php echo lang('model_status_return_requested'); ?></option>
 										<option value="16"><?php echo lang('model_status_return_approved'); ?></option>
+										<option value="20"><?php echo lang('model_status_return_rejected'); ?></option>
+										<option value="17"><?php echo lang('model_status_refund_paid'); ?></option>
+										<option value="15"><?php echo lang('model_status_replacement_requested'); ?></option>
+										<option value="18"><?php echo lang('model_status_replacement_approved'); ?></option>
+										<option value="21"><?php echo lang('model_status_replacement_rejected'); ?></option>
+										<option value="19"><?php echo lang('model_status_replaced'); ?></option>
 									<?php } ?>
 								</select>
 							</div>

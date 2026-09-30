@@ -2310,20 +2310,20 @@ ORDER BY sor.created_at DESC
 					$this->db->where_in('item_id', $order_item_ids)->update('b2b_order_items', ['status' => 20]);
 				}
 			} elseif (isset($data['status']) && in_array((int)$data['status'], [1, 3], true)) {
-				// Approved: update b2b_orders status to 22 (Return Approved) & keep/put payout ON HOLD (3)
+				// Approved: update b2b_orders status to 16 (Return Approved) & keep/put payout ON HOLD (3)
 				$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
 					->where('payout_status !=', 4)
 					->update('b2b_orders', [
-						'status' => 22, // Return Approved
+						'status' => 16, // Return Approved
 						'payout_status' => 3,
 						'updated_at' => time()
 					]);
-				$this->db->where('order_id', $webshop_id)->update('sales_order', ['status' => 22]);
+				$this->db->where('order_id', $webshop_id)->update('sales_order', ['status' => 16]);
 
 				$return_items = $this->db->select('order_item_id')->from('sales_order_return_items')->where('return_order_id', $id)->get()->result();
 				if (!empty($return_items)) {
 					$order_item_ids = array_map(function($i) { return $i->order_item_id; }, $return_items);
-					$this->db->where_in('item_id', $order_item_ids)->update('b2b_order_items', ['status' => 22]);
+					$this->db->where_in('item_id', $order_item_ids)->update('b2b_order_items', ['status' => 16]);
 				}
 			}
 		}
