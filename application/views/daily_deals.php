@@ -157,8 +157,8 @@
 }
 
 .product-details .btn {
-    width: 500%;
-    margin-top: 20px;
+    width: 100%;
+    margin-top: 5px;
 }
 
 .product-details .btn-primary:hover {
@@ -544,7 +544,7 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                         $p->url_key
                                                     );
                                                 ?>"
-                                                class="btn btn-sm btn-primary"
+                                                class="btn btn-primary"
                                             >
 
                                                 <?php
