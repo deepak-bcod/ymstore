@@ -29,16 +29,20 @@
     transition: opacity 0.2s ease;
 }
 
+/* QUICK VIEW BUTTON */
 .product-image .quick-view-btn {
     position: absolute;
+
     top: 50%;
     left: 50%;
+
     transform: translate(-50%, -50%);
 
     background: #ffd200;
     color: #000;
 
     padding: 9px 14px;
+
     border: 1px solid #ffd200;
     border-radius: 3px;
 
@@ -47,27 +51,23 @@
 
     text-decoration: none;
     cursor: pointer;
+
     z-index: 10;
 
-    /* Hidden before hover */
+    /* Hidden normally */
     opacity: 0;
     visibility: hidden;
 
     transition: all 0.2s ease;
 }
 
-/* Show yellow View button when hovering image */
+/* SHOW QUICK VIEW ON HOVER */
 .product-image:hover .quick-view-btn {
     opacity: 1;
     visibility: visible;
 }
 
-/* Keep yellow when hovering button */
-.product-image .quick-view-btn:hover {
-    background: #ffd200;
-    color: #000;
-    border-color: #ffd200;
-}
+
 
 /* IMAGE HOVER */
 .product-image:hover .product-image-photo {
