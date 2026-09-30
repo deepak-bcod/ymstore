@@ -167,7 +167,7 @@
     padding: 14px 20px;
     background: #fff;
     color: #0f5cd0 !important;
-    border: 1px solid #0f5cd0;
+    border: 1px solid #999;
     border-radius: 5px;
     font-size: 16px;
     font-weight: 600;
@@ -182,7 +182,7 @@
 .view-product-btn:hover {
     background: #0f5cd0;
     color: #fff !important;
-    border-color: #0d1218;
+    border-color: #0f5cd0;
 }
 </style>
 
