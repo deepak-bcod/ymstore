@@ -205,11 +205,6 @@
     margin-bottom: 10px;
 }
 
-
-/* =========================================================
-   VIEW PRODUCT BUTTON
-========================================================= */
-
 .product-details .btn {
     width: 100%;
     margin-top: 5px;
@@ -221,19 +216,6 @@
     color: #fff !important;
 }
 
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 767px) {
-
-    .product-image .quick-view-btn {
-        opacity: 1;
-        visibility: visible;
-    }
-
-}
 </style>
 
 <?php $this->load->view('common/header'); ?>
