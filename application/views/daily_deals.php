@@ -165,8 +165,8 @@
     display: block;
     width: 100%;
     padding: 14px 20px;
-    background: #0f5cd0;
-    color: #fff !important;
+    background: #fff;
+    color: #0f5cd0 !important;
     border: 1px solid #0f5cd0;
     border-radius: 5px;
     font-size: 16px;
@@ -180,11 +180,10 @@
 }
 
 .view-product-btn:hover {
-    background: #000;
+    background: #0f5cd0;
     color: #fff !important;
-    border-color: #000;
+    border-color: #0f5cd0;
 }
-
 </style>
 
 <?php $this->load->view('common/header'); ?>
