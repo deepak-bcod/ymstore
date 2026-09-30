@@ -2504,8 +2504,9 @@ $app->post('/webshop/return_order_request', function (Request $request, Response
 				}
 			}
 
-			// Put merchant payout on hold for each return b2b order
+			// Update b2b_orders status to Return Requested (14) and put merchant payout on hold
 			foreach (array_keys($return_order_ids) as $b2b_id) {
+				$order_obj->update_b2b_order_status_by_webshop_id($b2b_id, 14);
 				$order_obj->update_b2b_order_payout_status($b2b_id, 3);
 			}
 
@@ -2658,8 +2659,9 @@ $app->post('/webshop/replacement_order_request', function (Request $request, Res
                 }
             }
 
-            // Put merchant payout on hold for each replacement b2b order
+            // Update b2b_orders status to Replacement Requested (15) and put merchant payout on hold
             foreach (array_keys($replacement_order_ids) as $b2b_id) {
+                $order_obj->update_b2b_order_status_by_webshop_id($b2b_id, 15);
                 $order_obj->update_b2b_order_payout_status($b2b_id, 3);
             }
 

@@ -1487,8 +1487,8 @@ Class DbOrders{
 	public function update_b2b_order_status_by_webshop_id($b2b_order_id, $status)
 	{
 		return $this->dbl->dbl_conn->rawQuery(
-			"UPDATE b2b_orders SET status = ? WHERE order_id = ?",
-			array($status, $b2b_order_id)
+			"UPDATE b2b_orders SET status = ?, updated_at = ? WHERE order_id = ?",
+			array($status, time(), $b2b_order_id)
 		);
 	}
 

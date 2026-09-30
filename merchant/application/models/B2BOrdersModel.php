@@ -528,11 +528,30 @@ class B2BOrdersModel extends CI_Model
 		if (stripos('Received To Warehouse', $term) !== false) { 
     		$this->db->or_where('o.status', 12); 
 		}
+		if (stripos('Replacement Requested', $term) !== false) { 
+    		$this->db->or_where('o.status', 15); 
+		}
 		if (stripos('Replacement Rejected', $term) !== false) { 
     		$this->db->or_where('o.status', 21); 
 		}
 		if (stripos('Replacement Approved', $term) !== false) { 
     		$this->db->or_where('o.status', 18); 
+		}
+		if (stripos('Replaced', $term) !== false) { 
+    		$this->db->or_where('o.status', 19); 
+		}
+		if (stripos('Return Requested', $term) !== false) { 
+    		$this->db->or_where('o.status', 14); 
+		}
+		if (stripos('Return Approved', $term) !== false) { 
+    		$this->db->or_where('o.status', 16); 
+    		$this->db->or_where('o.status', 22); 
+		}
+		if (stripos('Refund Paid', $term) !== false) { 
+    		$this->db->or_where('o.status', 17); 
+		}
+		if (stripos('Return Rejected', $term) !== false) { 
+    		$this->db->or_where('o.status', 20); 
 		}
 		
 		if (stripos('to be processed', $term) !== false) { 
