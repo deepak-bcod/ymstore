@@ -593,7 +593,7 @@ class ShopProductModel extends CI_Model
 
 			$product_ids = $Row->product_ids;
 
-			$sql = "SELECT sum(qty) as qty from products_inventory where product_id IN ($product_ids) ";
+			$sql = "SELECT GREATEST(0, COALESCE(sum(CASE WHEN qty > 0 THEN qty ELSE 0 END), 0)) as qty from products_inventory where product_id IN ($product_ids) ";
 
 			$query = $this->db->query($sql);
 

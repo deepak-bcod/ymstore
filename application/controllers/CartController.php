@@ -144,6 +144,17 @@ class CartController extends CI_Controller
 					} else {
                         $AddtoCartParam=array('session_id'=>$session_id,'product_id'=>$product_id,'quantity'=>$quantity,'quote_id'=> $quote_id,'customer_id'=>$customer_id,'customer_type_id'=>$customer_type_id);
                     }
+
+                    // Backend stock validation before adding to cart
+                    $check_inv_pid = ($ProductData->product_type == 'configurable' && !empty($_POST['conf_simple_pid'])) ? (int)$_POST['conf_simple_pid'] : (int)$product_id;
+                    if ($ProductData->product_type != 'bundle') {
+                        $inv_record = $this->db->select('available_qty')->from('products_inventory')->where('product_id', $check_inv_pid)->get()->row();
+                        if ($inv_record && (int)$inv_record->available_qty <= 0) {
+                            echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
+                            exit;
+                        }
+                    }
+
                     //print_R($AddtoCartParam);
                     $CartResponseData = CartRepository::add_to_cart($AddtoCartParam);
                     //echo "<pre>";print_R($CartResponseData);die();

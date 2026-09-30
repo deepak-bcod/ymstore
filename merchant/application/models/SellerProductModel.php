@@ -326,7 +326,7 @@ class SellerProductModel extends CI_Model
 
 		if(isset($Row) && $Row->product_ids!=''){
 			$product_ids=$Row->product_ids;
-			$sql="SELECT sum(qty) as qty, sum(available_qty) as available_qty from products_inventory where product_id IN ($product_ids) ";
+			$sql="SELECT GREATEST(0, COALESCE(sum(CASE WHEN qty > 0 THEN qty ELSE 0 END), 0)) as qty, GREATEST(0, COALESCE(sum(CASE WHEN available_qty > 0 THEN available_qty ELSE 0 END), 0)) as available_qty from products_inventory where product_id IN ($product_ids) ";
 			$query = $this->db->query($sql);
 			return $query->row();
 

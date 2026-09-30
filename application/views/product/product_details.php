@@ -292,7 +292,7 @@ $lang = $this->session->userdata('site_lang');
                                 <?php } ?>
 
                                 <div class="subscribe-deli">
-                                    <?php if (isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock')) { ?>
+                                    <?php if (isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (int)$ProductData->total_qty > 0)) { ?>
                                         <?php if ($restricted_access == "yes" && $customer_id == 0) { ?>
                                             <button type="button" class="btn btn-primary subscr-now pull-left" <?php echo isset($ProductData->stock_status) &&
                                                                                                                     ($ProductData->stock_status == "Instock" && $ProductData->product_type == "simple")

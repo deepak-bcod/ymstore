@@ -6,7 +6,7 @@
     // echo "<pre>";
     // print_R($ProductData);
     // die();
-    if ($ProductData->stock_status == 'Instock') {
+    if ($ProductData->stock_status == 'Instock' && (!isset($ProductData->total_qty) || (int)$ProductData->total_qty > 0)) {
         if ($ProductData->product_type == "configurable") {
             if (isset($ProductData->product_variants) && count($ProductData->product_variants) > 0 && isset($ProductData->childProducts) && count($ProductData->childProducts) > 0) { ?>
                 <input type="hidden" id="variant_main_count" value="<?= count($ProductData->product_variants) ?>">

@@ -1050,20 +1050,22 @@ Class DbOrders{
 
 
 	function decrementAvailableQty($shopcode,$product_id,$qty_ordered){
-		$shop_db =  DB_NAME_SHOP_PRE.$shopcode; // constant variable
-  		$main_db = DB_NAME; //Constant variable
+		$shop_db = DB_NAME_SHOP_PRE.$shopcode;
+		$qty = (int)$qty_ordered;
+		$pid = (int)$product_id;
+		if ($qty <= 0 || $pid <= 0) {
+			return false;
+		}
 
-		$params=array($qty_ordered,$qty_ordered,$product_id);
+		$params = array($qty, $qty, $qty, $qty, $pid);
 
-		$update_row = $this->dbl->dbl_conn->rawQueryOne("UPDATE $shop_db.products_inventory SET available_qty = CASE   WHEN available_qty <= 0 THEN 0 WHEN available_qty >= ? THEN  available_qty - ? END WHERE product_id = ?  ",$params);
+		$update_row = $this->dbl->dbl_conn->rawQueryOne("UPDATE $shop_db.products_inventory 
+			SET available_qty = CASE WHEN available_qty >= ? THEN available_qty - ? ELSE 0 END,
+				is_in_stock = CASE WHEN (CASE WHEN available_qty >= ? THEN available_qty - ? ELSE 0 END) <= 0 THEN 2 ELSE 1 END
+			WHERE product_id = ?", $params);
 
 		if ($this->dbl->dbl_conn->getLastErrno() === 0){
-			$flag=true;
-			if ($this->dbl->dbl_conn->count > 0){
-				return $flag;
-			}else{
-				return false;
-			}
+			return true;
 		} else {
 			return false;
 		}

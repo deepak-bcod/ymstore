@@ -66,6 +66,14 @@ class CheckoutController extends CI_Controller
         $cart = CartRepository::cart_listing_check_cod($shopcode, $shop_id, $cartArr);
         if (!empty($cart) && isset($cart) && ($cart->is_success == 'true')) {
             $data['CartData'] = $cart->cartData;
+            if (!empty($data['CartData']->items)) {
+                foreach ($data['CartData']->items as $cItem) {
+                    if (isset($cItem->available_qty) && (int)$cItem->available_qty <= 0) {
+                        $this->session->set_flashdata('error_message', 'Some items in your cart are out of stock. Please remove them to proceed.');
+                        redirect('/cart');
+                    }
+                }
+            }
         } else {
             redirect('/');
             $data['CartData'] = array();
