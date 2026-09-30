@@ -180,7 +180,7 @@
 }
 
 .view-product-btn:hover {
-    background: #000;
+    bcolor: #fff !important;
     color: #fff !important;
     border-color: #000;
 }
