@@ -238,16 +238,6 @@
     overflow: visible !important;
 }
 
-
-@media (max-width: 767px) {
-
-    .category-product .quick-view-btn {
-        opacity: 1 !important;
-        visibility: visible !important;
-    }
-
-}
-
 </style>
 
 <div class="category-product products wrapper grid products-grid">
