@@ -1,175 +1,708 @@
+<style>
+.category-tree .toggle {
+    display: inline-block;
+    min-width: 18px;
+    text-align: center;
+    border: none;
+    border-radius: 3px;
+    line-height: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    margin-right: 6px;
+    position: relative;
+    z-index: 2;
+    color: #444d5c;
+}
+
+/* PRODUCT IMAGE */
+.product-image {
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.product-image .product-image-photo {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: opacity 0.2s ease;
+}
+
+/* QUICK VIEW BUTTON */
+.product-image .quick-view-btn {
+    position: absolute;
+
+    top: 50%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    background: #ffd200;
+    color: #000;
+
+    padding: 9px 14px;
+
+    border: 1px solid #ffd200;
+    border-radius: 3px;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    text-decoration: none;
+    cursor: pointer;
+
+    z-index: 10;
+
+    /* Hidden normally */
+    opacity: 0;
+    visibility: hidden;
+
+    transition: all 0.2s ease;
+}
+
+/* SHOW QUICK VIEW ON HOVER */
+.product-image:hover .quick-view-btn {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* QUICK VIEW HOVER */
+.product-image .quick-view-btn:hover {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+}
+
+/* IMAGE HOVER */
+.product-image:hover .product-image-photo {
+    opacity: 0.85;
+}
+
+/* PRODUCT ITEM */
+.product-item {
+    background: #fff;
+    position: relative;
+}
+
+/* PRODUCT NAME */
+.product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 10px 0 6px;
+}
+
+/* PRICE */
+.price-box {
+    margin-bottom: 8px;
+}
+
+.special-price {
+    color: #ff7a00;
+    font-size: 17px;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+.old-price {
+    color: #999;
+    font-size: 14px;
+}
+
+.regular-price {
+    color: #ff7a00;
+    font-size: 17px;
+    font-weight: 500;
+}
+
+/* DEAL ENDS */
+.deal-ends {
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+/* VIEW PRODUCT BUTTON */
+.product-details .btn {
+    width: 100%;
+    margin-top: 5px;
+}
+
+.product-details .btn-danger:hover {
+    background-color: #ffd200;
+    border-color: #ffd200;
+    color: #fff !important;
+}
+</style>
+
+
 <?php $this->load->view('common/header'); ?>
 
-<!-- Intro Section -->
+
+<!-- INTRO SECTION -->
 <div class="daily-deal-intro">
-    <h1><?= lang('flash_sale_title'); ?></h1>
+
+    <h1>
+        <?= lang('flash_sale_title'); ?>
+    </h1>
+
     <table class="daily-deal-table">
         <tbody>
             <tr>
+
                 <td class="deal-img">
-                    <img src="<?php echo base_url('public/images/ym-flash-sale-web.png'); ?>" alt="<?= lang('flash_sale_alt'); ?>">
+
+                    <img
+                        src="<?php echo base_url('public/images/ym-flash-sale-web.png'); ?>"
+                        alt="<?= lang('flash_sale_alt'); ?>"
+                    >
+
                 </td>
+
                 <td class="deal-text">
-                    <p><strong><?= lang('flash_sale_intro1'); ?></strong></p>
-                    <p><?= lang('flash_sale_intro2'); ?></p>
-                    <p><?= lang('flash_sale_intro3'); ?></p>
-                    <p><strong><?= lang('flash_sale_intro4'); ?></strong></p>
+
+                    <p>
+                        <strong>
+                            <?= lang('flash_sale_intro1'); ?>
+                        </strong>
+                    </p>
+
+                    <p>
+                        <?= lang('flash_sale_intro2'); ?>
+                    </p>
+
+                    <p>
+                        <?= lang('flash_sale_intro3'); ?>
+                    </p>
+
+                    <p>
+                        <strong>
+                            <?= lang('flash_sale_intro4'); ?>
+                        </strong>
+                    </p>
+
                 </td>
+
             </tr>
         </tbody>
     </table>
+
 </div>
 
+
 <?php
-function buildCategoryTree($categories, $parent_id = 0) {
+/* =========================================================
+ * CATEGORY TREE
+ * ========================================================= */
+
+function buildCategoryTree($categories, $parent_id = 0)
+{
     $html = '';
     $hasChild = false;
 
     foreach ($categories as $cat) {
+
         if ($cat->parent_id == $parent_id) {
+
             if (!$hasChild) {
+
                 $html .= '<ul>';
                 $hasChild = true;
+
             }
 
-            $children = array_filter($categories, function($c) use ($cat) {
-                return $c->parent_id == $cat->id;
-            });
+            $children = array_filter(
+                $categories,
+                function ($c) use ($cat) {
+                    return $c->parent_id == $cat->id;
+                }
+            );
+
             $hasChildren = !empty($children);
 
-            $html .= '<li class="tree-node'.($hasChildren ? ' dropdown' : '').'">';
-            
+            $html .= '<li class="tree-node' .
+                ($hasChildren ? ' dropdown' : '') .
+                '">';
+
             if ($hasChildren) {
+
                 $html .= '<span class="toggle">></span>';
+
             }
 
-            $html .= '<a href="'.site_url('flash-sale/category/'.$cat->id).'"><i class="fa fa-angle-right"></i> '.$cat->cat_name.'</a>';
+            $html .= '<a href="' .
+                site_url('flash-sale/category/' . $cat->id) .
+                '">';
+
+            $html .= '<i class="fa fa-angle-right"></i> ';
+
+            $html .= $cat->cat_name;
+
+            $html .= '</a>';
 
             if ($hasChildren) {
-                $html .= buildCategoryTree($categories, $cat->id);
+
+                $html .= buildCategoryTree(
+                    $categories,
+                    $cat->id
+                );
+
             }
 
             $html .= '</li>';
         }
     }
 
-    if ($hasChild) $html .= '</ul>';
+    if ($hasChild) {
+
+        $html .= '</ul>';
+
+    }
+
     return $html;
 }
 ?>
 
+
 <main id="maincontent" class="page-main">
+
     <div class="container-fluid">
+
         <div class="row">
 
-            <!-- Sidebar: Category Filter -->
+
+            <!-- =====================================================
+                 SIDEBAR
+                 ===================================================== -->
+
             <div class="col-md-3 order-md-1">
+
                 <div class="sidebar sidebar-main mb-4">
-                    <h2><?= lang('categories'); ?></h2>
-                    <?php (new TopMenu('categorymenu'))->render(); ?>
+
+                    <h2>
+                        <?= lang('categories'); ?>
+                    </h2>
+
+                    <?php
+                    (new TopMenu('categorymenu'))->render();
+                    ?>
+
                 </div>
+
             </div>
 
-            <!-- Main content: Products -->
+
+            <!-- =====================================================
+                 MAIN CONTENT
+                 ===================================================== -->
+
             <div class="col-md-9 order-md-2">
+
                 <div class="page-title-wrapper mb-4">
-                    <h2 class="page-title"><?= lang('flash_sale'); ?></h2>
+
+                    <h2 class="page-title">
+                        <?= lang('flash_sale'); ?>
+                    </h2>
+
                 </div>
+
 
                 <div class="category-products">
+
                     <div class="row">
-                        <?php if(!empty($products)): ?>
-                            <?php foreach($products as $p): ?>
+
+
+                        <?php if (!empty($products)): ?>
+
+
+                            <?php foreach ($products as $p): ?>
+
+
                                 <div class="col-md-4 col-sm-6 mb-4">
+
+
                                     <div class="product-item border p-2 h-100">
+
+
+                                        <!-- =================================================
+                                             PRODUCT IMAGE
+                                             ================================================= -->
+
                                         <div class="product-image text-center mb-2">
-                                            <?php 
-                                            $imgPath = FCPATH.'uploads/products/thumb/'.$p->base_image;
-                                            if(!empty($p->base_image) && file_exists($imgPath)): ?>
-                                                <img class="product-image-photo img-fluid" 
-                                                     src="<?php echo base_url('uploads/products/thumb/'.$p->base_image); ?>" 
-                                                     alt="<?php echo $p->name; ?>">
+
+
+                                            <?php
+
+                                            $imgPath =
+                                                FCPATH .
+                                                'uploads/products/thumb/' .
+                                                $p->base_image;
+
+                                            ?>
+
+
+                                            <?php if (
+                                                !empty($p->base_image) &&
+                                                file_exists($imgPath)
+                                            ): ?>
+
+
+                                                <img
+                                                    class="product-image-photo img-fluid"
+                                                    src="<?php
+                                                    echo base_url(
+                                                        'uploads/products/thumb/' .
+                                                        $p->base_image
+                                                    );
+                                                    ?>"
+                                                    alt="<?php
+                                                    echo htmlspecialchars(
+                                                        $p->name,
+                                                        ENT_QUOTES,
+                                                        'UTF-8'
+                                                    );
+                                                    ?>"
+                                                >
+
+
                                             <?php else: ?>
-                                                <img class="product-image-photo img-fluid" 
-                                                     src="https://via.placeholder.com/300x300?text=No+Image" 
-                                                     alt="No Image">
+
+
+                                                <img
+                                                    class="product-image-photo img-fluid"
+                                                    src="https://via.placeholder.com/300x300?text=No+Image"
+                                                    alt="No Image"
+                                                >
+
+
                                             <?php endif; ?>
+
+
+                                            <!-- =================================================
+                                                 QUICK VIEW BUTTON
+                                                 SAME AS DAILY DEALS
+                                                 ================================================= -->
+
+                                            <a
+                                                href="javascript:void(0);"
+                                                class="quick-view-btn"
+                                                onclick="QuickViewProdDetails(
+                                                    '<?php
+                                                    echo htmlspecialchars(
+                                                        $p->url_key,
+                                                        ENT_QUOTES,
+                                                        'UTF-8'
+                                                    );
+                                                    ?>',
+                                                    '<?php
+                                                    echo site_url(
+                                                        'product-detail/' .
+                                                        $p->url_key
+                                                    );
+                                                    ?>'
+                                                );"
+                                            >
+
+                                                <?php
+                                                echo $this->lang->line(
+                                                    'view_label'
+                                                );
+                                                ?>
+
+                                            </a>
+
+
                                         </div>
+
+
+                                        <!-- =================================================
+                                             PRODUCT DETAILS
+                                             ================================================= -->
+
                                         <div class="product-details text-center">
-                                            <h3 class="product-name"><?php echo $p->name; ?></h3>
-                                            <div class="price-box mb-2"> 
-                                                <?php if (!empty($p->special_price)): ?> 
+
+
+                                            <!-- PRODUCT NAME -->
+
+                                            <h3 class="product-name">
+
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    $p->name,
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                );
+                                                ?>
+
+                                            </h3>
+
+
+                                            <!-- =================================================
+                                                 PRICE
+                                                 ================================================= -->
+
+                                            <div class="price-box mb-2">
+
+
+                                                <?php if (
+                                                    !empty($p->special_price)
+                                                ): ?>
+
+
+                                                    <!-- SPECIAL PRICE -->
+
                                                     <span class="special-price">
-                                                        MUR <?php echo number_format($p->special_price, 2); ?>
-                                                    </span> 
+
+                                                        MUR
+                                                        <?php
+                                                        echo number_format(
+                                                            $p->special_price,
+                                                            2
+                                                        );
+                                                        ?>
+
+                                                    </span>
+
+
+                                                    <!-- OLD PRICE -->
 
                                                     <span class="old-price text-muted">
-                                                        <s>MUR <?php echo number_format($p->webshop_price, 2); ?></s>
-                                                    </span> 
-                                                <?php else: ?> 
+
+                                                        <s>
+
+                                                            MUR
+                                                            <?php
+                                                            echo number_format(
+                                                                $p->webshop_price,
+                                                                2
+                                                            );
+                                                            ?>
+
+                                                        </s>
+
+                                                    </span>
+
+
+                                                <?php else: ?>
+
+
+                                                    <!-- REGULAR PRICE -->
+
                                                     <span class="regular-price">
-                                                        MUR <?php echo number_format($p->webshop_price, 2); ?>
-                                                    </span> 
-                                                <?php endif; ?> 
+
+                                                        MUR
+                                                        <?php
+                                                        echo number_format(
+                                                            $p->webshop_price,
+                                                            2
+                                                        );
+                                                        ?>
+
+                                                    </span>
+
+
+                                                <?php endif; ?>
+
+
                                             </div>
-                                                <p class="deal-ends mb-2"><?= lang('sale_ends'); ?>: <?php echo date("d M Y, H:i", $p->flash_sale_ends_at); ?></p>
-                                            <a href="<?php echo site_url('product-detail/'.$p->url_key); ?>" class="btn btn-sm btn-danger"><?= lang('view_product'); ?></a>
+
+
+                                            <!-- =================================================
+                                                 FLASH SALE ENDS
+                                                 ================================================= -->
+
+                                            <p class="deal-ends mb-2">
+
+                                                <?= lang('sale_ends'); ?>:
+
+                                                <?php
+                                                echo date(
+                                                    "d M Y, H:i",
+                                                    $p->flash_sale_ends_at
+                                                );
+                                                ?>
+
+                                            </p>
+
+
+                                            <!-- =================================================
+                                                 VIEW PRODUCT BUTTON
+                                                 ================================================= -->
+
+                                            <a
+                                                href="<?php
+                                                echo site_url(
+                                                    'product-detail/' .
+                                                    $p->url_key
+                                                );
+                                                ?>"
+                                                class="btn btn-sm btn-danger"
+                                            >
+
+                                                <?= lang('view_product'); ?>
+
+                                            </a>
+
+
                                         </div>
+
+
                                     </div>
+
+
                                 </div>
+
+
                             <?php endforeach; ?>
+
+
                         <?php else: ?>
+
+
+                            <!-- =================================================
+                                 NO FLASH SALE PRODUCTS
+                                 ================================================= -->
+
                             <div class="col-12">
-                                <div class="alert alert-info"><?= lang('no_flash_sale_items'); ?></div>
+
+                                <div class="alert alert-info">
+
+                                    <?= lang('no_flash_sale_items'); ?>
+
+                                </div>
+
                             </div>
+
+
                         <?php endif; ?>
+
+
                     </div>
 
+
+                    <!-- =====================================================
+                         PAGINATION
+                         ===================================================== -->
+
                     <div class="pagination-wrapper mt-4">
-                        <?php echo $pagination ?? ''; ?>
+
+                        <?php
+                        echo $pagination ?? '';
+                        ?>
+
                     </div>
+
+
                 </div>
+
             </div>
 
         </div>
+
     </div>
+
 </main>
+
+
+<!-- =============================================================
+     CATEGORY TREE JAVASCRIPT
+     ============================================================= -->
 
 <script>
 (function (w, d) {
-  function boot() {
-    if (!w.jQuery) { setTimeout(boot, 50); return; }
-    var $ = w.jQuery;
 
-    $('.category-tree .tree-node > ul').hide();
+    function boot() {
 
-    var $active = $('.category-tree a.active');
-    if ($active.length) {
-      $active.parents('ul').show();
-      $active.parents('li.tree-node')
-             .children('.toggle')
-             .text('-')
-             .attr('aria-expanded', true);
+        if (!w.jQuery) {
+
+            setTimeout(boot, 50);
+
+            return;
+        }
+
+        var $ = w.jQuery;
+
+
+        /*
+         * Collapse child categories initially
+         */
+        $('.category-tree .tree-node > ul').hide();
+
+
+        /*
+         * Open active category path
+         */
+        var $active = $('.category-tree a.active');
+
+        if ($active.length) {
+
+            $active.parents('ul').show();
+
+            $active.parents('li.tree-node')
+                .children('.toggle')
+                .text('-')
+                .attr('aria-expanded', true);
+
+        }
+
+
+        /*
+         * Category toggle
+         */
+        $(d).on(
+            'click',
+            '.category-tree .toggle',
+            function (e) {
+
+                e.preventDefault();
+
+                e.stopPropagation();
+
+
+                var $li = $(this).closest(
+                    'li.tree-node'
+                );
+
+
+                var $child =
+                    $li.children('ul').first();
+
+
+                if (!$child.length) {
+
+                    $child =
+                        $li.find('> ul').first();
+
+                }
+
+
+                if ($child.length) {
+
+                    var isVisible =
+                        $child.is(':visible');
+
+
+                    $child.slideToggle(150);
+
+
+                    $(this)
+                        .text(isVisible ? '>' : '>')
+                        .attr(
+                            'aria-expanded',
+                            !isVisible
+                        );
+
+                }
+
+            }
+        );
+
     }
 
-    $(d).on('click', '.category-tree .toggle', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
 
-      var $li = $(this).closest('li.tree-node');
-      var $child = $li.children('ul').first();
-      if (!$child.length) $child = $li.find('> ul').first();
+    boot();
 
-      if ($child.length) {
-        var isVisible = $child.is(':visible');
-        $child.slideToggle(150);
-        $(this).text(isVisible ? '>' : '>')
-               .attr('aria-expanded', !isVisible);
-      }
-    });
-  }
-  boot();
 })(window, document);
 </script>
+
 
 <?php $this->load->view('common/footer'); ?>
