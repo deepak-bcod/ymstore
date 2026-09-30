@@ -267,7 +267,7 @@ function buildCategoryTree($categories, $parent_id = 0) {
                                                 '<?php echo site_url('product-detail/' . $p->url_key); ?>'
                                             );"
                                         >
-                                            <?php echo $this->lang->line('view'); ?>
+                                            <?php echo $this->lang->line('view_label'); ?>
                                         </a>
 
                                     </div>
