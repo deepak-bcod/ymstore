@@ -255,14 +255,14 @@ class B2BOrdersController extends CI_Controller
 
 			$shipment_type_label = $this->CommonModel->getOrderShipmentLabel($readData->shipment_type);
 
-			if ($readData->parent_id > 0) {
+			// Get actual shopper/customer name for ALL shipment types
+			$customerName = $this->B2BOrdersModel->getOrderCustomerNameByOrderId(
+				$readData->order_id
+			);
 
-				$customerName = $this->B2BOrdersModel->getOrderCustomerNameByOrderId($readData->order_id);
-
-			} else {
-
+			// Fallback
+			if (empty(trim($customerName))) {
 				$customerName = $readData->customer_name;
-
 			}
 
 			$publisher_name = $this->CommonModel->getWebShopNameByShopId($readData->publisher_id);
