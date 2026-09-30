@@ -44,7 +44,7 @@
 }
 
 
-/* PRODUCT IMAGE - NO SIZE / OPACITY CHANGE */
+/* PRODUCT IMAGE - NO CHANGE */
 
 .product-image .product-image-photo {
     width: 100%;
@@ -54,7 +54,7 @@
 
 
 /* =========================================================
-   ONLY BACKGROUND COLOR ON HOVER
+   IMAGE HOVER - TRANSPARENT BACKGROUND
 ========================================================= */
 
 .product-image::after {
@@ -67,32 +67,23 @@
     right: 0;
     bottom: 0;
 
-    /*
-     * Transparent black background
-     */
+    /* Transparent dark overlay */
     background: rgba(0, 0, 0, 0.35);
 
-    /*
-     * Hidden normally
-     */
     opacity: 0;
     visibility: hidden;
 
-    transition: opacity 0.2s ease;
+    transition:
+        opacity 0.2s ease,
+        visibility 0.2s ease;
 
-    /*
-     * Overlay
-     */
     z-index: 5;
 
-    /*
-     * Do not block the View button
-     */
     pointer-events: none;
 }
 
 
-/* SHOW ONLY BACKGROUND COLOR */
+/* SHOW TRANSPARENT BACKGROUND */
 
 .product-image:hover::after {
     opacity: 1;
@@ -115,9 +106,11 @@
     color: #fff;
 
     /*
-     * Black transparent View button
+     * IMPORTANT:
+     * Transparent button
+     * NOT solid black
      */
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.35);
 
     padding: 9px 14px;
 
@@ -132,9 +125,6 @@
 
     z-index: 10;
 
-    /*
-     * Hidden normally
-     */
     opacity: 0;
     visibility: hidden;
 
@@ -147,7 +137,9 @@
 }
 
 
-/* SHOW VIEW BUTTON */
+/* =========================================================
+   SHOW VIEW BUTTON
+========================================================= */
 
 .product-image:hover .quick-view-btn {
     opacity: 1;
@@ -164,21 +156,6 @@
     color: #000;
     border-color: #ffd200;
 }
-
-
-/* =========================================================
-   IMPORTANT
-   NO IMAGE OPACITY CHANGE
-========================================================= */
-
-/*
-DO NOT ADD:
-
-.product-image:hover .product-image-photo {
-    opacity: 0.85;
-}
-
-*/
 
 
 /* =========================================================
@@ -257,9 +234,7 @@ DO NOT ADD:
     }
 
 }
-
 </style>
-
 
 <?php $this->load->view('common/header'); ?>
 
