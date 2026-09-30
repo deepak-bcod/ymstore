@@ -1470,7 +1470,7 @@ $lang['deal_ends'] = "Deal ends:";
 $lang['view'] = "View";
 
 
-$lang['view_product'] = "View Product";
+$lang['view_product'] = "View Details";
 
 $lang['no_deals'] = "No daily deals found.";
 
