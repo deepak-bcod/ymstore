@@ -29,7 +29,6 @@
     transition: opacity 0.2s ease;
 }
 
-/* QUICK VIEW BUTTON */
 .product-image .quick-view-btn {
     position: absolute;
 
@@ -38,12 +37,12 @@
 
     transform: translate(-50%, -50%);
 
-    background: #ffd200;
-    color: #000;
+    
+    color: #fff;
 
     padding: 9px 14px;
 
-    border: 1px solid #ffd200;
+    border: 1px solid #fff;
     border-radius: 3px;
 
     font-size: 14px;
@@ -61,18 +60,24 @@
     transition: all 0.2s ease;
 }
 
-/* SHOW QUICK VIEW ON HOVER */
+
 .product-image:hover .quick-view-btn {
     opacity: 1;
     visibility: visible;
 }
 
 
+.product-image .quick-view-btn:hover {
+    background: #ffd200;
+    color: #000;
+    border-color: #ffd200;
+}
 
-/* IMAGE HOVER */
+
 .product-image:hover .product-image-photo {
     opacity: 0.85;
 }
+
 
 /* PRODUCT ITEM */
 .product-item {
