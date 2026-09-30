@@ -143,7 +143,7 @@ class B2BOrdersController extends CI_Controller
 
 			$order_url = '';
 
-			if ($current_tab == 'b2b-orders') {
+			if ($current_tab == 'ES-orders' || $current_tab == 'b2b-orders' || $current_tab == 'orders' || empty($current_tab)) {
 
 				$order_url = base_url() . 'webshop/b2b/order/detail/' . $readData->order_id;
 
@@ -151,17 +151,15 @@ class B2BOrdersController extends CI_Controller
 
 			} else if ($current_tab == 'split-orders') {
 
+				$order_url = base_url() . 'webshop/b2b/split-order/detail/' . $readData->order_id;
 
-
-				$order_url = base_url() . 'b2b/split-order/detail/' . $readData->order_id;
-
-				$print_url = base_url() . 'b2b/order/print/' . $readData->order_id;
+				$print_url = base_url() . 'webshop/b2b/order/print/' . $readData->order_id;
 
 			} else if ($current_tab == 'shipped-orders') {
 
-				$order_url = base_url() . 'b2b/shipped-order/detail/' . $readData->order_id;
+				$order_url = base_url() . 'webshop/b2b/shipped-order/detail/' . $readData->order_id;
 
-				$print_url = base_url() . 'b2b/shipped-order/print/' . $readData->order_id;
+				$print_url = base_url() . 'webshop/b2b/shipped-order/print/' . $readData->order_id;
 
 			} else if ($current_tab == 'cancel-orders') {
 
@@ -171,9 +169,9 @@ class B2BOrdersController extends CI_Controller
 
 			} else {
 
-				$order_url = base_url();
+				$order_url = base_url() . 'webshop/b2b/order/detail/' . $readData->order_id;
 
-				$print_url = base_url();
+				$print_url = base_url() . 'webshop/b2b/order/print/' . $readData->order_id;
 
 			}
 
@@ -249,79 +247,8 @@ class B2BOrdersController extends CI_Controller
 				$final_status = $readData->status;
 			}
 
-			// Detect Replacement / Return request if order is not already marked as replacement/return
-			if (!in_array((int)$final_status, [14, 15, 16, 17, 18, 19, 20, 21, 22])) {
-				// 1. Check sales_order_replacement
-				$rep = $this->db->select('sor.status as rep_status, sori.status as item_status')
-					->from('sales_order_replacement sor')
-					->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'left')
-					->group_start()
-						->where('sor.order_id', $readData->order_id)
-						->or_where('sor.order_id', $readData->webshop_order_id)
-					->group_end()
-					->order_by('sor.replacement_order_id', 'DESC')
-					->get()->row();
-
-				if (!empty($rep)) {
-					$rep_st  = (int)($rep->rep_status ?? 0);
-					$item_st = (int)($rep->item_status ?? 0);
-					if ($rep_st == 4 || $item_st == 4 || $item_st == 21) {
-						$final_status = 21; // Replacement Rejected
-					} elseif (in_array($rep_st, [3, 5, 6, 19]) || in_array($item_st, [3, 5, 6, 19])) {
-						$final_status = 19; // Replaced
-					} elseif (in_array($rep_st, [1, 2, 18]) || in_array($item_st, [1, 2, 18])) {
-						$final_status = 18; // Replacement Approved
-					} else {
-						$final_status = 15; // Replacement Requested
-					}
-					if ($readData->status != $final_status) {
-						$this->db->where('order_id', $readData->order_id)->update('b2b_orders', ['status' => $final_status, 'updated_at' => time()]);
-					}
-				} else {
-					// 2. Check sales_order_return
-					$ret = $this->db->select('sor.status as ret_status, sor.refund_status, sori.status as item_status')
-						->from('sales_order_return sor')
-						->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'left')
-						->group_start()
-							->where('sor.order_id', $readData->order_id)
-							->or_where('sor.order_id', $readData->webshop_order_id)
-						->group_end()
-						->order_by('sor.return_order_id', 'DESC')
-						->get()->row();
-
-					if (!empty($ret)) {
-						$ret_st  = (int)($ret->ret_status ?? 0);
-						$ref_st  = isset($ret->refund_status) ? (int)$ret->refund_status : -1;
-						$item_st = (int)($ret->item_status ?? 0);
-						if ($ref_st == 1 || $ret_st == 4 || $item_st == 4) {
-							$final_status = 17; // Refund Paid
-						} elseif (in_array($ret_st, [2, 5, 20]) || $ref_st == 2 || $item_st == 20) {
-							$final_status = 20; // Return Rejected
-						} elseif (in_array($ret_st, [1, 3]) || $item_st == 1 || $item_st == 22) {
-							$final_status = 22; // Return Approved
-						} else {
-							$final_status = 14; // Return Requested
-						}
-						if ($readData->status != $final_status) {
-							$this->db->where('order_id', $readData->order_id)->update('b2b_orders', ['status' => $final_status, 'updated_at' => time()]);
-						}
-					} else {
-						// 3. Fallback: check b2b_order_items directly
-						$item_stat = $this->db->select('status')
-							->from('b2b_order_items')
-							->where('order_id', $readData->order_id)
-							->where_in('status', [14, 15, 16, 17, 18, 19, 20, 21, 22])
-							->order_by('item_id', 'DESC')
-							->get()->row();
-						if (!empty($item_stat) && !empty($item_stat->status)) {
-							$final_status = (int)$item_stat->status;
-							if ($readData->status != $final_status) {
-								$this->db->where('order_id', $readData->order_id)->update('b2b_orders', ['status' => $final_status, 'updated_at' => time()]);
-							}
-						}
-					}
-				}
-			}
+			// Resolve Return / Replacement workflow status consistently
+			$final_status = $this->CommonModel->resolveReturnReplacementStatus($readData->order_id, $readData->webshop_order_id, $final_status);
 
 			$order_status_label = $this->CommonModel->getOrderStatusLabel($final_status);
 
@@ -329,14 +256,14 @@ class B2BOrdersController extends CI_Controller
 
 			$shipment_type_label = $this->CommonModel->getOrderShipmentLabel($readData->shipment_type);
 
-			if ($readData->parent_id > 0) {
+			// Get actual shopper/customer name for ALL shipment types
+			$customerName = $this->B2BOrdersModel->getOrderCustomerNameByOrderId(
+				$readData->order_id
+			);
 
-				$customerName = $this->B2BOrdersModel->getOrderCustomerNameByOrderId($readData->order_id);
-
-			} else {
-
+			// Fallback
+			if (empty(trim($customerName))) {
 				$customerName = $readData->customer_name;
-
 			}
 
 			$publisher_name = $this->CommonModel->getWebShopNameByShopId($readData->publisher_id);
@@ -401,7 +328,8 @@ class B2BOrdersController extends CI_Controller
 
 			$row[] = '<a class="link-purple" href="' . $order_url . '">' . $readData->increment_id . '</a>';
 
-			$row[] = (isset($_sales_order->increment_id) ? $_sales_order->increment_id : '');
+			$es_order_no = (isset($_sales_order->increment_id) && $_sales_order->increment_id != '') ? $_sales_order->increment_id : ((isset($_sales_order->order_barcode) && $_sales_order->order_barcode != '') ? $_sales_order->order_barcode : '');
+			$row[] = ($es_order_no != '') ? '<a class="link-purple" href="' . $order_url . '">' . $es_order_no . '</a>' : '';
 
 			// $row[]=date(SIS_DATE_FM_WT,$readData->created_at);$_sales_order->increment_id
 
@@ -521,25 +449,36 @@ class B2BOrdersController extends CI_Controller
 
 	{
 
-
-
-		$increment_id = $_POST['increment_id'];
+		$increment_id = trim($this->input->post('increment_id'));
 
 		$orderdata = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('increment_id' => $increment_id), 'order_id,increment_id,parent_id,main_parent_id,status');
+		if (empty($orderdata)) {
+			$orderdata = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('order_barcode' => $increment_id), 'order_id,increment_id,parent_id,main_parent_id,status');
+		}
+		if (empty($orderdata)) {
+			$this->load->model('ShopProductModel');
+			$salesOrder = $this->ShopProductModel->getSingleDataByID('sales_order', array('increment_id' => $increment_id), 'order_id');
+			if (empty($salesOrder)) {
+				$salesOrder = $this->ShopProductModel->getSingleDataByID('sales_order', array('order_barcode' => $increment_id), 'order_id');
+			}
+			if (!empty($salesOrder)) {
+				$orderdata = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('webshop_order_id' => $salesOrder->order_id), 'order_id,increment_id,parent_id,main_parent_id,status');
+			}
+		}
 
-		if (isset($orderdata)) {
+		if (isset($orderdata) && !empty($orderdata)) {
 
 			if ($orderdata->main_parent_id != 0) {
 
-				$redirect_url = base_url() . 'b2b/split-order/detail/' . $orderdata->order_id;
+				$redirect_url = base_url() . 'webshop/b2b/split-order/detail/' . $orderdata->order_id;
 
 			} else if ($orderdata->status == 4 || $orderdata->status == 5 || $orderdata->status == 6) {
 
-				$redirect_url = base_url() . 'b2b/shipped-order/detail/' . $orderdata->order_id;
+				$redirect_url = base_url() . 'webshop/b2b/shipped-order/detail/' . $orderdata->order_id;
 
 			} else {
 
-				$redirect_url = base_url() . 'b2b/order/detail/' . $orderdata->order_id;
+				$redirect_url = base_url() . 'webshop/b2b/order/detail/' . $orderdata->order_id;
 
 			}
 
@@ -563,13 +502,28 @@ class B2BOrdersController extends CI_Controller
 
 
 
-	function detail()
+	function detail($order_id = 0)
 
 	{
 
-		$current_tab = $this->uri->segment(3);
+		$segments = $this->uri->segment_array();
+		if (empty($order_id) || !is_numeric($order_id)) {
+			$last_seg = end($segments);
+			if (is_numeric($last_seg)) {
+				$order_id = $last_seg;
+			} else {
+				$order_id = $this->uri->segment(5);
+			}
+		}
 
-		$order_id = $this->uri->segment(5);
+		$current_tab = $this->uri->segment(3);
+		if (in_array('shipped-order', $segments) || $current_tab == 'shipped-order') {
+			$current_tab = 'shipped-order';
+		} elseif (in_array('split-order', $segments) || $current_tab == 'split-order') {
+			$current_tab = 'split-order';
+		} else {
+			$current_tab = 'order';
+		}
 
 		if (isset($order_id) && $order_id > 0) {
 
@@ -577,7 +531,7 @@ class B2BOrdersController extends CI_Controller
 
 			$data['side_menu'] = 'b2b';
 
-			$data['current_tab'] = (isset($current_tab) && $current_tab != '') ? $current_tab : '';
+			$data['current_tab'] = (isset($current_tab) && $current_tab != '') ? $current_tab : 'order';
 
 
 
@@ -589,15 +543,20 @@ class B2BOrdersController extends CI_Controller
 
 			$data['OrderData'] = $OrderData = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('order_id' => $order_id), '');
 
-			// echo $this->db->last_query();
-
-			// die();
+			if (empty($OrderData)) {
+				// Fallback: check if $order_id was webshop_order_id (sales_order ID)
+				$data['OrderData'] = $OrderData = $this->B2BOrdersModel->getSingleDataByID('b2b_orders', array('webshop_order_id' => $order_id), '');
+			}
 
 			if (empty($OrderData)) {
 
 				redirect('webshop/b2b-orders');
 
 			}
+			$order_id = $OrderData->order_id;
+
+			// Ensure OrderData status is accurately resolved for Return / Replacement workflow
+			$OrderData->status = $this->CommonModel->resolveReturnReplacementStatus($OrderData->order_id, $OrderData->webshop_order_id, $OrderData->status);
 
 			$data['OrderItems'] = $OrderItems = $this->B2BOrdersModel->getOrderItems($order_id);
 
@@ -723,13 +682,13 @@ class B2BOrdersController extends CI_Controller
 
 			} else {
 
-				redirect('/b2b/orders');
+				$this->load->view('b2b/order/main-order-detail', $data);
 
 			}
 
 		} else {
 
-			redirect('/b2b/orders');
+			redirect('webshop/b2b-orders');
 
 		}
 		
@@ -746,7 +705,7 @@ class B2BOrdersController extends CI_Controller
     }
     
     $config['upload_path']   = './uploads/order_documents/';
-    $config['allowed_types'] = 'jpg|png|pdf';
+    $config['allowed_types'] = 'jpg|jpeg|png|pdf';
     $config['max_size']      = 5120;
   
 	if (!is_dir($config['upload_path'])) {
@@ -773,27 +732,31 @@ class B2BOrdersController extends CI_Controller
 }
 
 public function download_order_document($order_id) {
-	
     $this->load->helper('download');
     $this->load->model('B2BOrdersModel');
-    
+   
     $order = $this->B2BOrdersModel->get_document_by_order_id($order_id);
-
+ 
     if ($order && !empty($order->document_file)) {
-        // FCPATH correctly locates your root folder, preventing path issues
         $file_path = FCPATH . 'uploads/order_documents/' . $order->document_file;
-
+ 
         if (file_exists($file_path)) {
+            // If it's just a HEAD request (from AJAX check), return 200 OK without streaming the file yet
+            if ($this->input->method() === 'head') {
+                exit;
+            }
+
             $data = file_get_contents($file_path);
             force_download($order->document_file, $data);
             exit;
-        } else {
-            // This will now show you the exact wrong path if it fails again
-            die("File not found at: " . $file_path);
         }
-    } else {
-        die("No document found in database.");
     }
+    
+    // Return a 404 header so AJAX catches it as an error and triggers the alert
+    output_status:
+    set_status_header(404);
+    echo "Invoice not uploaded by the merchant";
+    exit;
 }
 	public function markDelivered()
 
@@ -835,20 +798,8 @@ public function download_order_document($order_id) {
 
 			$orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
 
-
-
 			if ($orderData && !empty($orderData->webshop_order_id)) {
-
-				$updated2 = $this->CommonModel->updateData(
-
-					'sales_order',
-
-					['order_id' => $orderData->webshop_order_id],
-
-					['status' => 2]
-
-				);
-
+				$this->CommonModel->checkAndUpdateMainOrderStatus($orderData->webshop_order_id);
 			}
 
 
@@ -906,7 +857,7 @@ public function download_order_document($order_id) {
 					'recipient_type' => 'admin',
 					'recipient_id'   => 1, // ✅ GLOBAL admin notification
 					'title'          => 'B2B Pickup Generated',
-					'message'        => 'Order no ' . $orderData->order_barcode . 'Pickup Generated by the Merchant.',
+					'message'        => 'Order no ' . $orderData->order_barcode .   ' Pickup Generated by the Merchant.',
 					'data'           => json_encode([
 						'order_id' => $orderData->order_barcode,
 						'status'   => 'pickup_generated'
@@ -921,7 +872,7 @@ public function download_order_document($order_id) {
 
 			if ($updated) {
 
-				echo json_encode(['status' => 200, 'message' => 'Order pickup request generated successfully.']);
+				echo json_encode(['status' => 200, 'message' => lang('pickup_request_success')]);
 
 			} else {
 
@@ -1013,20 +964,8 @@ public function download_order_document($order_id) {
 
 			$orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
 
-
-
 			if ($orderData && !empty($orderData->webshop_order_id)) {
-
-				$updated2 = $this->CommonModel->updateData(
-
-					'sales_order',
-
-					['order_id' => $orderData->webshop_order_id],
-
-					['status' => 2]
-
-				);
-
+				$this->CommonModel->checkAndUpdateMainOrderStatus($orderData->webshop_order_id);
 			}
 
 
@@ -1085,11 +1024,9 @@ public function download_order_document($order_id) {
 					'subtype'        => 'b2b_processing',
 					'recipient_type' => 'admin',
 					'recipient_id'   => 1,
-					'title'          => $this->lang->line('b2b_order_processed'),
-					'message'        => sprintf(
-						$this->lang->line('b2b_order_processed_message'),
-						$orderData->order_barcode
-					),
+					'title'          =>'Started Processing',
+					'message'        => $orderData->order_barcode  . ' '   . 
+						                   'Merchant has started processing the order',
 					'data'           => json_encode([
 						'order_id' => $orderData->order_barcode,
 						'status'   => 'order_processing'
@@ -1105,7 +1042,7 @@ public function download_order_document($order_id) {
 			if ($updated) {
 				echo json_encode([
 					'status'  => 200,
-					'message' => $this->lang->line('order_processing_success')
+					'message' => $this->lang->line('	')
 				]);
 			} else {
 				echo json_encode([
@@ -1180,7 +1117,7 @@ public function download_order_document($order_id) {
 
 			if (empty($OrderData)) {
 
-				redirect('webshop/b2b-orders');
+				redirect('webshop/ES-orders');
 
 			}
 
@@ -11537,7 +11474,19 @@ exit;*/
 		$LogindID = isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : '';
 		// print_r($LogindID);die;
 		$this->load->model('B2BOrdersModel');
-		$data['orders'] = $this->B2BOrdersModel->getPayoutOrders(10000,0,$LogindID); // load many at once
+		$orders = $this->B2BOrdersModel->getPayoutOrders(10000,0,$LogindID); // load many at once
+		if (!empty($orders)) {
+			foreach ($orders as &$order) {
+				$check = $this->checkPayoutEligibility($order['order_id']);
+				$order['is_payout_allowed'] = $check['allowed'];
+				$order['payout_blocked_reason'] = $check['reason'];
+				$order['is_refunded'] = $check['is_refunded'];
+				if (isset($check['payout_status'])) {
+					$order['payout_status'] = $check['payout_status'];
+				}
+			}
+		}
+		$data['orders'] = $orders;
 		$data['PageTitle'] = 'B2B - Orders';
 		$data['side_menu'] = 'b2b';
 		$this->load->view('b2b/order/payoutsorderlist', $data);
@@ -11550,9 +11499,164 @@ exit;*/
 	// 	echo "success";
 	// }
 
+	public function checkPayoutEligibility($order_id)
+	{
+		$order = $this->db->select('order_id, status, payout_status, webshop_order_id')->from('b2b_orders')->where('order_id', $order_id)->get()->row_array();
+		if (!$order) {
+			return ['allowed' => false, 'reason' => 'Order not found', 'is_refunded' => false, 'payout_status' => 1];
+		}
+
+		$b2b_status = (int)$order['status'];
+		$payout_status = isset($order['payout_status']) ? (int)$order['payout_status'] : 1;
+		$webshop_order_id = (int)$order['webshop_order_id'];
+		$order_ids = array_unique(array_filter([(int)$order_id, $webshop_order_id]));
+
+		// If payout is already Paid (4), keep as Paid
+		if ($payout_status === 4) {
+			return ['allowed' => false, 'reason' => 'Paid', 'is_refunded' => false, 'payout_status' => 4];
+		}
+
+		$is_on_hold = false;
+		$hold_reason = 'On Hold';
+		$is_refund_done = false;
+
+		// -------------------------------------------------------------
+		// 1. Check Return requests in sales_order_return
+		// Per user rules:
+		// - Return Requested : Payout will be on hold
+		// - Return Approved  : Payout will be on hold
+		// - Refund Done      : Payouts will again become active
+		// - Return Rejected  : Payout will be on hold
+		// -------------------------------------------------------------
+		$returns = $this->db->select('return_order_id, status, refund_status')
+			->from('sales_order_return')
+			->where_in('order_id', $order_ids)
+			->get()
+			->result_array();
+
+		if (!empty($returns)) {
+			foreach ($returns as $ret) {
+				$ret_st = (int)$ret['status'];
+				$ref_st = isset($ret['refund_status']) && $ret['refund_status'] !== null ? (int)$ret['refund_status'] : -1;
+
+				// Refund Done: refund_status == 1 OR status == 4
+				if ($ret_st === 4 || $ref_st === 1) {
+					$is_refund_done = true;
+					continue;
+				}
+
+				// Any return that is NOT Refund Done is ON HOLD (Return Requested, Return Approved, Return Rejected)
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+				break;
+			}
+		}
+
+		// -------------------------------------------------------------
+		// 2. Check Replacement requests in sales_order_replacement
+		// Per user rules:
+		// - Replacement Requested : Payout will be on hold
+		// - Replacement Approved  : Payout will be on hold
+		// - Replaced              : Payouts will again become active
+		// - Replacement Rejected  : Payouts will again become active
+		// -------------------------------------------------------------
+		if (!$is_on_hold) {
+			$replacements = $this->db->select('replacement_order_id, status')
+				->from('sales_order_replacement')
+				->where_in('order_id', $order_ids)
+				->get()
+				->result_array();
+
+			if (!empty($replacements)) {
+				foreach ($replacements as $rep) {
+					$rep_st = (int)$rep['status'];
+
+					// Replaced: status in [3, 5, 6] (resolved -> active)
+					// Replacement Rejected: status == 4 (resolved -> active)
+					if (in_array($rep_st, [3, 5, 6], true) || $rep_st === 4) {
+						continue;
+					}
+
+					// Replacement Requested (0) or Replacement Approved (1, 2)
+					if (in_array($rep_st, [0, 1, 2], true)) {
+						$is_on_hold = true;
+						$hold_reason = 'On Hold';
+						break;
+					}
+
+					// Check replacement items
+					$rep_item_pending = $this->db->from('sales_order_replacement_items')
+						->where('replacement_order_id', $rep['replacement_order_id'])
+						->where_in('status', [0, 1, 2])
+						->count_all_results();
+					if ($rep_item_pending > 0) {
+						$is_on_hold = true;
+						$hold_reason = 'On Hold';
+						break;
+					}
+				}
+			}
+		}
+
+		// -------------------------------------------------------------
+		// 3. Check b2b_orders status and b2b_order_items status
+		// -------------------------------------------------------------
+		if (!$is_on_hold) {
+			// Return Requested (14), Replacement Requested (15), Return Approved (16, 22), 
+			// Replacement Approved (18), Return Rejected (20, 31), Refund in Progress/Approved (32, 33)
+			if (in_array($b2b_status, [14, 15, 16, 18, 20, 22, 31, 32, 33], true)) {
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+			}
+		}
+
+		if (!$is_on_hold) {
+			$item_hold_count = $this->db->from('b2b_order_items')
+				->where('order_id', $order_id)
+				->where_in('status', [14, 15, 16, 18, 20, 22, 31, 32, 33])
+				->count_all_results();
+			if ($item_hold_count > 0) {
+				$is_on_hold = true;
+				$hold_reason = 'On Hold';
+			}
+		}
+
+		// -------------------------------------------------------------
+		// 4. Update Database payout_status accordingly
+		// -------------------------------------------------------------
+		if ($is_on_hold) {
+			// Put Merchant payout ON HOLD (status 3) if not already 3 or 4
+			if ($payout_status !== 3 && $payout_status !== 4) {
+				$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 3]);
+				$payout_status = 3;
+			}
+			return ['allowed' => false, 'reason' => $hold_reason, 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
+		}
+
+		// All return and replacement resolved or no hold condition:
+		// Release held payout back to ACTIVE (1) if it was on hold (3)
+		if ($payout_status === 3) {
+			$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 1]);
+			$payout_status = 1;
+		}
+
+		return ['allowed' => true, 'reason' => '', 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
+	}
+
+	private function isPayoutAllowed($order_id)
+	{
+		$check = $this->checkPayoutEligibility($order_id);
+		return $check['allowed'];
+	}
+
 	public function request_payout()
 	{
 		$order_id = $this->input->post('order_id');
+		$check = $this->checkPayoutEligibility($order_id);
+		if (!$check['allowed']) {
+			echo "Cannot request payout while a Return/Replacement/Refund request is pending or unresolved (" . $check['reason'] . ").";
+			return;
+		}
 		$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 2]);
 		// ================================
 		// ADD NOTIFICATION: PAYOUT REQUEST
@@ -11590,20 +11694,36 @@ exit;*/
 	public function request_payout_bulk()
 	{
 		$order_ids = $this->input->post('order_ids');
+		if (empty($order_ids) || !is_array($order_ids)) {
+			echo "error";
+			return;
+		}
+
+		$allowed_ids = [];
+		foreach ($order_ids as $oid) {
+			if ($this->isPayoutAllowed($oid)) {
+				$allowed_ids[] = $oid;
+			}
+		}
+
+		if (empty($allowed_ids)) {
+			echo "error: no eligible orders for payout request";
+			return;
+		}
 
 		// Update payout status
-		$this->db->where_in('order_id', $order_ids)
+		$this->db->where_in('order_id', $allowed_ids)
 				->update('b2b_orders', ['payout_status' => 2]);
 
 		// ================================
 		// ADD NOTIFICATION: BULK PAYOUT REQUEST
 		// ================================
-		if (!empty($order_ids) && is_array($order_ids)) {
+		if (!empty($allowed_ids) && is_array($allowed_ids)) {
 
 			// Fetch orders for notification data
 			$orders = $this->db
 				->select('order_id, increment_id, publisher_id')
-				->where_in('order_id', $order_ids)
+				->where_in('order_id', $allowed_ids)
 				->get('b2b_orders')
 				->result_array();
 
@@ -11621,7 +11741,7 @@ exit;*/
 					'title'          => 'Bulk payout request received',
 					'message'        => 'Bulk payout request received from merchant(s) for B2B orders: ' . implode(', ', $order_numbers) . '.',
 					'data'           => json_encode([
-						'order_ids'     => $order_ids,
+						'order_ids'     => $allowed_ids,
 						'increment_ids' => $order_numbers,
 						'merchant_ids'  => $merchant_ids
 					]),
