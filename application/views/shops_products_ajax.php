@@ -2,10 +2,6 @@
 
 <style>
 
-/* =========================================================
-   PRODUCT CARD - KEEP NATURAL HEIGHT
-========================================================= */
-
 .category-product .product-item {
     height: auto !important;
     min-height: 0 !important;
@@ -35,11 +31,6 @@
     overflow: visible !important;
 }
 
-
-/* =========================================================
-   PRODUCT IMAGE AREA
-========================================================= */
-
 .category-product .box-image {
     position: relative !important;
     overflow: hidden !important;
@@ -48,29 +39,17 @@
     background: #fff !important;
 }
 
-
-/* Product image link */
-
 .category-product .box-image .product-item-photo {
     display: block !important;
     position: relative !important;
     width: 100% !important;
 }
 
-
-/* Product image container */
-
 .category-product .box-image .product-image-container {
     display: block !important;
     margin: 0 auto !important;
 }
 
-
-/* =========================================================
-   ACTUAL PRODUCT IMAGE
-   IMPORTANT:
-   IMAGE ITSELF DOES NOT CHANGE ON HOVER
-========================================================= */
 
 .category-product .box-image .product-image-photo {
     display: block !important;
@@ -85,11 +64,6 @@
     transition: none !important;
 }
 
-
-/* =========================================================
-   TRANSPARENT DARK HOVER OVERLAY
-========================================================= */
-
 .category-product .box-image::after {
     content: "";
 
@@ -100,9 +74,6 @@
     right: 0 !important;
     bottom: 0 !important;
 
-    /*
-     * Transparent dark overlay
-     */
     background: rgba(0, 0, 0, 0.35) !important;
 
     opacity: 0 !important;
@@ -114,24 +85,15 @@
 
     z-index: 5 !important;
 
-    /*
-     * Do not block Quick View button
-     */
     pointer-events: none !important;
 }
 
-
-/* Show overlay when hovering image */
 
 .category-product .box-image:hover::after {
     opacity: 1 !important;
     visibility: visible !important;
 }
 
-
-/* =========================================================
-   QUICK VIEW BUTTON
-========================================================= */
 
 .category-product .quick-view-btn {
     position: absolute !important;
@@ -141,9 +103,6 @@
 
     transform: translate(-50%, -50%) !important;
 
-    /*
-     * Transparent dark button
-     */
     background: rgba(0, 0, 0, 0.35) !important;
 
     color: #fff !important;
@@ -163,9 +122,6 @@
 
     z-index: 20 !important;
 
-    /*
-     * Hidden normally
-     */
     opacity: 0 !important;
     visibility: hidden !important;
 
@@ -177,18 +133,11 @@
         border-color 0.2s ease !important;
 }
 
-
-/* Show Quick View on image hover */
-
 .category-product .box-image:hover .quick-view-btn {
     opacity: 1 !important;
     visibility: visible !important;
 }
 
-
-/* =========================================================
-   QUICK VIEW BUTTON HOVER
-========================================================= */
 
 .category-product .quick-view-btn:hover,
 .category-product .quick-view-btn:focus {
@@ -204,10 +153,6 @@
     outline: none !important;
 }
 
-
-/* =========================================================
-   VIEW PRODUCT BUTTON
-========================================================= */
 
 .category-product .view-product-wrapper {
     display: block !important;
@@ -270,9 +215,6 @@
         all 0.2s ease-in-out !important;
 }
 
-
-/* View Details hover */
-
 .category-product .view-product-btn:hover,
 .category-product .view-product-btn:focus {
 
@@ -288,10 +230,6 @@
 }
 
 
-/* =========================================================
-   MAKE SURE CARD CONTENT IS NOT CLIPPED
-========================================================= */
-
 .category-product .product-item,
 .category-product .product-item-info,
 .category-product .item-inner,
@@ -300,10 +238,6 @@
     overflow: visible !important;
 }
 
-
-/* =========================================================
-   MOBILE
-========================================================= */
 
 @media (max-width: 767px) {
 
@@ -315,11 +249,6 @@
 }
 
 </style>
-
-
-<!-- =========================================================
-     PRODUCT GRID
-========================================================= -->
 
 <div class="category-product products wrapper grid products-grid">
 
@@ -340,10 +269,6 @@
 
                     <div class="item-inner">
 
-
-                        <!-- =================================================
-                             PRODUCT IMAGE
-                        ================================================= -->
 
                         <div class="box-image">
 
@@ -391,11 +316,6 @@
 
                             </a>
 
-
-                            <!-- =================================================
-                                 QUICK VIEW
-                            ================================================= -->
-
                             <a
                                 href="javascript:void(0);"
                                 class="quick-view-btn"
@@ -424,23 +344,9 @@
 
                         </div>
 
-
-                        <!-- END PRODUCT IMAGE -->
-
-
-                        <!-- =================================================
-                             PRODUCT DETAILS
-                        ================================================= -->
-
                         <div
                             class="product details product-item-details box-info"
                         >
-
-
-                            <!-- =================================================
-                                 PRODUCT NAME
-                            ================================================= -->
-
                             <h2
                                 class="product name product-item-name product-name"
                             >
@@ -488,11 +394,6 @@
                                 </a>
 
                             </h2>
-
-
-                            <!-- =================================================
-                                 PRICE
-                            ================================================= -->
 
                             <div class="price-box price-final_price">
 
@@ -609,11 +510,6 @@
 
                             </div>
 
-
-                            <!-- =================================================
-                                 VIEW DETAILS BUTTON
-                            ================================================= -->
-
                             <div class="view-product-wrapper">
 
                                 <a
@@ -663,11 +559,6 @@
     </ol>
 
 </div>
-
-
-<!-- =========================================================
-     PAGINATION
-========================================================= -->
 
 <div class="pagination-wrap">
 
