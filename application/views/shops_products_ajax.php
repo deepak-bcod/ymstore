@@ -51,11 +51,6 @@
     position: relative !important;
 }
 
-
-/* =========================================================
-   YELLOW HOVER VIEW BUTTON
-   ========================================================= */
-
 .category-product .quick-view-btn {
     position: absolute !important;
 
@@ -64,12 +59,13 @@
 
     transform: translate(-50%, -50%) !important;
 
-    background: #ffd200 !important;
-    color: #000000 !important;
+    /* Normal state */
+    background: transparent !important;
+    color: #fff !important;
 
     padding: 9px 14px !important;
 
-    border: 1px solid #ffd200 !important;
+    border: 1px solid #fff !important;
     border-radius: 3px !important;
 
     font-size: 14px !important;
@@ -90,7 +86,9 @@
 }
 
 
-/* SHOW BUTTON WHEN IMAGE IS HOVERED */
+/* =========================================================
+   SHOW VIEW BUTTON WHEN IMAGE IS HOVERED
+   ========================================================= */
 
 .category-product .box-image:hover .quick-view-btn {
     opacity: 1 !important;
@@ -98,25 +96,32 @@
 }
 
 
-/* BUTTON HOVER */
+/* =========================================================
+   HOVER ON VIEW BUTTON
+   Yellow background + black text
+   ========================================================= */
 
 .category-product .quick-view-btn:hover,
 .category-product .quick-view-btn:focus {
+
     background: #ffd200 !important;
+    color: #000 !important;
+
     border-color: #ffd200 !important;
-    color: #000000 !important;
 
     text-decoration: none !important;
+
     outline: none !important;
 }
 
 
-/* IMAGE HOVER */
+/* =========================================================
+   IMAGE HOVER
+   ========================================================= */
 
 .category-product .box-image:hover .product-image-photo {
     opacity: 0.85 !important;
 }
-
 
 /* =========================================================
    EXISTING VIEW PRODUCT BUTTON
