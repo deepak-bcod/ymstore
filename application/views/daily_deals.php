@@ -158,7 +158,7 @@
 
 .product-details .btn {
     width: 100%;
-    margin-top: 5px;
+    margin-top: 10px;
 }
 
 .product-details .btn-primary:hover {
