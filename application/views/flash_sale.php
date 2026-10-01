@@ -136,17 +136,19 @@
     white-space: nowrap;
 }
 
+.old-price {
+    order: 1;
+    color: #999;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
 .special-price {
+    order: 2;
     color: #ff7a00;
     font-size: 17px;
     font-weight: 500;
     margin-right: 0;
-    white-space: nowrap;
-}
-
-.old-price {
-    color: #999;
-    font-size: 14px;
     white-space: nowrap;
 }
 
@@ -156,7 +158,6 @@
     font-weight: 500;
     white-space: nowrap;
 }
-
 .deal-ends {
     font-size: 13px;
     margin-bottom: 10px;
