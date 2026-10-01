@@ -1603,9 +1603,6 @@ public function getOrderStatusLabel($id)
 		if ($order_id <= 0) {
 			return $current_status;
 		}
-		  if ($current_status === 0) {
-        return 0;
-    }
 
 		$is_explicit_return = in_array($current_status, [14, 16, 17, 20, 22], true);
 		$is_explicit_replacement = in_array($current_status, [15, 18, 19, 21], true);
