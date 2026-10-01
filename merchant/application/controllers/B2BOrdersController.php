@@ -240,29 +240,29 @@ class B2BOrdersController extends CI_Controller
 			//echo "<pre>";print_r($readData->order_id);echo " => ";print_r($delivery_status);echo " => ";print_r($attempt_no);
 
 			// Start with the actual B2B order status
-$final_status = (int) $readData->status;
+			$final_status = (int) $readData->status;
 
-// Delivery failure display statuses
-if ($delivery_status == 2 && $attempt_no == 1) {
+			// Delivery failure display statuses
+			if ($delivery_status == 2 && $attempt_no == 1) {
 
-    $final_status = 30;
+				$final_status = 30;
 
-} elseif ($delivery_status == 4 && $attempt_no >= 2) {
+			} elseif ($delivery_status == 4 && $attempt_no >= 2) {
 
-    $final_status = 31;
-}
+				$final_status = 31;
+			}
 
-// Resolve only valid return/replacement workflow records
-$final_status = $this->CommonModel->resolveReturnReplacementStatus(
-    $readData->order_id,
-    $readData->webshop_order_id,
-    $final_status
-);
+			// Resolve only valid return/replacement workflow records
+			$final_status = $this->CommonModel->resolveReturnReplacementStatus(
+				$readData->order_id,
+				$readData->webshop_order_id,
+				$final_status
+			);
 
-// Get final translated label
-$order_status_label = $this->CommonModel->getOrderStatusLabel(
-    $final_status
-);
+			// Get final translated label
+			$order_status_label = $this->CommonModel->getOrderStatusLabel(
+				$final_status
+			);
 
 			//echo $readData->order_id." => ".$readData->status." => ".$order_status_label."<hr>";
 
