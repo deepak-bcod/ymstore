@@ -1,4 +1,9 @@
+
 <style>
+
+/* =========================
+   CATEGORY TREE
+========================= */
 .category-tree .toggle {
     display: inline-block;
     min-width: 18px;
@@ -15,11 +20,19 @@
     color: #444d5c;
 }
 
+
+/* =========================
+   PRODUCT ITEM
+========================= */
 .product-item {
     background: #fff;
     position: relative;
 }
 
+
+/* =========================
+   PRODUCT IMAGE
+========================= */
 .product-image {
     position: relative;
     overflow: hidden;
@@ -37,10 +50,14 @@
     opacity: 1 !important;
     transform: none !important;
 
-    /* No image fade/zoom */
+    /* No image zoom/fade */
     transition: none;
 }
 
+
+/* =========================
+   GREY IMAGE OVERLAY
+========================= */
 .product-image::after {
     content: "";
     position: absolute;
@@ -65,11 +82,23 @@
 }
 
 
+/* Overlay when hovering image */
 .product-image:hover::after {
     opacity: 1;
     visibility: visible;
 }
 
+
+/* Overlay when hovering View Details */
+.product-item:has(.view-product-btn:hover) .product-image::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+
+/* =========================
+   QUICK VIEW BUTTON
+========================= */
 .product-image .quick-view-btn {
     position: absolute;
 
@@ -80,7 +109,6 @@
 
     color: #fff;
 
-    /* Transparent dark button */
     background: rgba(0, 0, 0, 0.35);
 
     padding: 9px 14px;
@@ -108,17 +136,32 @@
         border-color 0.2s ease;
 }
 
+
+/* Show Quick View when image is hovered */
 .product-image:hover .quick-view-btn {
     opacity: 1;
     visibility: visible;
 }
 
+
+/* Show Quick View when View Details is hovered */
+.product-item:has(.view-product-btn:hover) .product-image .quick-view-btn {
+    opacity: 1;
+    visibility: visible;
+}
+
+
+/* Quick View hover */
 .product-image .quick-view-btn:hover {
     background: #ffd200;
     color: #000;
     border-color: #ffd200;
 }
 
+
+/* =========================
+   PRODUCT NAME
+========================= */
 .product-name {
     font-size: 14px;
     font-weight: 600;
@@ -126,70 +169,113 @@
 }
 
 
+/* =========================
+   PRICE
+========================= */
 .price-box {
     margin-bottom: 8px;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
     gap: 8px;
+
     flex-wrap: nowrap;
     white-space: nowrap;
 }
 
+
+/* Old price */
 .old-price {
     order: 1;
+
     color: #999;
     font-size: 14px;
+
     white-space: nowrap;
 }
 
+
+/* Special price */
 .special-price {
     order: 2;
+
     color: #ff7a00;
     font-size: 17px;
     font-weight: 500;
+
     margin-right: 0;
+
     white-space: nowrap;
 }
 
+
+/* Regular price */
 .regular-price {
     color: #ff7a00;
     font-size: 17px;
     font-weight: 500;
+
     white-space: nowrap;
 }
+
+
+/* =========================
+   DEAL ENDS
+========================= */
 .deal-ends {
     font-size: 13px;
     font-weight: 700;
     margin-bottom: 10px;
 }
 
+
+/* =========================
+   VIEW DETAILS BUTTON
+========================= */
 .view-product-btn {
     display: block;
+
     width: 100%;
+
     padding: 14px 20px;
+
     background: #fff;
     color: #333 !important;
+
     border: 1px solid #999;
     border-radius: 5px;
+
     font-size: 16px;
     font-weight: 600;
     line-height: 1.1;
+
     text-align: center;
+
     text-decoration: none !important;
+
     cursor: pointer;
-    transition: all 0.2s ease;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+
     box-sizing: border-box;
 }
 
+
+/* View Details hover */
 .view-product-btn:hover {
     background: #0f5cd0;
     color: #fff !important;
     border-color: #0f5cd0;
 }
 
-
 </style>
+
+
 
 
 <?php $this->load->view('common/header'); ?>
