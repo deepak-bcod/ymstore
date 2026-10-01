@@ -1599,12 +1599,20 @@ public function getOrderStatusLabel($id)
 		$order_id = (int)$order_id;
 		$webshop_order_id = (int)$webshop_order_id;
 		$current_status = (int)$current_status;
+		
+// No valid return or replacement request found.
+// Keep the original B2B order status.
+if (empty($rep) && empty($ret)) {
 
-		if ($order_id <= 0) {
-			return $current_status;
-		}
+    // Normalize legacy status 22 only
+    if ($current_status === 22) {
+        return 16;
+    }
 
-		$is_explicit_return = in_array($current_status, [14, 16, 17, 20, 22], true);
+    return $current_status;
+}
+
+		$is_explicit_return = in_array($current_status, [14, 16, 17, 20], true);
 		$is_explicit_replacement = in_array($current_status, [15, 18, 19, 21], true);
 
 		// 1. Fetch latest replacement request
