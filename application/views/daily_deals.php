@@ -552,19 +552,17 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </p>
 
 
-                                            <!-- VIEW PRODUCT -->
-
-                                            <!-- VIEW PRODUCT -->
-<div class="view-product-wrapper">
-    <a
-        href="<?php echo BASE_URL . 'product-detail/' . $p->url_key; ?>"
-        class="view-product-btn"
-    >
-        <?php
-        echo $this->lang->line('view_details');
-        ?>
-    </a>
-</div>
+                                          
+                                            <div class="view-product-wrapper">
+                                                <a
+                                                    href="<?php echo BASE_URL . 'product-detail/' . $p->url_key; ?>"
+                                                    class="view-product-btn"
+                                                >
+                                                    <?php
+                                                    echo $this->lang->line('view_details');
+                                                    ?>
+                                                </a>
+                                            </div>
 
 
                                         </div>

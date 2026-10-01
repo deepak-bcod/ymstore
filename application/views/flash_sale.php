@@ -162,15 +162,28 @@
     margin-bottom: 10px;
 }
 
-.product-details .btn {
+.view-product-btn {
+    display: block;
     width: 100%;
-    margin-top: 5px;
+    padding: 14px 20px;
+    background: #fff;
+    color: #333 !important;
+    border: 1px solid #999;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
-.product-details .btn-danger:hover {
-    background-color: #ffd200;
-    border-color: #ffd200;
+.view-product-btn:hover {
+    background: #0f5cd0;
     color: #fff !important;
+    border-color: #0f5cd0;
 }
 
 
@@ -556,19 +569,16 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </p>
 
 
-                                            <a
-                                                href="<?php
-                                                echo site_url(
-                                                    'product-detail/' .
-                                                    $p->url_key
-                                                );
-                                                ?>"
-                                                class="btn btn-sm btn-danger"
-                                            >
-
-                                                <?= lang('view_product'); ?>
-
-                                            </a>
+                                             <div class="view-product-wrapper">
+                                                <a
+                                                    href="<?php echo BASE_URL . 'product-detail/' . $p->url_key; ?>"
+                                                    class="view-product-btn"
+                                                >
+                                                    <?php
+                                                    echo $this->lang->line('view_details');
+                                                    ?>
+                                                </a>
+                                            </div>
 
 
                                         </div>
