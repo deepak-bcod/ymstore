@@ -155,6 +155,7 @@
 
 .deal-ends {
     font-size: 13px;
+    font-weight: 700;
     margin-bottom: 10px;
 }
 
