@@ -30,7 +30,6 @@
     height: auto !important;
     overflow: visible !important;
 }
-/* PRODUCT NAME - CENTER + SINGLE LINE + DOT DOT */
 
 .category-product .product-item-name,
 .category-product .product-name {
@@ -49,8 +48,6 @@
 
     box-sizing: border-box !important;
 }
-
-/* PRODUCT NAME TEXT */
 
 .category-product .product-item-link {
     display: block !important;
@@ -134,8 +131,6 @@
     visibility: visible !important;
 }
 
-
-/* Overlay when hovering View Details */
 .category-product .product-item:has(.view-product-btn:hover) .box-image::after {
     opacity: 1 !important;
     visibility: visible !important;
