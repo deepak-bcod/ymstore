@@ -1562,7 +1562,7 @@ public function getOrderStatusLabel($id)
 		case 19: return $this->lang->line('model_status_replaced');
 		case 20: return $this->lang->line('model_status_return_rejected');
 		case 21: return $this->lang->line('model_status_replacement_rejected');
-		case 22: return $this->lang->line('delivery_collected');
+		case 22: return $this->lang->line('model_status_return_approved'); // Return Approved (legacy code 22 normalized)
 		case 23: return $this->lang->line('delivery_delivered');
 		case 24: return $this->lang->line('delivery_mark_as_delivered');
 		case 25: return $this->lang->line('delivery_mark_as_failed');
@@ -1577,7 +1577,6 @@ public function getOrderStatusLabel($id)
     }
 }
 
-<<<<<<< HEAD
 	/**
 	 * Resolves and synchronizes the exact Return or Replacement status for a B2B order.
 	 *
@@ -1596,23 +1595,17 @@ public function getOrderStatusLabel($id)
 	 * Prevents cross-contamination between workflows and updates b2b_orders if out of sync.
 	 */
 	public function resolveReturnReplacementStatus($order_id, $webshop_order_id = 0, $current_status = 0)
-{
-    $order_id = (int)$order_id;
-    $webshop_order_id = (int)$webshop_order_id;
-    $current_status = (int)$current_status;
+	{
+		$order_id = (int)$order_id;
+		$webshop_order_id = (int)$webshop_order_id;
+		$current_status = (int)$current_status;
 
-    if ($order_id <= 0) {
-        return $current_status;
-    }
+		if ($order_id <= 0) {
+			return $current_status;
+		}
 
-    // Status 0 = To be processed.
-    // Do not check return/replacement tables for a new order.
-    if ($current_status === 0) {
-        return 0;
-    }
-
-    $is_explicit_return = in_array($current_status, [14, 16, 17, 20, 22], true);
-    $is_explicit_replacement = in_array($current_status, [15, 18, 19, 21], true);
+		$is_explicit_return = in_array($current_status, [14, 16, 17, 20, 22], true);
+		$is_explicit_replacement = in_array($current_status, [15, 18, 19, 21], true);
 
 		// 1. Fetch latest replacement request
 		$rep = null;
@@ -1760,8 +1753,6 @@ public function getOrderStatusLabel($id)
 		return $resolved_status;
 	}
 
-=======
->>>>>>> ef6200fb4208a7f175a667b8d004f0802a850d03
 
 	public function getOrderShipmentLabel($id)
 	{
