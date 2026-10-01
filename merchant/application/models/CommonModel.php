@@ -1562,7 +1562,7 @@ public function getOrderStatusLabel($id)
 		case 19: return $this->lang->line('model_status_replaced');
 		case 20: return $this->lang->line('model_status_return_rejected');
 		case 21: return $this->lang->line('model_status_replacement_rejected');
-		case 22: return $this->lang->line('model_status_return_approved'); // Return Approved (legacy code 22 normalized)
+		case 22: return $this->lang->line('delivery_collected');
 		case 23: return $this->lang->line('delivery_delivered');
 		case 24: return $this->lang->line('delivery_mark_as_delivered');
 		case 25: return $this->lang->line('delivery_mark_as_failed');
@@ -1577,6 +1577,7 @@ public function getOrderStatusLabel($id)
     }
 }
 
+<<<<<<< HEAD
 	/**
 	 * Resolves and synchronizes the exact Return or Replacement status for a B2B order.
 	 *
@@ -1759,6 +1760,8 @@ public function getOrderStatusLabel($id)
 		return $resolved_status;
 	}
 
+=======
+>>>>>>> ef6200fb4208a7f175a667b8d004f0802a850d03
 
 	public function getOrderShipmentLabel($id)
 	{

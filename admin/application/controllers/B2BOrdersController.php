@@ -271,8 +271,7 @@ class B2BOrdersController extends CI_Controller
 
 
 
-			$order_status = $this->CommonModel->resolveReturnReplacementStatus($readData->order_id, $readData->webshop_order_id, $readData->status);
-			$order_status_label  = $this->CommonModel->getOrderStatusLabel($order_status);
+			$order_status_label  = $this->CommonModel->getOrderStatusLabel($readData->status);
 
 			$shipment_type_label = $this->CommonModel->getOrderShipmentLabel($readData->shipment_type);
 
@@ -534,8 +533,7 @@ class B2BOrdersController extends CI_Controller
 
 
 
-				$order_status = $this->CommonModel->resolveReturnReplacementStatus($readData->order_id, $readData->webshop_order_id, $readData->status);
-				$order_status_label  = $this->CommonModel->getOrderStatusLabel($order_status);
+				$order_status_label  = $this->CommonModel->getOrderStatusLabel($readData->status);
 
 				$shipment_type_label = $this->CommonModel->getOrderShipmentLabel($readData->shipment_type);
 
@@ -835,8 +833,28 @@ class B2BOrdersController extends CI_Controller
 
 
 			$b2b_status = (int)$readData->status;
-			// Resolve Return / Replacement workflow status consistently
-			$b2b_status = $this->CommonModel->resolveReturnReplacementStatus($readData->order_id, $readData->webshop_order_id, $b2b_status);
+			if (!in_array($b2b_status, [14, 15, 16, 17, 18, 19, 20, 21, 22])) {
+				$rep = $this->db->select('sor.status as rep_status, sori.status as item_status')
+					->from('sales_order_replacement sor')
+					->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'left')
+					->group_start()->where('sor.order_id', $readData->order_id)->or_where('sor.order_id', $readData->webshop_order_id)->group_end()
+					->order_by('sor.replacement_order_id', 'DESC')
+					->get()->row();
+				if (!empty($rep)) {
+					$rep_st  = (int)($rep->rep_status ?? 0);
+					$item_st = (int)($rep->item_status ?? 0);
+					if ($rep_st == 4 || $item_st == 4 || $item_st == 21) {
+						$b2b_status = 21;
+					} elseif (in_array($rep_st, [3, 5, 6, 19]) || in_array($item_st, [3, 5, 6, 19])) {
+						$b2b_status = 19;
+					} elseif (in_array($rep_st, [1, 2, 18]) || in_array($item_st, [1, 2, 18])) {
+						$b2b_status = 18;
+					} else {
+						$b2b_status = 15;
+					}
+					$this->db->where('order_id', $readData->order_id)->update('b2b_orders', ['status' => $b2b_status, 'updated_at' => time()]);
+				}
+			}
 			$order_status_label  = $this->CommonModel->getOrderStatusLabel($b2b_status);
 
 			$shipment_type_label = $this->CommonModel->getOrderShipmentLabel($readData->shipment_type);
@@ -1486,8 +1504,6 @@ class B2BOrdersController extends CI_Controller
 				redirect('webshop/ES-orders');
 
 			}
-
-			$OrderData->status = $this->CommonModel->resolveReturnReplacementStatus($OrderData->order_id, $OrderData->webshop_order_id, $OrderData->status);
 
 			$data['OrderItems'] = $OrderItems = $this->B2BOrdersModel->getOrderItems($order_id);
 
