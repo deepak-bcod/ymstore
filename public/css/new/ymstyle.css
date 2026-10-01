@@ -3013,7 +3013,14 @@ td.tictet-section a:hover {
 .message-list-table {
     overflow: auto;
 }
-
+.vendor_list_page h2.product.name.product-item-name.product-name {
+    padding-top: 10px;
+    padding-bottom: 4px;
+}
+.vendor_list_page h2.product.name.product-item-name.product-name {
+    padding-top: 10px;
+    padding-bottom: 4px;
+}
 .checkout-page #order-frm .panel-collapse.show.collapse[aria-expanded="false"] {
     display: none;
 }
