@@ -62,7 +62,7 @@
 }
 
 .product-image:hover::after {
-    opacity: 1;
+    opacity: 0;
     visibility: visible;
 }
 /* Grey overlay when hovering over View Details button */
