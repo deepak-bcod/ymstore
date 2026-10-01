@@ -39,11 +39,25 @@
     background: #fff !important;
 }
 
-.category-product .box-image .product-item-photo {
+.category-product .box-image .product-image-container {
     display: block !important;
-    position: relative !important;
     width: 100% !important;
+    margin: 0 auto !important;
 }
+
+.category-product .box-image .product-image-wrapper {
+    display: block !important;
+    width: 100% !important;
+    padding-bottom: 0 !important;
+}
+
+.category-product .box-image .product-image-photo {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+
 
 .category-product .box-image .product-image-container {
     display: block !important;
