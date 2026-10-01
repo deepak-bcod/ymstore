@@ -170,6 +170,24 @@
     color: #fff !important;
     border-color: #0f5cd0;
 }
+/* SHOW GREY OVERLAY WHEN VIEW DETAILS IS HOVERED */
+.product-item:has(.view-product-btn:hover) .product-image::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* SHOW QUICK VIEW WHEN VIEW DETAILS IS HOVERED */
+.product-item:has(.view-product-btn:hover) .product-image .quick-view-btn {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* QUICK VIEW BUTTON HOVER */
+.product-image .quick-view-btn:hover {
+    background: #ffd200 !important;
+    color: #000 !important;
+    border-color: #ffd200 !important;
+}
 </style>
 
 <?php $this->load->view('common/header'); ?>
