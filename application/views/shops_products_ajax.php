@@ -59,7 +59,7 @@
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
-    text-align: center !important;
+   
  
 }
 
