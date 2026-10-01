@@ -1956,20 +1956,20 @@ class WebshopOrdersModel extends CI_Model
 					$this->db->where_in('item_id', $order_item_ids)->update('b2b_order_items', ['status' => 20]);
 				}
 			} elseif ((int)$status === 1) {
-				// Approved: update b2b_orders status to 16 (Return Approved) & keep/put payout ON HOLD (3)
+				// Approved: update b2b_orders status to 22 (Return Approved) & keep/put payout ON HOLD (3)
 				$this->db->group_start()->where('order_id', $b2b_id)->or_where('webshop_order_id', $webshop_id)->group_end()
 					->where('payout_status !=', 4)
 					->update('b2b_orders', [
-						'status' => 16,
+						'status' => 22,
 						'payout_status' => 3,
 						'updated_at' => time()
 					]);
-				$this->db->where('order_id', $webshop_id)->update('sales_order', ['status' => 16]);
+				$this->db->where('order_id', $webshop_id)->update('sales_order', ['status' => 22]);
 
 				$return_items = $this->db->select('order_item_id')->from('sales_order_return_items')->where('return_order_id', $return_id)->get()->result();
 				if (!empty($return_items)) {
 					$order_item_ids = array_map(function($i) { return $i->order_item_id; }, $return_items);
-					$this->db->where_in('item_id', $order_item_ids)->update('b2b_order_items', ['status' => 16]);
+					$this->db->where_in('item_id', $order_item_ids)->update('b2b_order_items', ['status' => 22]);
 				}
 			} elseif ((int)$status === 4) {
 				// Refund Done: update b2b_orders status to 17 (Refund Paid) & RELEASE held payout to active (1) if all returns/replacements resolved
