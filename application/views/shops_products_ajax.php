@@ -39,6 +39,16 @@
     background: #fff !important;
 }
 
+.category-product .box-image .product-item-photo {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+}
+
+.category-product .box-image .product-image-container {
+    display: block !important;
+    margin: 0 auto !important;
+}
 
 
 .category-product .box-image .product-image-photo {
