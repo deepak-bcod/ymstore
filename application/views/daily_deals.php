@@ -65,6 +65,11 @@
     opacity: 1;
     visibility: visible;
 }
+/* Grey overlay when hovering over View Details button */
+.product-item:has(.view-product-btn:hover) .product-image::after {
+    opacity: 1;
+    visibility: visible;
+}
 
 
 .product-image .quick-view-btn {
