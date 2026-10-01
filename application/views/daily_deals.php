@@ -166,7 +166,7 @@
     width: 100%;
     padding: 14px 20px;
     background: #fff;
-    color: #0f5cd0 !important;
+    color: #333 !important;
     border: 1px solid #999;
     border-radius: 5px;
     font-size: 16px;
