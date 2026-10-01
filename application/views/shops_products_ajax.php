@@ -30,7 +30,8 @@
     height: auto !important;
     overflow: visible !important;
 }
-/* PRODUCT NAME - CENTER ALIGNMENT, MAXIMUM 2 LINES */
+
+/* PRODUCT NAME - CENTER, MAXIMUM 2 LINES */
 .category-product .product-item-name,
 .category-product .product-name {
     display: block !important;
@@ -39,24 +40,33 @@
     min-height: 44px !important;
     max-height: 44px !important;
     overflow: hidden !important;
-    line-height: 22px !important;
     margin-bottom: 8px !important;
     text-align: center !important;
+    line-height: 22px !important;
+    white-space: normal !important;
 }
 
 /* PRODUCT NAME LINK */
+.category-product .product-item-name a,
+.category-product .product-name a,
 .category-product .product-item-link {
-    display: -webkit-box !important;
-    -webkit-box-orient: vertical !important;
-    -webkit-line-clamp: 2 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: normal !important;
-    word-break: break-word !important;
-    line-height: 22px !important;
-    max-height: 44px !important;
-    text-align: center !important;
+    display: block !important;
     width: 100% !important;
+    height: auto !important;
+    max-height: 44px !important;
+
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+
+    text-align: center !important;
+    line-height: 22px !important;
+
+    -webkit-line-clamp: unset !important;
+    -webkit-box-orient: unset !important;
 }
 
 .category-product .box-image {
