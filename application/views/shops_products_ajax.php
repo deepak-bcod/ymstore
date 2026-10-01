@@ -54,7 +54,7 @@
 .category-product .box-image .product-image-photo {
     display: block !important;
     width: 100% !important;
-    height: 200px !important;
+    height: 300px !important;
     object-fit: cover !important;
     opacity: 1 !important;
     transform: none !important;
