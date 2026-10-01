@@ -95,6 +95,12 @@
 }
 
 
+/* Overlay when hovering View Details */
+.category-product .product-item:has(.view-product-btn:hover) .box-image::after {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
 .category-product .quick-view-btn {
     position: absolute !important;
 
@@ -104,7 +110,6 @@
     transform: translate(-50%, -50%) !important;
 
     background: rgba(0, 0, 0, 0.35) !important;
-
     color: #fff !important;
 
     padding: 9px 14px !important;
@@ -117,7 +122,6 @@
     line-height: 20px !important;
 
     text-decoration: none !important;
-
     cursor: pointer !important;
 
     z-index: 20 !important;
@@ -138,21 +142,19 @@
     visibility: visible !important;
 }
 
+.category-product .product-item:has(.view-product-btn:hover) .box-image .quick-view-btn {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
 
 .category-product .quick-view-btn:hover,
 .category-product .quick-view-btn:focus {
-
     background: #ffd200 !important;
-
     color: #000 !important;
-
     border-color: #ffd200 !important;
-
     text-decoration: none !important;
-
     outline: none !important;
 }
-
 
 .category-product .view-product-wrapper {
     display: block !important;
