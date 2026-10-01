@@ -20,6 +20,7 @@
     position: relative;
 }
 
+/* PRODUCT IMAGE */
 .product-image {
     position: relative;
     overflow: hidden;
@@ -28,97 +29,74 @@
     background: #fff;
 }
 
-
+/* IMAGE */
 .product-image .product-image-photo {
     width: 100%;
     height: auto;
     display: block;
 }
 
-
+/* DARK GREY OVERLAY */
 .product-image::after {
     content: "";
-
     position: absolute;
-
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-
-    /* Transparent dark overlay */
     background: rgba(0, 0, 0, 0.35);
-
     opacity: 0;
     visibility: hidden;
-
-    transition:
-        opacity 0.2s ease,
-        visibility 0.2s ease;
-
+    transition: opacity 0.2s ease, visibility 0.2s ease;
     z-index: 5;
-
     pointer-events: none;
 }
 
+/* SHOW OVERLAY ON IMAGE HOVER */
 .product-image:hover::after {
-    opacity: 0;
+    opacity: 1;
     visibility: visible;
 }
-/* Grey overlay when hovering over View Details button */
+
+/* SHOW OVERLAY WHEN VIEW DETAILS IS HOVERED */
 .product-item:has(.view-product-btn:hover) .product-image::after {
     opacity: 1;
     visibility: visible;
 }
 
-
+/* QUICK VIEW BUTTON */
 .product-image .quick-view-btn {
     position: absolute;
-
     top: 50%;
     left: 50%;
-
     transform: translate(-50%, -50%);
-
     color: #fff;
-
     background: rgba(0, 0, 0, 0.35);
-
     padding: 9px 14px;
-
     border: 1px solid #fff;
     border-radius: 3px;
-
     font-size: 14px;
     font-weight: 500;
-
     text-decoration: none;
     cursor: pointer;
-
     z-index: 10;
-
     opacity: 0;
     visibility: hidden;
-
-    transition:
-        opacity 0.2s ease,
-        visibility 0.2s ease,
-        background-color 0.2s ease,
-        color 0.2s ease,
-        border-color 0.2s ease;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
+/* SHOW QUICK VIEW ON IMAGE HOVER */
 .product-image:hover .quick-view-btn {
     opacity: 1;
     visibility: visible;
 }
 
+/* QUICK VIEW HOVER */
 .product-image .quick-view-btn:hover {
     background: #ffd200;
     color: #000;
     border-color: #ffd200;
 }
-
 .product-name {
     font-size: 14px;
     font-weight: 600;
