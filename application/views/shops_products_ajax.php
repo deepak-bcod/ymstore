@@ -55,7 +55,7 @@
     display: block !important;
     width: 100% !important;
     height: 250px !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
