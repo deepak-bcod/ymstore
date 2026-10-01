@@ -173,7 +173,7 @@
     border-radius: 5px;
     font-size: 16px;
     font-weight: 600;
-    line-height: 1.4;
+    line-height: 1.1;
     text-align: center;
     text-decoration: none !important;
     cursor: pointer;
