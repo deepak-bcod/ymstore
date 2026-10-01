@@ -239,38 +239,33 @@ class B2BOrdersController extends CI_Controller
 
 			//echo "<pre>";print_r($readData->order_id);echo " => ";print_r($delivery_status);echo " => ";print_r($attempt_no);
 
-			//echo "<pre>";print_r($readData->order_id);echo " => ";print_r($delivery_status);echo " => ";print_r($attempt_no);
+			if($delivery_status == 2 && $attempt_no == 1){
+				$final_status = 30;
+			}elseif($delivery_status == 4 && $attempt_no >= 2){
+				$final_status = 31;
+			}else{
+				$final_status = $readData->status;
+			}
 
-if($delivery_status == 2 && $attempt_no == 1){
-    $final_status = 30;
-}elseif($delivery_status == 4 && $attempt_no >= 2){
-    $final_status = 31;
-}else{
-    $final_status = $readData->status;
-}
+			// Resolve Return / Replacement workflow status consistently
+			$final_status = $this->CommonModel->resolveReturnReplacementStatus($readData->order_id, $readData->webshop_order_id, $final_status);
 
-// Resolve Return / Replacement status
-$final_status = $this->CommonModel->resolveReturnReplacementStatus(
-    $readData->order_id,
-    $readData->webshop_order_id,
-    $final_status
-);
+			$order_status_label = $this->CommonModel->getOrderStatusLabel($final_status);
 
-$order_status_label = $this->CommonModel->getOrderStatusLabel($final_status);
+			//echo $readData->order_id." => ".$readData->status." => ".$order_status_label."<hr>";
 
-//echo $readData->order_id." => ".$readData->status." => ".$order_status_label."<hr>";
+			$shipment_type_label = $this->CommonModel->getOrderShipmentLabel($readData->shipment_type);
 
-$shipment_type_label = $this->CommonModel->getOrderShipmentLabel($readData->shipment_type);
+			// Get actual shopper/customer name for ALL shipment types
+			$customerName = $this->B2BOrdersModel->getOrderCustomerNameByOrderId(
+				$readData->order_id
+			);
 
-// Get actual shopper/customer name for ALL shipment types
-$customerName = $this->B2BOrdersModel->getOrderCustomerNameByOrderId(
-    $readData->order_id
-);
+			// Fallback
+			if (empty(trim($customerName))) {
+				$customerName = $readData->customer_name;
+			}
 
-// Fallback
-if (empty(trim($customerName))) {
-    $customerName = $readData->customer_name;
-}
 			$publisher_name = $this->CommonModel->getWebShopNameByShopId($readData->publisher_id);
 
 			if ($readData->main_parent_id > 0 || $readData->parent_id > 0) {
@@ -560,33 +555,8 @@ if (empty(trim($customerName))) {
 			}
 			$order_id = $OrderData->order_id;
 
-			// Ensure OrderData status is updated if replacement or return exists
-			if (!in_array((int)$OrderData->status, [14, 15, 16, 17, 18, 19, 20, 21, 22])) {
-				$rep = $this->db->select('sor.status as rep_status, sori.status as item_status')
-					->from('sales_order_replacement sor')
-					->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'left')
-					->group_start()
-						->where('sor.order_id', $OrderData->order_id)
-						->or_where('sor.order_id', $OrderData->webshop_order_id)
-					->group_end()
-					->order_by('sor.replacement_order_id', 'DESC')
-					->get()->row();
-
-				if (!empty($rep)) {
-					$rep_st  = (int)($rep->rep_status ?? 0);
-					$item_st = (int)($rep->item_status ?? 0);
-					if ($rep_st == 4 || $item_st == 4 || $item_st == 21) {
-						$OrderData->status = 21;
-					} elseif (in_array($rep_st, [3, 5, 6, 19]) || in_array($item_st, [3, 5, 6, 19])) {
-						$OrderData->status = 19;
-					} elseif (in_array($rep_st, [1, 2, 18]) || in_array($item_st, [1, 2, 18])) {
-						$OrderData->status = 18;
-					} else {
-						$OrderData->status = 15;
-					}
-					$this->db->where('order_id', $OrderData->order_id)->update('b2b_orders', ['status' => $OrderData->status, 'updated_at' => time()]);
-				}
-			}
+			// Ensure OrderData status is accurately resolved for Return / Replacement workflow
+			$OrderData->status = $this->CommonModel->resolveReturnReplacementStatus($OrderData->order_id, $OrderData->webshop_order_id, $OrderData->status);
 
 			$data['OrderItems'] = $OrderItems = $this->B2BOrdersModel->getOrderItems($order_id);
 
