@@ -58,3 +58,15 @@
 
 <?php $this->load->view('common/footer'); ?>
 <script src="<?php echo SKIN_JS ?>product.js?v=<?php echo CSSJS_VERSION; ?>"></script>
+
+<script>
+$(document).ready(function () {
+    // Remove title tooltips from product cards
+    $('.products-list-full [title]').removeAttr('title');
+
+    // Remove Bootstrap tooltip attributes
+    $('.products-list-full [data-toggle="tooltip"]').removeAttr('data-toggle');
+    $('.products-list-full [data-bs-toggle="tooltip"]').removeAttr('data-bs-toggle');
+});
+</script>
+
