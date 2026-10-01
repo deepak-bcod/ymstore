@@ -3016,12 +3016,10 @@ td.tictet-section a:hover {
 .vendor_list_page h2.product.name.product-item-name.product-name {
     padding-top: 10px;
     padding-bottom: 4px;
-    text-align: center;
 }
 .vendor_list_page h2.product.name.product-item-name.product-name {
     padding-top: 10px;
     padding-bottom: 4px;
-    text-align: center;
 }
 .checkout-page #order-frm .panel-collapse.show.collapse[aria-expanded="false"] {
     display: none;
