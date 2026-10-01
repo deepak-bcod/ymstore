@@ -1595,17 +1595,23 @@ public function getOrderStatusLabel($id)
 	 * Prevents cross-contamination between workflows and updates b2b_orders if out of sync.
 	 */
 	public function resolveReturnReplacementStatus($order_id, $webshop_order_id = 0, $current_status = 0)
-	{
-		$order_id = (int)$order_id;
-		$webshop_order_id = (int)$webshop_order_id;
-		$current_status = (int)$current_status;
+{
+    $order_id = (int)$order_id;
+    $webshop_order_id = (int)$webshop_order_id;
+    $current_status = (int)$current_status;
 
-		if ($order_id <= 0) {
-			return $current_status;
-		}
+    if ($order_id <= 0) {
+        return $current_status;
+    }
 
-		$is_explicit_return = in_array($current_status, [14, 16, 17, 20, 22], true);
-		$is_explicit_replacement = in_array($current_status, [15, 18, 19, 21], true);
+    // Status 0 = To be processed.
+    // Do not check return/replacement tables for a new order.
+    if ($current_status === 0) {
+        return 0;
+    }
+
+    $is_explicit_return = in_array($current_status, [14, 16, 17, 20, 22], true);
+    $is_explicit_replacement = in_array($current_status, [15, 18, 19, 21], true);
 
 		// 1. Fetch latest replacement request
 		$rep = null;
