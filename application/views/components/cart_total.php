@@ -1,20 +1,28 @@
 <?php
+
 $currency_conversion_rate = $this->session->userdata('currency_conversion_rate');
 $currency_symbol = $this->session->userdata('currency_symbol');
 $default_currency_flag = $this->session->userdata('default_currency_flag');
 
-if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
+if (
+    isset($CartData) &&
+    isset($CartData->cartItems) &&
+    count($CartData->cartItems) > 0
+) {
 
-    $cartItems = $CartData->cartItems;
+    $cartItems   = $CartData->cartItems;
     $cartDetails = $CartData->cartDetails;
+
 
     /*
      * ============================================================
      * CART WEIGHT CALCULATION
-     * Product weight is stored in GRAMS
-     * Maximum allowed cart weight = 60 KG = 60,000 grams
+     *
+     * Product weight is stored in GRAMS.
+     * Maximum allowed cart weight = 60 KG = 60,000 grams.
      * ============================================================
      */
+
     $MAX_CART_WEIGHT = 60000;
 
     $totalCartWeight = 0;
@@ -22,156 +30,185 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
     foreach ($cartItems as $item) {
 
         $itemWeight = (float)($item->weight ?? 0);
-        $itemQty = (int)($item->qty_ordered ?? 0);
+        $itemQty    = (int)($item->qty_ordered ?? 0);
 
         $totalCartWeight += ($itemWeight * $itemQty);
     }
 
     $totalCartWeightKg = $totalCartWeight / 1000;
 
+
+    /*
+     * ============================================================
+     * CART OVERWEIGHT
+     * ============================================================
+     */
+
+    $cartOverWeight = ($totalCartWeight > $MAX_CART_WEIGHT);
+
+
     /*
      * ============================================================
      * SHIPPING / CRATE CHARGE
      *
+     * IMPORTANT:
+     *
+     * Do NOT calculate 300 / 600 / 900 here.
+     *
+     * Backend should calculate:
+     *
      * 0 - 20 KG       = 300
      * >20 - 40 KG     = 600
      * >40 - 60 KG     = 900
-     * >60 KG          = 0 / invalid cart
+     * >60 KG         = 0 / invalid
+     *
+     * This view only displays backend values.
      * ============================================================
      */
-    if ($totalCartWeight > 60000) {
 
-        $crateShipping = 0;
-
-    } elseif ($totalCartWeight > 40000) {
-
-        $crateShipping = 900;
-
-    } elseif ($totalCartWeight > 20000) {
-
-        $crateShipping = 600;
-
-    } elseif ($totalCartWeight > 0) {
-
-        $crateShipping = 300;
-
-    } else {
-
-        $crateShipping = 0;
-    }
-
-    /*
-     * Use backend shipping value if it exists.
-     * ym_charge is your crate/shipping charge.
-     */
     $effective_shipping =
         (float)($cartDetails->ym_charge ?? 0) +
         (float)($cartDetails->shipping_amount ?? 0);
 
-    /*
-     * If backend ym_charge is not calculated yet,
-     * use the calculated crate charge.
-     */
-    if ((float)($cartDetails->ym_charge ?? 0) <= 0 && $totalCartWeight > 0 && $totalCartWeight <= 60000) {
-        $effective_shipping =
-            $crateShipping +
-            (float)($cartDetails->shipping_amount ?? 0);
-    }
 
     /*
-     * Do not show shipping for invalid cart > 60 KG.
+     * ============================================================
+     * NEVER SHOW SHIPPING ABOVE 60 KG
+     * ============================================================
      */
-    if ($totalCartWeight > 60000) {
+
+    if ($cartOverWeight) {
+
         $effective_shipping = 0;
+
     }
 
-    /*
-     * Cart is overweight
-     */
-    $cartOverWeight = ($totalCartWeight > $MAX_CART_WEIGHT);
 ?>
+
+<!-- ================================================================
+     JQUERY
+     ================================================================ -->
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+
+<!-- ================================================================
+     CART SUMMARY
+     ================================================================ -->
+
 <ul>
+
 
     <!-- ============================================================
          SUB TOTAL
          ============================================================ -->
+
     <li>
-        <em><?php echo $this->lang->line('sub_total'); ?></em>
+
+        <em>
+            <?php echo $this->lang->line('sub_total'); ?>
+        </em>
 
         <strong class="price">
+
             <?php
+
             echo (
                 $this->session->userdata('currency_code_session')
                 && $default_currency_flag != 1
             )
+
             ? convert_currency_website(
                 $cartDetails->base_subtotal,
                 $currency_conversion_rate,
                 $currency_symbol
             )
+
             : CURRENCY_TYPE . ' ' . number_format(
                 $cartDetails->base_subtotal,
                 2
             );
+
             ?>
+
         </strong>
+
     </li>
 
 
     <!-- ============================================================
          TAX
          ============================================================ -->
+
     <li>
-        <em><?php echo $this->lang->line('taxes'); ?></em>
+
+        <em>
+            <?php echo $this->lang->line('taxes'); ?>
+        </em>
 
         <strong class="price">
+
             <?php
+
             echo (
                 $this->session->userdata('currency_code_session')
                 && $default_currency_flag != 1
             )
+
             ? convert_currency_website(
                 $cartDetails->tax_amount,
                 $currency_conversion_rate,
                 $currency_symbol
             )
+
             : CURRENCY_TYPE . ' ' . number_format(
                 $cartDetails->tax_amount,
                 2
             );
+
             ?>
+
         </strong>
+
     </li>
 
 
     <!-- ============================================================
          COUPON DISCOUNT
          ============================================================ -->
+
     <?php if (!empty($cartDetails->coupon_code)) { ?>
 
         <li>
-            <em><?php echo $this->lang->line('discount_label'); ?></em>
+
+            <em>
+                <?php echo $this->lang->line('discount_label'); ?>
+            </em>
 
             <strong class="price">
+
                 <?php
+
                 echo (
                     $this->session->userdata('currency_code_session')
                     && $default_currency_flag != 1
                 )
+
                 ? convert_currency_website(
                     $cartDetails->base_discount_amount,
                     $currency_conversion_rate,
                     $currency_symbol
                 )
+
                 : CURRENCY_TYPE . ' ' . number_format(
                     $cartDetails->base_discount_amount,
                     2
                 );
+
                 ?>
+
             </strong>
+
         </li>
 
     <?php } ?>
@@ -180,83 +217,95 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
     <!-- ============================================================
          GIFT CARD
          ============================================================ -->
+
     <?php if (!empty($cartDetails->voucher_code)) { ?>
 
         <li>
-            <em><?php echo $this->lang->line('gift_card_amount'); ?></em>
+
+            <em>
+                <?php echo $this->lang->line('gift_card_amount'); ?>
+            </em>
 
             <strong class="price">
+
                 <?php
+
                 echo (
                     $this->session->userdata('currency_code_session')
                     && $default_currency_flag != 1
                 )
+
                 ? convert_currency_website(
                     $cartDetails->voucher_amount,
                     $currency_conversion_rate,
                     $currency_symbol
                 )
+
                 : CURRENCY_TYPE . ' ' . number_format(
                     $cartDetails->voucher_amount,
                     2
                 );
+
                 ?>
+
             </strong>
+
         </li>
 
     <?php } ?>
-
-
-
-    <!-- ============================================================
-         OVER 60 KG MESSAGE
-         ============================================================ -->
-
-    <!-- <?php if ($cartOverWeight) { ?>
-
-        <li class="cart-weight-warning-row">
-
-            <p class="cart-weight-error">
-                <?php
-                echo $this->lang->line('maximum_cart_weight_message');
-                ?>
-            </p>
-
-        </li>
-
-    <?php } ?> -->
 
 
     <!-- ============================================================
          SHIPPING / CRATE COST
          
          IMPORTANT:
-         Do NOT show MUR 0.00.
          
-         Also hide shipping completely when cart > 60 KG.
+         - <= 60 KG and shipping > 0 => show
+         - > 60 KG => completely hide
+         - shipping = 0 => completely hide
          ============================================================ -->
 
     <?php if (!$cartOverWeight && $effective_shipping > 0) { ?>
 
-       <li>
+        <li>
 
-    <em><?php echo $this->lang->line('shipping_cost'); ?></em>
+            <em>
+                <?php echo $this->lang->line('shipping_cost'); ?>
+            </em>
 
-    <strong class="price"><?php
+            <strong class="price">
 
-        $effective_shipping = (floatval($cartDetails->ym_charge ?? 0) + floatval($cartDetails->shipping_amount ?? 0));
+                <?php
 
-        echo (($this->session->userdata('currency_code_session') && $default_currency_flag != 1) ? convert_currency_website($effective_shipping, $currency_conversion_rate, $currency_symbol) : CURRENCY_TYPE . ' '. number_format($effective_shipping, 2));
+                echo (
+                    $this->session->userdata('currency_code_session')
+                    && $default_currency_flag != 1
+                )
 
-    ?></strong>
+                ? convert_currency_website(
+                    $effective_shipping,
+                    $currency_conversion_rate,
+                    $currency_symbol
+                )
 
-</li>
+                : CURRENCY_TYPE . ' ' . number_format(
+                    $effective_shipping,
+                    2
+                );
+
+                ?>
+
+            </strong>
+
+        </li>
+
     <?php } ?>
 
 
     <!-- ============================================================
          TOTAL
          ============================================================ -->
+
     <li class="shopping-total-price">
 
         <em>
@@ -266,19 +315,23 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
         <strong class="price">
 
             <?php
+
             echo (
                 $this->session->userdata('currency_code_session')
                 && $default_currency_flag != 1
             )
+
             ? convert_currency_website(
                 $cartDetails->grand_total,
                 $currency_conversion_rate,
                 $currency_symbol
             )
+
             : CURRENCY_TYPE . ' ' . number_format(
                 $cartDetails->grand_total,
                 2
             );
+
             ?>
 
         </strong>
@@ -299,7 +352,9 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
         >
 
             <em style="margin-bottom:5px;">
+
                 <?php echo $this->lang->line('discount_code_label'); ?>
+
             </em>
 
             <div class="form-group">
@@ -323,7 +378,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                         type="text"
                         value="<?php echo !empty($cartDetails->coupon_code) ? $cartDetails->coupon_code : ''; ?>"
                         <?php echo !empty($cartDetails->coupon_code) ? 'readonly' : ''; ?>
-                        placeholder="<?= lang('enter_discount_code') ?>"
+                        placeholder="<?php echo $this->lang->line('enter_discount_code'); ?>"
                     >
 
                     <?php if (!empty($cartDetails->coupon_code)) { ?>
@@ -331,7 +386,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                         <input
                             type="button"
                             name="apply_coupon"
-                            onclick="removeDiscount('<?php echo $cartDetails->coupon_code ?>',0);"
+                            onclick="removeDiscount('<?php echo $cartDetails->coupon_code; ?>',0);"
                             value="<?php echo $this->lang->line('remove_label'); ?>"
                             class="btn btn-primary btn-sm"
                         >
@@ -372,7 +427,9 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
     >
 
         <em style="margin-bottom:5px;">
+
             <?php echo $this->lang->line('gift_card_label'); ?>
+
         </em>
 
         <div class="form-group">
@@ -397,7 +454,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                         class="form-control me-2"
                         name="giftcard_code"
                         type="text"
-                        placeholder="<?= lang('enter_gift_card_code') ?>"
+                        placeholder="<?php echo $this->lang->line('enter_gift_card_code'); ?>"
                     >
 
                     <button
@@ -405,10 +462,15 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                         id="applyGiftCardBtn"
                         class="btn btn-primary btn-sm"
                     >
-                        Apply
+                        <?php echo $this->lang->line('apply_label'); ?>
                     </button>
 
                 </div>
+
+
+                <!-- ==================================================
+                     APPLIED GIFTCARDS
+                     ================================================== -->
 
                 <div
                     id="applied-giftcards"
@@ -416,6 +478,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                 >
 
                     <?php
+
                     if (!empty($cartDetails->voucher_code)) {
 
                         $codes = explode(
@@ -424,30 +487,40 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                         );
 
                         foreach ($codes as $code) {
+
+                            $code = trim($code);
+
                     ?>
 
-                            <div
-                                class="applied-giftcard badge bg-light text-dark p-2 me-1 mb-1"
-                                data-code="<?php echo $code; ?>"
+                        <div
+                            class="applied-giftcard badge bg-light text-dark p-2 me-1 mb-1"
+                            data-code="<?php echo htmlspecialchars($code); ?>"
+                        >
+
+                            <?php echo htmlspecialchars($code); ?>
+
+                            <span
+                                class="remove-giftcard text-danger ms-1"
+                                style="cursor:pointer;"
                             >
+                                &times;
+                            </span>
 
-                                <?php echo $code; ?>
-
-                                <span
-                                    class="remove-giftcard text-danger ms-1"
-                                    style="cursor:pointer;"
-                                >
-                                    &times;
-                                </span>
-
-                            </div>
+                        </div>
 
                     <?php
+
                         }
                     }
+
                     ?>
 
                 </div>
+
+
+                <!-- ==================================================
+                     GIFT CARD MESSAGE
+                     ================================================== -->
 
                 <div
                     id="giftcard-message"
@@ -474,7 +547,9 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
         >
 
             <em style="margin-bottom:5px;">
+
                 <?php echo $this->lang->line('voucher_code_label'); ?>
+
             </em>
 
             <strong class="price">
@@ -505,7 +580,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                         <input
                             type="button"
                             name="apply_voucher"
-                            onclick="removeDiscount('<?php echo $cartDetails->voucher_code ?>',1);"
+                            onclick="removeDiscount('<?php echo $cartDetails->voucher_code; ?>',1);"
                             value="<?php echo $this->lang->line('remove_label'); ?>"
                             class="btn btn-primary"
                         >
@@ -559,7 +634,9 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                     class="modal-title"
                     id="removeGiftcardLabel"
                 >
+
                     <?php echo $this->lang->line('remove_gift_card_modal_title'); ?>
+
                 </h5>
 
                 <button
@@ -584,7 +661,9 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                     class="btn btn-secondary"
                     data-bs-dismiss="modal"
                 >
+
                     <?php echo $this->lang->line('cancel_label'); ?>
+
                 </button>
 
                 <button
@@ -592,7 +671,9 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
                     class="btn btn-danger"
                     id="confirmRemove"
                 >
+
                     <?php echo $this->lang->line('remove_label'); ?>
+
                 </button>
 
             </div>
@@ -615,15 +696,23 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
 }
 
 .cart-weight-error {
-    margin: 5px 0 !important;
+    display: block !important;
+
+    margin: 5px 0 0 !important;
     padding: 0 !important;
+
     background: transparent !important;
     border: 0 !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
+
     color: #d9534f !important;
+
     font-size: 13px;
     line-height: 18px;
     font-weight: 600;
+
+    width: 100%;
 }
 
 </style>
@@ -634,6 +723,13 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
      ================================================================ -->
 
 <script>
+
+
+/*
+ * ================================================================
+ * GIFT CARD
+ * ================================================================
+ */
 
 $(document).ready(function() {
 
@@ -648,7 +744,10 @@ $(document).ready(function() {
 
         e.preventDefault();
 
-        const gift_code = $('#giftcard_code').val().trim();
+
+        const gift_code =
+            $('#giftcard_code').val().trim();
+
 
         const session_id =
             $('input[name="session_id"]').val();
@@ -657,7 +756,7 @@ $(document).ready(function() {
         if (gift_code === '') {
 
             showGiftcardAlert(
-                'Please enter a gift card code',
+                "<?php echo $this->lang->line('enter_gift_card_code'); ?>",
                 'danger'
             );
 
@@ -667,8 +766,9 @@ $(document).ready(function() {
 
         let totalText =
             $('.shopping-total-price strong.price')
-            .text()
-            .replace(/[^\d.-]/g, '');
+                .text()
+                .replace(/[^\d.-]/g, '');
+
 
         let totalAmount =
             parseFloat(totalText);
@@ -677,7 +777,7 @@ $(document).ready(function() {
         if (!isNaN(totalAmount) && totalAmount <= 0) {
 
             showGiftcardAlert(
-                'You have reached total amount 0. You cannot apply more gift cards for this order.',
+                "<?php echo $this->lang->line('gift_card_total_zero_message'); ?>",
                 'warning'
             );
 
@@ -698,51 +798,68 @@ $(document).ready(function() {
                 session_id: session_id
             },
 
+
             beforeSend: function() {
 
                 $('#applyGiftCardBtn')
                     .prop('disabled', true)
-                    .text('Applying...');
+                    .text(
+                        "<?php echo $this->lang->line('applying_label'); ?>"
+                    );
 
             },
 
+
             success: function(res) {
 
+
                 if (res.status === 'success') {
+
 
                     showGiftcardAlert(
                         res.message,
                         'success'
                     );
 
+
                     $('#giftcard_code').val('');
+
 
                     $('#applied-giftcards').empty();
 
 
-                    res.applied_codes.forEach(function(code) {
+                    if (
+                        Array.isArray(res.applied_codes)
+                    ) {
 
-                        $('#applied-giftcards').append(`
+                        res.applied_codes.forEach(
+                            function(code) {
 
-                            <div
-                                class="applied-giftcard badge bg-light text-dark p-2 me-1 mb-1"
-                                data-code="${code}"
-                            >
+                                $('#applied-giftcards')
+                                    .append(`
 
-                                ${code}
+                                        <div
+                                            class="applied-giftcard badge bg-light text-dark p-2 me-1 mb-1"
+                                            data-code="${code}"
+                                        >
 
-                                <span
-                                    class="remove-giftcard text-danger ms-1"
-                                    style="cursor:pointer;"
-                                >
-                                    &times;
-                                </span>
+                                            ${code}
 
-                            </div>
+                                            <span
+                                                class="remove-giftcard text-danger ms-1"
+                                                style="cursor:pointer;"
+                                            >
+                                                &times;
+                                            </span>
 
-                        `);
+                                        </div>
 
-                    });
+                                    `);
+
+                            }
+                        );
+
+                    }
 
 
                     setTimeout(function() {
@@ -754,6 +871,7 @@ $(document).ready(function() {
 
                 } else {
 
+
                     showGiftcardAlert(
                         res.message,
                         'danger'
@@ -763,18 +881,22 @@ $(document).ready(function() {
 
             },
 
+
             complete: function() {
 
                 $('#applyGiftCardBtn')
                     .prop('disabled', false)
-                    .text('Apply');
+                    .text(
+                        "<?php echo $this->lang->line('apply_label'); ?>"
+                    );
 
             },
+
 
             error: function() {
 
                 showGiftcardAlert(
-                    'Error applying gift card',
+                    "<?php echo $this->lang->line('gift_card_apply_error'); ?>",
                     'danger'
                 );
 
@@ -797,10 +919,12 @@ $(document).ready(function() {
         function()
     {
 
+
         const gift_code =
             $(this)
-            .closest('.applied-giftcard')
-            .data('code');
+                .closest('.applied-giftcard')
+                .data('code');
+
 
         const session_id =
             $('input[name="session_id"]').val();
@@ -819,14 +943,18 @@ $(document).ready(function() {
                 session_id: session_id
             },
 
+
             success: function(res) {
 
+
                 if (res.status === 'success') {
+
 
                     showGiftcardAlert(
                         res.message,
                         'success'
                     );
+
 
                     $(
                         `.applied-giftcard[data-code="${gift_code}"]`
@@ -839,7 +967,9 @@ $(document).ready(function() {
 
                     }, 800);
 
+
                 } else {
+
 
                     showGiftcardAlert(
                         res.message,
@@ -850,10 +980,11 @@ $(document).ready(function() {
 
             },
 
+
             error: function() {
 
                 showGiftcardAlert(
-                    'Error removing gift card',
+                    "<?php echo $this->lang->line('gift_card_remove_error'); ?>",
                     'danger'
                 );
 
@@ -867,15 +998,16 @@ $(document).ready(function() {
 
 
 /*
- * ============================================================
+ * ================================================================
  * GIFT CARD ALERT
- * ============================================================
+ * ================================================================
  */
 
 function showGiftcardAlert(
     message,
     type = 'success'
 ) {
+
 
     $('#giftcard-message').html(`
 
@@ -890,7 +1022,7 @@ function showGiftcardAlert(
                 type="button"
                 class="btn-close"
                 data-bs-dismiss="alert"
-                aria-label="Close"
+                aria-label="<?php echo $this->lang->line('close_label'); ?>"
             ></button>
 
         </div>
@@ -901,33 +1033,36 @@ function showGiftcardAlert(
 
 
 /*
- * ============================================================
+ * ================================================================
  * CART WEIGHT VALIDATION
  *
- * Weight is stored in GRAMS.
- *
- * 60 KG = 60,000 grams.
- * ============================================================
+ * Product weight = GRAMS
+ * Maximum cart weight = 60 KG
+ * 60 KG = 60,000 GRAMS
+ * ================================================================
  */
 
 const MAX_CART_WEIGHT = 60000;
 
 
 /*
- * ============================================================
+ * ================================================================
  * GET CURRENT CART WEIGHT
- * ============================================================
+ * ================================================================
  */
 
 function getCartTotalWeight() {
+
 
     let totalWeight = 0;
 
 
     $('input[id^="quantity_"]').each(function() {
 
+
         const qty =
             parseInt($(this).val(), 10) || 0;
+
 
         const weight =
             parseFloat(
@@ -935,70 +1070,57 @@ function getCartTotalWeight() {
             ) || 0;
 
 
-        const itemTotalWeight =
+        totalWeight +=
             qty * weight;
-
-
-        console.log(
-            'Item:',
-            $(this).attr('id'),
-            'Qty:',
-            qty,
-            'Weight:',
-            weight,
-            'Total:',
-            itemTotalWeight
-        );
-
-
-        totalWeight += itemTotalWeight;
 
     });
 
 
-    console.log(
-        'TOTAL WEIGHT:',
-        totalWeight,
-        'grams'
-    );
-
-
-    console.log(
-        'TOTAL WEIGHT:',
-        totalWeight / 1000,
-        'KG'
-    );
-
-
     return totalWeight;
+
 }
 
 
 /*
- * ============================================================
+ * ================================================================
  * VALIDATE BEFORE + QUANTITY
- * ============================================================
+ *
+ * IMPORTANT:
+ *
+ * This checks the weight BEFORE calling
+ * increaseQtyValue().
+ *
+ * If new weight > 60 KG:
+ *
+ * - quantity is NOT increased
+ * - warning is shown under that product
+ * - no SweetAlert popup
+ * ================================================================
  */
 
 function validateCartWeightBeforeIncrease(itemId) {
+
 
     const qtyInput =
         $('#quantity_' + itemId);
 
 
     /*
-     * If input doesn't exist,
+     * If quantity input doesn't exist,
      * allow normal processing.
      */
+
     if (!qtyInput.length) {
 
         return true;
+
     }
 
 
     /*
      * Product weight in grams.
      */
+
     const itemWeight =
         parseFloat(
             qtyInput.attr('data-weight')
@@ -1008,96 +1130,60 @@ function validateCartWeightBeforeIncrease(itemId) {
     /*
      * Current cart weight.
      */
+
     const currentTotalWeight =
         getCartTotalWeight();
 
 
     /*
      * Weight after adding one quantity.
+
      */
+
     const newTotalWeight =
         currentTotalWeight + itemWeight;
 
 
-    console.log(
-        'Current:',
-        currentTotalWeight / 1000,
-        'KG'
-    );
+    /*
+     * Clear previous messages.
+     */
 
-
-    console.log(
-        'Adding:',
-        itemWeight / 1000,
-        'KG'
-    );
-
-
-    console.log(
-        'New:',
-        newTotalWeight / 1000,
-        'KG'
-    );
+    $('.qty-error').text('');
 
 
     /*
-     * ========================================================
+     * ============================================================
      * OVER 60 KG
-     * ========================================================
+     * ============================================================
      */
 
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
-        swal({
 
-            title:
-                "<?php echo $this->lang->line('maximum_cart_weight'); ?>",
+        $('#qtyError_' + itemId).text(
 
-            text:
-                "<?php echo $this->lang->line('maximum_cart_weight_message'); ?>",
+            "<?php echo $this->lang->line('maximum_cart_weight_message'); ?>"
 
-            type: "warning",
-
-            confirmButtonText:
-                "<?php echo $this->lang->line('ok'); ?>"
-
-        });
+        );
 
 
-        /*
-         * IMPORTANT:
-         * Do NOT call increaseQtyValue().
-         */
         return false;
+
     }
 
 
     /*
-     * ========================================================
+     * ============================================================
      * 60 KG OR BELOW
-     * ========================================================
+     * ============================================================
      */
 
     return true;
+
 }
-$(document).ready(function () {
-
-    const totalCartWeight = getCartTotalWeight();
-
-    if (totalCartWeight > MAX_CART_WEIGHT) {
-
-        swal({
-            title: "<?php echo $this->lang->line('maximum_cart_weight'); ?>",
-            text: "<?php echo $this->lang->line('maximum_cart_weight_message'); ?>",
-            type: "warning",
-            confirmButtonText: "<?php echo $this->lang->line('ok'); ?>"
-        });
-
-    }
-
-});
 
 </script>
+
 
 <?php
 }
