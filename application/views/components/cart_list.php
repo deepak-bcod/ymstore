@@ -1,4 +1,4 @@
-<?php //echo"<pre>";print_r($CartData);echo"</pre>"; ?>
+<?php echo"<pre>";print_r($CartData);echo"</pre>"; ?>
 <div class="col-md-12 col-sm-12 <?php echo (isset($CartData->cartItems) && count($CartData->cartItems) > 0)?'':'text-center'?>">
     <h1><?php echo $this->lang->line('shopping_cart'); ?></h1>
 
