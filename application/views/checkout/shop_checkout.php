@@ -624,24 +624,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <script type="text/javascript">
 jQuery.validator.addMethod(
-  "intlTelNumber",
-  function (value, element) {
+    "intlTelNumber",
+    function (value, element) {
 
-    if (this.optional(element)) {
-      return true;
-    }
+        if (this.optional(element)) {
+            return true;
+        }
 
-    if (element.id === "billing_mobile_no" && window.billingIti) {
-      return window.billingIti.isValidNumber();
-    }
+        var phone = value.replace(/\D/g, '');
 
-    if (element.id === "shipping_mobile_no" && window.shippingIti) {
-      return window.shippingIti.isValidNumber();
-    }
-
-    return false;
-  },
-  "Please enter a valid International Phone Number"
+        return /^[0-9]{8}$/.test(phone);
+    },
+    "Please enter a valid Mauritius phone number"
 );
 </script>
 <!-- <script src="https://checkout.razorpay.com/v1/checkout.js"></script> -->
