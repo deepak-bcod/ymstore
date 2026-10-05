@@ -2247,5 +2247,31 @@ $lang['no_shops_found'] = 'No shops found.';
 
 $lang['invoice_not_uploaded'] = 'Invoice not uploaded by the merchant';
 
+// Order Resolution / Ticket System Localization
+$lang['ticket'] = 'Ticket';
+$lang['create_ticket'] = 'Create Order Resolution Ticket';
+$lang['ticket_number'] = 'Ticket Number';
+$lang['order_number'] = 'Order Number';
+$lang['category_delivery'] = 'Delivery Issue';
+$lang['category_refund'] = 'Refund Request';
+$lang['category_replacement'] = 'Replacement Request';
+$lang['category_others'] = 'Others';
+$lang['priority_low'] = 'Low';
+$lang['priority_medium'] = 'Medium';
+$lang['priority_high'] = 'High';
+$lang['priority_urgent'] = 'Urgent';
+$lang['describe_issue'] = 'Describe the issue or reason in detail...';
+$lang['attachment_optional'] = 'Attachment / Photo (Optional)';
+$lang['submit_ticket'] = 'Submit Ticket';
+$lang['resolution_request'] = 'Resolution Request';
+$lang['shopper_dispute_title'] = 'Submit Resolution Request (Escalate to Admin)';
+$lang['dispute_expl'] = 'If you are dissatisfied with the merchant decision, explain your grounds for dispute. A Yellow Markets Administrator will investigate and make a binding determination.';
+$lang['dispute_reason'] = 'Reason for Resolution Request';
+$lang['submit_escalation'] = 'Submit Resolution Request';
+$lang['send_reply'] = 'Send a Reply';
+$lang['add_image'] = 'Add Photo';
+$lang['back_to_orders'] = 'Back to My Orders';
+
+
 
 

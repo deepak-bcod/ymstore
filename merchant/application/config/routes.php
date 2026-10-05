@@ -859,3 +859,10 @@ $route['merchant/User_Controller/close_ticket/(:any)/(:any)'] = 'UserController/
 $route['UserController/close_ticket/(:any)/(:any)/(:any)'] = 'UserController/close_ticket/$1/$2/$3';
 $route['UserController/close_ticket/(:any)/(:any)'] = 'UserController/close_ticket/$1/$2';
 
+// Order Resolution Routes (Merchant)
+$route['merchant/order-resolution'] = 'OrderResolutionController/index';
+$route['merchant/order-resolution/view/(:any)'] = 'OrderResolutionController/view/$1';
+$route['merchant/order-resolution/reply'] = 'OrderResolutionController/reply';
+$route['merchant/order-resolution/action'] = 'OrderResolutionController/action';
+
+
