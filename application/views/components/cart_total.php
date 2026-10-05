@@ -237,7 +237,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
         </div>
     `);
     }
-    const MAX_CART_WEIGHT = 60000; // 60 KG = 60,000 grams
+   const MAX_CART_WEIGHT = 60000; // 60 KG = 60,000 grams
 
 function getCartTotalWeight() {
 
@@ -281,27 +281,25 @@ function validateCartWeightBeforeIncrease(itemId) {
     const itemWeight = parseFloat(qtyInput.attr('data-weight')) || 0;
 
     const currentTotalWeight = getCartTotalWeight();
-
     const newTotalWeight = currentTotalWeight + itemWeight;
 
     console.log('Current:', currentTotalWeight / 1000, 'KG');
     console.log('Adding:', itemWeight / 1000, 'KG');
     console.log('New:', newTotalWeight / 1000, 'KG');
 
-    // Remove old error messages
-    $('.qty-error').empty();
-
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
-        $('#qtyError_' + itemId).html(
-            '<span style="color:#d9534f;font-weight:600;display:block;">' +
-            'Maximum cart weight is 60 KG. You cannot add more.' +
-            '</span>'
-        );
+        swal({
+            title: "Maximum Cart Weight",
+            text: "Maximum cart weight is 60 KG. You cannot add more.",
+            type: "warning",
+            confirmButtonText: "OK",
+            confirmButtonColor: "#ffc107"
+        });
 
         return false;
     }
 
     return true;
 }
-</script>
+</script>   
