@@ -8,23 +8,50 @@
         </div>
     <?php endif; ?>
 
-    <?php 
-    $has_out_of_stock = false;
-    if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
-        foreach ($CartData->cartItems as $chk) {
-            if (isset($chk->available_qty) && (int)$chk->available_qty <= 0) {
-                $has_out_of_stock = true;
-                break;
-            }
-        }
-    }
-    ?>
+ <?php
+$has_out_of_stock = false;
+$total_cart_weight = 0;
 
-    <?php if ($has_out_of_stock): ?>
-        <div class="alert alert-danger" style="margin-top: 15px;">
-            <i class="fa fa-exclamation-triangle"></i> <strong>Notice:</strong> One or more items in your cart are currently <strong>Out of Stock</strong>. Please remove them before proceeding to checkout.
-        </div>
-    <?php endif; ?>
+if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
+
+    foreach ($CartData->cartItems as $chk) {
+
+        if (isset($chk->available_qty) && (int)$chk->available_qty <= 0) {
+            $has_out_of_stock = true;
+        }
+
+        // Weight of 1 product
+        $weight = isset($chk->weight) ? (float)$chk->weight : 0;
+
+        // Quantity
+        $qty = isset($chk->qty_ordered) ? (float)$chk->qty_ordered : 0;
+
+        // Total weight
+        $total_cart_weight += ($weight * $qty);
+    }
+}
+
+// Maximum allowed cart weight
+$max_cart_weight = 60;
+
+// Check weight limit
+$weight_limit_exceeded = ($total_cart_weight > $max_cart_weight);
+?>
+
+<?php if ($weight_limit_exceeded): ?>
+    <div class="alert alert-danger" style="margin-top: 15px;">
+        <i class="fa fa-exclamation-triangle"></i>
+
+        <strong>Maximum Weight Limit Exceeded:</strong>
+        Your cart weight is
+        <strong><?= number_format($total_cart_weight, 2); ?> Kg</strong>.
+
+        Maximum allowed weight is
+        <strong><?= number_format($max_cart_weight, 2); ?> Kg</strong>.
+
+        Please reduce the quantity or remove some products.
+    </div>
+<?php endif; ?>
 
     <?php if(isset($CartData->cartItems) && count($CartData->cartItems) > 0){ ?>
         <div class="goods-page">
@@ -160,7 +187,7 @@
                                 <?php (new CartList())->cartPriceDetails($CartData,'cartPage'); ?>
                             </div>
                             <div class="divcent text-center">
-                                <?php if ($has_out_of_stock): ?>
+                                <?php if ($has_out_of_stock || $weight_limit_exceeded): ?>
                                     <button type="button" class="btn btn-primary chkout" disabled style="opacity:0.6; cursor:not-allowed;" title="Please remove out-of-stock items to proceed">
                                         <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-ban"></i>
                                     </button>
