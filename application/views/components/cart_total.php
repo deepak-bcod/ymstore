@@ -290,11 +290,10 @@ function validateCartWeightBeforeIncrease(itemId) {
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
         swal({
-            title: "Maximum Cart Weight",
-            text: "Maximum cart weight is 60 KG. You cannot add more.",
+            title: "<?php echo $this->lang->line('maximum_cart_weight'); ?>",
+            text: "<?php echo $this->lang->line('maximum_cart_weight_message'); ?>",
             type: "warning",
-            confirmButtonText: "OK",
-            confirmButtonColor: "#ffc107"
+            confirmButtonText: "<?php echo $this->lang->line('ok'); ?>"
         });
 
         return false;
