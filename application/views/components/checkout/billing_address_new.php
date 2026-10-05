@@ -460,7 +460,7 @@ if (isset($billing_address_data[0]->customer_address_id) && $billing_address_dat
 
                                 <?php } ?>
 
-                                <div class="form-group <?php echo ($this->session->userdat('LoginID')) ? 'line-2' : 'line-1'; ?>">
+                                <div class="form-group <?php echo ($this->session->userdata('LoginID')) ? 'line-2' : 'line-1'; ?>">
                                     <label for="billing_mobile_no">
                                         <?php echo lang('telephone'); ?> <span class="require">*</span>
                                     </label>
@@ -471,14 +471,11 @@ if (isset($billing_address_data[0]->customer_address_id) && $billing_address_dat
                                         placeholder="<?php echo lang('mobile_number'); ?>*"
                                         name="billing_mobile_no"
                                         id="billing_mobile_no"
-                                        value="<?php echo $billing_mobile_no; ?>"
-                                        minlength="8"
-                                        maxlength="8"
-                                        pattern="[0-9]{8}"
-                                        inputmode="numeric"
-                                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8);"
-                                        required>
-                                </div>
+                                        value="<?php echo $billing_mobile_no; ?>">
+                                    </div>
+
+
+                            </div>
 
                             <div class="col-md-6 custom-address-billing <?php echo $Billing_aadr_div; ?>">
 

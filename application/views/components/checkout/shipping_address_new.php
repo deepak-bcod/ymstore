@@ -202,13 +202,7 @@ if (isset($shipping_address_data[0]->customer_address_id) && $shipping_address_d
                                 placeholder="<?= lang('mobile_number') ?>*"
                                 name="shipping_mobile_no"
                                 id="shipping_mobile_no"
-                                value="<?php echo $shipping_mobile_no; ?>"
-                                minlength="8"
-                                maxlength="8"
-                                pattern="[0-9]{8}"
-                                inputmode="numeric"
-                                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8);"
-                                required>
+                                value="<?php echo $shipping_mobile_no; ?>">
                             </div>
 
 
