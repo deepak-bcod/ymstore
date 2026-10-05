@@ -1075,6 +1075,15 @@ $lang['ticket_closed_successfully']   = "Ticket closed successfully.";
 $lang['please_fill_out_this_field']  = "Please fill out this field.";
 $lang['are_you_sure_close_ticket']   = "Are you sure you want to close this ticket?";
 $lang['mark_as_close']               = "Mark as Close";
+$lang['refund_approved']             = "Refund Approved";
+$lang['approve_refund']              = "Approve Refund";
+$lang['refund_amount']               = "Refund Amount";
+$lang['refund_approved_successfully'] = "Refund approved successfully.";
+$lang['are_you_sure_approve_refund'] = "Are you sure you want to approve refund for this ticket?";
+$lang['enter_refund_amount']         = "Enter refund amount";
+$lang['refund_status_pending_processing'] = "Refund Approved - Processing with Support & Accounting";
+$lang['refund_completed']            = "Refund Completed (Done)";
+
 
 
 $lang['order_pickup_request_success'] = 'Order pickup request generated successfully.';

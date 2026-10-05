@@ -3173,5 +3173,195 @@ class UserController extends CI_Controller
 
 		redirect('help_desk/shopper', 'refresh'); 
 	}
+
+	public function refund_approve_ticket()
+	{
+		$LogindID = $this->session->userdata('LoginID');
+		if (empty($LogindID)) {
+			$LogindID = isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : '';
+		}
+		if (empty($LogindID)) {
+			redirect('login');
+			return;
+		}
+
+		$ticket_id     = trim($this->input->post('ticket_id', true));
+		$order_id      = (int)$this->input->post('order_id', true);
+		$product_id    = (int)$this->input->post('product_id', true);
+		$refund_amount = (float)$this->input->post('refund_amount', true);
+
+		if (empty($ticket_id) || $refund_amount <= 0) {
+			$this->session->set_flashdata('error', "Invalid ticket or refund amount.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// Verify ticket exists and belongs to this merchant
+		$this->db->where('ticket_id', $ticket_id);
+		$this->db->where('category', 1); // Shopper order resolution ticket
+		$this->db->where('merchant_id', $LogindID);
+		$ticket = $this->db->get('help_desk')->row();
+
+		if (!$ticket) {
+			$this->session->set_flashdata('error', "Ticket not found or permission denied.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// Update ticket rows with refund approval
+		$updateData = [
+			'merchant_action' => 'refund_approved',
+			'refund_amount'   => $refund_amount,
+			'status_code'     => 'Processing',
+			'updated_at'      => time()
+		];
+		$this->db->where('ticket_id', $ticket_id);
+		$this->db->update('help_desk', $updateData);
+
+		// Record conversation message
+		$refund_formatted = number_format($refund_amount, 2);
+		$reply_msg = "Action: Refund Approved. Amount: " . $refund_formatted . ". Assigned to support and accounting for processing.";
+		
+		$insertMsg = [
+			'ticket_id'       => $ticket_id,
+			'subject'         => $ticket->subject,
+			'category'        => $ticket->category,
+			'priority'        => $ticket->priority,
+			'customer_id'     => $ticket->customer_id,
+			'merchant_id'     => $ticket->merchant_id,
+			'message'         => '',
+			'admin_reply'     => $reply_msg,
+			'merchant_action' => 'refund_approved',
+			'refund_amount'   => $refund_amount,
+			'status_code'     => 'Processing',
+			'status'          => 1,
+			'created_at'      => time(),
+			'updated_at'      => time(),
+			'ip'              => $this->input->ip_address(),
+		];
+		$this->db->insert('help_desk', $insertMsg);
+
+		// Fetch Shopper details
+		$shopper_name  = 'Shopper';
+		$shopper_email = '';
+		if (!empty($ticket->customer_id)) {
+			$cust = $this->db->select('first_name, last_name, email_id')->where('id', $ticket->customer_id)->get('customers')->row();
+			if ($cust) {
+				$shopper_name  = trim(($cust->first_name ?? '') . ' ' . ($cust->last_name ?? ''));
+				$shopper_email = $cust->email_id ?? '';
+			}
+		}
+
+		// Fetch Order details
+		$order_id_val = !empty($ticket->order_id) ? $ticket->order_id : $order_id;
+		$order_number = (string)$order_id_val;
+		if (!empty($order_id_val)) {
+			$order_row = $this->db->select('increment_id, customer_email, customer_firstname, customer_lastname')->where('order_id', $order_id_val)->get('sales_order')->row();
+			if ($order_row) {
+				$order_number = !empty($order_row->increment_id) ? $order_row->increment_id : (string)$order_id_val;
+				if (empty($shopper_email) && !empty($order_row->customer_email)) {
+					$shopper_email = $order_row->customer_email;
+				}
+				if (($shopper_name === 'Shopper' || empty($shopper_name)) && (!empty($order_row->customer_firstname) || !empty($order_row->customer_lastname))) {
+					$shopper_name = trim(($order_row->customer_firstname ?? '') . ' ' . ($order_row->customer_lastname ?? ''));
+				}
+			}
+		}
+		if (empty($shopper_name)) $shopper_name = 'Shopper';
+
+		// Fetch Merchant details
+		$merchant_name = 'Merchant';
+		$merch = $this->db->select('publication_name, email')->where('id', $LogindID)->get('publisher')->row();
+		if ($merch && !empty($merch->publication_name)) {
+			$merchant_name = $merch->publication_name;
+		}
+
+		// Fetch Product details
+		$prod_id_val = !empty($ticket->products) ? $ticket->products : $product_id;
+		$product_name = 'N/A';
+		if (!empty($prod_id_val)) {
+			$prod = $this->db->select('name')->where('id', $prod_id_val)->get('products')->row();
+			if ($prod && !empty($prod->name)) {
+				$product_name = html_entity_decode($prod->name, ENT_QUOTES, 'UTF-8');
+			}
+		}
+
+		// URLs
+		$shopper_base = defined('BASE_URL3') ? BASE_URL3 : (defined('BASE_URL') ? str_replace('/merchant/', '/', BASE_URL) : 'https://mu.yellowmarkets.com/');
+		$shopper_base = rtrim($shopper_base, '/') . '/';
+		$shopper_ticket_url = $shopper_base . "MyProfileController/viewTicket/" . $order_id_val . "/" . $ticket_id . ($prod_id_val ? '/' . $prod_id_val : '');
+
+		$admin_base = 'https://mu.yellowmarkets.com/admin/';
+		$admin_ticket_url = $admin_base . "CustomerController/view/" . $order_id_val . "/" . $ticket_id . ($prod_id_val ? '/' . $prod_id_val : '');
+
+		// Language code
+		$shopper_lang_code = ($this->session->userdata('site_lang') === 'french' || $this->session->userdata('site_lang') === 'fr') ? 'fr' : 'en';
+
+		// Placeholders
+		$tempVars = [
+			'##TICKET_NUMBER##', '##TICKET_ID##', '{ticket_number}', '{ticket_id}',
+			'##ORDER_NUMBER##', '##ORDER_NO##', '{order_number}', '{order_no}',
+			'##PRODUCT_NAME##', '{product_name}',
+			'##MERCHANT_NAME##', '{merchant_name}',
+			'##SHOPPER_NAME##', '##CUSTOMER_NAME##', '{shopper_name}', '{customer_name}',
+			'##REFUND_AMOUNT##', '##AMOUNT##', '{refund_amount}', '{amount}',
+			'##ACTION##', '{action}',
+			'##TICKET_URL##', '{ticket_url}',
+			'##WEBSHOPNAME##', '{webshop_name}'
+		];
+
+		// 1. Send Email to Shopper (order-resolution-refund-approved-shopper)
+		if (!empty($shopper_email)) {
+			$shopperDynamicVars = [
+				$ticket_id, $ticket_id, $ticket_id, $ticket_id,
+				$order_number, $order_number, $order_number, $order_number,
+				$product_name, $product_name,
+				$merchant_name, $merchant_name,
+				$shopper_name, $shopper_name, $shopper_name, $shopper_name,
+				$refund_formatted, $refund_formatted, $refund_formatted, $refund_formatted,
+				'Refund Approved', 'Refund Approved',
+				$shopper_ticket_url, $shopper_ticket_url,
+				'Yellow Markets', 'Yellow Markets'
+			];
+
+			$this->CommonModel->sendCommonHTMLEmail(
+				$shopper_email,
+				'order-resolution-refund-approved-shopper',
+				$tempVars,
+				$shopperDynamicVars,
+				$shopper_lang_code
+			);
+		}
+
+		// 2. Send Email to @help (order-resolution-refund-approved-help)
+		$help_email = $this->CommonModel->get_custom_variable('contact_us_email')
+			?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+
+		if (!empty($help_email)) {
+			$helpDynamicVars = [
+				$ticket_id, $ticket_id, $ticket_id, $ticket_id,
+				$order_number, $order_number, $order_number, $order_number,
+				$product_name, $product_name,
+				$merchant_name, $merchant_name,
+				$shopper_name, $shopper_name, $shopper_name, $shopper_name,
+				$refund_formatted, $refund_formatted, $refund_formatted, $refund_formatted,
+				'Refund Approved', 'Refund Approved',
+				$admin_ticket_url, $admin_ticket_url,
+				'Yellow Markets', 'Yellow Markets'
+			];
+
+			$this->CommonModel->sendCommonHTMLEmail(
+				$help_email,
+				'order-resolution-refund-approved-help',
+				$tempVars,
+				$helpDynamicVars,
+				$shopper_lang_code
+			);
+		}
+
+		$this->session->set_flashdata('success', $this->lang->line('refund_approved_successfully') ?: 'Refund approved successfully.');
+		redirect($_SERVER['HTTP_REFERER']);
+	}
 }
+
 

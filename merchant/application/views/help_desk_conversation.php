@@ -55,6 +55,26 @@ if(!empty($help_desk_data)): ?>
                     | <strong><?= $this->lang->line('product_label'); ?>:</strong> <?= !empty($product) ? $product->product_name : (!empty($first_ticket->products) ? $first_ticket->products : 'N/A'); ?>
                 </p>
 
+                <?php if (!empty($first_ticket->merchant_action) && $first_ticket->merchant_action === 'refund_approved'): ?>
+                    <?php if (!empty($first_ticket->status_code) && $first_ticket->status_code === 'Done'): ?>
+                        <div class="alert alert-success d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <strong><i class="fa fa-check-circle"></i> <?= lang('refund_completed'); ?></strong>
+                                <div class="small"><?= lang('refund_amount'); ?>: <strong><?= number_format((float)$first_ticket->refund_amount, 2); ?></strong> (Deducted from hold-back sales balance)</div>
+                            </div>
+                            <span class="badge badge-success px-2 py-1">Done</span>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <strong><i class="fa fa-info-circle"></i> <?= lang('refund_approved'); ?>: <?= number_format((float)$first_ticket->refund_amount, 2); ?></strong>
+                                <div class="small"><?= lang('refund_status_pending_processing'); ?></div>
+                            </div>
+                            <span class="badge badge-warning text-dark px-2 py-1"><?= !empty($first_ticket->status_code) ? $first_ticket->status_code : 'Processing'; ?></span>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+
                 <br/>
                 
                 <?php if(!empty($first_ticket->attachment)): ?>
@@ -109,21 +129,64 @@ if(!empty($help_desk_data)): ?>
                         <label><?= $this->lang->line('reply_label'); ?></label>
                         <textarea name="admin_reply" class="form-control" rows="3" required oninvalid="this.setCustomValidity('<?= lang('please_fill_out_this_field') ?>')" oninput="this.setCustomValidity('')"></textarea>
                     </div>
-                    <div class="d-flex">
-    <button type="submit" class="btn btn-primary btn-sm mr-2">
-        <?= $this->lang->line('send_reply_label'); ?>
-    </button>
+                    <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <?= $this->lang->line('send_reply_label'); ?>
+                        </button>
 
-    <?php if ($first_ticket->status != 2 && $first_ticket->category <= 2): ?>
-        <a href="<?= base_url('UserController/close_ticket/' . $first_ticket->order_id . '/' . $product . '/' . $first_ticket->ticket_id); ?>" 
-           class="btn btn-danger btn-sm"
-           onclick="return confirm('<?= lang('are_you_sure_close_ticket'); ?>')">
-           <?= lang('mark_as_close'); ?> 
-        </a>
-    <?php endif; ?>
-</div>
+                        <?php if ($first_ticket->status != 2 && $first_ticket->category <= 2): ?>
+                            <?php if (empty($first_ticket->merchant_action) || $first_ticket->merchant_action === 'none'): ?>
+                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#refundModal">
+                                    <i class="fa fa-check"></i> <?= lang('approve_refund'); ?>
+                                </button>
+                            <?php elseif ($first_ticket->merchant_action === 'refund_approved'): ?>
+                                <span class="btn btn-outline-success btn-sm disabled">
+                                    <i class="fa fa-check-circle"></i> <?= lang('refund_approved'); ?> (<?= number_format((float)$first_ticket->refund_amount, 2); ?>)
+                                </span>
+                            <?php endif; ?>
+
+                            <a href="<?= base_url('UserController/close_ticket/' . $first_ticket->order_id . '/' . $product . '/' . $first_ticket->ticket_id); ?>" 
+                               class="btn btn-danger btn-sm"
+                               onclick="return confirm('<?= lang('are_you_sure_close_ticket'); ?>')">
+                               <?= lang('mark_as_close'); ?> 
+                            </a>
+                        <?php endif; ?>
+                    </div>
 
                 </form>
+
+                <?php if ($first_ticket->status != 2 && $first_ticket->category <= 2 && (empty($first_ticket->merchant_action) || $first_ticket->merchant_action === 'none')): ?>
+                <div class="modal fade" id="refundModal" tabindex="-1" role="dialog" aria-labelledby="refundModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <form method="POST" action="<?= base_url('UserController/refund_approve_ticket'); ?>">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="refundModalLabel"><?= lang('approve_refund'); ?></h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <input type="hidden" name="ticket_id" value="<?= htmlspecialchars($first_ticket->ticket_id, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <input type="hidden" name="order_id" value="<?= !empty($first_ticket->order_id) ? (int)$first_ticket->order_id : 0; ?>">
+                                    <input type="hidden" name="product_id" value="<?= !empty($product) ? (int)$product : 0; ?>">
+                                    
+                                    <div class="form-group">
+                                        <label for="refund_amount"><strong><?= lang('refund_amount'); ?></strong></label>
+                                        <input type="number" step="0.01" min="0.01" name="refund_amount" id="refund_amount" class="form-control"
+                                            value="<?= !empty($order->grand_total) ? number_format((float)$order->grand_total, 2, '.', '') : '0.00'; ?>" required>
+                                        <small class="form-text text-muted"><?= lang('are_you_sure_approve_refund'); ?></small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-success btn-sm"><?= lang('approve_refund'); ?></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
 
             </div>
         </div>
