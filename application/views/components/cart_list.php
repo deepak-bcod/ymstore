@@ -89,58 +89,88 @@
                                             <p id="qtyError_<?php echo $value->item_id;?>" class="qty-error"></p>
                                             <p class="delivery-time"><?= ($value->estimate_delivery_time != '') ? $this->lang->line('delivery_in_days').' '.$value->estimate_delivery_time.' '.$this->lang->line('days') : '';?></p>
                                         </td>
+<td class="goods-page-quantity">
+    <div class="product-quantity">
+        <?php
+            $available_qty = $value->available_qty;
 
-                                        <td class="goods-page-quantity">
-                                            <div class="product-quantity">
-                                                <?php 
-                                                    $available_qty = $value->available_qty;
-                                                    if ($available_qty>$qty_limit || $value->prelaunch == 1 || $value->product_type == 'bundle') {
-                                                        $available_qty=$qty_limit;
-                                                    }
-                                                ?>
-                                                <div class="input-group bootstrap-touchspin input-group-sm">
-                                                    <span class="input-group-btn">
-                                                        <button class="btn quantity-down bootstrap-touchspin-down" 
-                                                            onclick="decreaseQtyValue(<?php echo $value->item_id; ?>,'<?php echo $value->product_type; ?>',<?php echo $value->product_id; ?>,<?php echo $value->parent_product_id; ?>)" 
-                                                            type="button">
-                                                            <i class="fa fa-angle-down"></i>
-                                                        </button>
-                                                    </span>
+            if (
+                $available_qty > $qty_limit ||
+                $value->prelaunch == 1 ||
+                $value->product_type == 'bundle'
+            ) {
+                $available_qty = $qty_limit;
+            }
+        ?>
 
-                                                    <input id="quantity_<?php echo $value->item_id; ?>" 
-    data-item-id="<?php echo $value->item_id;?>" 
-    data-price="<?php echo number_format($value->price, 2);?>"
-    data-weight="<?php echo (float)$value->weight; ?>"
-    type="text" 
-    min="1"
-    max="<?php echo $available_qty; ?>"
-    value="<?php echo $value->qty_ordered; ?>" 
-    readonly 
-    class="form-control input-sm" 
-    style="display: block;"
->
-                                                    <input type="hidden" value="<?php echo $value->qty_ordered ?>" name="previous_qty[]" id="previous_qty_<?php echo $value->item_id;?>">
-                                                    <input type="hidden" value="<?php echo $available_qty ?>" name="max_qty[]" id="max_qty_<?php echo $value->item_id;?>">
+        <div class="input-group bootstrap-touchspin input-group-sm">
 
-                                                    <span class="input-group-btn">
-                                                       <button class="btn quantity-up bootstrap-touchspin-up" 
-    onclick="
-        if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
-            increaseQtyValue(
-                <?php echo $value->item_id; ?>,
-                '<?php echo $value->product_type; ?>',
-                <?php echo $value->product_id; ?>,
-                <?php echo $value->parent_product_id; ?>
-            );
-        }
-    " 
-    type="button">
-    <i class="fa fa-angle-up"></i>
-</button>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </td>
+            <!-- Decrease -->
+            <span class="input-group-btn">
+                <button
+                    class="btn quantity-down bootstrap-touchspin-down"
+                    onclick="decreaseQtyValue(
+                        <?php echo $value->item_id; ?>,
+                        '<?php echo $value->product_type; ?>',
+                        <?php echo $value->product_id; ?>,
+                        <?php echo $value->parent_product_id; ?>
+                    )"
+                    type="button">
+                    <i class="fa fa-angle-down"></i>
+                </button>
+            </span>
+
+            <!-- Quantity -->
+            <input
+                id="quantity_<?php echo $value->item_id; ?>"
+                data-item-id="<?php echo $value->item_id; ?>"
+                data-price="<?php echo number_format($value->price, 2); ?>"
+                data-weight="<?php echo (float)$value->weight; ?>"
+                type="text"
+                min="1"
+                max="<?php echo $available_qty; ?>"
+                value="<?php echo $value->qty_ordered; ?>"
+                readonly
+                class="form-control input-sm"
+                style="display: block;"
+            >
+
+            <input
+                type="hidden"
+                value="<?php echo $value->qty_ordered; ?>"
+                name="previous_qty[]"
+                id="previous_qty_<?php echo $value->item_id; ?>"
+            >
+
+            <input
+                type="hidden"
+                value="<?php echo $available_qty; ?>"
+                name="max_qty[]"
+                id="max_qty_<?php echo $value->item_id; ?>"
+            >
+
+            <!-- Increase -->
+            <span class="input-group-btn">
+                <button
+                    class="btn quantity-up bootstrap-touchspin-up"
+                    onclick="
+                        if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
+                            increaseQtyValue(
+                                <?php echo $value->item_id; ?>,
+                                '<?php echo $value->product_type; ?>',
+                                <?php echo $value->product_id; ?>,
+                                <?php echo $value->parent_product_id; ?>
+                            );
+                        }
+                    "
+                    type="button">
+                    <i class="fa fa-angle-up"></i>
+                </button>
+            </span>
+
+        </div>
+    </div>
+</td>
 
                                         <td class="goods-page-total">
                                             <strong><?php echo (($this->session->userdata('currency_code_session') && $default_currency_flag != 1) ? convert_currency_website  ($value->price, $currency_conversion_rate, $currency_symbol) : CURRENCY_TYPE . ' ' . number_format ($value->price , 2));?></strong>

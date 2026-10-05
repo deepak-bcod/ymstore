@@ -248,7 +248,7 @@ $effective_shipping = (float)($cartDetails->ym_charge ?? 0) + (float)($cartDetai
         </div>
     `);
     }
-   const MAX_CART_WEIGHT = 60; // Maximum 60 KG
+   const MAX_CART_WEIGHT = 60;
 
 function getCartTotalWeight() {
     let totalWeight = 0;
@@ -282,7 +282,7 @@ function validateCartWeightBeforeIncrease(itemId) {
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
         $('#qtyError_' + itemId).html(
-            '<span style="color:#d9534f;">' +
+            '<span style="color:#d9534f; font-weight:600;">' +
             'Maximum cart weight is 60 KG. You cannot add more.' +
             '</span>'
         );
