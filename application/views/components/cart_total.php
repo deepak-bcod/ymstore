@@ -33,22 +33,13 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
             </li>
         <?php } ?>
 
-      <li>
-        <em><?php echo $this->lang->line('shipping_cost'); ?></em>
-        <strong class="price">
-            <?php
-            echo (
-                $this->session->userdata('currency_code_session') && $default_currency_flag != 1
-                ? convert_currency_website(
-                    $effective_shipping,
-                    $currency_conversion_rate,
-                    $currency_symbol
-                )
-                : CURRENCY_TYPE . ' ' . number_format($effective_shipping, 2)
-            );
-            ?>
-        </strong>
-    </li>
+     <li>
+    <em><?php echo $this->lang->line('shipping_cost'); ?></em>
+    <strong class="price"><?php 
+        $effective_shipping = (floatval($cartDetails->ym_charge ?? 0) + floatval($cartDetails->shipping_amount ?? 0));
+        echo (($this->session->userdata('currency_code_session') && $default_currency_flag != 1) ? convert_currency_website($effective_shipping, $currency_conversion_rate, $currency_symbol) : CURRENCY_TYPE . ' '. number_format($effective_shipping, 2)); 
+    ?></strong>
+</li>
 
         <li class="shopping-total-price">
             <em><?php echo $this->lang->line('total_label'); ?></em>
