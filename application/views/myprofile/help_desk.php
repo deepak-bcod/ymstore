@@ -107,7 +107,7 @@ th.p, td.p {
                                         <div class="col-md-3 col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo lang('priority'); ?></label>
-                                                <select id="priority" name="priority" class="form-control select2" style="width: 100%;">
+                                                <select id="priority_level" name="priority_level" class="form-control select2" style="width: 100%;">
                                                     <option value="" selected><?php echo !empty(lang('select_priority')) ? lang('select_priority') : 'Select Priority'; ?></option>
                                                     <option value="Low"><?php echo !empty(lang('low')) ? lang('low') : 'Low'; ?></option>
                                                     <option value="Medium"><?php echo !empty(lang('medium')) ? lang('medium') : 'Medium'; ?></option>
@@ -230,13 +230,12 @@ th.p, td.p {
                                                             8 => lang('technical_issue')
                                                         ];
                                                         
-                                                        $st_val = !empty($first_ticket->subject_type) ? $first_ticket->subject_type : (isset($subject_types[$first_ticket->priority]) ? $first_ticket->priority : '');
-                                                        echo $subject_types[$st_val] ?? (!empty($st_val) ? $st_val : '-'); 
+                                                        echo $subject_types[$first_ticket->priority] ?? lang('unknown'); 
                                                         ?>
                                                     </td>
                                                     <td class="p">
                                                         <?php
-                                                        $p_val = $first_ticket->priority ?? '';
+                                                        $p_val = !empty($first_ticket->priority_level) ? $first_ticket->priority_level : '';
                                                         $priority_lang_map = [
                                                             'Low' => lang('low') ?: 'Low',
                                                             'Medium' => lang('medium') ?: 'Medium',
@@ -251,9 +250,9 @@ th.p, td.p {
                                                             '3' => lang('high') ?: 'High',
                                                             '4' => lang('critical') ?: 'Critical',
                                                         ];
-                                                        if (isset($priority_lang_map[$p_val])) {
+                                                        if (!empty($p_val) && isset($priority_lang_map[$p_val])) {
                                                             echo $priority_lang_map[$p_val];
-                                                        } elseif (!empty($p_val) && !isset($subject_types[$p_val])) {
+                                                        } elseif (!empty($p_val)) {
                                                             echo htmlspecialchars($p_val);
                                                         } else {
                                                             echo '-';
@@ -503,7 +502,7 @@ $(document).ready(function() {
         }
     });
 
-    $('#subject, #category_id, #priority_id, #priority, #message, #merchant_id, #order_id, #product_id').on('keyup change', function () {
+    $('#subject, #category_id, #priority_id, #priority_level, #priority, #message, #merchant_id, #order_id, #product_id').on('keyup change', function () {
         $(this).removeClass('is-invalid');
         $(this).parent().find('.validation-error').remove();
     });
