@@ -237,13 +237,12 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
         </div>
     `);
     }
-    const MAX_CART_WEIGHT = 60000; // 60 KG in grams
+    const MAX_CART_WEIGHT = 60000; // 60 KG = 60,000 grams
 
 function getCartTotalWeight() {
     let totalWeight = 0;
 
     $('input[id^="quantity_"]').each(function () {
-
         const qty = parseFloat($(this).val()) || 0;
         const weight = parseFloat($(this).attr('data-weight')) || 0;
 
@@ -262,14 +261,17 @@ function validateCartWeightBeforeIncrease(itemId) {
     }
 
     const itemWeight = parseFloat(qtyInput.attr('data-weight')) || 0;
-
     const currentTotalWeight = getCartTotalWeight();
     const newTotalWeight = currentTotalWeight + itemWeight;
 
-    console.log('Current cart weight:', currentTotalWeight, 'grams');
+    console.log('Current weight:', currentTotalWeight, 'grams');
     console.log('Item weight:', itemWeight, 'grams');
-    console.log('New cart weight:', newTotalWeight, 'grams');
+    console.log('New weight:', newTotalWeight, 'grams');
 
+    // Always remove previous message first
+    $('.qty-error').html('');
+
+    // Block only when above 60 KG
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
         $('#qtyError_' + itemId).html(
@@ -280,8 +282,6 @@ function validateCartWeightBeforeIncrease(itemId) {
 
         return false;
     }
-
-    $('#qtyError_' + itemId).html('');
 
     return true;
 }
