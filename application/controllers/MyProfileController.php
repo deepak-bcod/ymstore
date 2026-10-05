@@ -668,10 +668,10 @@ class MyProfileController extends CI_Controller
                 $shopper_name  = 'Shopper';
                 $shopper_email = '';
                 if (!empty($customer_id)) {
-                    $customer_row = $this->db->select('firstname, lastname, email')->where('id', $customer_id)->get('users')->row();
-                    if ($customer_row) {
-                        $shopper_name  = trim($customer_row->firstname . ' ' . $customer_row->lastname);
-                        $shopper_email = $customer_row->email;
+                    $customer_query = $this->db->select('first_name, last_name, email_id')->where('id', $customer_id)->get('customers');
+                    if ($customer_query && $customer_row = $customer_query->row()) {
+                        $shopper_name  = trim(($customer_row->first_name ?? '') . ' ' . ($customer_row->last_name ?? ''));
+                        $shopper_email = $customer_row->email_id ?? '';
                     }
                 }
 
@@ -680,8 +680,8 @@ class MyProfileController extends CI_Controller
                 $merchant_email = '';
                 $merchant_lang_code = $shopper_lang_code;
                 if (!empty($merchant_id)) {
-                    $merchant_row = $this->db->select('publication_name, email')->where('id', $merchant_id)->get('publisher')->row();
-                    if ($merchant_row) {
+                    $merchant_query = $this->db->select('publication_name, email')->where('id', $merchant_id)->get('publisher');
+                    if ($merchant_query && $merchant_row = $merchant_query->row()) {
                         $merchant_name  = $merchant_row->publication_name;
                         $merchant_email = $merchant_row->email;
                     }
@@ -690,9 +690,15 @@ class MyProfileController extends CI_Controller
                 // Fetch Order Details
                 $order_number = 'N/A';
                 if (!empty($order_id)) {
-                    $order_row = $this->db->select('increment_id')->where('order_id', $order_id)->get('sales_order')->row();
-                    if ($order_row && !empty($order_row->increment_id)) {
-                        $order_number = $order_row->increment_id;
+                    $order_query = $this->db->select('increment_id, customer_firstname, customer_lastname, customer_email')->where('order_id', $order_id)->get('sales_order');
+                    if ($order_query && $order_row = $order_query->row()) {
+                        $order_number = !empty($order_row->increment_id) ? $order_row->increment_id : (string)$order_id;
+                        if (empty($shopper_email) && !empty($order_row->customer_email)) {
+                            $shopper_email = $order_row->customer_email;
+                        }
+                        if (($shopper_name === 'Shopper' || empty($shopper_name)) && (!empty($order_row->customer_firstname) || !empty($order_row->customer_lastname))) {
+                            $shopper_name = trim(($order_row->customer_firstname ?? '') . ' ' . ($order_row->customer_lastname ?? ''));
+                        }
                     } else {
                         $order_number = (string)$order_id;
                     }

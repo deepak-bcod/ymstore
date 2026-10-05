@@ -1095,18 +1095,20 @@ class CommonModel extends CI_Model
 
         $all_merchants = [];
 
-        // 1. Direct from sales_order if publisher_id exists on order
-        $so = $this->db->select('p.id, p.publication_name')
-            ->from('sales_order as so')
-            ->join('publisher as p', 'p.id = so.publisher_id', 'inner')
-            ->where('so.order_id', $order_id)
-            ->where('p.status', 1)
-            ->get();
-        if ($so && $row = $so->row()) {
-            $all_merchants[$row->id] = (object)[
-                'id' => (string)$row->id,
-                'publication_name' => trim($row->publication_name)
-            ];
+        // 1. Direct from sales_order only if publisher_id exists on sales_order
+        if ($this->db->field_exists('publisher_id', 'sales_order')) {
+            $so = $this->db->select('p.id, p.publication_name')
+                ->from('sales_order as so')
+                ->join('publisher as p', 'p.id = so.publisher_id', 'inner')
+                ->where('so.order_id', $order_id)
+                ->where('p.status', 1)
+                ->get();
+            if ($so && $row = $so->row()) {
+                $all_merchants[$row->id] = (object)[
+                    'id' => (string)$row->id,
+                    'publication_name' => trim($row->publication_name)
+                ];
+            }
         }
 
         // 2. From sales_order_items (direct publisher_id)
