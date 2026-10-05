@@ -9,16 +9,41 @@
     <?php endif; ?>
 
     <?php 
-    $has_out_of_stock = false;
-    if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
-        foreach ($CartData->cartItems as $chk) {
-            if (isset($chk->available_qty) && (int)$chk->available_qty <= 0) {
-                $has_out_of_stock = true;
-                break;
-            }
+$has_out_of_stock = false;
+$total_cart_weight = 0;
+
+if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
+    foreach ($CartData->cartItems as $chk) {
+
+        // Check stock
+        if (isset($chk->available_qty) && (int)$chk->available_qty <= 0) {
+            $has_out_of_stock = true;
         }
+
+        // Calculate total weight
+        $item_weight = isset($chk->weight) ? (float)$chk->weight : 0;
+        $item_qty = isset($chk->qty_ordered) ? (int)$chk->qty_ordered : 0;
+
+        $total_cart_weight += ($item_weight * $item_qty);
     }
-    ?>
+}
+
+// Maximum allowed weight = 60 KG
+$max_cart_weight = 60000;
+
+// Check if weight exceeds 60 KG
+$weight_limit_exceeded = ($total_cart_weight > $max_cart_weight);
+?>
+<?php if ($weight_limit_exceeded): ?>
+    <div class="alert alert-danger" style="margin-top: 15px;">
+        <i class="fa fa-exclamation-triangle"></i>
+        <strong>Weight Limit Exceeded:</strong>
+        Your cart weight is
+        <strong><?php echo number_format($total_cart_weight / 1000, 2); ?> KG</strong>.
+        The maximum allowed weight is <strong>60 KG</strong>.
+        Please remove some items before proceeding to checkout.
+    </div>
+<?php endif; ?>
 
     <?php if ($has_out_of_stock): ?>
         <div class="alert alert-danger" style="margin-top: 15px;">
@@ -160,14 +185,29 @@
                                 <?php (new CartList())->cartPriceDetails($CartData,'cartPage'); ?>
                             </div>
                             <div class="divcent text-center">
-                                <?php if ($has_out_of_stock): ?>
-                                    <button type="button" class="btn btn-primary chkout" disabled style="opacity:0.6; cursor:not-allowed;" title="Please remove out-of-stock items to proceed">
-                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-ban"></i>
-                                    </button>
-                                <?php else: ?>
-                                    <a href="<?php echo base_url(); ?>checkout" class="btn btn-primary chkout" type="submit">
-                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-check"></i>
-                                    </a>
+                               <?php if ($has_out_of_stock || $weight_limit_exceeded): ?>
+
+    <button 
+        type="button" 
+        class="btn btn-primary chkout" 
+        disabled
+        style="opacity:0.6; cursor:not-allowed;"
+        title="<?php echo $weight_limit_exceeded 
+            ? 'Cart weight cannot exceed 60 KG' 
+            : 'Please remove out-of-stock items to proceed'; ?>"
+    >
+        <?php echo $this->lang->line('checkout_label'); ?>
+        <i class="fa fa-ban"></i>
+    </button>
+
+<?php else: ?>
+
+    <a href="<?php echo base_url(); ?>checkout" class="btn btn-primary chkout">
+        <?php echo $this->lang->line('checkout_label'); ?>
+        <i class="fa fa-check"></i>
+    </a>
+
+<?php endif; ?>
                                 <?php endif; ?>
                                 <a href="<?php echo base_url(); ?>" class="btn btn-default">
                                     <?php echo $this->lang->line('continue_shopping'); ?> <i class="fa fa-shopping-cart"></i>
