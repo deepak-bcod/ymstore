@@ -1354,32 +1354,6 @@ $lang['no_shops_found'] = 'Aucune boutique trouvée.';
 
 $lang['invoice_not_uploaded'] = 'La facture n’a pas été téléchargée par le marchand';
 
-// Résolution de Commande / Système de Tickets
-$lang['ticket'] = 'Ticket';
-$lang['create_ticket'] = 'Créer un ticket de résolution';
-$lang['ticket_number'] = 'Numéro de ticket';
-$lang['order_number'] = 'Numéro de commande';
-$lang['category_delivery'] = 'Problème de livraison';
-$lang['category_refund'] = 'Demande de remboursement';
-$lang['category_replacement'] = 'Demande de remplacement';
-$lang['category_others'] = 'Autre';
-$lang['priority_low'] = 'Faible';
-$lang['priority_medium'] = 'Moyenne';
-$lang['priority_high'] = 'Élevée';
-$lang['priority_urgent'] = 'Urgente';
-$lang['describe_issue'] = 'Décrivez le problème ou le motif en détail...';
-$lang['attachment_optional'] = 'Pièce jointe / Photo (Optionnel)';
-$lang['submit_ticket'] = 'Soumettre le ticket';
-$lang['resolution_request'] = 'Demande de résolution';
-$lang['shopper_dispute_title'] = 'Soumettre une demande de résolution (Escalader à l\'administrateur)';
-$lang['dispute_expl'] = 'Si vous n\'êtes pas satisfait de la décision du marchand, expliquez les motifs de votre litige. Un administrateur Yellow Markets mènera une enquête.';
-$lang['dispute_reason'] = 'Motif de la demande de résolution';
-$lang['submit_escalation'] = 'Soumettre la demande de résolution';
-$lang['send_reply'] = 'Envoyer une réponse';
-$lang['add_image'] = 'Ajouter une photo';
-$lang['back_to_orders'] = 'Retour à mes commandes';
-
-
 
 
 
