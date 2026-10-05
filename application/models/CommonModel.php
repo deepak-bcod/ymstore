@@ -171,7 +171,62 @@ class CommonModel extends CI_Model
     public function getEmailTemplateByIdentifier($identifier)
     {
         $result = $this->db->get_where('email_template', array('email_code' => $identifier))->row();
+        if (!$result && ($identifier === 'order-resolution-merchant' || $identifier === 'order-resolution-help')) {
+            $result = $this->getDefaultEmailTemplate($identifier);
+        }
         return $result;
+    }
+
+    public function getDefaultEmailTemplate($identifier)
+    {
+        $templates = [
+            'order-resolution-merchant' => [
+                'email_code' => 'order-resolution-merchant',
+                'title'      => 'Order Resolution - Merchant Notification',
+                'title_fr'   => 'Résolution de commande - Notification marchand',
+                'subject'    => 'New Order Resolution Ticket ###TICKET_NUMBER## - Order ###ORDER_NUMBER##',
+                'subject_fr' => 'Nouveau ticket de résolution de commande ###TICKET_NUMBER## - Commande ###ORDER_NUMBER##',
+                'content'    => '<h3>Dear ##MERCHANT_NAME##,</h3><p>A new order resolution ticket has been submitted by a shopper for your product.</p><table border="0" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; margin:15px 0;"><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold; width:30%;">Ticket Number:</td><td style="border:1px solid #e9ecef;">###TICKET_NUMBER##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Category:</td><td style="border:1px solid #e9ecef;">##CATEGORY##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Order Number:</td><td style="border:1px solid #e9ecef;">###ORDER_NUMBER##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Product Name:</td><td style="border:1px solid #e9ecef;">##PRODUCT_NAME##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Priority:</td><td style="border:1px solid #e9ecef;">##PRIORITY##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Shopper Message:</td><td style="border:1px solid #e9ecef;">##SHOPPER_MESSAGE##</td></tr></table><p style="margin:20px 0;"><a href="##TICKET_URL##" style="background-color:#1E7EC8; color:#ffffff; padding:10px 20px; text-decoration:none; border-radius:4px; display:inline-block; font-weight:bold;">View Ticket</a></p><p>Kind Regards,<br/>##WEBSHOPNAME##</p>',
+                'content_fr' => '<h3>Bonjour ##MERCHANT_NAME##,</h3><p>Un nouveau ticket de résolution de commande a été soumis par un client pour votre produit.</p><table border="0" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; margin:15px 0;"><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold; width:30%;">Numéro de ticket :</td><td style="border:1px solid #e9ecef;">###TICKET_NUMBER##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Catégorie :</td><td style="border:1px solid #e9ecef;">##CATEGORY##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Numéro de commande :</td><td style="border:1px solid #e9ecef;">###ORDER_NUMBER##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Nom du produit :</td><td style="border:1px solid #e9ecef;">##PRODUCT_NAME##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Priorité :</td><td style="border:1px solid #e9ecef;">##PRIORITY##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Message du client :</td><td style="border:1px solid #e9ecef;">##SHOPPER_MESSAGE##</td></tr></table><p style="margin:20px 0;"><a href="##TICKET_URL##" style="background-color:#1E7EC8; color:#ffffff; padding:10px 20px; text-decoration:none; border-radius:4px; display:inline-block; font-weight:bold;">Voir le ticket</a></p><p>Cordialement,<br/>##WEBSHOPNAME##</p>',
+                'status'     => 1,
+                'created_by' => 1,
+                'created_at' => time(),
+                'updated_at' => time(),
+                'ip'         => '::1',
+            ],
+            'order-resolution-help' => [
+                'email_code' => 'order-resolution-help',
+                'title'      => 'Order Resolution - Admin/Help Notification',
+                'title_fr'   => 'Résolution de commande - Notification Admin/Assistance',
+                'subject'    => 'New Order Resolution Ticket ###TICKET_NUMBER## - [##PRIORITY##]',
+                'subject_fr' => 'Nouveau ticket de résolution de commande ###TICKET_NUMBER## - [##PRIORITY##]',
+                'content'    => '<h3>Dear Support Team,</h3><p>A new order resolution ticket has been submitted on ##WEBSHOPNAME##.</p><table border="0" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; margin:15px 0;"><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold; width:30%;">Ticket Number:</td><td style="border:1px solid #e9ecef;">###TICKET_NUMBER##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Category:</td><td style="border:1px solid #e9ecef;">##CATEGORY##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Merchant Name:</td><td style="border:1px solid #e9ecef;">##MERCHANT_NAME##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Shopper Name:</td><td style="border:1px solid #e9ecef;">##SHOPPER_NAME##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Order Number:</td><td style="border:1px solid #e9ecef;">###ORDER_NUMBER##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Product Name:</td><td style="border:1px solid #e9ecef;">##PRODUCT_NAME##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Priority:</td><td style="border:1px solid #e9ecef;">##PRIORITY##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Original Shopper Message:</td><td style="border:1px solid #e9ecef;">##SHOPPER_MESSAGE##</td></tr></table><p style="margin:20px 0;"><a href="##TICKET_URL##" style="background-color:#1E7EC8; color:#ffffff; padding:10px 20px; text-decoration:none; border-radius:4px; display:inline-block; font-weight:bold;">View Ticket</a></p><p>Kind Regards,<br/>##WEBSHOPNAME##</p>',
+                'content_fr' => '<h3>Bonjour l\'équipe d\'assistance,</h3><p>Un nouveau ticket de résolution de commande a été soumis sur ##WEBSHOPNAME##.</p><table border="0" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; margin:15px 0;"><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold; width:30%;">Numéro de ticket :</td><td style="border:1px solid #e9ecef;">###TICKET_NUMBER##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Catégorie :</td><td style="border:1px solid #e9ecef;">##CATEGORY##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Nom du marchand :</td><td style="border:1px solid #e9ecef;">##MERCHANT_NAME##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Nom du client :</td><td style="border:1px solid #e9ecef;">##SHOPPER_NAME##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Numéro de commande :</td><td style="border:1px solid #e9ecef;">###ORDER_NUMBER##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Nom du produit :</td><td style="border:1px solid #e9ecef;">##PRODUCT_NAME##</td></tr><tr style="background:#f8f9fa;"><td style="border:1px solid #e9ecef; font-weight:bold;">Priorité :</td><td style="border:1px solid #e9ecef;">##PRIORITY##</td></tr><tr><td style="border:1px solid #e9ecef; font-weight:bold;">Message original du client :</td><td style="border:1px solid #e9ecef;">##SHOPPER_MESSAGE##</td></tr></table><p style="margin:20px 0;"><a href="##TICKET_URL##" style="background-color:#1E7EC8; color:#ffffff; padding:10px 20px; text-decoration:none; border-radius:4px; display:inline-block; font-weight:bold;">Voir le ticket</a></p><p>Cordialement,<br/>##WEBSHOPNAME##</p>',
+                'status'     => 1,
+                'created_by' => 1,
+                'created_at' => time(),
+                'updated_at' => time(),
+                'ip'         => '::1',
+            ],
+        ];
+
+        if (!isset($templates[$identifier])) {
+            return null;
+        }
+
+        $tplData = $templates[$identifier];
+        // Try inserting into DB if table exists so future calls are native
+        try {
+            $this->db->insert('email_template', $tplData);
+            $inserted = $this->db->get_where('email_template', ['email_code' => $identifier])->row();
+            if ($inserted) {
+                return $inserted;
+            }
+        } catch (\Throwable $e) {
+            // Fallback to in-memory object
+        }
+
+        return (object)$tplData;
     }
 
     public function get_b2b_orders($order_id)

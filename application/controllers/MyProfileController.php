@@ -569,13 +569,11 @@ class MyProfileController extends CI_Controller
             'ip'           => $_SERVER['REMOTE_ADDR'],
         ];
 
-        if (!empty($priority_level)) {
-            if (!$this->db->field_exists('priority_level', 'help_desk')) {
-                $this->db->query("ALTER TABLE `help_desk` ADD COLUMN `priority_level` VARCHAR(50) DEFAULT NULL AFTER `priority`");
-            }
-            if ($this->db->field_exists('priority_level', 'help_desk')) {
-                $postArr['priority_level'] = $priority_level;
-            }
+        // Set priority in the existing priority field
+        $submitted_priority = !empty($priority_level) ? $priority_level : $priority;
+        $postArr['priority'] = $submitted_priority;
+        if (!empty($priority_level) && $this->db->field_exists('priority_level', 'help_desk')) {
+            $postArr['priority_level'] = $submitted_priority;
         }
 
         $this->db->insert('help_desk', $postArr);
@@ -585,20 +583,20 @@ class MyProfileController extends CI_Controller
             $is_followup = !empty($this->input->post('ticket_id'));
             $notif_subtype = $is_followup ? 'ticket_reply' : 'new_ticket';
 
+            $product_name = '';
+            if ($product_id) {
+                $product_row = $this->db->select('name')->where('id', $product_id)->get('products')->row();
+                if ($product_row) {
+                    $product_name = $product_row->name;
+                }
+            }
+            $product_name = html_entity_decode($product_name, ENT_QUOTES, 'UTF-8');
+
             if ($category == 1) {
                 // ===========================================
                 // NOTIFY MERCHANT ONLY (Category 1: Merchant)
                 // ===========================================
                 if (!empty($merchant_id)) {
-                    $product_name = '';
-                    if ($product_id) {
-                        $product_row = $this->db->select('name')->where('id', $product_id)->get('products')->row();
-                        if ($product_row) {
-                            $product_name = $product_row->name;
-                        }
-                    }
-                    $product_name = html_entity_decode($product_name, ENT_QUOTES, 'UTF-8');
-
                     if ($is_followup) {
                         $notif_msg = !empty($product_name)
                             ? 'A new reply has been submitted for your product "' . $product_name . '" by Shopper on ticket #' . $ticket_id . '.'
@@ -655,6 +653,256 @@ class MyProfileController extends CI_Controller
                     'created_at'     => date('Y-m-d H:i:s'),
                     'updated_at'     => date('Y-m-d H:i:s')
                 ]);
+            }
+
+            // =========================================================
+            // ORDER RESOLUTION EMAIL INTEGRATION (New Tickets Only)
+            // =========================================================
+            if (!$is_followup) {
+                // Determine site language
+                $site_lang = $this->session->userdata('site_lang');
+                $is_french = ($site_lang === 'french' || $site_lang === 'fr');
+                $shopper_lang_code = $is_french ? 'fr' : 'en';
+
+                // Fetch Shopper Details
+                $shopper_name  = 'Shopper';
+                $shopper_email = '';
+                if (!empty($customer_id)) {
+                    $customer_row = $this->db->select('firstname, lastname, email')->where('id', $customer_id)->get('users')->row();
+                    if ($customer_row) {
+                        $shopper_name  = trim($customer_row->firstname . ' ' . $customer_row->lastname);
+                        $shopper_email = $customer_row->email;
+                    }
+                }
+
+                // Fetch Merchant Details
+                $merchant_name  = 'N/A';
+                $merchant_email = '';
+                $merchant_lang_code = $shopper_lang_code;
+                if (!empty($merchant_id)) {
+                    $merchant_row = $this->db->select('publication_name, email')->where('id', $merchant_id)->get('publisher')->row();
+                    if ($merchant_row) {
+                        $merchant_name  = $merchant_row->publication_name;
+                        $merchant_email = $merchant_row->email;
+                    }
+                }
+
+                // Fetch Order Details
+                $order_number = 'N/A';
+                if (!empty($order_id)) {
+                    $order_row = $this->db->select('increment_id')->where('order_id', $order_id)->get('sales_order')->row();
+                    if ($order_row && !empty($order_row->increment_id)) {
+                        $order_number = $order_row->increment_id;
+                    } else {
+                        $order_number = (string)$order_id;
+                    }
+                }
+
+                $email_product_name = !empty($product_name) ? $product_name : 'N/A';
+
+                // Format Priority in EN and FR
+                $priority_raw = !empty($priority_level) ? $priority_level : $priority;
+                $priority_en  = ucfirst(strtolower($priority_raw));
+                $priority_fr_map = [
+                    'low'      => 'Faible',
+                    'medium'   => 'Moyenne',
+                    'high'     => 'Élevée',
+                    'critical' => 'Critique',
+                    'urgent'   => 'Urgente'
+                ];
+                $priority_fr = isset($priority_fr_map[strtolower($priority_raw)]) ? $priority_fr_map[strtolower($priority_raw)] : $priority_en;
+
+                // Category labels in EN and FR
+                $subject_type_en_map = [
+                    '1' => 'Order Issue',
+                    '2' => 'Refund Request',
+                    '3' => 'Replacement Request',
+                    '4' => 'Merchant Delivery',
+                    '5' => 'Yellow Markets Delivery',
+                    '6' => 'Resolution Request',
+                    '7' => 'General Support',
+                    '8' => 'Technical Issue'
+                ];
+                $subject_type_fr_map = [
+                    '1' => 'Problème de commande',
+                    '2' => 'Demande de remboursement',
+                    '3' => 'Demande de remplacement',
+                    '4' => 'Livraison du marchand',
+                    '5' => 'Livraison Yellow Markets',
+                    '6' => 'Demande de résolution',
+                    '7' => 'Support général',
+                    '8' => 'Problème technique'
+                ];
+
+                $subject_type_id = (string)$this->input->post('priority_id');
+                $subject_en = isset($subject_type_en_map[$subject_type_id]) ? $subject_type_en_map[$subject_type_id] : '';
+                $subject_fr = isset($subject_type_fr_map[$subject_type_id]) ? $subject_type_fr_map[$subject_type_id] : '';
+
+                if ($category == 1) {
+                    $category_en = !empty($subject_en) ? "Merchant Support ({$subject_en})" : "Merchant Support";
+                    $category_fr = !empty($subject_fr) ? "Support Marchand ({$subject_fr})" : "Support Marchand";
+                } else {
+                    $category_en = !empty($subject_en) ? "Yellow Market Support ({$subject_en})" : "Yellow Market Support";
+                    $category_fr = !empty($subject_fr) ? "Support Yellow Market ({$subject_fr})" : "Support Yellow Market";
+                }
+
+                // Format Shopper Message safely
+                $shopper_message = nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
+
+                // Ticket URL
+                $ticket_url = base_url("MyProfileController/viewTicket/" . (!empty($order_id) ? $order_id : '0') . "/" . $ticket_id . (!empty($product_id) ? '/' . $product_id : ''));
+
+                // 1. Send Merchant Email (order-resolution-merchant)
+                if ($category == 1 && !empty($merchant_email)) {
+                    $merchant_cat  = ($merchant_lang_code === 'fr') ? $category_fr : $category_en;
+                    $merchant_prio = ($merchant_lang_code === 'fr') ? $priority_fr : $priority_en;
+
+                    $merchantTempVars = array(
+                        '##TICKET_NUMBER##',
+                        '##TICKET_ID##',
+                        '{ticket_number}',
+                        '{ticket_id}',
+                        '##CATEGORY##',
+                        '{category}',
+                        '##ORDER_NUMBER##',
+                        '##ORDER_NO##',
+                        '{order_number}',
+                        '{order_no}',
+                        '##PRODUCT_NAME##',
+                        '{product_name}',
+                        '##PRIORITY##',
+                        '{priority}',
+                        '##TICKET_URL##',
+                        '{ticket_url}',
+                        '##MERCHANT_NAME##',
+                        '{merchant_name}',
+                        '##SHOPPER_NAME##',
+                        '{shopper_name}',
+                        '##SHOPPER_MESSAGE##',
+                        '##MESSAGE##',
+                        '{shopper_message}',
+                        '{message}',
+                        '##WEBSHOPNAME##',
+                        '{webshop_name}'
+                    );
+
+                    $merchantDynamicVars = array(
+                        $ticket_id,
+                        $ticket_id,
+                        $ticket_id,
+                        $ticket_id,
+                        $merchant_cat,
+                        $merchant_cat,
+                        $order_number,
+                        $order_number,
+                        $order_number,
+                        $order_number,
+                        $email_product_name,
+                        $email_product_name,
+                        $merchant_prio,
+                        $merchant_prio,
+                        $ticket_url,
+                        $ticket_url,
+                        $merchant_name,
+                        $merchant_name,
+                        $shopper_name,
+                        $shopper_name,
+                        $shopper_message,
+                        $shopper_message,
+                        $shopper_message,
+                        $shopper_message,
+                        'Yellow Markets',
+                        'Yellow Markets'
+                    );
+
+                    $this->CommonModel->sendCommonHTMLEmail(
+                        $merchant_email,
+                        'order-resolution-merchant',
+                        $merchantTempVars,
+                        $merchantDynamicVars,
+                        $merchant_lang_code
+                    );
+                }
+
+                // 2. Send Admin/Help Email (order-resolution-help)
+                $help_email = $this->CommonModel->get_custom_variable('contact_us_email')
+                    ?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+
+                if (!empty($help_email)) {
+                    $admin_lang_code = $shopper_lang_code;
+                    $admin_cat  = ($admin_lang_code === 'fr') ? $category_fr : $category_en;
+                    $admin_prio = ($admin_lang_code === 'fr') ? $priority_fr : $priority_en;
+
+                    $helpTempVars = array(
+                        '##TICKET_NUMBER##',
+                        '##TICKET_ID##',
+                        '{ticket_number}',
+                        '{ticket_id}',
+                        '##CATEGORY##',
+                        '{category}',
+                        '##MERCHANT_NAME##',
+                        '{merchant_name}',
+                        '##SHOPPER_NAME##',
+                        '##CUSTOMER_NAME##',
+                        '{shopper_name}',
+                        '{customer_name}',
+                        '##ORDER_NUMBER##',
+                        '##ORDER_NO##',
+                        '{order_number}',
+                        '{order_no}',
+                        '##PRODUCT_NAME##',
+                        '{product_name}',
+                        '##PRIORITY##',
+                        '{priority}',
+                        '##SHOPPER_MESSAGE##',
+                        '##MESSAGE##',
+                        '{shopper_message}',
+                        '{message}',
+                        '##TICKET_URL##',
+                        '{ticket_url}',
+                        '##WEBSHOPNAME##',
+                        '{webshop_name}'
+                    );
+
+                    $helpDynamicVars = array(
+                        $ticket_id,
+                        $ticket_id,
+                        $ticket_id,
+                        $ticket_id,
+                        $admin_cat,
+                        $admin_cat,
+                        $merchant_name,
+                        $merchant_name,
+                        $shopper_name,
+                        $shopper_name,
+                        $shopper_name,
+                        $shopper_name,
+                        $order_number,
+                        $order_number,
+                        $order_number,
+                        $order_number,
+                        $email_product_name,
+                        $email_product_name,
+                        $admin_prio,
+                        $admin_prio,
+                        $shopper_message,
+                        $shopper_message,
+                        $shopper_message,
+                        $shopper_message,
+                        $ticket_url,
+                        $ticket_url,
+                        'Yellow Markets',
+                        'Yellow Markets'
+                    );
+
+                    $this->CommonModel->sendCommonHTMLEmail(
+                        $help_email,
+                        'order-resolution-help',
+                        $helpTempVars,
+                        $helpDynamicVars,
+                        $admin_lang_code
+                    );
+                }
             }
 
             echo json_encode(['flag' => 1, 'msg' => $this->lang->line('ticket_submit_success'), 'ticket_id' => $ticket_id]);
