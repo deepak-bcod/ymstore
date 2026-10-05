@@ -1344,6 +1344,29 @@ class CommonModel extends CI_Model
         $subject = str_replace($TempVars, $DynamicVars, $subject);
         $emailBody = str_replace($TempVars, $DynamicVars,$content);
 
+        // Ensure REPLY_TEXT and REPLAY_TEXT synonyms are always resolved if any reply/message is provided
+        $replyVal = null;
+        foreach ($TempVars as $idx => $var) {
+            if (in_array($var, ['##REPLY_TEXT##', '##REPLAY_TEXT##', '##REPLY_MESSAGE##', '##MESSAGE##', '##SHOPPER_MESSAGE##', '{reply_text}', '{replay_text}', '{reply_message}', '{message}', '{shopper_message}'], true)) {
+                $replyVal = $DynamicVars[$idx] ?? '';
+                break;
+            }
+        }
+        if ($replyVal !== null) {
+            $replySynonyms = [
+                '##REPLY_TEXT##',
+                '##REPLAY_TEXT##',
+                '{reply_text}',
+                '{replay_text}',
+                '##REPLY##',
+                '##REPLAY##',
+                '{reply}',
+                '{replay}'
+            ];
+            $subject = str_replace($replySynonyms, $replyVal, $subject);
+            $emailBody = str_replace($replySynonyms, $replyVal, $emailBody);
+        }
+
         //echo $emailBody."<hr>";
         
         // $data['title'] = $title;
