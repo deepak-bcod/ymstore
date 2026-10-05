@@ -8,17 +8,83 @@
         </div>
     <?php endif; ?>
 
-    <?php 
-    $has_out_of_stock = false;
-    if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
-        foreach ($CartData->cartItems as $chk) {
-            if (isset($chk->available_qty) && (int)$chk->available_qty <= 0) {
-                $has_out_of_stock = true;
-                break;
-            }
+   <?php
+$has_out_of_stock = false;
+$total_cart_weight = 0;
+
+/*
+ * Crate limits
+ * Small  = 20 KG  = 20000 grams = 300 MUR
+ * Medium = 40 KG  = 40000 grams = 600 MUR
+ * Large  = 60 KG  = 60000 grams = 900 MUR
+ *
+ * More than 60 KG = NOT ALLOWED
+ */
+
+$max_cart_weight = 60000; // 60 KG in grams
+
+if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
+
+    foreach ($CartData->cartItems as $chk) {
+
+        /* Out of stock */
+        if (
+            isset($chk->available_qty) &&
+            (int)$chk->available_qty <= 0
+        ) {
+            $has_out_of_stock = true;
         }
+
+        /*
+         * Product weight must be stored in GRAMS.
+         *
+         * Example:
+         * weight = 20000
+         * qty = 2
+         * total = 40000 grams
+         */
+        $product_weight = isset($chk->weight)
+            ? (float)$chk->weight
+            : 0;
+
+        $product_qty = isset($chk->qty_ordered)
+            ? (int)$chk->qty_ordered
+            : 0;
+
+        $total_cart_weight +=
+            ($product_weight * $product_qty);
     }
-    ?>
+}
+
+/* Convert grams to KG */
+$total_cart_weight_kg = $total_cart_weight / 1000;
+
+/* Check maximum 60 KG */
+$weight_exceeded = (
+    $total_cart_weight > $max_cart_weight
+);
+?>
+<?php if ($weight_exceeded): ?>
+
+    <div class="alert alert-danger" style="margin-top:15px;">
+
+        <i class="fa fa-exclamation-triangle"></i>
+
+        <strong>Delivery weight limit exceeded.</strong>
+
+        Your cart weight is
+        <strong>
+            <?php echo number_format($total_cart_weight_kg, 2); ?> KG
+        </strong>.
+
+        The maximum allowed weight per order is
+        <strong>60 KG</strong>.
+
+        Please remove some items before proceeding to checkout.
+
+    </div>
+
+<?php endif; ?>
 
     <?php if ($has_out_of_stock): ?>
         <div class="alert alert-danger" style="margin-top: 15px;">
@@ -160,19 +226,54 @@
                                 <?php (new CartList())->cartPriceDetails($CartData,'cartPage'); ?>
                             </div>
                             <div class="divcent text-center">
-                                <?php if ($has_out_of_stock): ?>
-                                    <button type="button" class="btn btn-primary chkout" disabled style="opacity:0.6; cursor:not-allowed;" title="Please remove out-of-stock items to proceed">
-                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-ban"></i>
-                                    </button>
-                                <?php else: ?>
-                                    <a href="<?php echo base_url(); ?>checkout" class="btn btn-primary chkout" type="submit">
-                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-check"></i>
-                                    </a>
-                                <?php endif; ?>
-                                <a href="<?php echo base_url(); ?>" class="btn btn-default">
-                                    <?php echo $this->lang->line('continue_shopping'); ?> <i class="fa fa-shopping-cart"></i>
-                                </a>
-                            </div>
+
+    <?php if ($has_out_of_stock): ?>
+
+        <button
+            type="button"
+            class="btn btn-primary chkout"
+            disabled
+            style="opacity:0.6;cursor:not-allowed;"
+            title="Please remove out-of-stock items to proceed"
+        >
+            <?php echo $this->lang->line('checkout_label'); ?>
+            <i class="fa fa-ban"></i>
+        </button>
+
+    <?php elseif ($weight_exceeded): ?>
+
+        <button
+            type="button"
+            class="btn btn-primary chkout"
+            disabled
+            style="opacity:0.6;cursor:not-allowed;"
+            title="Maximum order weight is 60 KG"
+        >
+            <?php echo $this->lang->line('checkout_label'); ?>
+            <i class="fa fa-ban"></i>
+        </button>
+
+    <?php else: ?>
+
+        <a
+            href="<?php echo base_url(); ?>checkout"
+            class="btn btn-primary chkout"
+        >
+            <?php echo $this->lang->line('checkout_label'); ?>
+            <i class="fa fa-check"></i>
+        </a>
+
+    <?php endif; ?>
+
+    <a
+        href="<?php echo base_url(); ?>"
+        class="btn btn-default"
+    >
+        <?php echo $this->lang->line('continue_shopping'); ?>
+        <i class="fa fa-shopping-cart"></i>
+    </a>
+
+</div>
                         </div>
                     </div>
                 </div>
