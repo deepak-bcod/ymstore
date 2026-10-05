@@ -33,24 +33,22 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
             </li>
         <?php } ?>
 
-       <?php
-$effective_shipping = (float)($cartDetails->ym_charge ?? 0) + (float)($cartDetails->shipping_amount ?? 0);
-?>
-
-<?php if ($effective_shipping > 0): ?>
-    <li>
+      <li>
         <em><?php echo $this->lang->line('shipping_cost'); ?></em>
         <strong class="price">
             <?php
             echo (
                 $this->session->userdata('currency_code_session') && $default_currency_flag != 1
-                ? convert_currency_website($effective_shipping, $currency_conversion_rate, $currency_symbol)
+                ? convert_currency_website(
+                    $effective_shipping,
+                    $currency_conversion_rate,
+                    $currency_symbol
+                )
                 : CURRENCY_TYPE . ' ' . number_format($effective_shipping, 2)
             );
             ?>
         </strong>
     </li>
-<?php endif; ?>
 
         <li class="shopping-total-price">
             <em><?php echo $this->lang->line('total_label'); ?></em>
@@ -248,12 +246,13 @@ $effective_shipping = (float)($cartDetails->ym_charge ?? 0) + (float)($cartDetai
         </div>
     `);
     }
-   const MAX_CART_WEIGHT = 60;
+    const MAX_CART_WEIGHT = 60;
 
 function getCartTotalWeight() {
     let totalWeight = 0;
 
     $('input[id^="quantity_"]').each(function () {
+
         const qty = parseFloat($(this).val()) || 0;
         const weight = parseFloat($(this).attr('data-weight')) || 0;
 
@@ -272,6 +271,7 @@ function validateCartWeightBeforeIncrease(itemId) {
     }
 
     const itemWeight = parseFloat(qtyInput.attr('data-weight')) || 0;
+
     const currentTotalWeight = getCartTotalWeight();
     const newTotalWeight = currentTotalWeight + itemWeight;
 
@@ -282,7 +282,7 @@ function validateCartWeightBeforeIncrease(itemId) {
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
         $('#qtyError_' + itemId).html(
-            '<span style="color:#d9534f; font-weight:600;">' +
+            '<span style="color:#d9534f; font-weight:600; display:block;">' +
             'Maximum cart weight is 60 KG. You cannot add more.' +
             '</span>'
         );

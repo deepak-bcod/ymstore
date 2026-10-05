@@ -68,7 +68,7 @@ class GetCartListing {
         }
         $cartItems = $this->dbl->dbl_conn->rawQuery(
             "SELECT SQI.*,
-
+                        prod.weight as weight,
 	                    prod.base_image as base_image,
 						CASE WHEN SQI.product_type = 'conf-simple' and prod.media_variant_id > 0  THEN
 
