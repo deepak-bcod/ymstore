@@ -908,6 +908,150 @@ class MyProfileController extends CI_Controller
                         $admin_lang_code
                     );
                 }
+            } else {
+                // =========================================================
+                // ORDER RESOLUTION EMAIL INTEGRATION (Shopper Reply to Merchant)
+                // =========================================================
+                if ($category == 1) {
+                    // Determine site language
+                    $site_lang = $this->session->userdata('site_lang');
+                    $is_french = ($site_lang === 'french' || $site_lang === 'fr');
+                    $shopper_lang_code = $is_french ? 'fr' : 'en';
+
+                    // Fetch Shopper Details
+                    $shopper_name  = 'Shopper';
+                    $shopper_email = '';
+                    if (!empty($customer_id)) {
+                        $customer_query = $this->db->select('first_name, last_name, email_id')->where('id', $customer_id)->get('customers');
+                        if ($customer_query && $customer_row = $customer_query->row()) {
+                            $shopper_name  = trim(($customer_row->first_name ?? '') . ' ' . ($customer_row->last_name ?? ''));
+                            $shopper_email = $customer_row->email_id ?? '';
+                        }
+                    }
+
+                    // Fallback from previous ticket if order_id, product_id, or merchant_id is empty
+                    if (empty($merchant_id) || empty($order_id) || empty($product_id)) {
+                        $prev_ticket = $this->db->select('merchant_id, order_id, products')->where('ticket_id', $ticket_id)->get('help_desk')->row();
+                        if ($prev_ticket) {
+                            if (empty($merchant_id) && !empty($prev_ticket->merchant_id)) {
+                                $merchant_id = $prev_ticket->merchant_id;
+                            }
+                            if (empty($order_id) && !empty($prev_ticket->order_id)) {
+                                $order_id = $prev_ticket->order_id;
+                            }
+                            if (empty($product_id) && !empty($prev_ticket->products)) {
+                                $product_id = $prev_ticket->products;
+                            }
+                        }
+                    }
+
+                    // Fetch Merchant Details
+                    $merchant_name  = 'Merchant';
+                    $merchant_email = '';
+                    $merchant_lang_code = $shopper_lang_code;
+                    if (!empty($merchant_id)) {
+                        $merchant_query = $this->db->select('publication_name, email')->where('id', $merchant_id)->get('publisher');
+                        if ($merchant_query && $merchant_row = $merchant_query->row()) {
+                            $merchant_name  = $merchant_row->publication_name;
+                            $merchant_email = $merchant_row->email;
+                        }
+                    }
+
+                    // Fetch Order Details
+                    $order_number = 'N/A';
+                    if (!empty($order_id)) {
+                        $order_query = $this->db->select('increment_id, customer_firstname, customer_lastname, customer_email')->where('order_id', $order_id)->get('sales_order');
+                        if ($order_query && $order_row = $order_query->row()) {
+                            $order_number = !empty($order_row->increment_id) ? $order_row->increment_id : (string)$order_id;
+                            if (empty($shopper_email) && !empty($order_row->customer_email)) {
+                                $shopper_email = $order_row->customer_email;
+                            }
+                            if (($shopper_name === 'Shopper' || empty($shopper_name)) && (!empty($order_row->customer_firstname) || !empty($order_row->customer_lastname))) {
+                                $shopper_name = trim(($order_row->customer_firstname ?? '') . ' ' . ($order_row->customer_lastname ?? ''));
+                            }
+                        } else {
+                            $order_number = (string)$order_id;
+                        }
+                    }
+
+                    if (empty($product_name) && !empty($product_id)) {
+                        $p_row = $this->db->select('name')->where('id', $product_id)->get('products')->row();
+                        if ($p_row && !empty($p_row->name)) {
+                            $product_name = html_entity_decode($p_row->name, ENT_QUOTES, 'UTF-8');
+                        }
+                    }
+                    $email_product_name = !empty($product_name) ? $product_name : 'N/A';
+
+                    // Format Shopper Reply safely
+                    $shopper_reply = nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
+
+                    // Ticket URL for Merchant (directs merchant to view ticket in merchant portal)
+                    $merchant_ticket_url = (defined('BASE_URL2') ? rtrim(BASE_URL2, '/') . '/' : base_url('merchant/')) . "UserController/view/" . (!empty($order_id) ? $order_id : '0') . "/" . $ticket_id . (!empty($product_id) ? '/' . $product_id : '');
+
+                    if (!empty($merchant_email)) {
+                        $merchantReplyTempVars = array(
+                            '##TICKET_NUMBER##',
+                            '##TICKET_ID##',
+                            '{ticket_number}',
+                            '{ticket_id}',
+                            '##ORDER_NUMBER##',
+                            '##ORDER_NO##',
+                            '{order_number}',
+                            '{order_no}',
+                            '##PRODUCT_NAME##',
+                            '{product_name}',
+                            '##MERCHANT_NAME##',
+                            '{merchant_name}',
+                            '##SHOPPER_NAME##',
+                            '##CUSTOMER_NAME##',
+                            '{shopper_name}',
+                            '{customer_name}',
+                            '##REPLY_MESSAGE##',
+                            '##MESSAGE##',
+                            '{reply_message}',
+                            '{message}',
+                            '##TICKET_URL##',
+                            '{ticket_url}',
+                            '##WEBSHOPNAME##',
+                            '{webshop_name}'
+                        );
+
+                        $merchantReplyDynamicVars = array(
+                            $ticket_id,
+                            $ticket_id,
+                            $ticket_id,
+                            $ticket_id,
+                            $order_number,
+                            $order_number,
+                            $order_number,
+                            $order_number,
+                            $email_product_name,
+                            $email_product_name,
+                            $merchant_name,
+                            $merchant_name,
+                            $shopper_name,
+                            $shopper_name,
+                            $shopper_name,
+                            $shopper_name,
+                            $shopper_reply,
+                            $shopper_reply,
+                            $shopper_reply,
+                            $shopper_reply,
+                            $merchant_ticket_url,
+                            $merchant_ticket_url,
+                            'Yellow Markets',
+                            'Yellow Markets'
+                        );
+
+                        $this->CommonModel->sendCommonHTMLEmail(
+                            $merchant_email,
+                            'order-resolution-shopper-reply-merchant',
+                            $merchantReplyTempVars,
+                            $merchantReplyDynamicVars,
+                            $merchant_lang_code
+                        );
+                    }
+                }
             }
 
             echo json_encode(['flag' => 1, 'msg' => $this->lang->line('ticket_submit_success'), 'ticket_id' => $ticket_id]);

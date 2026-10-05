@@ -2766,6 +2766,159 @@ class UserController extends CI_Controller
 			$this->db->update('help_desk', $updateData);
 		}
 
+		// Send reply notification to Shopper for Order Resolution tickets
+		$is_shopper_ticket = ($category == 1 || (!empty($last_ticket->category) && $last_ticket->category == 1));
+		if ($is_shopper_ticket) {
+			$customer_id = $last_ticket->customer_id ?? null;
+			$shopper_name  = 'Shopper';
+			$shopper_email = '';
+			if (!empty($customer_id)) {
+				$customer_row = $this->db->select('first_name, last_name, email_id')->where('id', $customer_id)->get('customers')->row();
+				if ($customer_row) {
+					$shopper_name  = trim(($customer_row->first_name ?? '') . ' ' . ($customer_row->last_name ?? ''));
+					$shopper_email = $customer_row->email_id ?? '';
+				}
+			}
+
+			// Fallback from sales_order if needed
+			$order_id   = $last_ticket->order_id ?? null;
+			$product_id = $last_ticket->products ?? null;
+			$order_number = 'N/A';
+			if (!empty($order_id)) {
+				$order_row = $this->db->select('increment_id, customer_email, customer_firstname, customer_lastname')->where('order_id', $order_id)->get('sales_order')->row();
+				if ($order_row) {
+					$order_number = !empty($order_row->increment_id) ? $order_row->increment_id : (string)$order_id;
+					if (empty($shopper_email) && !empty($order_row->customer_email)) {
+						$shopper_email = $order_row->customer_email;
+					}
+					if (($shopper_name === 'Shopper' || empty($shopper_name)) && (!empty($order_row->customer_firstname) || !empty($order_row->customer_lastname))) {
+						$shopper_name = trim(($order_row->customer_firstname ?? '') . ' ' . ($order_row->customer_lastname ?? ''));
+					}
+				} else {
+					$order_number = (string)$order_id;
+				}
+			}
+
+			if (empty($shopper_name)) {
+				$shopper_name = 'Shopper';
+			}
+
+			// Merchant details
+			$merchant_id = !empty($merchant_id) ? $merchant_id : ($last_ticket->merchant_id ?? null);
+			$merchant_name = 'Merchant';
+			if (!empty($merchant_id)) {
+				$merchant_row = $this->db->select('publication_name')->where('id', $merchant_id)->get('publisher')->row();
+				if ($merchant_row && !empty($merchant_row->publication_name)) {
+					$merchant_name = $merchant_row->publication_name;
+				}
+			}
+
+			// Product details
+			$product_name = 'N/A';
+			if (!empty($product_id)) {
+				$prod_row = $this->db->select('name')->where('id', $product_id)->get('products')->row();
+				if ($prod_row && !empty($prod_row->name)) {
+					$product_name = html_entity_decode($prod_row->name, ENT_QUOTES, 'UTF-8');
+				}
+			}
+
+			// Format reply message safely
+			$merchant_reply_formatted = nl2br(htmlspecialchars($admin_reply, ENT_QUOTES, 'UTF-8'));
+
+			// Ticket URL for Shopper (Main store view ticket URL)
+			$shopper_base = defined('BASE_URL3') ? BASE_URL3 : (defined('BASE_URL') ? str_replace('/merchant/', '/', BASE_URL) : 'https://mu.yellowmarkets.com/');
+			$shopper_base = rtrim($shopper_base, '/') . '/';
+			$ticket_url = $shopper_base . "MyProfileController/viewTicket/" . (!empty($order_id) ? $order_id : '0') . "/" . $ticket_id . (!empty($product_id) ? '/' . $product_id : '');
+
+			// Send notification email
+			if (!empty($shopper_email)) {
+				$shopper_lang_code = ($this->session->userdata('site_lang') === 'french' || $this->session->userdata('site_lang') === 'fr') ? 'fr' : 'en';
+
+				$shopperTempVars = array(
+					'##TICKET_NUMBER##',
+					'##TICKET_ID##',
+					'{ticket_number}',
+					'{ticket_id}',
+					'##ORDER_NUMBER##',
+					'##ORDER_NO##',
+					'{order_number}',
+					'{order_no}',
+					'##PRODUCT_NAME##',
+					'{product_name}',
+					'##MERCHANT_NAME##',
+					'{merchant_name}',
+					'##SHOPPER_NAME##',
+					'##CUSTOMER_NAME##',
+					'{shopper_name}',
+					'{customer_name}',
+					'##REPLY_MESSAGE##',
+					'##MESSAGE##',
+					'{reply_message}',
+					'{message}',
+					'##TICKET_URL##',
+					'{ticket_url}',
+					'##WEBSHOPNAME##',
+					'{webshop_name}'
+				);
+
+				$shopperDynamicVars = array(
+					$ticket_id,
+					$ticket_id,
+					$ticket_id,
+					$ticket_id,
+					$order_number,
+					$order_number,
+					$order_number,
+					$order_number,
+					$product_name,
+					$product_name,
+					$merchant_name,
+					$merchant_name,
+					$shopper_name,
+					$shopper_name,
+					$shopper_name,
+					$shopper_name,
+					$merchant_reply_formatted,
+					$merchant_reply_formatted,
+					$merchant_reply_formatted,
+					$merchant_reply_formatted,
+					$ticket_url,
+					$ticket_url,
+					'Yellow Markets',
+					'Yellow Markets'
+				);
+
+				$this->CommonModel->sendCommonHTMLEmail(
+					$shopper_email,
+					'order-resolution-merchant-reply-shopper',
+					$shopperTempVars,
+					$shopperDynamicVars,
+					$shopper_lang_code
+				);
+			}
+
+			// In-app notification for Shopper
+			if (!empty($customer_id)) {
+				$this->db->insert('notifications', [
+					'type'           => 'helpdesk',
+					'subtype'        => 'ticket_reply',
+					'recipient_type' => 'customer',
+					'recipient_id'   => $customer_id,
+					'title'          => 'Help Desk Ticket Reply',
+					'message'        => 'Merchant has replied to your help desk ticket #' . $ticket_id . '.',
+					'data'           => json_encode([
+						'ticket_id'   => $ticket_id,
+						'order_id'    => $order_id,
+						'product_id'  => $product_id,
+						'merchant_id' => $merchant_id
+					]),
+					'is_read'        => 0,
+					'created_at'     => date('Y-m-d H:i:s'),
+					'updated_at'     => date('Y-m-d H:i:s')
+				]);
+			}
+		}
+
 		$this->session->set_flashdata('success', $this->lang->line('reply_added_successfully') ?: "Reply added successfully.");
 		
 		$order_id   = $last_ticket->order_id ?? null;
