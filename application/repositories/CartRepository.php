@@ -21,9 +21,9 @@ class CartRepository
     $cart_listing = self::post_method($cart_count_APIUrl, $cc_post_arr);
 
 
-    // echo "<pre>";
-    // print_r($cart_listing);
-    // echo "</pre>";
+    echo "<pre>";
+    print_r($cart_listing);
+    echo "</pre>";
 
     // echo "<pre>";
     // print_r($cc_post_arr);
