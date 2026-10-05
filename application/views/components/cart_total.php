@@ -281,22 +281,23 @@ function validateCartWeightBeforeIncrease(itemId) {
     const itemWeight = parseFloat(qtyInput.attr('data-weight')) || 0;
 
     const currentTotalWeight = getCartTotalWeight();
+
     const newTotalWeight = currentTotalWeight + itemWeight;
 
     console.log('Current:', currentTotalWeight / 1000, 'KG');
     console.log('Adding:', itemWeight / 1000, 'KG');
     console.log('New:', newTotalWeight / 1000, 'KG');
 
+    // Remove old error messages
     $('.qty-error').empty();
 
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
-        Swal.fire({
-            icon: 'warning',
-            title: 'Maximum Weight Exceeded',
-            text: 'Maximum cart weight is 60 KG. You cannot add more.',
-            confirmButtonText: 'OK'
-        });
+        $('#qtyError_' + itemId).html(
+            '<span style="color:#d9534f;font-weight:600;display:block;">' +
+            'Maximum cart weight is 60 KG. You cannot add more.' +
+            '</span>'
+        );
 
         return false;
     }
