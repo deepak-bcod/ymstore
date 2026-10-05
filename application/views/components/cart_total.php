@@ -237,7 +237,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
         </div>
     `);
     }
-    const MAX_CART_WEIGHT = 60;
+    const MAX_CART_WEIGHT = 60000; // 60 KG in grams
 
 function getCartTotalWeight() {
     let totalWeight = 0;
@@ -266,9 +266,9 @@ function validateCartWeightBeforeIncrease(itemId) {
     const currentTotalWeight = getCartTotalWeight();
     const newTotalWeight = currentTotalWeight + itemWeight;
 
-    console.log('Current cart weight:', currentTotalWeight);
-    console.log('Item weight:', itemWeight);
-    console.log('New cart weight:', newTotalWeight);
+    console.log('Current cart weight:', currentTotalWeight, 'grams');
+    console.log('Item weight:', itemWeight, 'grams');
+    console.log('New cart weight:', newTotalWeight, 'grams');
 
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
