@@ -569,11 +569,10 @@ class MyProfileController extends CI_Controller
             'ip'           => $_SERVER['REMOTE_ADDR'],
         ];
 
-        // Set priority in the existing priority field
-        $submitted_priority = !empty($priority_level) ? $priority_level : $priority;
-        $postArr['priority'] = $submitted_priority;
-        if (!empty($priority_level) && $this->db->field_exists('priority_level', 'help_desk')) {
-            $postArr['priority_level'] = $submitted_priority;
+        // Keep Subject Type in the priority column, and priority value in priority_level
+        $postArr['priority'] = $priority;
+        if (!empty($priority_level)) {
+            $postArr['priority_level'] = $priority_level;
         }
 
         $this->db->insert('help_desk', $postArr);
@@ -707,7 +706,7 @@ class MyProfileController extends CI_Controller
                 $email_product_name = !empty($product_name) ? $product_name : 'N/A';
 
                 // Format Priority in EN and FR
-                $priority_raw = !empty($priority_level) ? $priority_level : $priority;
+                $priority_raw = !empty($priority_level) ? $priority_level : 'Medium';
                 $priority_en  = ucfirst(strtolower($priority_raw));
                 $priority_fr_map = [
                     'low'      => 'Faible',
