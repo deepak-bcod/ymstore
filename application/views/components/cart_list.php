@@ -122,20 +122,24 @@
                                                     <input type="hidden" value="<?php echo $value->qty_ordered ?>" name="previous_qty[]" id="previous_qty_<?php echo $value->item_id;?>">
                                                     <input type="hidden" value="<?php echo $available_qty ?>" name="max_qty[]" id="max_qty_<?php echo $value->item_id;?>">
 
-                                                    <span class="input-group-btn">
-                                                       <button class="btn quantity-up bootstrap-touchspin-up" 
-    onclick="
-        if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
-            increaseQtyValue(
-                <?php echo $value->item_id; ?>,
-                '<?php echo $value->product_type; ?>',
-                <?php echo $value->product_id; ?>,
-                <?php echo $value->parent_product_id; ?>
-            );
-        }
-    " 
-    type="button">
-                                                    </span>
+                                                   <span class="input-group-btn">
+    <button 
+        class="btn quantity-up bootstrap-touchspin-up" 
+        onclick="
+            if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
+                increaseQtyValue(
+                    <?php echo $value->item_id; ?>,
+                    '<?php echo $value->product_type; ?>',
+                    <?php echo $value->product_id; ?>,
+                    <?php echo $value->parent_product_id; ?>
+                );
+            }
+        "
+        type="button"
+    >
+        <i class="fa fa-angle-up"></i>
+    </button>
+</span>
                                                 </div>
                                             </div>
                                         </td>

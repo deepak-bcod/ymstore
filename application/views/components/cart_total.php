@@ -240,14 +240,32 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
     const MAX_CART_WEIGHT = 60000; // 60 KG = 60,000 grams
 
 function getCartTotalWeight() {
+
     let totalWeight = 0;
 
     $('input[id^="quantity_"]').each(function () {
-        const qty = parseFloat($(this).val()) || 0;
+
+        const qty = parseInt($(this).val(), 10) || 0;
         const weight = parseFloat($(this).attr('data-weight')) || 0;
 
-        totalWeight += qty * weight;
+        const itemTotalWeight = qty * weight;
+
+        console.log(
+            'Item:',
+            $(this).attr('id'),
+            'Qty:',
+            qty,
+            'Weight:',
+            weight,
+            'Total:',
+            itemTotalWeight
+        );
+
+        totalWeight += itemTotalWeight;
     });
+
+    console.log('TOTAL WEIGHT:', totalWeight, 'grams');
+    console.log('TOTAL WEIGHT:', totalWeight / 1000, 'KG');
 
     return totalWeight;
 }
@@ -261,21 +279,22 @@ function validateCartWeightBeforeIncrease(itemId) {
     }
 
     const itemWeight = parseFloat(qtyInput.attr('data-weight')) || 0;
+
     const currentTotalWeight = getCartTotalWeight();
+
     const newTotalWeight = currentTotalWeight + itemWeight;
 
-    console.log('Current weight:', currentTotalWeight, 'grams');
-    console.log('Item weight:', itemWeight, 'grams');
-    console.log('New weight:', newTotalWeight, 'grams');
+    console.log('Current:', currentTotalWeight / 1000, 'KG');
+    console.log('Adding:', itemWeight / 1000, 'KG');
+    console.log('New:', newTotalWeight / 1000, 'KG');
 
-    // Always remove previous message first
-    $('.qty-error').html('');
+    // Remove old error messages
+    $('.qty-error').empty();
 
-    // Block only when above 60 KG
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
         $('#qtyError_' + itemId).html(
-            '<span style="color:#d9534f; font-weight:600; display:block;">' +
+            '<span style="color:#d9534f;font-weight:600;display:block;">' +
             'Maximum cart weight is 60 KG. You cannot add more.' +
             '</span>'
         );
