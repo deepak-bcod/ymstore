@@ -236,7 +236,8 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
          Also hide shipping completely when cart > 60 KG.
          ============================================================ -->
 
-    <?php if (!$cartOverWeight && $effective_shipping > 0) { ?>
+    <?php if ($effective_shipping > 0) { ?>
+
 
         <li>
 
