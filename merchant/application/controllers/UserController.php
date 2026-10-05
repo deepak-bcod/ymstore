@@ -3531,6 +3531,525 @@ class UserController extends CI_Controller
 		$this->session->set_flashdata('success', $this->lang->line('refund_approved_successfully') ?: 'Refund approved successfully.');
 		redirect($_SERVER['HTTP_REFERER']);
 	}
+
+	public function replacement_approve_ticket()
+	{
+		$LogindID = $this->session->userdata('LoginID');
+		if (empty($LogindID)) {
+			$LogindID = isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : '';
+		}
+		if (empty($LogindID)) {
+			redirect('login');
+			return;
+		}
+
+		$ticket_id       = trim($this->input->post('ticket_id', true));
+		$order_id        = (int)$this->input->post('order_id', true);
+		$product_id      = (int)$this->input->post('product_id', true);
+		$delivery_option = trim($this->input->post('delivery_option', true));
+
+		$valid_delivery_options = [
+			'own_delivery' => 'Own Delivery Service',
+			'self_pickup'  => 'Self Pickup',
+			'ym_delivery'  => 'YM Delivery Service'
+		];
+
+		if (empty($ticket_id) || empty($delivery_option) || !isset($valid_delivery_options[$delivery_option])) {
+			$this->session->set_flashdata('error', "Invalid ticket or replacement delivery method.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		$delivery_method_name = $valid_delivery_options[$delivery_option];
+
+		// Verify ticket exists and belongs to this merchant
+		$this->db->where('ticket_id', $ticket_id);
+		$this->db->where('category', 1); // Shopper order resolution ticket
+		$this->db->where('merchant_id', $LogindID);
+		$ticket = $this->db->get('help_desk')->row();
+
+		if (!$ticket) {
+			$this->session->set_flashdata('error', "Ticket not found or permission denied.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		$order_id_val = !empty($ticket->order_id) ? (int)$ticket->order_id : $order_id;
+		$prod_id_val  = !empty($ticket->products) ? (int)$ticket->products : $product_id;
+
+		if (empty($order_id_val)) {
+			$this->session->set_flashdata('error', "No order is associated with this ticket.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// 1. Locate the merchant's B2B order
+		$b2b_order = $this->db->select('*')
+			->from('b2b_orders')
+			->where('webshop_order_id', $order_id_val)
+			->where('publisher_id', $LogindID)
+			->get()->row();
+
+		if (!$b2b_order) {
+			$b2b_order = $this->db->select('*')
+				->from('b2b_orders')
+				->where('order_id', $order_id_val)
+				->where('publisher_id', $LogindID)
+				->get()->row();
+		}
+
+		if (!$b2b_order) {
+			$this->session->set_flashdata('error', "Order not found for this merchant.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// 2. Locate the specific order item in b2b_order_items
+		$item_query = $this->db->select('*')
+			->from('b2b_order_items')
+			->where('order_id', $b2b_order->order_id);
+
+		if (!empty($prod_id_val)) {
+			$item_query->where('product_id', $prod_id_val);
+		}
+
+		$b2b_item = $item_query->order_by('item_id', 'DESC')->get()->row();
+
+		if (!$b2b_item) {
+			$this->session->set_flashdata('error', "Order item not found for this ticket.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// 3. Check Order Item Status: ONLY allowed if status is 'Complete' (status = 2)
+		$current_item_status = (int)$b2b_item->status;
+		if ($current_item_status !== 2) {
+			$status_label = $this->CommonModel->getOrderStatusLabel($current_item_status);
+			$status_text  = !empty($status_label) ? $status_label : 'Status ' . $current_item_status;
+			$this->session->set_flashdata(
+				'error',
+				"Replacement cannot be approved: The item status is currently '" . $status_text . "'. A replacement can only be initiated when the order item status is 'Complete'."
+			);
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// 4. Create or attach to Replacement Request
+		$existing_rep_item = $this->db->select('sori.*, sor.replacement_order_id, sor.replacement_order_increment_id')
+			->from('sales_order_replacement_items sori')
+			->join('sales_order_replacement sor', 'sor.replacement_order_id = sori.replacement_order_id', 'inner')
+			->where('sori.order_item_id', $b2b_item->item_id)
+			->get()->row();
+
+		$replacement_order_id = 0;
+		$rep_inc_id = '';
+		if ($existing_rep_item) {
+			$replacement_order_id = $existing_rep_item->replacement_order_id;
+			$rep_inc_id           = $existing_rep_item->replacement_order_increment_id;
+			$this->db->where('replacement_item_id', $existing_rep_item->replacement_item_id)
+				->update('sales_order_replacement_items', [
+					'status'     => 18, // Replacement Approved
+					'updated_at' => time()
+				]);
+		} else {
+			// Generate replacement transaction ID: REPL-{order_inc_id}-{count}
+			$order_inc_id = !empty($b2b_order->increment_id) ? $b2b_order->increment_id : (string)$order_id_val;
+			$existing_count = $this->db->where('order_id', $b2b_order->order_id)->count_all_results('sales_order_replacement');
+			$rep_inc_id = 'REPL-' . $order_inc_id . '-' . ($existing_count + 1);
+
+			$rep_data = [
+				'order_id'                       => $b2b_order->order_id,
+				'replacement_order_increment_id' => $rep_inc_id,
+				'customer_id'                    => !empty($ticket->customer_id) ? $ticket->customer_id : 0,
+				'status'                         => 1, // 1 = Approved
+				'created_at'                     => time(),
+				'updated_at'                     => time(),
+				'ip'                             => $this->input->ip_address()
+			];
+			if ($this->db->field_exists('replacement_order_barcode', 'sales_order_replacement')) {
+				$rep_data['replacement_order_barcode'] = $rep_inc_id;
+			}
+			if ($this->db->field_exists('order_amount', 'sales_order_replacement')) {
+				$rep_data['order_amount'] = !empty($b2b_item->total_price) ? (float)$b2b_item->total_price : 0.00;
+			}
+			if ($this->db->field_exists('order_discount', 'sales_order_replacement')) {
+				$rep_data['order_discount'] = !empty($b2b_item->discount_amount) ? (float)$b2b_item->discount_amount : 0.00;
+			}
+			if ($this->db->field_exists('order_grandtotal', 'sales_order_replacement')) {
+				$rep_data['order_grandtotal'] = !empty($b2b_item->total_price) ? (float)$b2b_item->total_price : 0.00;
+			}
+
+			$this->db->insert('sales_order_replacement', $rep_data);
+			$replacement_order_id = $this->db->insert_id();
+
+			$qty_ordered = !empty($b2b_item->qty_ordered) ? (int)$b2b_item->qty_ordered : (!empty($b2b_item->qty) ? (int)$b2b_item->qty : 1);
+			$item_price  = !empty($b2b_item->price) ? (float)$b2b_item->price : 0.00;
+			$item_total  = !empty($b2b_item->total_price) ? (float)$b2b_item->total_price : 0.00;
+			$item_disc   = !empty($b2b_item->discount_amount) ? (float)$b2b_item->discount_amount : 0.00;
+			$item_tdisc  = !empty($b2b_item->total_discount_amount) ? (float)$b2b_item->total_discount_amount : 0.00;
+
+			$rep_item_data = [
+				'order_id'              => $order_id_val,
+				'replacement_order_id'  => $replacement_order_id,
+				'order_item_id'         => $b2b_item->item_id,
+				'qty_order'             => $qty_ordered,
+				'qty_replacement'       => $qty_ordered,
+				'status'                => 18, // Replacement Approved
+				'price'                 => $item_price,
+				'total_price'           => $item_total,
+				'barcode'               => !empty($b2b_item->barcode) ? $b2b_item->barcode : '',
+				'discount_amount'       => $item_disc,
+				'total_discount_amount' => $item_tdisc,
+				'created_at'            => time(),
+				'updated_at'            => time(),
+				'ip'                    => $this->input->ip_address()
+			];
+			if ($this->db->field_exists('qty_ordered', 'sales_order_replacement_items')) {
+				$rep_item_data['qty_ordered'] = $qty_ordered;
+			}
+
+			$this->db->insert('sales_order_replacement_items', $rep_item_data);
+		}
+
+		// 5. Update Order Item status to Replacement Approved (18)
+		$this->db->where('item_id', $b2b_item->item_id)->update('b2b_order_items', [
+			'status'     => 18,
+			'updated_at' => time()
+		]);
+
+		// 6. Update B2B Order status to Replacement Approved (18) and hold payout
+		$this->db->where('order_id', $b2b_order->order_id)->update('b2b_orders', [
+			'status'        => 18,
+			'payout_status' => 3,
+			'updated_at'    => time()
+		]);
+
+		if ($this->db->field_exists('status', 'sales_order_items')) {
+			$this->db->where('order_id', $order_id_val)
+				->where('product_id', $prod_id_val)
+				->update('sales_order_items', ['status' => 18]);
+		}
+
+		// 7. Update ticket rows with replacement approval and delivery option
+		$updateData = [
+			'merchant_action' => 'replacement_approved',
+			'delivery_option' => $delivery_option,
+			'status_code'     => 'Processing',
+			'updated_at'      => time()
+		];
+		$this->db->where('ticket_id', $ticket_id);
+		$this->db->update('help_desk', $updateData);
+
+		// 8. Record audit conversation message
+		$rep_info = !empty($rep_inc_id) ? " (Replacement Request: " . $rep_inc_id . ")" : "";
+		$reply_msg = "Action: Replacement Approved" . $rep_info . ". Method: " . $delivery_method_name . ". Replacement is now underway.";
+
+		$insertMsg = [
+			'ticket_id'       => $ticket_id,
+			'subject'         => $ticket->subject,
+			'category'        => $ticket->category,
+			'priority'        => $ticket->priority,
+			'customer_id'     => $ticket->customer_id,
+			'merchant_id'     => $ticket->merchant_id,
+			'message'         => '',
+			'admin_reply'     => $reply_msg,
+			'merchant_action' => 'replacement_approved',
+			'delivery_option' => $delivery_option,
+			'status_code'     => 'Processing',
+			'status'          => 1,
+			'created_at'      => time(),
+			'updated_at'      => time(),
+			'ip'              => $this->input->ip_address(),
+		];
+		$this->db->insert('help_desk', $insertMsg);
+
+		// Fetch details for email
+		$shopper_name  = 'Shopper';
+		$shopper_email = '';
+		if (!empty($ticket->customer_id)) {
+			$cust = $this->db->select('first_name, last_name, email_id')->where('id', $ticket->customer_id)->get('customers')->row();
+			if ($cust) {
+				$shopper_name  = trim(($cust->first_name ?? '') . ' ' . ($cust->last_name ?? ''));
+				$shopper_email = $cust->email_id ?? '';
+			}
+		}
+
+		$order_number = (string)$order_id_val;
+		$order_row = $this->db->select('increment_id, customer_email, customer_firstname, customer_lastname')->where('order_id', $order_id_val)->get('sales_order')->row();
+		if ($order_row) {
+			$order_number = !empty($order_row->increment_id) ? $order_row->increment_id : (string)$order_id_val;
+			if (empty($shopper_email) && !empty($order_row->customer_email)) {
+				$shopper_email = $order_row->customer_email;
+			}
+			if (($shopper_name === 'Shopper' || empty($shopper_name)) && (!empty($order_row->customer_firstname) || !empty($order_row->customer_lastname))) {
+				$shopper_name = trim(($order_row->customer_firstname ?? '') . ' ' . ($order_row->customer_lastname ?? ''));
+			}
+		}
+		if (empty($shopper_name)) $shopper_name = 'Shopper';
+
+		$merchant_name = 'Merchant';
+		$merch = $this->db->select('publication_name, email')->where('id', $LogindID)->get('publisher')->row();
+		if ($merch && !empty($merch->publication_name)) {
+			$merchant_name = $merch->publication_name;
+		}
+
+		$product_name = 'N/A';
+		if (!empty($prod_id_val)) {
+			$prod = $this->db->select('name')->where('id', $prod_id_val)->get('products')->row();
+			if ($prod && !empty($prod->name)) {
+				$product_name = html_entity_decode($prod->name, ENT_QUOTES, 'UTF-8');
+			}
+		}
+
+		$shopper_base = defined('BASE_URL3') ? BASE_URL3 : (defined('BASE_URL') ? str_replace('/merchant/', '/', BASE_URL) : 'https://mu.yellowmarkets.com/');
+		$shopper_base = rtrim($shopper_base, '/') . '/';
+		$shopper_ticket_url = $shopper_base . "MyProfileController/viewTicket/" . $order_id_val . "/" . $ticket_id . ($prod_id_val ? '/' . $prod_id_val : '');
+
+		$shopper_lang_code = ($this->session->userdata('site_lang') === 'french' || $this->session->userdata('site_lang') === 'fr') ? 'fr' : 'en';
+
+		// Placeholders
+		$tempVars = [
+			'##TICKET_NUMBER##', '##TICKET_ID##', '{ticket_number}', '{ticket_id}',
+			'##ORDER_NUMBER##', '##ORDER_NO##', '{order_number}', '{order_no}',
+			'##PRODUCT_NAME##', '{product_name}',
+			'##MERCHANT_NAME##', '{merchant_name}',
+			'##SHOPPER_NAME##', '##CUSTOMER_NAME##', '{shopper_name}', '{customer_name}',
+			'##REPLACEMENT_METHOD##', '##DELIVERY_METHOD##', '{replacement_method}', '{delivery_method}',
+			'##ACTION##', '{action}',
+			'##TICKET_URL##', '{ticket_url}',
+			'##WEBSHOPNAME##', '{webshop_name}'
+		];
+
+		// Send Email to Shopper (order-resolution-replacement-underway-shopper)
+		if (!empty($shopper_email)) {
+			$shopperDynamicVars = [
+				$ticket_id, $ticket_id, $ticket_id, $ticket_id,
+				$order_number, $order_number, $order_number, $order_number,
+				$product_name, $product_name,
+				$merchant_name, $merchant_name,
+				$shopper_name, $shopper_name, $shopper_name, $shopper_name,
+				$delivery_method_name, $delivery_method_name, $delivery_method_name, $delivery_method_name,
+				'Replacement Approved', 'Replacement Approved',
+				$shopper_ticket_url, $shopper_ticket_url,
+				'Yellow Markets', 'Yellow Markets'
+			];
+
+			$this->CommonModel->sendCommonHTMLEmail(
+				$shopper_email,
+				'order-resolution-replacement-underway-shopper',
+				$tempVars,
+				$shopperDynamicVars,
+				$shopper_lang_code
+			);
+		}
+
+		$this->session->set_flashdata('success', "Replacement approved successfully. Method: " . $delivery_method_name . ".");
+		redirect($_SERVER['HTTP_REFERER']);
+	}
+
+	public function replacement_complete_ticket()
+	{
+		$LogindID = $this->session->userdata('LoginID');
+		if (empty($LogindID)) {
+			$LogindID = isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : '';
+		}
+		if (empty($LogindID)) {
+			redirect('login');
+			return;
+		}
+
+		$ticket_id  = trim($this->input->post('ticket_id', true));
+		$order_id   = (int)$this->input->post('order_id', true);
+		$product_id = (int)$this->input->post('product_id', true);
+
+		if (empty($ticket_id)) {
+			$this->session->set_flashdata('error', "Invalid ticket.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// Verify ticket exists, belongs to merchant, and was previously approved for replacement
+		$this->db->where('ticket_id', $ticket_id);
+		$this->db->where('category', 1);
+		$this->db->where('merchant_id', $LogindID);
+		$ticket = $this->db->get('help_desk')->row();
+
+		if (!$ticket) {
+			$this->session->set_flashdata('error', "Ticket not found or permission denied.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		if ($ticket->merchant_action !== 'replacement_approved') {
+			$this->session->set_flashdata('error', "Replacement cannot be marked complete because it was not in 'Replacement Approved' status.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		$order_id_val = !empty($ticket->order_id) ? (int)$ticket->order_id : $order_id;
+		$prod_id_val  = !empty($ticket->products) ? (int)$ticket->products : $product_id;
+
+		// 1. Update B2B order items and replacement status to Replaced (19)
+		$b2b_order = $this->db->select('order_id, increment_id')
+			->from('b2b_orders')
+			->where('webshop_order_id', $order_id_val)
+			->where('publisher_id', $LogindID)
+			->get()->row();
+
+		if (!$b2b_order) {
+			$b2b_order = $this->db->select('order_id, increment_id')
+				->from('b2b_orders')
+				->where('order_id', $order_id_val)
+				->where('publisher_id', $LogindID)
+				->get()->row();
+		}
+
+		if ($b2b_order) {
+			// Update b2b_order_items to 19 (Replaced)
+			$this->db->where('order_id', $b2b_order->order_id);
+			if (!empty($prod_id_val)) {
+				$this->db->where('product_id', $prod_id_val);
+			}
+			$this->db->update('b2b_order_items', [
+				'status'     => 19, // Replaced
+				'updated_at' => time()
+			]);
+
+			// Update b2b_orders status
+			$this->db->where('order_id', $b2b_order->order_id)->update('b2b_orders', [
+				'status'     => 19, // Replaced
+				'updated_at' => time()
+			]);
+
+			// Update sales_order_replacement
+			$this->db->where('order_id', $b2b_order->order_id)->update('sales_order_replacement', [
+				'status'     => 3, // 3 / 19 = Replaced
+				'updated_at' => time()
+			]);
+		}
+
+		// 2. Update help_desk: merchant_action = 'replacement_completed', status_code = 'Processing' (Do NOT close automatically)
+		$updateData = [
+			'merchant_action' => 'replacement_completed',
+			'status_code'     => 'Processing',
+			'updated_at'      => time()
+		];
+		$this->db->where('ticket_id', $ticket_id);
+		$this->db->update('help_desk', $updateData);
+
+		// 3. Record conversation message
+		$reply_msg = "Action: Replacement Completed. Ticket forwarded to support (@help) for final review and closure.";
+		$insertMsg = [
+			'ticket_id'       => $ticket_id,
+			'subject'         => $ticket->subject,
+			'category'        => $ticket->category,
+			'priority'        => $ticket->priority,
+			'customer_id'     => $ticket->customer_id,
+			'merchant_id'     => $ticket->merchant_id,
+			'message'         => '',
+			'admin_reply'     => $reply_msg,
+			'merchant_action' => 'replacement_completed',
+			'delivery_option' => $ticket->delivery_option,
+			'status_code'     => 'Processing',
+			'status'          => 1,
+			'created_at'      => time(),
+			'updated_at'      => time(),
+			'ip'              => $this->input->ip_address(),
+		];
+		$this->db->insert('help_desk', $insertMsg);
+
+		// Fetch details for email
+		$shopper_name  = 'Shopper';
+		$shopper_email = '';
+		if (!empty($ticket->customer_id)) {
+			$cust = $this->db->select('first_name, last_name, email_id')->where('id', $ticket->customer_id)->get('customers')->row();
+			if ($cust) {
+				$shopper_name  = trim(($cust->first_name ?? '') . ' ' . ($cust->last_name ?? ''));
+				$shopper_email = $cust->email_id ?? '';
+			}
+		}
+
+		$order_number = (string)$order_id_val;
+		$order_row = $this->db->select('increment_id, customer_email, customer_firstname, customer_lastname')->where('order_id', $order_id_val)->get('sales_order')->row();
+		if ($order_row) {
+			$order_number = !empty($order_row->increment_id) ? $order_row->increment_id : (string)$order_id_val;
+			if (empty($shopper_email) && !empty($order_row->customer_email)) {
+				$shopper_email = $order_row->customer_email;
+			}
+			if (($shopper_name === 'Shopper' || empty($shopper_name)) && (!empty($order_row->customer_firstname) || !empty($order_row->customer_lastname))) {
+				$shopper_name = trim(($order_row->customer_firstname ?? '') . ' ' . ($order_row->customer_lastname ?? ''));
+			}
+		}
+		if (empty($shopper_name)) $shopper_name = 'Shopper';
+
+		$merchant_name = 'Merchant';
+		$merch = $this->db->select('publication_name, email')->where('id', $LogindID)->get('publisher')->row();
+		if ($merch && !empty($merch->publication_name)) {
+			$merchant_name = $merch->publication_name;
+		}
+
+		$product_name = 'N/A';
+		if (!empty($prod_id_val)) {
+			$prod = $this->db->select('name')->where('id', $prod_id_val)->get('products')->row();
+			if ($prod && !empty($prod->name)) {
+				$product_name = html_entity_decode($prod->name, ENT_QUOTES, 'UTF-8');
+			}
+		}
+
+		$delivery_methods = [
+			'own_delivery' => 'Own Delivery Service',
+			'self_pickup'  => 'Self Pickup',
+			'ym_delivery'  => 'YM Delivery Service'
+		];
+		$delivery_method_name = $delivery_methods[$ticket->delivery_option] ?? 'Replacement';
+
+		$admin_base = 'https://mu.yellowmarkets.com/admin/';
+		$admin_ticket_url = $admin_base . "CustomerController/view/" . $order_id_val . "/" . $ticket_id . ($prod_id_val ? '/' . $prod_id_val : '');
+
+		$shopper_lang_code = ($this->session->userdata('site_lang') === 'french' || $this->session->userdata('site_lang') === 'fr') ? 'fr' : 'en';
+
+		// Placeholders
+		$tempVars = [
+			'##TICKET_NUMBER##', '##TICKET_ID##', '{ticket_number}', '{ticket_id}',
+			'##ORDER_NUMBER##', '##ORDER_NO##', '{order_number}', '{order_no}',
+			'##PRODUCT_NAME##', '{product_name}',
+			'##MERCHANT_NAME##', '{merchant_name}',
+			'##SHOPPER_NAME##', '##CUSTOMER_NAME##', '{shopper_name}', '{customer_name}',
+			'##REPLACEMENT_METHOD##', '##DELIVERY_METHOD##', '{replacement_method}', '{delivery_method}',
+			'##ACTION##', '{action}',
+			'##TICKET_URL##', '{ticket_url}',
+			'##WEBSHOPNAME##', '{webshop_name}'
+		];
+
+		// Send email to @help (order-resolution-replacement-completed-help)
+		$help_email = $this->CommonModel->get_custom_variable('contact_us_email')
+			?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+
+		if (!empty($help_email)) {
+			$helpDynamicVars = [
+				$ticket_id, $ticket_id, $ticket_id, $ticket_id,
+				$order_number, $order_number, $order_number, $order_number,
+				$product_name, $product_name,
+				$merchant_name, $merchant_name,
+				$shopper_name, $shopper_name, $shopper_name, $shopper_name,
+				$delivery_method_name, $delivery_method_name, $delivery_method_name, $delivery_method_name,
+				'Replacement Completed', 'Replacement Completed',
+				$admin_ticket_url, $admin_ticket_url,
+				'Yellow Markets', 'Yellow Markets'
+			];
+
+			$this->CommonModel->sendCommonHTMLEmail(
+				$help_email,
+				'order-resolution-replacement-completed-help',
+				$tempVars,
+				$helpDynamicVars,
+				$shopper_lang_code
+			);
+		}
+
+		$this->session->set_flashdata('success', "Replacement marked as completed. Yellow Markets support has been notified for final review and closure.");
+		redirect($_SERVER['HTTP_REFERER']);
+	}
 }
 
 

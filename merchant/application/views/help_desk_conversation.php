@@ -139,17 +139,41 @@ if(!empty($help_desk_data)): ?>
                                 <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#refundModal">
                                     <i class="fa fa-check"></i> <?= lang('approve_refund'); ?>
                                 </button>
+                                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#replacementModal">
+                                    <i class="fa fa-refresh"></i> <?= lang('approve_replacement') ?: 'Approve Replacement'; ?>
+                                </button>
                             <?php elseif ($first_ticket->merchant_action === 'refund_approved'): ?>
                                 <span class="btn btn-outline-success btn-sm disabled">
                                     <i class="fa fa-check-circle"></i> <?= lang('refund_approved'); ?> (<?= number_format((float)$first_ticket->refund_amount, 2); ?>)
                                 </span>
+                            <?php elseif ($first_ticket->merchant_action === 'replacement_approved'): ?>
+                                <?php
+                                    $delivery_method_names = [
+                                        'own_delivery' => 'Own Delivery Service',
+                                        'self_pickup'  => 'Self Pickup',
+                                        'ym_delivery'  => 'YM Delivery Service'
+                                    ];
+                                    $method_label = $delivery_method_names[$first_ticket->delivery_option] ?? 'Replacement Approved';
+                                ?>
+                                <span class="btn btn-outline-info btn-sm disabled">
+                                    <i class="fa fa-refresh"></i> <?= lang('replacement_approved') ?: 'Replacement Approved'; ?> (<?= htmlspecialchars($method_label, ENT_QUOTES, 'UTF-8'); ?>)
+                                </span>
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompleteModal">
+                                    <i class="fa fa-check-square-o"></i> <?= lang('replacement_completed') ?: 'Replacement Completed'; ?>
+                                </button>
+                            <?php elseif ($first_ticket->merchant_action === 'replacement_completed'): ?>
+                                <span class="btn btn-outline-primary btn-sm disabled">
+                                    <i class="fa fa-check-circle"></i> <?= lang('replacement_completed') ?: 'Replacement Completed'; ?> (Pending Support Closure)
+                                </span>
                             <?php endif; ?>
 
-                            <a href="<?= base_url('UserController/close_ticket/' . $first_ticket->order_id . '/' . $product . '/' . $first_ticket->ticket_id); ?>" 
-                               class="btn btn-danger btn-sm"
-                               onclick="return confirm('<?= lang('are_you_sure_close_ticket'); ?>')">
-                               <?= lang('mark_as_close'); ?> 
-                            </a>
+                            <?php if ($first_ticket->merchant_action !== 'replacement_completed'): ?>
+                                <a href="<?= base_url('UserController/close_ticket/' . $first_ticket->order_id . '/' . $product . '/' . $first_ticket->ticket_id); ?>" 
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('<?= lang('are_you_sure_close_ticket'); ?>')">
+                                   <?= lang('mark_as_close'); ?> 
+                                </a>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
 
@@ -181,6 +205,70 @@ if(!empty($help_desk_data)): ?>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
                                     <button type="submit" class="btn btn-success btn-sm"><?= lang('approve_refund'); ?></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="replacementModal" tabindex="-1" role="dialog" aria-labelledby="replacementModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <form method="POST" action="<?= base_url('UserController/replacement_approve_ticket'); ?>">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="replacementModalLabel"><?= lang('approve_replacement') ?: 'Approve Replacement'; ?></h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <input type="hidden" name="ticket_id" value="<?= htmlspecialchars($first_ticket->ticket_id, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <input type="hidden" name="order_id" value="<?= !empty($first_ticket->order_id) ? (int)$first_ticket->order_id : 0; ?>">
+                                    <input type="hidden" name="product_id" value="<?= !empty($product) ? (int)$product : 0; ?>">
+                                    
+                                    <div class="form-group">
+                                        <label for="delivery_option"><strong>Select Replacement Delivery Method:</strong></label>
+                                        <select name="delivery_option" id="delivery_option" class="form-control" required>
+                                            <option value="">-- Choose Method --</option>
+                                            <option value="own_delivery">Own Delivery Service</option>
+                                            <option value="self_pickup">Self Pickup</option>
+                                            <option value="ym_delivery">YM Delivery Service</option>
+                                        </select>
+                                        <small class="form-text text-muted">For Own Delivery Service or Self Pickup, you and the shopper can coordinate details using this ticket conversation.</small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-info btn-sm"><?= lang('approve_replacement') ?: 'Approve Replacement'; ?></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($first_ticket->status != 2 && $first_ticket->category <= 2 && $first_ticket->merchant_action === 'replacement_approved'): ?>
+                <div class="modal fade" id="replacementCompleteModal" tabindex="-1" role="dialog" aria-labelledby="replacementCompleteModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <form method="POST" action="<?= base_url('UserController/replacement_complete_ticket'); ?>">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="replacementCompleteModalLabel"><?= lang('mark_replacement_completed') ?: 'Mark Replacement Completed'; ?></h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <input type="hidden" name="ticket_id" value="<?= htmlspecialchars($first_ticket->ticket_id, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <input type="hidden" name="order_id" value="<?= !empty($first_ticket->order_id) ? (int)$first_ticket->order_id : 0; ?>">
+                                    <input type="hidden" name="product_id" value="<?= !empty($product) ? (int)$product : 0; ?>">
+                                    
+                                    <p>Are you sure the replacement has been successfully delivered/collected by the shopper?</p>
+                                    <small class="text-muted">This will record the replacement as completed and notify Yellow Markets support (@help) to review and close the ticket.</small>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-primary btn-sm"><?= lang('confirm_replacement_completed') ?: 'Confirm Replacement Completed'; ?></button>
                                 </div>
                             </form>
                         </div>

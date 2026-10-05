@@ -1893,6 +1893,7 @@ class CustomerController extends CI_Controller
 					$ctx['merchant_name'], $ctx['merchant_name'],
 					$ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'],
 					$ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'],
+					$ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'],
 					'Refund Closed', 'Refund Closed',
 					$ctx['merchant_ticket_url'], $ctx['merchant_ticket_url'],
 					'Yellow Markets', 'Yellow Markets'
@@ -1905,6 +1906,60 @@ class CustomerController extends CI_Controller
 					'order-resolution-refund-closed-merchant',
 					$ctx['tempVars'],
 					$merchantDynamicVars,
+					$lang_code
+				);
+			}
+		}
+
+		// Replacement Resolution Workflow Closure: Notify Merchant and Shopper
+		if ($ticket && in_array($ticket->merchant_action, ['replacement_completed', 'replacement_approved'], true)) {
+			$ctx = $this->_get_ticket_email_context($ticket, $order_id, $product_id);
+			$lang_code = ($this->session->userdata('site_lang') === 'french' || $this->session->userdata('site_lang') === 'fr') ? 'fr' : 'en';
+
+			// 1. Send order-resolution-replacement-closed-merchant to Merchant
+			if (!empty($ctx['merchant_email'])) {
+				$merchantDynamicVars = [
+					$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
+					$ctx['order_number'], $ctx['order_number'], $ctx['order_number'], $ctx['order_number'],
+					$ctx['product_name'], $ctx['product_name'],
+					$ctx['merchant_name'], $ctx['merchant_name'],
+					$ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'],
+					$ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'],
+					$ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'],
+					'Replacement Closed', 'Replacement Closed',
+					$ctx['merchant_ticket_url'], $ctx['merchant_ticket_url'],
+					'Yellow Markets', 'Yellow Markets'
+				];
+
+				$this->CommonModel->sendCommonHTMLEmail(
+					$ctx['merchant_email'],
+					'order-resolution-replacement-closed-merchant',
+					$ctx['tempVars'],
+					$merchantDynamicVars,
+					$lang_code
+				);
+			}
+
+			// 2. Send order-resolution-replacement-completed-shopper to Shopper
+			if (!empty($ctx['shopper_email'])) {
+				$shopperDynamicVars = [
+					$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
+					$ctx['order_number'], $ctx['order_number'], $ctx['order_number'], $ctx['order_number'],
+					$ctx['product_name'], $ctx['product_name'],
+					$ctx['merchant_name'], $ctx['merchant_name'],
+					$ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'],
+					$ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'],
+					$ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'],
+					'Replacement Completed', 'Replacement Completed',
+					$ctx['shopper_ticket_url'], $ctx['shopper_ticket_url'],
+					'Yellow Markets', 'Yellow Markets'
+				];
+
+				$this->CommonModel->sendCommonHTMLEmail(
+					$ctx['shopper_email'],
+					'order-resolution-replacement-completed-shopper',
+					$ctx['tempVars'],
+					$shopperDynamicVars,
 					$lang_code
 				);
 			}
@@ -2197,6 +2252,13 @@ class CustomerController extends CI_Controller
 			}
 		}
 
+		$delivery_methods = [
+			'own_delivery' => 'Own Delivery Service',
+			'self_pickup'  => 'Self Pickup',
+			'ym_delivery'  => 'YM Delivery Service'
+		];
+		$delivery_method_name = $delivery_methods[$ticket->delivery_option ?? ''] ?? 'Replacement';
+
 		// URLs
 		$shopper_base = 'https://mu.yellowmarkets.com/';
 		$shopper_ticket_url = $shopper_base . "MyProfileController/viewTicket/" . $order_id_val . "/" . $ticket_id . ($product_id_val ? '/' . $product_id_val : '');
@@ -2212,6 +2274,7 @@ class CustomerController extends CI_Controller
 			'##MERCHANT_NAME##', '{merchant_name}',
 			'##SHOPPER_NAME##', '##CUSTOMER_NAME##', '{shopper_name}', '{customer_name}',
 			'##REFUND_AMOUNT##', '##AMOUNT##', '{refund_amount}', '{amount}',
+			'##REPLACEMENT_METHOD##', '##DELIVERY_METHOD##', '{replacement_method}', '{delivery_method}',
 			'##ACTION##', '{action}',
 			'##TICKET_URL##', '{ticket_url}',
 			'##WEBSHOPNAME##', '{webshop_name}'
@@ -2227,6 +2290,7 @@ class CustomerController extends CI_Controller
 			'shopper_email'       => $shopper_email,
 			'merchant_name'       => $merchant_name,
 			'merchant_email'      => $merchant_email,
+			'delivery_method'     => $delivery_method_name,
 			'refund_amount'       => $refund_amount_val,
 			'refund_formatted'    => $refund_formatted,
 			'shopper_ticket_url'  => $shopper_ticket_url,
