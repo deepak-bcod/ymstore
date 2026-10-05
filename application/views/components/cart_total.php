@@ -33,13 +33,24 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
             </li>
         <?php } ?>
 
-        <li>
-            <em><?php echo $this->lang->line('shipping_cost'); ?></em>
-            <strong class="price"><?php 
-                $effective_shipping = (floatval($cartDetails->ym_charge ?? 0) + floatval($cartDetails->shipping_amount ?? 0));
-                echo (($this->session->userdata('currency_code_session') && $default_currency_flag != 1) ? convert_currency_website($effective_shipping, $currency_conversion_rate, $currency_symbol) : CURRENCY_TYPE . ' '. number_format($effective_shipping, 2)); 
-            ?></strong>
-        </li>
+       <?php
+$effective_shipping = (float)($cartDetails->ym_charge ?? 0) + (float)($cartDetails->shipping_amount ?? 0);
+?>
+
+<?php if ($effective_shipping > 0): ?>
+    <li>
+        <em><?php echo $this->lang->line('shipping_cost'); ?></em>
+        <strong class="price">
+            <?php
+            echo (
+                $this->session->userdata('currency_code_session') && $default_currency_flag != 1
+                ? convert_currency_website($effective_shipping, $currency_conversion_rate, $currency_symbol)
+                : CURRENCY_TYPE . ' ' . number_format($effective_shipping, 2)
+            );
+            ?>
+        </strong>
+    </li>
+<?php endif; ?>
 
         <li class="shopping-total-price">
             <em><?php echo $this->lang->line('total_label'); ?></em>
@@ -237,14 +248,14 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
         </div>
     `);
     }
-    const MAX_CART_WEIGHT = 60; // Maximum 60 KG
+   const MAX_CART_WEIGHT = 60; // Maximum 60 KG
 
 function getCartTotalWeight() {
     let totalWeight = 0;
 
     $('input[id^="quantity_"]').each(function () {
         const qty = parseFloat($(this).val()) || 0;
-        const weight = parseFloat($(this).data('weight')) || 0;
+        const weight = parseFloat($(this).attr('data-weight')) || 0;
 
         totalWeight += qty * weight;
     });
@@ -260,16 +271,19 @@ function validateCartWeightBeforeIncrease(itemId) {
         return true;
     }
 
-    const itemWeight = parseFloat(qtyInput.data('weight')) || 0;
+    const itemWeight = parseFloat(qtyInput.attr('data-weight')) || 0;
+    const currentTotalWeight = getCartTotalWeight();
+    const newTotalWeight = currentTotalWeight + itemWeight;
 
-    // Current cart weight + 1 additional quantity
-    const newTotalWeight = getCartTotalWeight() + itemWeight;
+    console.log('Current cart weight:', currentTotalWeight);
+    console.log('Item weight:', itemWeight);
+    console.log('New cart weight:', newTotalWeight);
 
     if (newTotalWeight > MAX_CART_WEIGHT) {
 
         $('#qtyError_' + itemId).html(
             '<span style="color:#d9534f;">' +
-            'Maximum cart weight is 60 KG. You cannot add more than 60 KG.' +
+            'Maximum cart weight is 60 KG. You cannot add more.' +
             '</span>'
         );
 
