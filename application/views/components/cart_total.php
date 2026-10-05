@@ -238,34 +238,19 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
 
     <?php if (!$cartOverWeight && $effective_shipping > 0) { ?>
 
-        <li>
+       <li>
 
-            <em>
-                <?php echo $this->lang->line('shipping_cost'); ?>
-            </em>
+    <em><?php echo $this->lang->line('shipping_cost'); ?></em>
 
-            <strong class="price">
+    <strong class="price"><?php
 
-                <?php
-                echo (
-                    $this->session->userdata('currency_code_session')
-                    && $default_currency_flag != 1
-                )
-                ? convert_currency_website(
-                    $effective_shipping,
-                    $currency_conversion_rate,
-                    $currency_symbol
-                )
-                : CURRENCY_TYPE . ' ' . number_format(
-                    $effective_shipping,
-                    2
-                );
-                ?>
+        $effective_shipping = (floatval($cartDetails->ym_charge ?? 0) + floatval($cartDetails->shipping_amount ?? 0));
 
-            </strong>
+        echo (($this->session->userdata('currency_code_session') && $default_currency_flag != 1) ? convert_currency_website($effective_shipping, $currency_conversion_rate, $currency_symbol) : CURRENCY_TYPE . ' '. number_format($effective_shipping, 2));
 
-        </li>
+    ?></strong>
 
+</li>
     <?php } ?>
 
 
