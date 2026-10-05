@@ -237,4 +237,47 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
         </div>
     `);
     }
+    const MAX_CART_WEIGHT = 60; // Maximum 60 KG
+
+function getCartTotalWeight() {
+    let totalWeight = 0;
+
+    $('input[id^="quantity_"]').each(function () {
+        const qty = parseFloat($(this).val()) || 0;
+        const weight = parseFloat($(this).data('weight')) || 0;
+
+        totalWeight += qty * weight;
+    });
+
+    return totalWeight;
+}
+
+function validateCartWeightBeforeIncrease(itemId) {
+
+    const qtyInput = $('#quantity_' + itemId);
+
+    if (!qtyInput.length) {
+        return true;
+    }
+
+    const itemWeight = parseFloat(qtyInput.data('weight')) || 0;
+
+    // Current cart weight + 1 additional quantity
+    const newTotalWeight = getCartTotalWeight() + itemWeight;
+
+    if (newTotalWeight > MAX_CART_WEIGHT) {
+
+        $('#qtyError_' + itemId).html(
+            '<span style="color:#d9534f;">' +
+            'Maximum cart weight is 60 KG. You cannot add more than 60 KG.' +
+            '</span>'
+        );
+
+        return false;
+    }
+
+    $('#qtyError_' + itemId).html('');
+
+    return true;
+}
 </script>

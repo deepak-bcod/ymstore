@@ -108,25 +108,35 @@
                                                     </span>
 
                                                     <input id="quantity_<?php echo $value->item_id; ?>" 
-                                                        data-item-id="<?php echo $value->item_id;?>" 
-                                                        data-price="<?php echo number_format($value->price, 2);?>"
-                                                        type="text" 
-                                                        min="1"
-                                                        max="<?php echo $available_qty; ?>"
-                                                        value="<?php echo $value->qty_ordered; ?>" 
-                                                        readonly 
-                                                        class="form-control input-sm" 
-                                                        style="display: block;"
-                                                    >
+    data-item-id="<?php echo $value->item_id;?>" 
+    data-price="<?php echo number_format($value->price, 2);?>"
+    data-weight="<?php echo (float)$value->weight; ?>"
+    type="text" 
+    min="1"
+    max="<?php echo $available_qty; ?>"
+    value="<?php echo $value->qty_ordered; ?>" 
+    readonly 
+    class="form-control input-sm" 
+    style="display: block;"
+>
                                                     <input type="hidden" value="<?php echo $value->qty_ordered ?>" name="previous_qty[]" id="previous_qty_<?php echo $value->item_id;?>">
                                                     <input type="hidden" value="<?php echo $available_qty ?>" name="max_qty[]" id="max_qty_<?php echo $value->item_id;?>">
 
                                                     <span class="input-group-btn">
-                                                        <button class="btn quantity-up bootstrap-touchspin-up" 
-                                                            onclick="increaseQtyValue(<?php echo $value->item_id; ?>,'<?php echo $value->product_type; ?>',<?php echo $value->product_id; ?>,<?php echo $value->parent_product_id; ?>)" 
-                                                            type="button">
-                                                            <i class="fa fa-angle-up"></i>
-                                                        </button>
+                                                       <button class="btn quantity-up bootstrap-touchspin-up" 
+    onclick="
+        if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
+            increaseQtyValue(
+                <?php echo $value->item_id; ?>,
+                '<?php echo $value->product_type; ?>',
+                <?php echo $value->product_id; ?>,
+                <?php echo $value->parent_product_id; ?>
+            );
+        }
+    " 
+    type="button">
+    <i class="fa fa-angle-up"></i>
+</button>
                                                     </span>
                                                 </div>
                                             </div>
