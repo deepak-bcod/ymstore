@@ -185,29 +185,14 @@ $weight_limit_exceeded = ($total_cart_weight > $max_cart_weight);
                                 <?php (new CartList())->cartPriceDetails($CartData,'cartPage'); ?>
                             </div>
                             <div class="divcent text-center">
-                               <?php if ($has_out_of_stock || $weight_limit_exceeded): ?>
-
-    <button 
-        type="button" 
-        class="btn btn-primary chkout" 
-        disabled
-        style="opacity:0.6; cursor:not-allowed;"
-        title="<?php echo $weight_limit_exceeded 
-            ? 'Cart weight cannot exceed 60 KG' 
-            : 'Please remove out-of-stock items to proceed'; ?>"
-    >
-        <?php echo $this->lang->line('checkout_label'); ?>
-        <i class="fa fa-ban"></i>
-    </button>
-
-<?php else: ?>
-
-    <a href="<?php echo base_url(); ?>checkout" class="btn btn-primary chkout">
-        <?php echo $this->lang->line('checkout_label'); ?>
-        <i class="fa fa-check"></i>
-    </a>
-
-<?php endif; ?>
+                                <?php if ($has_out_of_stock): ?>
+                                    <button type="button" class="btn btn-primary chkout" disabled style="opacity:0.6; cursor:not-allowed;" title="Please remove out-of-stock items to proceed">
+                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-ban"></i>
+                                    </button>
+                                <?php else: ?>
+                                    <a href="<?php echo base_url(); ?>checkout" class="btn btn-primary chkout" type="submit">
+                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-check"></i>
+                                    </a>
                                 <?php endif; ?>
                                 <a href="<?php echo base_url(); ?>" class="btn btn-default">
                                     <?php echo $this->lang->line('continue_shopping'); ?> <i class="fa fa-shopping-cart"></i>
