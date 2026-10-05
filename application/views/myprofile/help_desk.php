@@ -45,6 +45,12 @@ th.st, td.st {
     max-width: 150px !important;
     white-space: normal;
 }
+th.p, td.p {
+    width: 90px !important;
+    word-wrap: break-word !important;
+    max-width: 90px !important;
+    white-space: normal;
+}
 </style>
 
 <div class="breadcrum-section">
@@ -185,11 +191,9 @@ th.st, td.st {
                                                 <th class="t"><?php echo lang('ticket_id'); ?></th>
                                                 <th class="o"><?php echo lang('order_no'); ?></th>
                                                 <th class="s"><?php echo lang('subject'); ?></th>
-                                                <th class="r">
-                                                <?php echo lang('recipient_type'); ?>
-                                                </th>
-                                                <th class="st"><?php echo lang('category'); ?></th>
-                                                <th><?php echo lang('date_of_submission'); ?></th>
+                                                <th class="r"><?php echo lang('recipient_type'); ?></th>
+                                                <th class="st"><?php echo !empty(lang('subject_type')) ? lang('subject_type') : lang('category'); ?></th>
+                                                <th class="p"><?php echo lang('priority'); ?></th>
                                                 <th><?php echo lang('last_activity'); ?></th>
                                                 <th><?php echo lang('status'); ?></th>
                                                 <th><?php echo lang('action'); ?></th>
@@ -199,12 +203,6 @@ th.st, td.st {
                                             <?php foreach ($grouped_tickets as $tickets) : ?>
                                                 <?php
                                                 $first_ticket = $tickets[0];
-                                                $date_of_submission = min(
-                                                    array_column(
-                                                        array_map(fn($t) => (array)$t, $tickets),
-                                                        'created_at'
-                                                    )
-                                                );
                                                 $last_activity = max(array_column(array_map(fn($t) => (array)$t, $tickets), 'updated_at'));
                                                 ?>
                                                 <tr>
@@ -220,7 +218,7 @@ th.st, td.st {
                                                     <td class="r"><?php if($first_ticket->category == 1 ) {echo lang('merchant_');} else{ echo lang('yellow_market'); }  ?></td>
                                                     <td class="st">
                                                         <?php
-                                                    
+                                                     
                                                         $subject_types = [
                                                             1 => lang('order_issue'), 
                                                             2 => lang('refund_request'), 
@@ -228,14 +226,40 @@ th.st, td.st {
                                                             4 => lang('merchant_delivery'), 
                                                             5 => lang('ym_delivery'), 
                                                             6 => lang('resolution_request'), 
-                                                            7 => lang('general_support'),
+                                                            7 => lang('general_support'), 
                                                             8 => lang('technical_issue')
                                                         ];
                                                         
-                                                        echo $subject_types[$first_ticket->priority] ?? lang('unknown'); 
+                                                        $st_val = !empty($first_ticket->subject_type) ? $first_ticket->subject_type : (isset($subject_types[$first_ticket->priority]) ? $first_ticket->priority : '');
+                                                        echo $subject_types[$st_val] ?? (!empty($st_val) ? $st_val : '-'); 
                                                         ?>
                                                     </td>
-                                                    <td ><?= !empty($date_of_submission) ? date('d/m/Y', $date_of_submission) : '-'; ?></td>
+                                                    <td class="p">
+                                                        <?php
+                                                        $p_val = $first_ticket->priority ?? '';
+                                                        $priority_lang_map = [
+                                                            'Low' => lang('low') ?: 'Low',
+                                                            'Medium' => lang('medium') ?: 'Medium',
+                                                            'High' => lang('high') ?: 'High',
+                                                            'Critical' => lang('critical') ?: 'Critical',
+                                                            'low' => lang('low') ?: 'Low',
+                                                            'medium' => lang('medium') ?: 'Medium',
+                                                            'high' => lang('high') ?: 'High',
+                                                            'critical' => lang('critical') ?: 'Critical',
+                                                            '1' => lang('low') ?: 'Low',
+                                                            '2' => lang('medium') ?: 'Medium',
+                                                            '3' => lang('high') ?: 'High',
+                                                            '4' => lang('critical') ?: 'Critical',
+                                                        ];
+                                                        if (isset($priority_lang_map[$p_val])) {
+                                                            echo $priority_lang_map[$p_val];
+                                                        } elseif (!empty($p_val) && !isset($subject_types[$p_val])) {
+                                                            echo htmlspecialchars($p_val);
+                                                        } else {
+                                                            echo '-';
+                                                        }
+                                                        ?>
+                                                    </td>
                                                     <td><?= date('d/m/Y', $last_activity); ?></td>
                                                     <td>
                                                         <?php

@@ -376,14 +376,15 @@ class MyProfileController extends CI_Controller
 
     public function helpDeskPost()
     {
-        $subject     = $this->input->post('subject');
-        $category    = $this->input->post('category_id');
-        $priority    = $this->input->post('priority_id');
-        $message     = $this->input->post('message');
-        $order_id    = $this->input->post('order_id');
-        $product_id  = $this->input->post('product_id');
+        $subject      = $this->input->post('subject');
+        $category     = $this->input->post('category_id');
+        $subject_type = $this->input->post('priority_id');
+        $priority     = $this->input->post('priority') ?: $this->input->post('priority_id');
+        $message      = $this->input->post('message');
+        $order_id     = $this->input->post('order_id');
+        $product_id   = $this->input->post('product_id');
         $merchant_id  = $this->input->post('merchant_id');
-        $ticket_id = $this->input->post('ticket_id');
+        $ticket_id    = $this->input->post('ticket_id');
 
         $customer_id = $_SESSION['LoginID'];
 
@@ -569,13 +570,8 @@ class MyProfileController extends CI_Controller
             'ip'           => $_SERVER['REMOTE_ADDR'],
         ];
 
-        $priority_level = $this->input->post('priority');
-        if (!empty($priority_level)) {
-            if ($this->db->field_exists('priority_level', 'help_desk')) {
-                $postArr['priority_level'] = $priority_level;
-            } elseif ($this->db->field_exists('ticket_priority', 'help_desk')) {
-                $postArr['ticket_priority'] = $priority_level;
-            }
+        if (!empty($subject_type) && $this->db->field_exists('subject_type', 'help_desk')) {
+            $postArr['subject_type'] = $subject_type;
         }
 
         $this->db->insert('help_desk', $postArr);
