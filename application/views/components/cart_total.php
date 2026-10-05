@@ -1378,7 +1378,54 @@ function validateCartWeightBeforeIncrease(
  * ============================================================
  */
 
+$(document).ready(function () {
 
+    const totalCartWeight =
+        getCartTotalWeight();
+
+
+    console.log(
+        'Cart weight:',
+        totalCartWeight / 1000,
+        'KG'
+    );
+
+
+    /*
+     * Show warning if existing cart
+     * is already above 60 KG.
+     */
+
+    if (
+        totalCartWeight >
+        MAX_CART_WEIGHT
+    ) {
+
+        swal({
+
+            title:
+                "<?php echo $this->lang->line(
+                    'maximum_cart_weight'
+                ); ?>",
+
+            text:
+                "<?php echo $this->lang->line(
+                    'maximum_cart_weight_message'
+                ); ?>",
+
+            type:
+                "warning",
+
+            confirmButtonText:
+                "<?php echo $this->lang->line(
+                    'ok'
+                ); ?>"
+
+        });
+
+    }
+
+});
 
 </script>
 
