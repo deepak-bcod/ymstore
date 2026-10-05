@@ -11487,7 +11487,6 @@ exit;*/
 		// print_r($LogindID);die;
 		$this->load->model('B2BOrdersModel');
 		$orders = $this->B2BOrdersModel->getPayoutOrders(10000,0,$LogindID); // load many at once
-		$visible_orders = [];
 		if (!empty($orders)) {
 			foreach ($orders as &$order) {
 				$check = $this->checkPayoutEligibility($order['order_id']);
@@ -11497,26 +11496,26 @@ exit;*/
 				if (isset($check['payout_status'])) {
 					$order['payout_status'] = $check['payout_status'];
 				}
-
-				// If order is under active dispute, HIDE from Manage Transaction / payouts list
-				if (!empty($check['is_dispute_locked'])) {
-					continue;
-				}
-
-				$visible_orders[] = $order;
 			}
 		}
-		$data['orders'] = $visible_orders;
+		$data['orders'] = $orders;
 		$data['PageTitle'] = 'B2B - Orders';
 		$data['side_menu'] = 'b2b';
 		$this->load->view('b2b/order/payoutsorderlist', $data);
 	}
 
+	// public function hold_payout_bulk()
+	// {
+	// 	$order_ids = $this->input->post('order_ids');
+	// 	$this->db->where_in('order_id', $order_ids)->update('b2b_orders', ['payout_status' => 2]);
+	// 	echo "success";
+	// }
+
 	public function checkPayoutEligibility($order_id)
 	{
 		$order = $this->db->select('order_id, status, payout_status, webshop_order_id')->from('b2b_orders')->where('order_id', $order_id)->get()->row_array();
 		if (!$order) {
-			return ['allowed' => false, 'reason' => 'Order not found', 'is_refunded' => false, 'payout_status' => 1, 'is_dispute_locked' => false];
+			return ['allowed' => false, 'reason' => 'Order not found', 'is_refunded' => false, 'payout_status' => 1];
 		}
 
 		$b2b_status = (int)$order['status'];
@@ -11526,32 +11525,12 @@ exit;*/
 
 		// If payout is already Paid (4), keep as Paid
 		if ($payout_status === 4) {
-			return ['allowed' => false, 'reason' => 'Paid', 'is_refunded' => false, 'payout_status' => 4, 'is_dispute_locked' => false];
+			return ['allowed' => false, 'reason' => 'Paid', 'is_refunded' => false, 'payout_status' => 4];
 		}
 
 		$is_on_hold = false;
 		$hold_reason = 'On Hold';
 		$is_refund_done = false;
-		$is_dispute_locked = false;
-
-		// -------------------------------------------------------------
-		// 0. Check Active Dispute / Ticket in help_desk
-		// ACTIVE DISPUTE (Open, Processing, ReOpen) -> order hidden, payout blocked
-		// -------------------------------------------------------------
-		$active_disputes = $this->db->from('help_desk')
-			->where('is_active_dispute', 1)
-			->where_in('status_code', ['Open', 'Processing', 'ReOpen'])
-			->group_start()
-				->where('b2b_order_id', $order_id)
-				->or_where_in('order_id', $order_ids)
-			->group_end()
-			->count_all_results();
-
-		if ($active_disputes > 0) {
-			$is_on_hold = true;
-			$is_dispute_locked = true;
-			$hold_reason = 'Active Dispute (Ticket Pending)';
-		}
 
 		// -------------------------------------------------------------
 		// 1. Check Return requests in sales_order_return

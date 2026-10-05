@@ -91,41 +91,28 @@ uksort($grouped_tickets, function($a, $b) use ($grouped_tickets) {
                                     
                                         <td>
                                             <?php
-                                            if (!empty($first_ticket['status_code'])) {
-                                                $badge_map = [
-                                                    'Open'          => 'text-primary',
-                                                    'Processing'    => 'text-warning',
-                                                    'Done'          => 'text-info',
-                                                    'Close'         => 'text-success',
-                                                    'ReOpen'        => 'text-danger',
-                                                    'Close (Final)' => 'text-muted'
-                                                ];
-                                                $cls = $badge_map[$first_ticket['status_code']] ?? 'text-secondary';
-                                                echo '<span class="' . $cls . ' font-weight-bold">' . htmlspecialchars($first_ticket['status_code']) . '</span>';
+                                            
+                                            $currentStatus = isset($first_ticket['status']) ? (int)$first_ticket['status'] : -1;
+
+                                            if ($currentStatus === 0) {
+                                            echo '<span class="text-danger ">Not Opened</span>';
+                                            } elseif ($currentStatus === 1) {
+                                            echo '<span class="text-primary ">Open</span>';
+                                            } elseif ($currentStatus === 2) {
+                                                // This logic ensures the 'Closed' status is displayed
+                                                echo '<span class="text-success ">Closed</span>';
                                             } else {
-                                                $currentStatus = isset($first_ticket['status']) ? (int)$first_ticket['status'] : -1;
-                                                if ($currentStatus === 0) {
-                                                    echo '<span class="text-danger ">Not Opened</span>';
-                                                } elseif ($currentStatus === 1) {
-                                                    echo '<span class="text-primary ">Open</span>';
-                                                } elseif ($currentStatus === 2) {
-                                                    echo '<span class="text-success ">Closed</span>';
-                                                } else {
-                                                    echo '<span class="text-muted">Unknown</span>';
-                                                }
+                                                echo '<span class="text-muted">Unknown</span>';
                                             }
                                             ?>
                                         </td>
                                                 <td>
                                                     <div class="d-flex justify-content-center" style="gap: 5px;">
-                                                        <?php
-                                                        $view_url = !empty($first_ticket['ticket_id'])
-                                                            ? base_url('merchant/order-resolution/view/' . $first_ticket['ticket_id'])
-                                                            : base_url('UserController/view/' . $first_ticket['order_id'] . '/' . $first_ticket['products']);
-                                                        ?>
-                                                        <a href="<?= $view_url; ?>" class="btn btn-sm btn-primary">
+                                                        <a href="<?= base_url('UserController/view/' . $first_ticket['order_id'] . '/' . $first_ticket['products']); ?>" class="btn btn-sm btn-primary">
                                                             <?php echo lang('view'); ?>
                                                         </a>
+
+                                                        
                                                     </div>
                                                 </td>
                                     </tr>

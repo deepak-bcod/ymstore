@@ -456,10 +456,3 @@ $route['merchant/webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail
 $route['webshop/b2b-orders'] = 'B2BOrdersController/index';
 $route['webshop/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
 $route['webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
-
-// Order Resolution / Ticket System Routes (Shopper)
-$route['order-resolution/create'] = 'OrderResolutionController/create';
-$route['order-resolution/view/(:any)'] = 'OrderResolutionController/view/$1';
-$route['order-resolution/reply'] = 'OrderResolutionController/reply';
-$route['order-resolution/request-resolution'] = 'OrderResolutionController/request_resolution';
-

@@ -489,14 +489,3 @@ $route['notifications'] = 'notifications';
 $route['notifications/mark'] = 'notifications/mark';
 $route['notifications/mark_all'] = 'notifications/mark_all';
 $route['notifications/latest'] = 'notifications/latest';
-
-// Order Resolution Routes (Admin & Account)
-$route['admin/order-resolution'] = 'OrderResolutionController/index';
-$route['admin/order-resolution/view/(:any)'] = 'OrderResolutionController/view/$1';
-$route['admin/order-resolution/reply'] = 'OrderResolutionController/reply';
-$route['admin/order-resolution/assign-account'] = 'OrderResolutionController/assign_account';
-$route['admin/order-resolution/account-done'] = 'OrderResolutionController/account_done';
-$route['admin/order-resolution/admin-close'] = 'OrderResolutionController/admin_close';
-$route['admin/order-resolution/admin-resolve'] = 'OrderResolutionController/admin_resolve';
-$route['admin/order-resolution/admin-close-final'] = 'OrderResolutionController/admin_close_final';
-
