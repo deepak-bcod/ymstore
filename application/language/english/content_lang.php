@@ -1754,10 +1754,11 @@ $lang['delivery_issue'] = "Yellow Markets Delivery";
 $lang['general_enquiry'] = "Enquiry - General";
 
 $lang['priority'] = "Priority";
-// $lang['select_priority'] = "Select a Subject Type";
+$lang['select_priority'] = "Select Priority";
 $lang['low'] = "Low";
 $lang['medium'] = "Medium";
 $lang['high'] = "High";
+$lang['critical'] = "Critical";
 $lang['urgent'] = "Urgent";
 
 $lang['attachment_note'] = "Attachment (Up to 2.0 MB per image. Acceptable image formats: jpg, jpeg, png)";

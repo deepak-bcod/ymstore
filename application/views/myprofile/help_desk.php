@@ -74,13 +74,13 @@ th.st, td.st {
 
                                 <form class="default-form" id="customer-personal-info-form" method="POST" action="<?php echo BASE_URL; ?>MyProfileController/helpDeskPost" enctype="multipart/form-data">
                                     <div class="row">
-                                        <div class="col-md-4">
+                                        <div class="col-md-3 col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo lang('subject'); ?></label>
                                                 <input type="text" class="form-control" placeholder="" value="" id="subject" name="subject">
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3 col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo lang('recipient_type'); ?></label>
                                                 <select id="category_id" name="category_id" class="form-control select2 required-entry" style="width: 100%;">
@@ -90,11 +90,23 @@ th.st, td.st {
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-md-4">
+                                        <div class="col-md-3 col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo lang('subject_type'); ?></label>
                                                 <select id="priority_id" name="priority_id" class="form-control select2 required-entry" style="width: 100%;">
-                                                    <!-- <option value=""><?php echo lang('select_priority'); ?></option> -->
+                                                    <option value=""><?php echo !empty(lang('select_subject_type')) ? lang('select_subject_type') : 'Select a Subject Type'; ?></option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="form-group">
+                                                <label><?php echo lang('priority'); ?></label>
+                                                <select id="priority" name="priority" class="form-control select2" style="width: 100%;">
+                                                    <option value="" selected><?php echo !empty(lang('select_priority')) ? lang('select_priority') : 'Select Priority'; ?></option>
+                                                    <option value="Low"><?php echo !empty(lang('low')) ? lang('low') : 'Low'; ?></option>
+                                                    <option value="Medium"><?php echo !empty(lang('medium')) ? lang('medium') : 'Medium'; ?></option>
+                                                    <option value="High"><?php echo !empty(lang('high')) ? lang('high') : 'High'; ?></option>
+                                                    <option value="Critical"><?php echo !empty(lang('critical')) ? lang('critical') : 'Critical'; ?></option>
                                                 </select>
                                             </div>
                                         </div>
@@ -467,7 +479,7 @@ $(document).ready(function() {
         }
     });
 
-    $('#subject, #category_id, #priority_id, #message, #merchant_id, #order_id, #product_id').on('keyup change', function () {
+    $('#subject, #category_id, #priority_id, #priority, #message, #merchant_id, #order_id, #product_id').on('keyup change', function () {
         $(this).removeClass('is-invalid');
         $(this).parent().find('.validation-error').remove();
     });

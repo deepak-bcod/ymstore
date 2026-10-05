@@ -569,6 +569,15 @@ class MyProfileController extends CI_Controller
             'ip'           => $_SERVER['REMOTE_ADDR'],
         ];
 
+        $priority_level = $this->input->post('priority');
+        if (!empty($priority_level)) {
+            if ($this->db->field_exists('priority_level', 'help_desk')) {
+                $postArr['priority_level'] = $priority_level;
+            } elseif ($this->db->field_exists('ticket_priority', 'help_desk')) {
+                $postArr['ticket_priority'] = $priority_level;
+            }
+        }
+
         $this->db->insert('help_desk', $postArr);
         $insert_id = $this->db->insert_id();
 
