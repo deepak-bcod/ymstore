@@ -228,7 +228,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
          OVER 60 KG MESSAGE
          ============================================================ -->
 
-    <?php if ($cartOverWeight) { ?>
+    <!-- <?php if ($cartOverWeight) { ?>
 
         <li class="cart-weight-warning-row">
 
@@ -240,7 +240,7 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
 
         </li>
 
-    <?php } ?>
+    <?php } ?> -->
 
 
     <!-- ============================================================
@@ -1111,6 +1111,22 @@ function validateCartWeightBeforeIncrease(itemId) {
 
     return true;
 }
+$(document).ready(function () {
+
+    const totalCartWeight = getCartTotalWeight();
+
+    if (totalCartWeight > MAX_CART_WEIGHT) {
+
+        swal({
+            title: "<?php echo $this->lang->line('maximum_cart_weight'); ?>",
+            text: "<?php echo $this->lang->line('maximum_cart_weight_message'); ?>",
+            type: "warning",
+            confirmButtonText: "<?php echo $this->lang->line('ok'); ?>"
+        });
+
+    }
+
+});
 
 </script>
 
