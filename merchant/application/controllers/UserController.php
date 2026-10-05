@@ -3208,6 +3208,174 @@ class UserController extends CI_Controller
 			return;
 		}
 
+		$order_id_val = !empty($ticket->order_id) ? (int)$ticket->order_id : $order_id;
+		$prod_id_val  = !empty($ticket->products) ? (int)$ticket->products : $product_id;
+
+		if (empty($order_id_val)) {
+			$this->session->set_flashdata('error', "No order is associated with this ticket.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// 1. Locate the merchant's B2B order
+		$b2b_order = $this->db->select('*')
+			->from('b2b_orders')
+			->where('webshop_order_id', $order_id_val)
+			->where('publisher_id', $LogindID)
+			->get()->row();
+
+		if (!$b2b_order) {
+			$b2b_order = $this->db->select('*')
+				->from('b2b_orders')
+				->where('order_id', $order_id_val)
+				->where('publisher_id', $LogindID)
+				->get()->row();
+		}
+
+		if (!$b2b_order) {
+			$this->session->set_flashdata('error', "Order not found for this merchant.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// 2. Locate the specific order item in b2b_order_items
+		$item_query = $this->db->select('*')
+			->from('b2b_order_items')
+			->where('order_id', $b2b_order->order_id);
+
+		if (!empty($prod_id_val)) {
+			$item_query->where('product_id', $prod_id_val);
+		}
+
+		$b2b_item = $item_query->order_by('item_id', 'DESC')->get()->row();
+
+		if (!$b2b_item) {
+			$this->session->set_flashdata('error', "Order item not found for this ticket.");
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// 3. Check Order Item Status: ONLY allowed if status is 'Complete' (status = 2)
+		$current_item_status = (int)$b2b_item->status;
+		if ($current_item_status !== 2) {
+			$status_label = $this->CommonModel->getOrderStatusLabel($current_item_status);
+			$status_text  = !empty($status_label) ? $status_label : 'Status ' . $current_item_status;
+			$this->session->set_flashdata(
+				'error',
+				"Refund cannot be approved: The item status is currently '" . $status_text . "'. A return request can only be initiated when the order item status is 'Complete'."
+			);
+			redirect($_SERVER['HTTP_REFERER']);
+			return;
+		}
+
+		// 4. Create or attach to Return Request (Since status is Complete)
+		$existing_ret_item = $this->db->select('sori.*, sor.return_order_id, sor.return_order_increment_id')
+			->from('sales_order_return_items sori')
+			->join('sales_order_return sor', 'sor.return_order_id = sori.return_order_id', 'inner')
+			->where('sori.order_item_id', $b2b_item->item_id)
+			->get()->row();
+
+		$return_order_id = 0;
+		$ret_inc_id = '';
+		if ($existing_ret_item) {
+			$return_order_id = $existing_ret_item->return_order_id;
+			$ret_inc_id      = $existing_ret_item->return_order_increment_id;
+			$this->db->where('return_order_item_id', $existing_ret_item->return_order_item_id)
+				->update('sales_order_return_items', [
+					'status'     => 14,
+					'updated_at' => time()
+				]);
+		} else {
+			// Generate return transaction ID: RET-{order_inc_id}-{count}
+			$order_inc_id = !empty($b2b_order->increment_id) ? $b2b_order->increment_id : (string)$order_id_val;
+			$existing_count = $this->db->where('order_id', $b2b_order->order_id)->count_all_results('sales_order_return');
+			$ret_inc_id = 'RET-' . $order_inc_id . '-' . ($existing_count + 1);
+
+			$product_return_duration = (int)($this->CommonModel->get_custom_variable('product_return_duration') ?: 0);
+			$return_due_date = '';
+			if ($product_return_duration > 0) {
+				$return_due_date = strtotime(date('Y-m-d') . ' + ' . $product_return_duration . ' days');
+			}
+
+			$ret_data = [
+				'order_id'                  => $b2b_order->order_id,
+				'return_order_increment_id' => $ret_inc_id,
+				'customer_id'               => !empty($ticket->customer_id) ? $ticket->customer_id : 0,
+				'status'                    => 0, // Pending / Requested
+				'created_at'                => time(),
+				'updated_at'                => time(),
+				'ip'                        => $this->input->ip_address()
+			];
+			if ($this->db->field_exists('return_order_barcode', 'sales_order_return')) {
+				$ret_data['return_order_barcode'] = $ret_inc_id;
+			}
+			if ($this->db->field_exists('refund_status', 'sales_order_return')) {
+				$ret_data['refund_status'] = 0;
+			}
+			if ($this->db->field_exists('return_request_due_date', 'sales_order_return')) {
+				$ret_data['return_request_due_date'] = $return_due_date;
+			}
+			if ($this->db->field_exists('order_amount', 'sales_order_return')) {
+				$ret_data['order_amount'] = !empty($b2b_item->total_price) ? (float)$b2b_item->total_price : $refund_amount;
+			}
+			if ($this->db->field_exists('order_discount', 'sales_order_return')) {
+				$ret_data['order_discount'] = !empty($b2b_item->discount_amount) ? (float)$b2b_item->discount_amount : 0.00;
+			}
+			if ($this->db->field_exists('order_grandtotal', 'sales_order_return')) {
+				$ret_data['order_grandtotal'] = $refund_amount;
+			}
+
+			$this->db->insert('sales_order_return', $ret_data);
+			$return_order_id = $this->db->insert_id();
+
+			$qty_ordered = !empty($b2b_item->qty_ordered) ? (int)$b2b_item->qty_ordered : (!empty($b2b_item->qty) ? (int)$b2b_item->qty : 1);
+			$item_price  = !empty($b2b_item->price) ? (float)$b2b_item->price : $refund_amount;
+			$item_total  = !empty($b2b_item->total_price) ? (float)$b2b_item->total_price : $refund_amount;
+			$item_disc   = !empty($b2b_item->discount_amount) ? (float)$b2b_item->discount_amount : 0.00;
+			$item_tdisc  = !empty($b2b_item->total_discount_amount) ? (float)$b2b_item->total_discount_amount : 0.00;
+
+			$ret_item_data = [
+				'order_id'              => $order_id_val,
+				'return_order_id'       => $return_order_id,
+				'order_item_id'         => $b2b_item->item_id,
+				'qty_order'             => $qty_ordered,
+				'qty_return'            => $qty_ordered,
+				'status'                => 14, // Return Requested
+				'price'                 => $item_price,
+				'total_price'           => $item_total,
+				'barcode'               => !empty($b2b_item->barcode) ? $b2b_item->barcode : '',
+				'discount_amount'       => $item_disc,
+				'total_discount_amount' => $item_tdisc,
+				'created_at'            => time(),
+				'updated_at'            => time(),
+				'ip'                    => $this->input->ip_address()
+			];
+			if ($this->db->field_exists('qty_ordered', 'sales_order_return_items')) {
+				$ret_item_data['qty_ordered'] = $qty_ordered;
+			}
+
+			$this->db->insert('sales_order_return_items', $ret_item_data);
+		}
+
+		// 5. Update Order Item status to Return Requested (14)
+		$this->db->where('item_id', $b2b_item->item_id)->update('b2b_order_items', [
+			'status'     => 14,
+			'updated_at' => time()
+		]);
+
+		// 6. Update B2B Order status to Return Requested (14) and hold payout
+		$this->db->where('order_id', $b2b_order->order_id)->update('b2b_orders', [
+			'status'        => 14,
+			'payout_status' => 3,
+			'updated_at'    => time()
+		]);
+
+		if ($this->db->field_exists('status', 'sales_order_items')) {
+			$this->db->where('order_id', $order_id_val)
+				->where('product_id', $prod_id_val)
+				->update('sales_order_items', ['status' => 14]);
+		}
+
 		// Update ticket rows with refund approval
 		$updateData = [
 			'merchant_action' => 'refund_approved',
@@ -3220,7 +3388,8 @@ class UserController extends CI_Controller
 
 		// Record conversation message
 		$refund_formatted = number_format($refund_amount, 2);
-		$reply_msg = "Action: Refund Approved. Amount: " . $refund_formatted . ". Assigned to support and accounting for processing.";
+		$ret_info = !empty($ret_inc_id) ? " (Return Request: " . $ret_inc_id . ")" : "";
+		$reply_msg = "Action: Refund Approved. Amount: " . $refund_formatted . $ret_info . ". Assigned to support and accounting for processing.";
 		
 		$insertMsg = [
 			'ticket_id'       => $ticket_id,
