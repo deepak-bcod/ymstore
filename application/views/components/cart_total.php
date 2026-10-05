@@ -207,22 +207,6 @@ if (isset($CartData) && isset($CartData->cartItems) && count($CartData->cartItem
     <?php } ?>
 
 
-    <!-- ============================================================
-         CART WEIGHT
-         ============================================================ -->
-
-    <?php if ($totalCartWeight > 0) { ?>
-
-        <li>
-            <em>Cart Weight</em>
-
-            <strong class="price">
-                <?php echo number_format($totalCartWeightKg, 2); ?> KG
-            </strong>
-        </li>
-
-    <?php } ?>
-
 
     <!-- ============================================================
          OVER 60 KG MESSAGE
