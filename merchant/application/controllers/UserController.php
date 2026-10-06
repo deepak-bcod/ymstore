@@ -3843,6 +3843,37 @@ class UserController extends CI_Controller
 			);
 		}
 
+		// When YM Delivery Service is selected, notify Yellow Markets support (@help)
+		if ($delivery_option === 'ym_delivery') {
+			$admin_base = 'https://mu.yellowmarkets.com/admin/';
+			$admin_ticket_url = $admin_base . "CustomerController/view/" . $order_id_val . "/" . $ticket_id . ($prod_id_val ? '/' . $prod_id_val : '');
+
+			$help_email = $this->CommonModel->get_custom_variable('contact_us_email')
+				?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+
+			if (!empty($help_email)) {
+				$helpDynamicVars = [
+					$ticket_id, $ticket_id, $ticket_id, $ticket_id,
+					$order_number, $order_number, $order_number, $order_number,
+					$product_name, $product_name,
+					$merchant_name, $merchant_name,
+					$shopper_name, $shopper_name, $shopper_name, $shopper_name,
+					'YM Delivery Service', 'YM Delivery Service', 'YM Delivery Service', 'YM Delivery Service',
+					'Replacement Approved', 'Replacement Approved',
+					$admin_ticket_url, $admin_ticket_url,
+					'Yellow Markets', 'Yellow Markets'
+				];
+
+				$this->CommonModel->sendCommonHTMLEmail(
+					$help_email,
+					'order-resolution-replacement-ym-delivery-approved-help',
+					$tempVars,
+					$helpDynamicVars,
+					$shopper_lang_code
+				);
+			}
+		}
+
 		$this->session->set_flashdata('success', "Replacement approved successfully. Method: " . $delivery_method_name . ".");
 		redirect($_SERVER['HTTP_REFERER']);
 	}
@@ -3884,6 +3915,30 @@ class UserController extends CI_Controller
 			$this->session->set_flashdata('error', "Replacement cannot be marked complete because it was not in 'Replacement Approved' status.");
 			redirect($_SERVER['HTTP_REFERER']);
 			return;
+		}
+
+		// Validate that the required YM Delivery AddOn has been purchased before allowing completion
+		if (!empty($ticket->delivery_option) && $ticket->delivery_option === 'ym_delivery') {
+			$addon_paid = false;
+			if (!empty($ticket->addon_purchase_id)) {
+				$chk = $this->db->where('id', $ticket->addon_purchase_id)->where('status', 'paid')->get('merchant_addon_purchases')->row();
+				if ($chk) {
+					$addon_paid = true;
+				}
+			}
+			if (!$addon_paid) {
+				// Also check if any recent paid AddOn purchase exists for this merchant
+				$chk2 = $this->db->where('merchant_id', $LogindID)->where('status', 'paid')->order_by('id', 'DESC')->limit(1)->get('merchant_addon_purchases')->row();
+				if ($chk2) {
+					$addon_paid = true;
+					$this->db->where('ticket_id', $ticket_id)->update('help_desk', ['addon_purchase_id' => $chk2->id]);
+				}
+			}
+			if (!$addon_paid) {
+				$this->session->set_flashdata('error', "Before marking replacement completed, the YM Delivery Service AddOn must be purchased by the merchant.");
+				redirect($_SERVER['HTTP_REFERER']);
+				return;
+			}
 		}
 
 		$order_id_val = !empty($ticket->order_id) ? (int)$ticket->order_id : $order_id;

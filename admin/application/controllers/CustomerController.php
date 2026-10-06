@@ -1916,7 +1916,15 @@ class CustomerController extends CI_Controller
 			$ctx = $this->_get_ticket_email_context($ticket, $order_id, $product_id);
 			$lang_code = ($this->session->userdata('site_lang') === 'french' || $this->session->userdata('site_lang') === 'fr') ? 'fr' : 'en';
 
-			// 1. Send order-resolution-replacement-closed-merchant to Merchant
+			$is_ym_delivery = (!empty($ticket->delivery_option) && $ticket->delivery_option === 'ym_delivery');
+			$merchant_template = $is_ym_delivery
+				? 'order-resolution-replacement-ym-delivery-closed-merchant'
+				: 'order-resolution-replacement-closed-merchant';
+			$shopper_template = $is_ym_delivery
+				? 'order-resolution-replacement-ym-delivery-completed-shopper'
+				: 'order-resolution-replacement-completed-shopper';
+
+			// 1. Send replacement closed template to Merchant
 			if (!empty($ctx['merchant_email'])) {
 				$merchantDynamicVars = [
 					$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
@@ -1933,14 +1941,14 @@ class CustomerController extends CI_Controller
 
 				$this->CommonModel->sendCommonHTMLEmail(
 					$ctx['merchant_email'],
-					'order-resolution-replacement-closed-merchant',
+					$merchant_template,
 					$ctx['tempVars'],
 					$merchantDynamicVars,
 					$lang_code
 				);
 			}
 
-			// 2. Send order-resolution-replacement-completed-shopper to Shopper
+			// 2. Send replacement completed template to Shopper
 			if (!empty($ctx['shopper_email'])) {
 				$shopperDynamicVars = [
 					$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
@@ -1957,7 +1965,7 @@ class CustomerController extends CI_Controller
 
 				$this->CommonModel->sendCommonHTMLEmail(
 					$ctx['shopper_email'],
-					'order-resolution-replacement-completed-shopper',
+					$shopper_template,
 					$ctx['tempVars'],
 					$shopperDynamicVars,
 					$lang_code
@@ -1975,7 +1983,7 @@ class CustomerController extends CI_Controller
 	}
 
 	/**
-	 * Stage 2: Support (@help) assigns ticket to Accounts (@acct) for refund processing
+	 * Stage 2: Support (@help) assigns ticket to Accounts (@acct) for refund or YM Delivery processing
 	 */
 	public function assign_to_acct($order_id = 0, $ticket_id = '', $product_id = 0)
 	{
@@ -2000,6 +2008,7 @@ class CustomerController extends CI_Controller
 		}
 
 		$actual_ticket_id = !empty($ticket->ticket_id) ? $ticket->ticket_id : $ticket_id;
+		$is_ym_replacement = ($ticket->merchant_action === 'replacement_approved' && !empty($ticket->delivery_option) && $ticket->delivery_option === 'ym_delivery');
 
 		// 1. Update ticket status and assigned role
 		$updateData = [
@@ -2012,7 +2021,10 @@ class CustomerController extends CI_Controller
 		$this->db->update('help_desk', $updateData);
 
 		// 2. Insert audit conversation message
-		$reply_msg = "Action: Ticket assigned to Accounts (@acct) for refund processing.";
+		$reply_msg = $is_ym_replacement
+			? "Action: Ticket assigned to Accounts (@acct) for YM Delivery replacement AddOn request."
+			: "Action: Ticket assigned to Accounts (@acct) for refund processing.";
+
 		$insertMsg = [
 			'ticket_id'                     => $actual_ticket_id,
 			'subject'                       => $ticket->subject,
@@ -2029,6 +2041,7 @@ class CustomerController extends CI_Controller
 			'status_code'                   => 'Processing',
 			'assigned_role'                 => 'Account',
 			'merchant_action'               => !empty($ticket->merchant_action) ? $ticket->merchant_action : 'refund_approved',
+			'delivery_option'               => !empty($ticket->delivery_option) ? $ticket->delivery_option : 'none',
 			'refund_amount'                 => !empty($ticket->refund_amount) ? $ticket->refund_amount : 0.00,
 			'refund_deducted_from_holdback' => !empty($ticket->refund_deducted_from_holdback) ? $ticket->refund_deducted_from_holdback : 0,
 			'created_at'                    => time(),
@@ -2041,59 +2054,89 @@ class CustomerController extends CI_Controller
 		$ctx = $this->_get_ticket_email_context($ticket, $order_id, $product_id);
 		$lang_code = ($this->session->userdata('site_lang') === 'french' || $this->session->userdata('site_lang') === 'fr') ? 'fr' : 'en';
 
-		// 4. Send email to Merchant (order-resolution-refund-initiated-merchant)
-		if (!empty($ctx['merchant_email'])) {
-			$merchantDynamicVars = [
-				$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
-				$ctx['order_number'], $ctx['order_number'], $ctx['order_number'], $ctx['order_number'],
-				$ctx['product_name'], $ctx['product_name'],
-				$ctx['merchant_name'], $ctx['merchant_name'],
-				$ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'],
-				$ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'],
-				'Refund Initiated', 'Refund Initiated',
-				$ctx['merchant_ticket_url'], $ctx['merchant_ticket_url'],
-				'Yellow Markets', 'Yellow Markets'
-			];
-
-			$this->CommonModel->sendCommonHTMLEmail(
-				$ctx['merchant_email'],
-				'order-resolution-refund-initiated-merchant',
-				$ctx['tempVars'],
-				$merchantDynamicVars,
-				$lang_code
-			);
-		}
-
-		// 5. Send email to @acct (order-resolution-refund-request-acct)
+		// Accounts email
 		$acct_row = $this->CommonModel->get_custom_variable('accounting_email');
 		if (empty($acct_row) || empty($acct_row->value)) {
 			$acct_row = $this->CommonModel->get_custom_variable('acct_email');
 		}
 		$acct_email = (!empty($acct_row) && !empty($acct_row->value)) ? $acct_row->value : 'accounts@yellowmarkets.com';
 
-		if (!empty($acct_email)) {
-			$acctDynamicVars = [
-				$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
-				$ctx['order_number'], $ctx['order_number'], $ctx['order_number'], $ctx['order_number'],
-				$ctx['product_name'], $ctx['product_name'],
-				$ctx['merchant_name'], $ctx['merchant_name'],
-				$ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'],
-				$ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'],
-				'Refund Request', 'Refund Request',
-				$ctx['admin_ticket_url'], $ctx['admin_ticket_url'],
-				'Yellow Markets', 'Yellow Markets'
-			];
+		if ($is_ym_replacement) {
+			// YM Delivery Replacement Flow: Notify @acct to request AddOn from Merchant
+			if (!empty($acct_email)) {
+				$acctDynamicVars = [
+					$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
+					$ctx['order_number'], $ctx['order_number'], $ctx['order_number'], $ctx['order_number'],
+					$ctx['product_name'], $ctx['product_name'],
+					$ctx['merchant_name'], $ctx['merchant_name'],
+					$ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'],
+					$ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'],
+					'YM Delivery Service', 'YM Delivery Service', 'YM Delivery Service', 'YM Delivery Service',
+					'Replacement Request', 'Replacement Request',
+					$ctx['admin_ticket_url'], $ctx['admin_ticket_url'],
+					'Yellow Markets', 'Yellow Markets'
+				];
 
-			$this->CommonModel->sendCommonHTMLEmail(
-				$acct_email,
-				'order-resolution-refund-request-acct',
-				$ctx['tempVars'],
-				$acctDynamicVars,
-				'en'
-			);
+				$this->CommonModel->sendCommonHTMLEmail(
+					$acct_email,
+					'order-resolution-replacement-ym-delivery-request-acct',
+					$ctx['tempVars'],
+					$acctDynamicVars,
+					'en'
+				);
+			}
+
+			$this->session->set_flashdata('success', "Ticket successfully assigned to Accounts (@acct) for YM Delivery replacement processing.");
+		} else {
+			// Refund Flow: Notify Merchant and @acct
+			if (!empty($ctx['merchant_email'])) {
+				$merchantDynamicVars = [
+					$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
+					$ctx['order_number'], $ctx['order_number'], $ctx['order_number'], $ctx['order_number'],
+					$ctx['product_name'], $ctx['product_name'],
+					$ctx['merchant_name'], $ctx['merchant_name'],
+					$ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'],
+					$ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'],
+					$ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'],
+					'Refund Initiated', 'Refund Initiated',
+					$ctx['merchant_ticket_url'], $ctx['merchant_ticket_url'],
+					'Yellow Markets', 'Yellow Markets'
+				];
+
+				$this->CommonModel->sendCommonHTMLEmail(
+					$ctx['merchant_email'],
+					'order-resolution-refund-initiated-merchant',
+					$ctx['tempVars'],
+					$merchantDynamicVars,
+					$lang_code
+				);
+			}
+
+			if (!empty($acct_email)) {
+				$acctDynamicVars = [
+					$ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'], $ctx['ticket_id'],
+					$ctx['order_number'], $ctx['order_number'], $ctx['order_number'], $ctx['order_number'],
+					$ctx['product_name'], $ctx['product_name'],
+					$ctx['merchant_name'], $ctx['merchant_name'],
+					$ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'], $ctx['shopper_name'],
+					$ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'], $ctx['refund_formatted'],
+					$ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'], $ctx['delivery_method'],
+					'Refund Request', 'Refund Request',
+					$ctx['admin_ticket_url'], $ctx['admin_ticket_url'],
+					'Yellow Markets', 'Yellow Markets'
+				];
+
+				$this->CommonModel->sendCommonHTMLEmail(
+					$acct_email,
+					'order-resolution-refund-request-acct',
+					$ctx['tempVars'],
+					$acctDynamicVars,
+					'en'
+				);
+			}
+
+			$this->session->set_flashdata('success', "Ticket successfully assigned to Accounts (@acct) for refund processing.");
 		}
-
-		$this->session->set_flashdata('success', "Ticket successfully assigned to Accounts (@acct) for refund processing.");
 		$redirect_path = 'CustomerController/view/' . $ticket->order_id . '/' . $actual_ticket_id . '/' . $ticket->products;
 		redirect($redirect_path);
 	}
