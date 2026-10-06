@@ -138,6 +138,14 @@ $lang = $this->session->userdata('site_lang');
 .sidebar-menu .has-children.open > .dropdown-menu {
     display: block;
 }
+.sidebar-menu li.active > a {
+    background-color: #ffd200 !important;
+    color: #000 !important;
+}
+
+.sidebar-menu li.active > a i {
+    color: #000 !important;
+}
 
 </style>
 
