@@ -1,4 +1,3 @@
-
 <?php
 
 $allNavgte = array_column($navCatData, 'slug');
@@ -21,11 +20,6 @@ $lang = $this->session->userdata('site_lang');
 
         $hasLevel1 = !empty($main_cat->menu_level_1);
 
-        /*
-         * Main category is active when:
-         * /category/main-slug
-         * OR any sub/child category belongs to this main category
-         */
         $mainActive = ($currNav == $main_cat->slug);
 
     ?>
@@ -34,26 +28,11 @@ $lang = $this->session->userdata('site_lang');
             <?= $mainActive ? 'active' : ''; ?>
             <?= $hasLevel1 ? 'has-children' : ''; ?>">
 
-            <div class="category-link-wrapper">
-
-                <!-- MAIN CATEGORY LINK -->
-                <a href="<?= BASE_URL ?>category/<?= $main_cat->slug ?>">
-                    <i class="fa fa-angle-right"></i>
-                    <?= $mainName; ?>
-                </a>
-
-                <?php if ($hasLevel1) { ?>
-
-                    <!-- SEPARATE EXPAND/COLLAPSE BUTTON -->
-                    <button type="button"
-                            class="category-toggle"
-                            aria-label="Toggle <?= htmlspecialchars($mainName); ?>">
-                        <i class="fa fa-chevron-down"></i>
-                    </button>
-
-                <?php } ?>
-
-            </div>
+            <!-- MAIN CATEGORY -->
+            <a href="<?= BASE_URL ?>category/<?= $main_cat->slug ?>">
+                <i class="fa fa-angle-right"></i>
+                <?= $mainName; ?>
+            </a>
 
 
             <?php if ($hasLevel1) { ?>
@@ -68,11 +47,6 @@ $lang = $this->session->userdata('site_lang');
 
                         $hasLevel2 = !empty($cat_level1->menu_level_2);
 
-                        /*
-                         * Sub-category is active when:
-                         * /category/main/sub
-                         * OR when one of its children is selected
-                         */
                         $level1Active = (
                             $currNav == $main_cat->slug &&
                             $currNav1 == $cat_level1->slug
@@ -84,26 +58,11 @@ $lang = $this->session->userdata('site_lang');
                             <?= $level1Active ? 'active' : ''; ?>
                             <?= $hasLevel2 ? 'has-children' : ''; ?>">
 
-                            <div class="category-link-wrapper">
-
-                                <!-- SUB CATEGORY LINK -->
-                                <a href="<?= BASE_URL ?>category/<?= $main_cat->slug ?>/<?= $cat_level1->slug ?>">
-                                    <i class="fa fa-angle-right"></i>
-                                    <?= $level1Name; ?>
-                                </a>
-
-                                <?php if ($hasLevel2) { ?>
-
-                                    <!-- SEPARATE EXPAND/COLLAPSE BUTTON -->
-                                    <button type="button"
-                                            class="category-toggle"
-                                            aria-label="Toggle <?= htmlspecialchars($level1Name); ?>">
-                                        <i class="fa fa-chevron-down"></i>
-                                    </button>
-
-                                <?php } ?>
-
-                            </div>
+                            <!-- LEVEL 1 CATEGORY -->
+                            <a href="<?= BASE_URL ?>category/<?= $main_cat->slug ?>/<?= $cat_level1->slug ?>">
+                                <i class="fa fa-angle-right"></i>
+                                <?= $level1Name; ?>
+                            </a>
 
 
                             <?php if ($hasLevel2) { ?>
@@ -134,7 +93,6 @@ $lang = $this->session->userdata('site_lang');
 
                                         <li class="<?= $level2Active ? 'active' : ''; ?>">
 
-                                            <!-- CHILD CATEGORY LINK -->
                                             <a href="<?= BASE_URL ?>category/<?= $main_cat->slug ?>/<?= $cat_level1->slug ?>/<?= $cat_level2->slug ?>">
                                                 <i class="fa fa-angle-right"></i>
                                                 <?= $level2Name; ?>
@@ -164,30 +122,7 @@ $lang = $this->session->userdata('site_lang');
 
 
 <style>
-.sidebar-menu .category-link-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
 
-.sidebar-menu .category-link-wrapper > a {
-    flex: 1;
-    text-decoration: none;
-}
-
-.sidebar-menu .category-toggle {
-    border: 0;
-    background: transparent;
-    padding: 5px 8px;
-    cursor: pointer;
-    color: inherit;
-}
-
-.sidebar-menu .category-toggle i {
-    transition: transform 0.2s ease;
-}
-
-/* Hide child menus by default */
 .sidebar-menu .dropdown-menu {
     display: none;
     position: static;
@@ -199,36 +134,36 @@ $lang = $this->session->userdata('site_lang');
     box-shadow: none;
 }
 
-/* Show menu when opened */
+/* Show child category */
 .sidebar-menu .has-children.open > .dropdown-menu {
     display: block;
 }
 
-/* Rotate arrow */
-.sidebar-menu .has-children.open > .category-link-wrapper .category-toggle i {
-    transform: rotate(180deg);
-}
 </style>
 
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    document.querySelectorAll('.sidebar-menu .category-toggle').forEach(function (toggle) {
+    document.querySelectorAll('.sidebar-menu .has-children > a').forEach(function (link) {
 
-        toggle.addEventListener('click', function (e) {
+        link.addEventListener('click', function (e) {
 
-            // Prevent the toggle click from affecting the category link
-            e.preventDefault();
-            e.stopPropagation();
+            const parent = this.parentElement;
 
-            const parent = this.closest('.has-children');
-
-            if (!parent) {
+            if (!parent.classList.contains('has-children')) {
                 return;
             }
 
-            parent.classList.toggle('open');
+            /*
+             * First click opens the children
+             * Second click goes to category page
+             */
+            if (!parent.classList.contains('open')) {
+                e.preventDefault();
+
+                parent.classList.add('open');
+            }
 
         });
 
@@ -236,4 +171,3 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 </script>
-
