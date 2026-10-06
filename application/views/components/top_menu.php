@@ -120,7 +120,7 @@ $lang = $this->session->userdata('site_lang');
 
 <!-- Notification Bell -->
 
-<?php if ($this->session->userdata('customer_id')) : ?>
+
 
     <li class="notification-menu">
         <a href="<?= base_url('customer/notifications'); ?>"
@@ -129,7 +129,7 @@ $lang = $this->session->userdata('site_lang');
         </a>
     </li>
 
-<?php endif; ?>
+
 
 
 
