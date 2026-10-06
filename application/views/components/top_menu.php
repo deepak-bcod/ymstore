@@ -120,7 +120,7 @@ $lang = $this->session->userdata('site_lang');
 
 <!-- Notification Bell -->
 <li class="notification-menu">
-    <a href="<?= site_url('customer/notifications'); ?>" class="notification-bell">
+    <a href="<?= site_url('notifications'); ?>" class="notification-bell">
         <i class="fa fa-bell"></i>
     </a>
 </li>
