@@ -145,27 +145,27 @@ $lang = $this->session->userdata('site_lang');
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    document.querySelectorAll('.sidebar-menu .has-children > a').forEach(function (link) {
+    /*
+     * Open the currently selected category/subcategory
+     * automatically after the category page loads.
+     */
+    document.querySelectorAll('.sidebar-menu .has-children').forEach(function (item) {
 
-        link.addEventListener('click', function (e) {
+        if (item.classList.contains('active')) {
+            item.classList.add('open');
+        }
 
-            const parent = this.parentElement;
+        const activeChild = item.querySelector('.dropdown-menu .active');
 
-            if (!parent.classList.contains('has-children')) {
-                return;
-            }
+        if (activeChild) {
+            item.classList.add('open');
 
-            /*
-             * First click opens the children
-             * Second click goes to category page
-             */
-            if (!parent.classList.contains('open')) {
-                e.preventDefault();
+            const parent = activeChild.closest('.has-children');
 
+            if (parent) {
                 parent.classList.add('open');
             }
-
-        });
+        }
 
     });
 
