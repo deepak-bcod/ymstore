@@ -458,7 +458,7 @@ $route['webshop/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
 $route['webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
 
 // Notifications
-$route['customer/notifications'] = 'NotificationsController/index';
-$route['customer/notifications/latest'] = 'NotificationsController/latest';
-$route['customer/notifications/read/(:num)'] = 'NotificationsController/mark_read/$1';
+$route['notifications'] = 'NotificationsController/index';
+$route['notifications/latest'] = 'NotificationsController/latest';
+$route['notifications/read/(:num)'] = 'NotificationsController/mark_read/$1';
 
