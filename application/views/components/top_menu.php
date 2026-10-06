@@ -10,11 +10,8 @@
     color: #fff !important;
     font-size: 20px;
     padding: 10px;
+    cursor: pointer;
 }
-
-/* .notification-bell:hover {
-    color: #ffd400 !important;
-} */
 
 .notification-count {
     position: absolute;
@@ -34,6 +31,87 @@
     text-align: center;
     font-weight: bold;
 }
+
+/* Notification dropdown */
+
+.notification-dropdown {
+    display: none;
+
+    position: absolute;
+    top: 48px;
+    right: -20px;
+
+    width: 350px;
+
+    background: #fff;
+    border: 1px solid #ddd;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+
+    z-index: 99999;
+
+    color: #333;
+}
+
+.notification-dropdown.show {
+    display: block;
+}
+
+.notification-dropdown-header {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    font-size: 16px;
+}
+
+.notification-dropdown-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.notification-dropdown-item:hover {
+    background: #f7f7f7;
+}
+
+.notification-dropdown-item.unread {
+    background: #fff8d8;
+}
+
+.notification-dropdown-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.notification-dropdown-message {
+    font-size: 13px;
+    color: #666;
+}
+
+.notification-dropdown-date {
+    font-size: 11px;
+    color: #999;
+    margin-top: 5px;
+}
+
+.notification-dropdown-footer {
+    padding: 12px;
+    text-align: center;
+    border-top: 1px solid #eee;
+}
+
+.notification-dropdown-footer a {
+    color: #0066cc;
+    text-decoration: none;
+}
+
+.notification-loading,
+.no-notifications {
+    padding: 20px;
+    text-align: center;
+    color: #777;
+}
+
 </style>
 <?php 
 // echo "<pre>"; print_r($navCatData); die;
@@ -120,9 +198,40 @@ $lang = $this->session->userdata('site_lang');
 
 <!-- Notification Bell -->
 <li class="notification-menu">
-    <a href="<?= site_url('notifications'); ?>" class="notification-bell">
+
+    <a href="javascript:void(0);"
+       class="notification-bell"
+       id="notificationBell">
+
         <i class="fa fa-bell"></i>
+
+        <span class="notification-count" id="notificationCount"
+              style="display:none;">0</span>
+
     </a>
+
+    <div class="notification-dropdown" id="notificationDropdown">
+
+        <div class="notification-dropdown-header">
+            <strong>Notifications</strong>
+        </div>
+
+        <div id="notificationList">
+
+            <div class="notification-loading">
+                Loading...
+            </div>
+
+        </div>
+
+        <div class="notification-dropdown-footer">
+            <a href="<?= site_url('notifications'); ?>">
+                View All Notifications
+            </a>
+        </div>
+
+    </div>
+
 </li>
 
 
