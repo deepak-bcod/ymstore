@@ -22,6 +22,7 @@ $lang['blog'] = "Blog";
 
 
 
+
 $lang['sign_out'] = "Sign Out";
 
 $lang['shopper_signin'] = "Shopper Sign In";
