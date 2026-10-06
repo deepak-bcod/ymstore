@@ -125,14 +125,16 @@ $lang = $this->session->userdata('site_lang');
 </li>
 
 <!-- Notification Bell -->
-<li class="notification-menu">
+<?php if ($this->session->userdata('customer_id')) : ?>
 
-    <a href="javascript:;" id="notificationBell" class="notification-bell">
-        <i class="fa fa-bell"></i>
-        
-    </a>
+    <li class="notification-menu">
+        <a href="javascript:;" id="notificationBell" class="notification-bell">
+            <i class="fa fa-bell"></i>
+        </a>
+    </li>
 
-</li>
+<?php endif; ?>
+
 
 
 
