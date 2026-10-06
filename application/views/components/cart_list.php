@@ -38,7 +38,7 @@ if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
 
 $max_cart_weight = 60000; // 60 KG
 $cart_weight_exceeded = ($total_cart_weight > $max_cart_weight);
-?>
+
     ?>
 
     <?php if ($has_out_of_stock): ?>
