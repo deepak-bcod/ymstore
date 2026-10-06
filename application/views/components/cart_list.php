@@ -129,38 +129,38 @@ $cart_weight_exceeded = ($total_cart_weight > $max_cart_weight);
                                                     </span>
 
                                                     <input id="quantity_<?php echo $value->item_id; ?>" 
-    data-item-id="<?php echo $value->item_id; ?>" 
-    data-price="<?php echo number_format($value->price, 2); ?>"
-    data-weight="<?php echo (float)$value->weight; ?>"
-    type="text" 
-    min="1"
-    max="<?php echo $available_qty; ?>"
-    value="<?php echo $value->qty_ordered; ?>" 
-    readonly 
-    class="form-control input-sm" 
-    style="display: block;"
->
+                                                        data-item-id="<?php echo $value->item_id; ?>" 
+                                                        data-price="<?php echo number_format($value->price, 2); ?>"
+                                                        data-weight="<?php echo (float)$value->weight; ?>"
+                                                        type="text" 
+                                                        min="1"
+                                                        max="<?php echo $available_qty; ?>"
+                                                        value="<?php echo $value->qty_ordered; ?>" 
+                                                        readonly 
+                                                        class="form-control input-sm" 
+                                                        style="display: block;"
+                                                    >
                                                     <input type="hidden" value="<?php echo $value->qty_ordered ?>" name="previous_qty[]" id="previous_qty_<?php echo $value->item_id;?>">
                                                     <input type="hidden" value="<?php echo $available_qty ?>" name="max_qty[]" id="max_qty_<?php echo $value->item_id;?>">
 
                                                    <span class="input-group-btn">
-    <button 
-        class="btn quantity-up bootstrap-touchspin-up" 
-        onclick="
-            if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
-                increaseQtyValue(
-                    <?php echo $value->item_id; ?>,
-                    '<?php echo $value->product_type; ?>',
-                    <?php echo $value->product_id; ?>,
-                    <?php echo $value->parent_product_id; ?>
-                );
-            }
-        "
-        type="button"
-    >
-        <i class="fa fa-angle-up"></i>
-    </button>
-</span>
+                                                        <button 
+                                                            class="btn quantity-up bootstrap-touchspin-up" 
+                                                            onclick="
+                                                                if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
+                                                                    increaseQtyValue(
+                                                                        <?php echo $value->item_id; ?>,
+                                                                        '<?php echo $value->product_type; ?>',
+                                                                        <?php echo $value->product_id; ?>,
+                                                                        <?php echo $value->parent_product_id; ?>
+                                                                    );
+                                                                }
+                                                            "
+                                                            type="button"
+                                                        >
+                                                            <i class="fa fa-angle-up"></i>
+                                                        </button>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
@@ -195,45 +195,45 @@ $cart_weight_exceeded = ($total_cart_weight > $max_cart_weight);
                             <div class="divcent text-center">
                                 <?php if ($has_out_of_stock): ?>
 
-    <button 
-        type="button" 
-        class="btn btn-primary chkout"
-        disabled
-        style="opacity:0.6; cursor:not-allowed;"
-        title="Please remove out-of-stock items to proceed"
-    >
-        <?php echo $this->lang->line('checkout_label'); ?>
-        <i class="fa fa-ban"></i>
-    </button>
+                                <button 
+                                    type="button" 
+                                    class="btn btn-primary chkout"
+                                    disabled
+                                    style="opacity:0.6; cursor:not-allowed;"
+                                    title="Please remove out-of-stock items to proceed"
+                                >
+                                    <?php echo $this->lang->line('checkout_label'); ?>
+                                    <i class="fa fa-ban"></i>
+                                </button>
 
-<?php elseif ($cart_weight_exceeded): ?>
+                                <?php elseif ($cart_weight_exceeded): ?>
 
-    <!-- Cart is above 60 KG -->
-    <a 
-        href="<?php echo base_url(); ?>checkout"
-        class="btn btn-primary chkout checkout-weight-blocked"
-        data-cart-weight="<?php echo $total_cart_weight; ?>"
-        data-max-weight="<?php echo $max_cart_weight; ?>"
-        onclick="return validateCheckoutWeight(event, this);"
-        style="cursor:pointer;"
-    >
-        <?php echo $this->lang->line('checkout_label'); ?>
-        <i class="fa fa-check"></i>
-    </a>
+                                    <!-- Cart is above 60 KG -->
+                                    <a 
+                                        href="<?php echo base_url(); ?>checkout"
+                                        class="btn btn-primary chkout checkout-weight-blocked"
+                                        data-cart-weight="<?php echo $total_cart_weight; ?>"
+                                        data-max-weight="<?php echo $max_cart_weight; ?>"
+                                        onclick="return validateCheckoutWeight(event, this);"
+                                        style="cursor:pointer;"
+                                    >
+                                        <?php echo $this->lang->line('checkout_label'); ?>
+                                        <i class="fa fa-check"></i>
+                                    </a>
 
-<?php else: ?>
+                                <?php else: ?>
 
-    <!-- Cart is within 60 KG -->
-    <a 
-        href="<?php echo base_url(); ?>checkout"
-        class="btn btn-primary chkout"
-        onclick="return validateCheckoutWeight(event, this);"
-    >
-        <?php echo $this->lang->line('checkout_label'); ?>
-        <i class="fa fa-check"></i>
-    </a>
+                                    <!-- Cart is within 60 KG -->
+                                    <a 
+                                        href="<?php echo base_url(); ?>checkout"
+                                        class="btn btn-primary chkout"
+                                        onclick="return validateCheckoutWeight(event, this);"
+                                    >
+                                        <?php echo $this->lang->line('checkout_label'); ?>
+                                        <i class="fa fa-check"></i>
+                                    </a>
 
-<?php endif; ?>
+                                <?php endif; ?>
                                 <a href="<?php echo base_url(); ?>" class="btn btn-default">
                                     <?php echo $this->lang->line('continue_shopping'); ?> <i class="fa fa-shopping-cart"></i>
                                 </a>
@@ -261,9 +261,6 @@ function validateCheckoutWeight(event, element) {
     var totalWeight = 0;
     var maxWeight = 60000; // 60 KG in grams
 
-    /*
-     * Read all cart item quantities and weights
-     */
     $('input[data-weight]').each(function () {
 
         var weight = parseFloat($(this).attr('data-weight')) || 0;
@@ -275,39 +272,44 @@ function validateCheckoutWeight(event, element) {
     console.log('Total Cart Weight:', totalWeight, 'grams');
     console.log('Total Cart Weight:', (totalWeight / 1000).toFixed(2), 'KG');
 
-    /*
-     * More than 60 KG
-     */
     if (totalWeight > maxWeight) {
 
         var totalKg = (totalWeight / 1000).toFixed(2);
 
+        // Language translations from CodeIgniter
+        var alertTitle = <?php echo json_encode($this->lang->line('maximum_cart_weight')); ?>;
+
+        var alertMessage = <?php
+            echo json_encode(
+                $this->lang->line('maximum_cart_weight_message')
+            );
+        ?>;
+
+        var okText = <?php echo json_encode($this->lang->line('ok')); ?>;
+
+        // Replace %s with actual cart weight
+        alertMessage = alertMessage.replace('%s', totalKg);
+
         if (typeof swal === 'function') {
 
             swal({
-                title: "Maximum Cart Weight",
-                text: "Maximum cart weight is 60 KG. Your cart weight is " + totalKg + " KG. You cannot proceed to checkout.",
+                title: alertTitle,
+                text: alertMessage,
                 type: "warning",
-                confirmButtonText: "OK"
+                confirmButtonText: okText
             });
 
         } else {
 
             alert(
-                "Maximum Cart Weight\n\n" +
-                "Maximum cart weight is 60 KG. " +
-                "Your cart weight is " + totalKg + " KG. " +
-                "You cannot proceed to checkout."
+                alertTitle + "\n\n" +
+                alertMessage
             );
         }
 
         return false;
     }
 
-    /*
-     * Cart is <= 60 KG
-     * Allow checkout
-     */
     window.location.href = $(element).attr('href');
 
     return false;

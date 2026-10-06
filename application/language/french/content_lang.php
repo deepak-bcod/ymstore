@@ -1355,7 +1355,9 @@ $lang['no_shops_found'] = 'Aucune boutique trouvée.';
 
 $lang['invoice_not_uploaded'] = 'La facture n’a pas été téléchargée par le marchand';
 
-$lang['maximum_cart_weight'] = 'Poids maximum du panier';
+$lang['maximum_cart_weight'] = 'Dépassement du poids maximal du chariot';
 $lang['maximum_cart_weight_message'] = 'Le poids maximum du panier est de 60 KG. Vous ne pouvez pas en ajouter davantage.';
 
-
+$lang['maximum_cart_weight'] = 'Dépassement du poids maximal du chariot';
+$lang['maximum_cart_weight_message'] = 'Le poids maximum du panier est de 60 KG. Le poids de votre panier est de %s KG. Vous ne pouvez pas procéder au paiement.';
+$lang['ok'] = 'OK';
