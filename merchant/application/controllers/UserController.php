@@ -2933,6 +2933,7 @@ class UserController extends CI_Controller
 					'updated_at'     => date('Y-m-d H:i:s')
 				]);
 			}
+			$this->_send_merchant_action_email_to_help($ticket_id, 'Reply Sent', $order_id, $product_id);
 		}
 
 		$this->session->set_flashdata('success', $this->lang->line('reply_added_successfully') ?: "Reply added successfully.");
@@ -3168,6 +3169,15 @@ class UserController extends CI_Controller
 		$this->db->where('category', 1);
 		$this->db->where('merchant_id', $LogindID);
 		$this->db->update('help_desk', ['status' => 2]);
+
+		if (empty($ticket_id) && !empty($order_id)) {
+			$t_lookup = $this->db->where('order_id', $order_id)->where('category', 1)->get('help_desk')->row();
+			if ($t_lookup && !empty($t_lookup->ticket_id)) {
+				$ticket_id = $t_lookup->ticket_id;
+			}
+		}
+
+		$this->_send_merchant_action_email_to_help($ticket_id, 'Ticket Closed', $order_id, $product_id);
 
 		$this->session->set_flashdata('success', $this->lang->line('ticket_closed_successfully') ?: 'Ticket closed successfully.');
 
@@ -3528,6 +3538,8 @@ class UserController extends CI_Controller
 			);
 		}
 
+		$this->_send_merchant_action_email_to_help($ticket_id, 'Refund Approved', $order_id_val, $prod_id_val);
+
 		$this->session->set_flashdata('success', $this->lang->line('refund_approved_successfully') ?: 'Refund approved successfully.');
 		redirect($_SERVER['HTTP_REFERER']);
 	}
@@ -3874,6 +3886,8 @@ class UserController extends CI_Controller
 			}
 		}
 
+		$this->_send_merchant_action_email_to_help($ticket_id, 'Replacement Approved (' . $delivery_method_name . ')', $order_id_val, $prod_id_val);
+
 		$this->session->set_flashdata('success', "Replacement approved successfully. Method: " . $delivery_method_name . ".");
 		redirect($_SERVER['HTTP_REFERER']);
 	}
@@ -4102,8 +4116,114 @@ class UserController extends CI_Controller
 			);
 		}
 
+		$this->_send_merchant_action_email_to_help($ticket_id, 'Replacement Completed', $order_id_val, $prod_id_val);
+
 		$this->session->set_flashdata('success', "Replacement marked as completed. Yellow Markets support has been notified for final review and closure.");
 		redirect($_SERVER['HTTP_REFERER']);
+	}
+
+	/**
+	 * Central helper to notify @help when a Merchant takes an action on a ticket
+	 * Uses email template: merchant-ticket-button-action
+	 *
+	 * @param string $ticket_id
+	 * @param string $action_label
+	 * @param int    $order_id
+	 * @param int    $product_id
+	 * @return bool
+	 */
+	private function _send_merchant_action_email_to_help($ticket_id, $action_label, $order_id = 0, $product_id = 0)
+	{
+		if (empty($ticket_id)) {
+			return false;
+		}
+
+		$LogindID = $this->session->userdata('LoginID');
+		if (empty($LogindID)) {
+			$LogindID = isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : '';
+		}
+
+		// Retrieve ticket if needed for order_id / product_id / merchant_id
+		$ticket = $this->db->where('ticket_id', $ticket_id)->get('help_desk')->row();
+		if ($ticket) {
+			if (empty($order_id) && !empty($ticket->order_id)) {
+				$order_id = (int)$ticket->order_id;
+			}
+			if (empty($product_id) && !empty($ticket->products)) {
+				$product_id = (int)$ticket->products;
+			}
+			if (empty($LogindID) && !empty($ticket->merchant_id)) {
+				$LogindID = $ticket->merchant_id;
+			}
+		}
+
+		// Order Number
+		$order_number = !empty($order_id) ? (string)$order_id : 'N/A';
+		if (!empty($order_id)) {
+			$order_row = $this->db->select('increment_id')->where('order_id', $order_id)->get('sales_order')->row();
+			if ($order_row && !empty($order_row->increment_id)) {
+				$order_number = $order_row->increment_id;
+			}
+		}
+
+		// Merchant Name
+		$merchant_name = 'Merchant';
+		if (!empty($LogindID)) {
+			$publisher_row = $this->db->select('publication_name')->where('id', $LogindID)->get('publisher')->row();
+			if ($publisher_row && !empty($publisher_row->publication_name)) {
+				$merchant_name = $publisher_row->publication_name;
+			}
+		}
+
+		// Action Date & Time
+		$action_datetime = date('d M Y, H:i:s');
+
+		// Admin Ticket URL
+		$admin_base = 'https://mu.yellowmarkets.com/admin/';
+		$admin_ticket_url = $admin_base . "CustomerController/view/" . $order_id . "/" . $ticket_id . ($product_id ? '/' . $product_id : '');
+
+		// Verify email template is accessed directly from the database
+		$emailTemplate = $this->CommonModel->getEmailTemplateByIdentifier('merchant-ticket-button-action');
+		if (!$emailTemplate) {
+			log_message('error', '_send_merchant_action_email_to_help: Email template merchant-ticket-button-action not found in database.');
+			return false;
+		}
+
+		// Recipients: @help email
+		$help_var = $this->CommonModel->get_custom_variable('contact_us_email');
+		$help_email = (!empty($help_var) && !empty($help_var->value)) ? $help_var->value : '';
+		if (empty($help_email)) {
+			$admin_var = $this->CommonModel->get_custom_variable('admin_email');
+			$help_email = (!empty($admin_var) && !empty($admin_var->value)) ? $admin_var->value : 'help@yellowmarkets.com';
+		}
+
+		$tempVars = [
+			'##TICKET_NUMBER##', '##TICKET_ID##', '{ticket_number}', '{ticket_id}',
+			'##ORDER_NUMBER##', '##ORDER_NO##', '{order_number}', '{order_no}',
+			'##MERCHANT_NAME##', '{merchant_name}',
+			'##ACTION##', '{action}',
+			'##ACTION_DATE_TIME##', '##ACTION_DATETIME##', '{action_date_time}', '{action_datetime}',
+			'##TICKET_URL##', '{ticket_url}',
+			'##WEBSHOPNAME##', '{webshop_name}'
+		];
+
+		$dynamicVars = [
+			$ticket_id, $ticket_id, $ticket_id, $ticket_id,
+			$order_number, $order_number, $order_number, $order_number,
+			$merchant_name, $merchant_name,
+			$action_label, $action_label,
+			$action_datetime, $action_datetime, $action_datetime, $action_datetime,
+			$admin_ticket_url, $admin_ticket_url,
+			'Yellow Markets', 'Yellow Markets'
+		];
+
+		return $this->CommonModel->sendCommonHTMLEmail(
+			$help_email,
+			'merchant-ticket-button-action',
+			$tempVars,
+			$dynamicVars,
+			'en'
+		);
 	}
 }
 
