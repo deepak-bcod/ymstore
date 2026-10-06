@@ -18,6 +18,27 @@
             }
         }
     }
+    $total_cart_weight = 0;
+
+if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
+    foreach ($CartData->cartItems as $weight_item) {
+
+        $item_weight = isset($weight_item->weight)
+            ? (float)$weight_item->weight
+            : 0;
+
+        $item_qty = isset($weight_item->qty_ordered)
+            ? (int)$weight_item->qty_ordered
+            : 0;
+
+        // Weight is in grams
+        $total_cart_weight += ($item_weight * $item_qty);
+    }
+}
+
+$max_cart_weight = 60000; // 60 KG
+$cart_weight_exceeded = ($total_cart_weight > $max_cart_weight);
+
     ?>
 
     <?php if ($has_out_of_stock): ?>
@@ -108,38 +129,38 @@
                                                     </span>
 
                                                     <input id="quantity_<?php echo $value->item_id; ?>" 
-    data-item-id="<?php echo $value->item_id; ?>" 
-    data-price="<?php echo number_format($value->price, 2); ?>"
-    data-weight="<?php echo (float)$value->weight; ?>"
-    type="text" 
-    min="1"
-    max="<?php echo $available_qty; ?>"
-    value="<?php echo $value->qty_ordered; ?>" 
-    readonly 
-    class="form-control input-sm" 
-    style="display: block;"
->
+                                                        data-item-id="<?php echo $value->item_id; ?>" 
+                                                        data-price="<?php echo number_format($value->price, 2); ?>"
+                                                        data-weight="<?php echo (float)$value->weight; ?>"
+                                                        type="text" 
+                                                        min="1"
+                                                        max="<?php echo $available_qty; ?>"
+                                                        value="<?php echo $value->qty_ordered; ?>" 
+                                                        readonly 
+                                                        class="form-control input-sm" 
+                                                        style="display: block;"
+                                                    >
                                                     <input type="hidden" value="<?php echo $value->qty_ordered ?>" name="previous_qty[]" id="previous_qty_<?php echo $value->item_id;?>">
                                                     <input type="hidden" value="<?php echo $available_qty ?>" name="max_qty[]" id="max_qty_<?php echo $value->item_id;?>">
 
                                                    <span class="input-group-btn">
-    <button 
-        class="btn quantity-up bootstrap-touchspin-up" 
-        onclick="
-            if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
-                increaseQtyValue(
-                    <?php echo $value->item_id; ?>,
-                    '<?php echo $value->product_type; ?>',
-                    <?php echo $value->product_id; ?>,
-                    <?php echo $value->parent_product_id; ?>
-                );
-            }
-        "
-        type="button"
-    >
-        <i class="fa fa-angle-up"></i>
-    </button>
-</span>
+                                                        <button 
+                                                            class="btn quantity-up bootstrap-touchspin-up" 
+                                                            onclick="
+                                                                if (validateCartWeightBeforeIncrease(<?php echo $value->item_id; ?>)) {
+                                                                    increaseQtyValue(
+                                                                        <?php echo $value->item_id; ?>,
+                                                                        '<?php echo $value->product_type; ?>',
+                                                                        <?php echo $value->product_id; ?>,
+                                                                        <?php echo $value->parent_product_id; ?>
+                                                                    );
+                                                                }
+                                                            "
+                                                            type="button"
+                                                        >
+                                                            <i class="fa fa-angle-up"></i>
+                                                        </button>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
@@ -173,13 +194,45 @@
                             </div>
                             <div class="divcent text-center">
                                 <?php if ($has_out_of_stock): ?>
-                                    <button type="button" class="btn btn-primary chkout" disabled style="opacity:0.6; cursor:not-allowed;" title="Please remove out-of-stock items to proceed">
-                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-ban"></i>
-                                    </button>
-                                <?php else: ?>
-                                    <a href="<?php echo base_url(); ?>checkout" class="btn btn-primary chkout" type="submit">
-                                        <?php echo $this->lang->line('checkout_label'); ?> <i class="fa fa-check"></i>
+
+                                <button 
+                                    type="button" 
+                                    class="btn btn-primary chkout"
+                                    disabled
+                                    style="opacity:0.6; cursor:not-allowed;"
+                                    title="Please remove out-of-stock items to proceed"
+                                >
+                                    <?php echo $this->lang->line('checkout_label'); ?>
+                                    <i class="fa fa-ban"></i>
+                                </button>
+
+                                <?php elseif ($cart_weight_exceeded): ?>
+
+                                    <!-- Cart is above 60 KG -->
+                                    <a 
+                                        href="<?php echo base_url(); ?>checkout"
+                                        class="btn btn-primary chkout checkout-weight-blocked"
+                                        data-cart-weight="<?php echo $total_cart_weight; ?>"
+                                        data-max-weight="<?php echo $max_cart_weight; ?>"
+                                        onclick="return validateCheckoutWeight(event, this);"
+                                        style="cursor:pointer;"
+                                    >
+                                        <?php echo $this->lang->line('checkout_label'); ?>
+                                        <i class="fa fa-check"></i>
                                     </a>
+
+                                <?php else: ?>
+
+                                    <!-- Cart is within 60 KG -->
+                                    <a 
+                                        href="<?php echo base_url(); ?>checkout"
+                                        class="btn btn-primary chkout"
+                                        onclick="return validateCheckoutWeight(event, this);"
+                                    >
+                                        <?php echo $this->lang->line('checkout_label'); ?>
+                                        <i class="fa fa-check"></i>
+                                    </a>
+
                                 <?php endif; ?>
                                 <a href="<?php echo base_url(); ?>" class="btn btn-default">
                                     <?php echo $this->lang->line('continue_shopping'); ?> <i class="fa fa-shopping-cart"></i>
@@ -198,3 +251,67 @@
         </div>
     <?php } ?>
 </div>
+<script>
+function validateCheckoutWeight(event, element) {
+
+    if (event) {
+        event.preventDefault();
+    }
+
+    var totalWeight = 0;
+    var maxWeight = 60000; // 60 KG in grams
+
+    $('input[data-weight]').each(function () {
+
+        var weight = parseFloat($(this).attr('data-weight')) || 0;
+        var quantity = parseInt($(this).val()) || 0;
+
+        totalWeight += (weight * quantity);
+    });
+
+    console.log('Total Cart Weight:', totalWeight, 'grams');
+    console.log('Total Cart Weight:', (totalWeight / 1000).toFixed(2), 'KG');
+
+    if (totalWeight > maxWeight) {
+
+        var totalKg = (totalWeight / 1000).toFixed(2);
+
+        // Language translations from CodeIgniter
+        var alertTitle = <?php echo json_encode($this->lang->line('maximum_cart_weight_checkout')); ?>;
+
+        var alertMessage = <?php
+            echo json_encode(
+                $this->lang->line('maximum_cart_weight_message_checkout')
+            );
+        ?>;
+
+        var okText = <?php echo json_encode($this->lang->line('ok')); ?>;
+
+        // Replace %s with actual cart weight
+        alertMessage = alertMessage.replace('%s', totalKg);
+
+        if (typeof swal === 'function') {
+
+            swal({
+                title: alertTitle,
+                text: alertMessage,
+                type: "warning",
+                confirmButtonText: okText
+            });
+
+        } else {
+
+            alert(
+                alertTitle + "\n\n" +
+                alertMessage
+            );
+        }
+
+        return false;
+    }
+
+    window.location.href = $(element).attr('href');
+
+    return false;
+}
+</script>
