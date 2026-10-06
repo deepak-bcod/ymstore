@@ -263,10 +263,6 @@ if (
     <?php } ?>
 
 
-    <!-- ============================================================
-         TOTAL
-         ============================================================ -->
-
     <li class="shopping-total-price">
 
         <em>
@@ -298,11 +294,6 @@ if (
         </strong>
 
     </li>
-
-
-    <!-- ============================================================
-         DISCOUNT CODE
-         ============================================================ -->
 
     <?php if (empty($cartDetails->voucher_code)) { ?>
 
@@ -398,12 +389,6 @@ if (
         </li>
 
     <?php } ?>
-
-
-    <!-- ============================================================
-         GIFT CARD
-         ============================================================ -->
-
     <li
         class="dvcode"
         id="li-giftcard-code"
@@ -459,11 +444,6 @@ if (
                     </button>
 
                 </div>
-
-
-                <!-- ====================================================
-                     APPLIED GIFT CARDS
-                     ==================================================== -->
 
                 <div
                     id="applied-giftcards"
@@ -534,11 +514,6 @@ if (
         </div>
 
     </li>
-
-
-    <!-- ============================================================
-         VOUCHER
-         ============================================================ -->
 
     <?php if (empty($cartDetails->coupon_code)) { ?>
 
@@ -645,11 +620,6 @@ if (
 </ul>
 
 
-
-<!-- ================================================================
-     GIFT CARD REMOVE MODAL
-     ================================================================ -->
-
 <div
     class="modal fade"
     id="giftcardRemoveModal"
@@ -733,11 +703,6 @@ if (
 </div>
 
 
-
-<!-- ================================================================
-     CSS
-     ================================================================ -->
-
 <style>
 
 .cart-weight-warning-row {
@@ -758,22 +723,10 @@ if (
 
 </style>
 
-
-
-<!-- ================================================================
-     JAVASCRIPT
-     ================================================================ -->
-
 <script>
 
 $(document).ready(function () {
 
-
-    /*
-     * ============================================================
-     * APPLY GIFT CARD
-     * ============================================================
-     */
 
     $('#applyGiftCardBtn').on('click', function (e) {
 
@@ -797,11 +750,6 @@ $(document).ready(function () {
 
             return;
         }
-
-
-        /*
-         * Get current total.
-         */
 
         let totalText =
             $('.shopping-total-price strong.price')
@@ -947,13 +895,6 @@ $(document).ready(function () {
     });
 
 
-
-    /*
-     * ============================================================
-     * REMOVE GIFT CARD
-     * ============================================================
-     */
-
     $(document).on(
         'click',
         '.remove-giftcard',
@@ -1038,14 +979,6 @@ $(document).ready(function () {
 
 });
 
-
-
-/*
- * ============================================================
- * GIFT CARD ALERT
- * ============================================================
- */
-
 function showGiftcardAlert(
     message,
     type = 'success'
@@ -1073,28 +1006,7 @@ function showGiftcardAlert(
 
 }
 
-
-
-/*
- * ============================================================
- * CART WEIGHT VALIDATION
- *
- * Product weight = GRAMS
- *
- * Maximum = 60 KG
- * 60 KG = 60,000 GRAMS
- * ============================================================
- */
-
 const MAX_CART_WEIGHT = 60000;
-
-
-
-/*
- * ============================================================
- * GET CURRENT CART WEIGHT
- * ============================================================
- */
 
 function getCartTotalWeight() {
 
@@ -1157,14 +1069,6 @@ function getCartTotalWeight() {
     return totalWeight;
 }
 
-
-
-/*
- * ============================================================
- * VALIDATE BEFORE QUANTITY INCREASE
- * ============================================================
- */
-
 function validateCartWeightBeforeIncrease(
     itemId
 ) {
@@ -1172,21 +1076,11 @@ function validateCartWeightBeforeIncrease(
     const qtyInput =
         $('#quantity_' + itemId);
 
-
-    /*
-     * If quantity input does not exist,
-     * allow normal processing.
-     */
-
     if (!qtyInput.length) {
 
         return true;
     }
 
-
-    /*
-     * Product weight in grams.
-     */
 
     const itemWeight =
         parseFloat(
@@ -1194,17 +1088,9 @@ function validateCartWeightBeforeIncrease(
         ) || 0;
 
 
-    /*
-     * Current cart weight.
-     */
-
     const currentTotalWeight =
         getCartTotalWeight();
 
-
-    /*
-     * New weight after adding 1 quantity.
-     */
 
     const newTotalWeight =
         currentTotalWeight + itemWeight;
@@ -1230,12 +1116,6 @@ function validateCartWeightBeforeIncrease(
         'KG'
     );
 
-
-    /*
-     * ========================================================
-     * MAXIMUM 60 KG
-     * ========================================================
-     */
 
     if (
         newTotalWeight >
@@ -1265,30 +1145,11 @@ function validateCartWeightBeforeIncrease(
         });
 
 
-        /*
-         * Do NOT increase quantity.
-         */
-
         return false;
     }
 
-
-    /*
-     * ========================================================
-     * VALID
-     * ========================================================
-     */
-
     return true;
 }
-
-
-
-/*
- * ============================================================
- * CHECK EXISTING CART ON PAGE LOAD
- * ============================================================
- */
 
 $(document).ready(function () {
 
@@ -1302,11 +1163,6 @@ $(document).ready(function () {
         'KG'
     );
 
-
-    /*
-     * Show warning if existing cart
-     * is already above 60 KG.
-     */
 
     if (
         totalCartWeight >
