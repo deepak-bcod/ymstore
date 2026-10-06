@@ -36,26 +36,26 @@
 
 .notification-dropdown {
     display: none;
-
     position: absolute;
     top: 48px;
     right: -20px;
-
     width: 350px;
-
     background: #fff;
     border: 1px solid #ddd;
-
     box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-
     z-index: 99999;
-
     color: #333;
 }
 
 .notification-dropdown.show {
-    display: block;
+    display: block !important;
 }
+
+
+.notification-dropdown.show {
+    display: block !important;
+}
+
 
 .notification-dropdown-header {
     padding: 15px;
@@ -195,7 +195,6 @@ $lang = $this->session->userdata('site_lang');
         <?= $this->lang->line('blog'); ?>
     </a>
 </li>
-
 <!-- Notification Bell -->
 <li class="notification-menu">
 
@@ -205,8 +204,11 @@ $lang = $this->session->userdata('site_lang');
 
         <i class="fa fa-bell"></i>
 
-        <span class="notification-count" id="notificationCount"
-              style="display:none;">0</span>
+        <span class="notification-count"
+              id="notificationCount"
+              style="display:none;">
+            0
+        </span>
 
     </a>
 
@@ -225,9 +227,11 @@ $lang = $this->session->userdata('site_lang');
         </div>
 
         <div class="notification-dropdown-footer">
+
             <a href="<?= site_url('notifications'); ?>">
                 View All Notifications
             </a>
+
         </div>
 
     </div>
