@@ -8,41 +8,38 @@
         </div>
     <?php endif; ?>
 
-    <?php
-$has_out_of_stock = false;
-$total_cart_weight = 0;
+    <?php 
+    $has_out_of_stock = false;
+    if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
+        foreach ($CartData->cartItems as $chk) {
+            if (isset($chk->available_qty) && (int)$chk->available_qty <= 0) {
+                $has_out_of_stock = true;
+                break;
+            }
+        }
+    }
+    $total_cart_weight = 0;
 
 if (isset($CartData->cartItems) && count($CartData->cartItems) > 0) {
-    foreach ($CartData->cartItems as $chk) {
+    foreach ($CartData->cartItems as $weight_item) {
 
-        // Out of stock check
-        if (isset($chk->available_qty) && (int)$chk->available_qty <= 0) {
-            $has_out_of_stock = true;
-        }
+        $item_weight = isset($weight_item->weight)
+            ? (float)$weight_item->weight
+            : 0;
 
-        // Weight = product weight × quantity
-        $product_weight = isset($chk->weight) ? (float)$chk->weight : 0;
-        $product_qty    = isset($chk->qty_ordered) ? (int)$chk->qty_ordered : 0;
+        $item_qty = isset($weight_item->qty_ordered)
+            ? (int)$weight_item->qty_ordered
+            : 0;
 
-        $total_cart_weight += ($product_weight * $product_qty);
+        // Weight is in grams
+        $total_cart_weight += ($item_weight * $item_qty);
     }
 }
 
-// Maximum allowed cart weight = 60 KG = 60,000 grams
-$max_cart_weight = 60000;
-
-$weight_exceeded = ($total_cart_weight > $max_cart_weight);
+$max_cart_weight = 60000; // 60 KG
+$cart_weight_exceeded = ($total_cart_weight > $max_cart_weight);
 ?>
-<?php if ($weight_exceeded): ?>
-    <div class="alert alert-danger" style="margin-top: 15px;">
-        <i class="fa fa-exclamation-triangle"></i>
-        <strong>Notice:</strong>
-        Your cart weight is
-        <strong><?php echo number_format($total_cart_weight / 1000, 2); ?> KG</strong>.
-        The maximum allowed weight is <strong>60 KG</strong>.
-        Please reduce the quantity before proceeding to checkout.
-    </div>
-<?php endif; ?>
+    ?>
 
     <?php if ($has_out_of_stock): ?>
         <div class="alert alert-danger" style="margin-top: 15px;">
@@ -196,47 +193,51 @@ $weight_exceeded = ($total_cart_weight > $max_cart_weight);
                                 <?php (new CartList())->cartPriceDetails($CartData,'cartPage'); ?>
                             </div>
                             <div class="divcent text-center">
+                                <?php if ($has_out_of_stock): ?>
 
-    <?php if ($has_out_of_stock): ?>
+    <button 
+        type="button" 
+        class="btn btn-primary chkout"
+        disabled
+        style="opacity:0.6; cursor:not-allowed;"
+        title="Please remove out-of-stock items to proceed"
+    >
+        <?php echo $this->lang->line('checkout_label'); ?>
+        <i class="fa fa-ban"></i>
+    </button>
 
-        <button
-            type="button"
-            class="btn btn-primary chkout"
-            onclick="showCheckoutError('outofstock')"
-        >
-            <?php echo $this->lang->line('checkout_label'); ?>
-            <i class="fa fa-check"></i>
-        </button>
+<?php elseif ($cart_weight_exceeded): ?>
 
-    <?php elseif ($weight_exceeded): ?>
-
-        <button
-            type="button"
-            class="btn btn-primary chkout"
-            onclick="showCheckoutError('weight')"
-        >
-            <?php echo $this->lang->line('checkout_label'); ?>
-            <i class="fa fa-check"></i>
-        </button>
-
-    <?php else: ?>
-
-        <a
-            href="<?php echo base_url(); ?>checkout"
-            class="btn btn-primary chkout"
-        >
-            <?php echo $this->lang->line('checkout_label'); ?>
-            <i class="fa fa-check"></i>
-        </a>
-
-    <?php endif; ?>
-
-    <a href="<?php echo base_url(); ?>" class="btn btn-default">
-        <?php echo $this->lang->line('continue_shopping'); ?>
-        <i class="fa fa-shopping-cart"></i>
+    <!-- Cart is above 60 KG -->
+    <a 
+        href="<?php echo base_url(); ?>checkout"
+        class="btn btn-primary chkout checkout-weight-blocked"
+        data-cart-weight="<?php echo $total_cart_weight; ?>"
+        data-max-weight="<?php echo $max_cart_weight; ?>"
+        onclick="return validateCheckoutWeight(event, this);"
+        style="cursor:pointer;"
+    >
+        <?php echo $this->lang->line('checkout_label'); ?>
+        <i class="fa fa-check"></i>
     </a>
 
-</div>
+<?php else: ?>
+
+    <!-- Cart is within 60 KG -->
+    <a 
+        href="<?php echo base_url(); ?>checkout"
+        class="btn btn-primary chkout"
+        onclick="return validateCheckoutWeight(event, this);"
+    >
+        <?php echo $this->lang->line('checkout_label'); ?>
+        <i class="fa fa-check"></i>
+    </a>
+
+<?php endif; ?>
+                                <a href="<?php echo base_url(); ?>" class="btn btn-default">
+                                    <?php echo $this->lang->line('continue_shopping'); ?> <i class="fa fa-shopping-cart"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -251,29 +252,64 @@ $weight_exceeded = ($total_cart_weight > $max_cart_weight);
     <?php } ?>
 </div>
 <script>
-function showCheckoutError(type) {
+function validateCheckoutWeight(event, element) {
 
-    if (type === 'weight') {
+    if (event) {
+        event.preventDefault();
+    }
 
-        alert(
-            'Checkout is not available.\n\n' +
-            'Your cart weight is <?php echo number_format($total_cart_weight / 1000, 2); ?> KG.\n' +
-            'The maximum allowed cart weight is 60 KG.\n\n' +
-            'Please reduce the quantity before proceeding to checkout.'
-        );
+    var totalWeight = 0;
+    var maxWeight = 60000; // 60 KG in grams
+
+    /*
+     * Read all cart item quantities and weights
+     */
+    $('input[data-weight]').each(function () {
+
+        var weight = parseFloat($(this).attr('data-weight')) || 0;
+        var quantity = parseInt($(this).val()) || 0;
+
+        totalWeight += (weight * quantity);
+    });
+
+    console.log('Total Cart Weight:', totalWeight, 'grams');
+    console.log('Total Cart Weight:', (totalWeight / 1000).toFixed(2), 'KG');
+
+    /*
+     * More than 60 KG
+     */
+    if (totalWeight > maxWeight) {
+
+        var totalKg = (totalWeight / 1000).toFixed(2);
+
+        if (typeof swal === 'function') {
+
+            swal({
+                title: "Maximum Cart Weight",
+                text: "Maximum cart weight is 60 KG. Your cart weight is " + totalKg + " KG. You cannot proceed to checkout.",
+                type: "warning",
+                confirmButtonText: "OK"
+            });
+
+        } else {
+
+            alert(
+                "Maximum Cart Weight\n\n" +
+                "Maximum cart weight is 60 KG. " +
+                "Your cart weight is " + totalKg + " KG. " +
+                "You cannot proceed to checkout."
+            );
+        }
 
         return false;
     }
 
-    if (type === 'outofstock') {
+    /*
+     * Cart is <= 60 KG
+     * Allow checkout
+     */
+    window.location.href = $(element).attr('href');
 
-        alert(
-            'Checkout is not available.\n\n' +
-            'One or more items in your cart are Out of Stock.\n\n' +
-            'Please remove the out-of-stock item before proceeding to checkout.'
-        );
-
-        return false;
-    }
+    return false;
 }
 </script>
