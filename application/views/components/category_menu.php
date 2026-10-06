@@ -134,12 +134,10 @@ $lang = $this->session->userdata('site_lang');
     box-shadow: none;
 }
 
-/* Show child category */
 .sidebar-menu .has-children.open > .dropdown-menu {
     display: block;
 }
 
-/* Active category - yellow */
 .sidebar-menu li.active > a,
 .sidebar-menu li.active > a:hover,
 .sidebar-menu li.active > a:focus {
@@ -147,14 +145,13 @@ $lang = $this->session->userdata('site_lang');
     color: #000 !important;
 }
 
-/* Active category icon */
 .sidebar-menu li.active > a i,
 .sidebar-menu li.active > a:hover i,
 .sidebar-menu li.active > a:focus i {
     color: #000 !important;
 }
 
-/* Keep active category yellow on mouse hover */
+
 .sidebar-menu li.active:hover > a {
     background-color: #ffd200 !important;
     color: #000 !important;
@@ -166,10 +163,6 @@ $lang = $this->session->userdata('site_lang');
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    /*
-     * Open the currently selected category/subcategory
-     * automatically after the category page loads.
-     */
     document.querySelectorAll('.sidebar-menu .has-children').forEach(function (item) {
 
         if (item.classList.contains('active')) {
