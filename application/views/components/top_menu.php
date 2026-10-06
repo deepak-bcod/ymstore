@@ -35,7 +35,6 @@
     font-weight: bold;
 }
 </style>
-
 <?php 
 // echo "<pre>"; print_r($navCatData); die;
 $allNavgte = array_column($navCatData, 'slug'); 
@@ -118,11 +117,6 @@ $lang = $this->session->userdata('site_lang');
         <?= $this->lang->line('blog'); ?>
     </a>
 </li>
-<li class="menu-item-new <?= ($currNav === 'blog') ? 'active' : ''; ?>">
-    <a href="<?= base_url('blogs'); ?>">
-        <?= $this->lang->line('blog'); ?>
-    </a>
-</li>
 
 <!-- Notification Bell -->
 <?php if ($this->session->userdata('customer_id')) : ?>
@@ -134,7 +128,6 @@ $lang = $this->session->userdata('site_lang');
     </li>
 
 <?php endif; ?>
-
 
 
 
