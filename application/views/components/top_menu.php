@@ -123,7 +123,7 @@ $lang = $this->session->userdata('site_lang');
 
 
     <li class="notification-menu">
-        <a href="<?= base_url('customer/notifications'); ?>"
+        <a href="<?= base_url('notifications'); ?>"
            class="notification-bell">
             <i class="fa fa-bell"></i>
         </a>
