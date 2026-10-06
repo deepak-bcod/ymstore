@@ -281,40 +281,37 @@ class CommonModel extends CI_Model
 		return $result;
 	}
 
-	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $SubDynamic = '')
+	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '')
 	{
-		// $GlobalVar = $this->getGlobalVariableByIdentifier('fbc-admin-email');
-		// if (isset($GlobalVar) && $GlobalVar->value != '') {
-			$from_email = 'noreply@yellowmarkets.com';
-		// }
+		$from_email = 'noreply@yellowmarkets.com';
 
 		$emailTemplate = $this->getEmailTemplateByIdentifier($identifier);
+		if (!$emailTemplate) {
+			log_message('error', 'sendCommonHTMLEmail: email template not found for: ' . $identifier);
+			return false;
+		}
 
-		$subject = (isset($email_subject) && $email_subject != '')
-			? $email_subject
-			: $emailTemplate->subject;
+		if (!empty($lang_code) && ($lang_code === 'fr' || $lang_code === 'french')) {
+			$subject = !empty($emailTemplate->subject_fr) ? $emailTemplate->subject_fr : $emailTemplate->subject;
+			$content = !empty($emailTemplate->content_fr) ? $emailTemplate->content_fr : $emailTemplate->content;
+		} else {
+			$subject = $emailTemplate->subject;
+			$content = $emailTemplate->content;
+		}
 
-		
 		$subject = str_replace($TempVars, $DynamicVars, $subject);
-
-		$title = $emailTemplate->title;
-
-		$emailBody = str_replace(
-			$TempVars,
-			$DynamicVars,
-			$emailTemplate->content
-		);
+		$emailBody = str_replace($TempVars, $DynamicVars, $content);
 
 		$data['subject'] = $subject;
 		$data['content'] = $emailBody;
 
-		$content = $this->load->view(
+		$contentView = $this->load->view(
 			'email_template/email_content',
 			$data,
 			TRUE
 		);
 
-		if ($this->sendHTMLMailSMTP( $EmailTo, $subject, $content, $from_email, $attachment = "")) {
+		if ($this->sendHTMLMailSMTP($EmailTo, $subject, $contentView, $from_email, $attachment = "")) {
 			return true;
 		} else {
 			return false;

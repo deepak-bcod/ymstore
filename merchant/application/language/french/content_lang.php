@@ -1029,6 +1029,15 @@ $lang['ticket_closed_successfully']   = "Ticket fermé avec succès.";
 $lang['please_fill_out_this_field']  = "Veuillez renseigner ce champ.";
 $lang['are_you_sure_close_ticket']   = "Êtes-vous sûr de vouloir fermer ce ticket ?";
 $lang['mark_as_close']               = "Marquer comme fermé";
+$lang['refund_approved']             = "Remboursement approuvé";
+$lang['approve_refund']              = "Approuver le remboursement";
+$lang['refund_amount']               = "Montant du remboursement";
+$lang['refund_approved_successfully'] = "Remboursement approuvé avec succès.";
+$lang['are_you_sure_approve_refund'] = "Êtes-vous sûr de vouloir approuver le remboursement pour ce ticket ?";
+$lang['enter_refund_amount']         = "Saisir le montant du remboursement";
+$lang['refund_status_pending_processing'] = "Remboursement approuvé - En cours de traitement par le support et la comptabilité";
+$lang['refund_completed']            = "Remboursement terminé (Done)";
+
 
 
 
