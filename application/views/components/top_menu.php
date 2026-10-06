@@ -91,7 +91,7 @@ $lang = $this->session->userdata('site_lang');
 
     <a href="javascript:;" id="notificationBell" class="notification-bell">
         <i class="fa fa-bell"></i>
-        <span class="notification-count">23</span>
+        
     </a>
 
 </li>
