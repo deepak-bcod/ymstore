@@ -13,18 +13,6 @@ if (
     $cartItems   = $CartData->cartItems;
     $cartDetails = $CartData->cartDetails;
 
-
-    /*
-     * ============================================================
-     * CART WEIGHT CALCULATION
-     *
-     * Product weight is stored in GRAMS
-     *
-     * Maximum cart weight:
-     * 60 KG = 60,000 GRAMS
-     * ============================================================
-     */
-
     $MAX_CART_WEIGHT = 60000;
 
     $totalCartWeight = 0;
@@ -38,21 +26,6 @@ if (
     }
 
     $totalCartWeightKg = $totalCartWeight / 1000;
-
-
-    /*
-     * ============================================================
-     * SHIPPING / CRATE CHARGE
-     *
-     * 0 - 20 KG       = MUR 300
-     * >20 - 40 KG     = MUR 600
-     * >40 KG          = MUR 900
-     *
-     * IMPORTANT:
-     * Even if weight is >60 KG, we still show MUR 900.
-     * The 60 KG restriction is handled separately.
-     * ============================================================
-     */
 
     if ($totalCartWeight > 40000) {
 
@@ -71,61 +44,22 @@ if (
         $crateShipping = 0;
     }
 
-
-    /*
-     * ============================================================
-     * BACKEND SHIPPING
-     *
-     * shipping_amount can be used if you have an additional
-     * delivery/shipping charge.
-     *
-     * ym_charge is NOT added here because we calculate the
-     * crate charge above ourselves.
-     *
-     * This prevents duplicate shipping charges.
-     * ============================================================
-     */
-
     $additionalShipping =
         (float)($cartDetails->shipping_amount ?? 0);
-
-
-    /*
-     * ============================================================
-     * FINAL SHIPPING
-     *
-     * Crate charge + any additional backend shipping amount.
-     * ============================================================
-     */
 
     $effective_shipping =
         $crateShipping + $additionalShipping;
 
-
-    /*
-     * ============================================================
-     * CART OVERWEIGHT
-     * ============================================================
-     */
 
     $cartOverWeight =
         ($totalCartWeight > $MAX_CART_WEIGHT);
 
 ?>
 
-<!-- ================================================================
-     JQUERY
-     ================================================================ -->
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 
 <ul>
-
-
-    <!-- ============================================================
-         SUB TOTAL
-         ============================================================ -->
 
     <li>
 
@@ -159,11 +93,6 @@ if (
 
     </li>
 
-
-    <!-- ============================================================
-         TAX
-         ============================================================ -->
-
     <li>
 
         <em>
@@ -195,12 +124,6 @@ if (
         </strong>
 
     </li>
-
-
-    <!-- ============================================================
-         COUPON DISCOUNT
-         ============================================================ -->
-
     <?php if (!empty($cartDetails->coupon_code)) { ?>
 
         <li>
@@ -237,10 +160,6 @@ if (
 
     <?php } ?>
 
-
-    <!-- ============================================================
-         GIFT CARD
-         ============================================================ -->
 
     <?php if (!empty($cartDetails->voucher_code)) { ?>
 
@@ -279,16 +198,9 @@ if (
     <?php } ?>
 
 
-    <!-- ============================================================
-         CART WEIGHT WARNING
-         
-         This is ONLY a warning.
-         Shipping will STILL be displayed.
-         ============================================================ -->
-
     <?php if ($cartOverWeight) { ?>
 
-        <li class="cart-weight-warning-row">
+        <!-- <li class="cart-weight-warning-row">
 
             <p class="cart-weight-error">
 
@@ -302,7 +214,7 @@ if (
 
             </p>
 
-        </li>
+        </li> -->
 
     <?php } ?>
 
