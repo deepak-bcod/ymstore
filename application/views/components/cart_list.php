@@ -196,36 +196,47 @@ $weight_exceeded = ($total_cart_weight > $max_cart_weight);
                                 <?php (new CartList())->cartPriceDetails($CartData,'cartPage'); ?>
                             </div>
                             <div class="divcent text-center">
-                                <?php if ($has_out_of_stock || $weight_exceeded): ?>
 
-    <button
-        type="button"
-        class="btn btn-primary chkout"
-        disabled
-        style="opacity:0.6; cursor:not-allowed;"
-        title="<?php echo $weight_exceeded
-            ? 'Cart weight cannot exceed 60 KG'
-            : 'Please remove out-of-stock items to proceed'; ?>"
-    >
-        <?php echo $this->lang->line('checkout_label'); ?>
-        <i class="fa fa-ban"></i>
-    </button>
+    <?php if ($has_out_of_stock): ?>
 
-<?php else: ?>
+        <button
+            type="button"
+            class="btn btn-primary chkout"
+            onclick="showCheckoutError('outofstock')"
+        >
+            <?php echo $this->lang->line('checkout_label'); ?>
+            <i class="fa fa-check"></i>
+        </button>
 
-    <a
-        href="<?php echo base_url(); ?>checkout"
-        class="btn btn-primary chkout"
-    >
-        <?php echo $this->lang->line('checkout_label'); ?>
-        <i class="fa fa-check"></i>
+    <?php elseif ($weight_exceeded): ?>
+
+        <button
+            type="button"
+            class="btn btn-primary chkout"
+            onclick="showCheckoutError('weight')"
+        >
+            <?php echo $this->lang->line('checkout_label'); ?>
+            <i class="fa fa-check"></i>
+        </button>
+
+    <?php else: ?>
+
+        <a
+            href="<?php echo base_url(); ?>checkout"
+            class="btn btn-primary chkout"
+        >
+            <?php echo $this->lang->line('checkout_label'); ?>
+            <i class="fa fa-check"></i>
+        </a>
+
+    <?php endif; ?>
+
+    <a href="<?php echo base_url(); ?>" class="btn btn-default">
+        <?php echo $this->lang->line('continue_shopping'); ?>
+        <i class="fa fa-shopping-cart"></i>
     </a>
 
-<?php endif; ?>
-                                <a href="<?php echo base_url(); ?>" class="btn btn-default">
-                                    <?php echo $this->lang->line('continue_shopping'); ?> <i class="fa fa-shopping-cart"></i>
-                                </a>
-                            </div>
+</div>
                         </div>
                     </div>
                 </div>
@@ -240,39 +251,29 @@ $weight_exceeded = ($total_cart_weight > $max_cart_weight);
     <?php } ?>
 </div>
 <script>
-function validateCartWeightBeforeIncrease(itemId) {
+function showCheckoutError(type) {
 
-    var maxWeight = 60000; // 60 KG in grams
-    var totalWeight = 0;
+    if (type === 'weight') {
 
-    $('input[data-weight]').each(function () {
+        alert(
+            'Checkout is not available.\n\n' +
+            'Your cart weight is <?php echo number_format($total_cart_weight / 1000, 2); ?> KG.\n' +
+            'The maximum allowed cart weight is 60 KG.\n\n' +
+            'Please reduce the quantity before proceeding to checkout.'
+        );
 
-        var weight = parseFloat($(this).attr('data-weight')) || 0;
-        var qty = parseInt($(this).val()) || 0;
-
-        totalWeight += weight * qty;
-    });
-
-    var currentInput = $('#quantity_' + itemId);
-
-    if (currentInput.length) {
-
-        var currentWeight = parseFloat(currentInput.attr('data-weight')) || 0;
-        var currentQty = parseInt(currentInput.val()) || 0;
-
-        var newTotalWeight = totalWeight + currentWeight;
-
-        if (newTotalWeight > maxWeight) {
-
-            alert(
-                'Maximum cart weight is 60 KG.\n\n' +
-                'You cannot add more quantity because the cart would exceed 60 KG.'
-            );
-
-            return false;
-        }
+        return false;
     }
 
-    return true;
+    if (type === 'outofstock') {
+
+        alert(
+            'Checkout is not available.\n\n' +
+            'One or more items in your cart are Out of Stock.\n\n' +
+            'Please remove the out-of-stock item before proceeding to checkout.'
+        );
+
+        return false;
+    }
 }
 </script>
