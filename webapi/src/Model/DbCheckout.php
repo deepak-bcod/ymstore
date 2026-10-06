@@ -546,6 +546,35 @@ class DbCheckout
 
 				$this->dbl->dbl_conn->rawQuery($notif_sql, $notif_params);
 
+				// ==========================================
+// CUSTOMER NOTIFICATION
+// ==========================================
+
+$customer_notif_params = [
+    'order',
+    'order_placed',
+    'customer',
+    $customer_id,
+
+    'Order placed successfully',
+
+    'Your order #' . $increment_id . ' has been placed successfully.',
+
+    json_encode([
+        'sales_order_id' => $last_insert_id,
+        'increment_id'   => $increment_id
+    ]),
+
+    0,
+    date('Y-m-d H:i:s'),
+    date('Y-m-d H:i:s')
+];
+
+$this->dbl->dbl_conn->rawQuery(
+    $notif_sql,
+    $customer_notif_params
+);
+
 
 				return $last_insert_id;
 
