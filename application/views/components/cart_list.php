@@ -277,11 +277,11 @@ function validateCheckoutWeight(event, element) {
         var totalKg = (totalWeight / 1000).toFixed(2);
 
         // Language translations from CodeIgniter
-        var alertTitle = <?php echo json_encode($this->lang->line('maximum_cart_weight')); ?>;
+        var alertTitle = <?php echo json_encode($this->lang->line('maximum_cart_weight_checkout')); ?>;
 
         var alertMessage = <?php
             echo json_encode(
-                $this->lang->line('maximum_cart_weight_message')
+                $this->lang->line('maximum_cart_weight_message_checkout')
             );
         ?>;
 
