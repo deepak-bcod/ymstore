@@ -113,9 +113,7 @@ $lang = $this->session->userdata('site_lang');
     padding: 10px;
 }
 
-.notification-bell:hover {
-    color: #ffd400 !important;
-}
+
 
 .notification-count {
     position: absolute;
