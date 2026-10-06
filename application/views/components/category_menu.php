@@ -138,12 +138,25 @@ $lang = $this->session->userdata('site_lang');
 .sidebar-menu .has-children.open > .dropdown-menu {
     display: block;
 }
-.sidebar-menu li.active > a {
+
+/* Active category - yellow */
+.sidebar-menu li.active > a,
+.sidebar-menu li.active > a:hover,
+.sidebar-menu li.active > a:focus {
     background-color: #ffd200 !important;
     color: #000 !important;
 }
 
-.sidebar-menu li.active > a i {
+/* Active category icon */
+.sidebar-menu li.active > a i,
+.sidebar-menu li.active > a:hover i,
+.sidebar-menu li.active > a:focus i {
+    color: #000 !important;
+}
+
+/* Keep active category yellow on mouse hover */
+.sidebar-menu li.active:hover > a {
+    background-color: #ffd200 !important;
     color: #000 !important;
 }
 
