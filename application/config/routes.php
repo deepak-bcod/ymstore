@@ -456,3 +456,10 @@ $route['merchant/webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail
 $route['webshop/b2b-orders'] = 'B2BOrdersController/index';
 $route['webshop/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
 $route['webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
+
+
+// Notifications
+$route['customer/notifications'] = 'NotificationsController/index';
+$route['customer/notifications/latest'] = 'NotificationsController/latest';
+$route['customer/notifications/read/(:num)'] = 'NotificationsController/mark_read/$1';
+
