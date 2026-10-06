@@ -2249,7 +2249,7 @@ $lang['no_shops_found'] = 'No shops found.';
 $lang['invoice_not_uploaded'] = 'Invoice not uploaded by the merchant';
 
 $lang['maximum_cart_weight'] = 'Exceeding Maximum Cart Weight';
-$lang['maximum_cart_weight_message'] = 'Maximum cart weight is 60 KG. You cannot add more.';
+$lang['maximum_cart_weight_message'] = 'Maximum cart weight is 60 KG. ';
 
 $lang['maximum_cart_weight_checkout'] = 'Exceeding Maximum Cart Weight';
 $lang['maximum_cart_weight_message_checkout'] = 'Maximum cart weight is 60 KG. Your cart weight is %s KG. You cannot proceed to checkout.';
