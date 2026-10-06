@@ -80,6 +80,59 @@ $lang = $this->session->userdata('site_lang');
         <?= $this->lang->line('blog'); ?>
     </a>
 </li>
+<li class="menu-item-new <?= ($currNav === 'blog') ? 'active' : ''; ?>">
+    <a href="<?= base_url('blogs'); ?>">
+        <?= $this->lang->line('blog'); ?>
+    </a>
+</li>
+
+<!-- Notification Bell -->
+<li class="notification-menu">
+
+    <a href="javascript:;" id="notificationBell" class="notification-bell">
+        <i class="fa fa-bell"></i>
+        <span class="notification-count">23</span>
+    </a>
+
+</li>
+
 
 
 </ul>
+<style>
+.notification-menu {
+    position: relative;
+    margin-left: 15px;
+}
+
+.notification-bell {
+    position: relative;
+    display: inline-block;
+    color: #fff !important;
+    font-size: 20px;
+    padding: 10px;
+}
+
+.notification-bell:hover {
+    color: #ffd400 !important;
+}
+
+.notification-count {
+    position: absolute;
+    top: 2px;
+    right: 0;
+
+    background: #e53935;
+    color: #fff;
+
+    min-width: 18px;
+    height: 18px;
+
+    border-radius: 50%;
+
+    font-size: 10px;
+    line-height: 18px;
+    text-align: center;
+    font-weight: bold;
+}
+</style>
