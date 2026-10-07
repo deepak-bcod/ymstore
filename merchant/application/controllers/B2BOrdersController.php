@@ -1028,7 +1028,7 @@ public function download_order_document($order_id) {
             );
         }
 
-       // 3. Add Notifications for BOTH Admin and Shopper/Merchant
+        // 3. Add Notifications for BOTH Admin and Shopper/Merchant
         if ($updated && $orderData && $orderData->shipment_type == 2) {
             
             // Shared details for both notifications
@@ -1053,10 +1053,10 @@ public function download_order_document($order_id) {
                     'recipient_type' => 'admin',
                     'recipient_id'   => 1 // Change if your admin ID is different
                 ]),
-                // Shopper notification
+                // Shopper / Merchant notification
                 array_merge($commonData, [
                     'recipient_type' => 'shopper', 
-                    'recipient_id'   => $orderData->customer_id // <-- Fixed: using customer_id
+                    'recipient_id'   => $orderData->merchant_id 
                 ])
             ];
 
