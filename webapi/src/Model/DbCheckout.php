@@ -520,86 +520,39 @@ class DbCheckout
 
 			if ($this->dbl->dbl_conn->count > 0) {
 
-    // ==========================================
-    // ADD NOTIFICATIONS FOR ADMIN AND SHOPPER
-    // ==========================================
+				// ================================
+				// ADD NOTIFICATION FOR NEW SALES ORDER
+				// ================================
+				$notif_sql = "INSERT INTO notifications 
+					(type, subtype, recipient_type, recipient_id, title, message, data, is_read, created_at, updated_at)
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-    $notif_sql = "INSERT INTO notifications
-        (
-            type,
-            subtype,
-            recipient_type,
-            recipient_id,
-            title,
-            message,
-            data,
-            is_read,
-            created_at,
-            updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				$notif_params = [
+					'order',                     // type
+					'new_sales_order',           // subtype
+					'admin',                     // recipient_type
+					1,                           // recipient_id (admin)
+					'New shopper order received',  // title
+					'New shopper order #' . $increment_id . ' has been placed by ' . $customer_firstname . ' ' . $customer_lastname . '.', // message
+					json_encode([
+						'sales_order_id' => $last_insert_id,
+						'increment_id'   => $increment_id,
+						'customer_name'  => $customer_firstname . ' ' . $customer_lastname
+					]),
+					0,                           // is_read
+					date('Y-m-d H:i:s'),         // created_at
+					date('Y-m-d H:i:s')          // updated_at
+				];
 
-    $current_time = date('Y-m-d H:i:s');
-
-    // ==========================================
-    // 1. ADMIN NOTIFICATION
-    // ==========================================
-
-    $admin_params = [
-        'order',
-        'new_sales_order',
-        'admin',
-        1,
-        'New shopper order received',
-        'New shopper order #' . $increment_id .
-            ' has been placed by ' .
-            $customer_firstname . ' ' . $customer_lastname . '.',
-        json_encode([
-            'sales_order_id' => $last_insert_id,
-            'increment_id'   => $increment_id,
-            'customer_name'  => $customer_firstname . ' ' . $customer_lastname
-        ]),
-        0,
-        $current_time,
-        $current_time
-    ];
-
-    $this->dbl->dbl_conn->rawQuery($notif_sql, $admin_params);
+				$this->dbl->dbl_conn->rawQuery($notif_sql, $notif_params);
+				
+				
 
 
-    // ==========================================
-    // 2. SHOPPER NOTIFICATION
-    // ==========================================
+				return $last_insert_id;
+				
 
-    $shopper_params = [
-        'order',
-        'new_order',
-        'shopper',
-        (int)$customer_id,
-        'New Order',
-        'Your order no. ' . $increment_id . ' is placed.',
-        json_encode([
-            'sales_order_id' => $last_insert_id,
-            'increment_id'   => $increment_id,
-            'status'         => 'new_order'
-        ]),
-        0,
-        $current_time,
-        $current_time
-    ];
-
-    // Only notify a valid logged-in shopper
-    if (!empty($customer_id) && (int)$customer_id > 0) {
-        $this->dbl->dbl_conn->rawQuery($notif_sql, $shopper_params);
-    }
-
-    return $last_insert_id;
-
-} else {
-
-    // Keep your existing failure-handling code here
-
-}
+			} else {
 
 
 
