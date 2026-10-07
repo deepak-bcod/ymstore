@@ -1063,7 +1063,7 @@ public function download_order_document($order_id) {
                     ]),
                     'is_read'        => 0,
                     'recipient_type' => 'shopper',
-                   'recipient_id'   => $orderData->customer_id,
+					'recipient_id'   => $orderData->shopper_customer_id,
                     'created_at'     => $current_time,
                     'updated_at'     => $current_time
                 ]
@@ -1092,7 +1092,7 @@ public function download_order_document($order_id) {
             'message' => $this->lang->line('invalid_request')
         ]);
     }
-}
+}	
 
 
 
@@ -11656,31 +11656,7 @@ exit;*/
 		}
 
 		// -------------------------------------------------------------
-		// 4. Check Order Resolutions in order_resolutions
-		// While an Order Resolution is active (is_active_dispute = 1 OR status in ['Open', 'Processing', 'ReOpen']),
-		// the order/payout is held in Manage Transactions / Payouts.
-		// Once resolution is closed, order/payout becomes available.
-		// -------------------------------------------------------------
-		if (!$is_on_hold && $this->db->table_exists('order_resolutions')) {
-			$active_res_count = $this->db->from('order_resolutions')
-				->group_start()
-					->where_in('order_id', $order_ids)
-					->or_where_in('b2b_order_id', $order_ids)
-				->group_end()
-				->group_start()
-					->where('is_active_dispute', 1)
-					->or_where_in('status', ['Open', 'Processing', 'ReOpen'])
-				->group_end()
-				->count_all_results();
-
-			if ($active_res_count > 0) {
-				$is_on_hold = true;
-				$hold_reason = 'Disputed - Order Resolution Active';
-			}
-		}
-
-		// -------------------------------------------------------------
-		// 5. Update Database payout_status accordingly
+		// 4. Update Database payout_status accordingly
 		// -------------------------------------------------------------
 		if ($is_on_hold) {
 			// Put Merchant payout ON HOLD (status 3) if not already 3 or 4

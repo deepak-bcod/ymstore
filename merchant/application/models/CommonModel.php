@@ -2778,13 +2778,26 @@ public function getOrderStatusLabel($id)
 	}
 
 	public function getOrderDataByb2bOrderId($order_id)
-	{
-		$this->db->select('*');
-		$this->db->from('b2b_orders');
-		$this->db->where('order_id', $order_id);
-		$query = $this->db->get();
-		return $query->row();
-	}
+{
+    $this->db->select('
+        b2b_orders.*,
+        sales_order.customer_id AS shopper_customer_id
+    ');
+
+    $this->db->from('b2b_orders');
+
+    $this->db->join(
+        'sales_order',
+        'sales_order.order_id = b2b_orders.webshop_order_id',
+        'left'
+    );
+
+    $this->db->where('b2b_orders.order_id', $order_id);
+
+    $query = $this->db->get();
+
+    return $query->row();
+}
 
 	public function get_messaging($publisher_id)
 {

@@ -17866,171 +17866,205 @@ class B2BOrdersController extends CI_Controller
 
 
 	public function AssignNewDelivery()
-
-	{
-
-		if (isset($_POST['order_id'], $_POST['driver_id'])) {
-
-			$User_id       = $this->session->userdata('LoginID');
-
-			$order_id      = $_POST['order_id'];
-
-			$driver_id     = $_POST['driver_id'];
-
-			// ✅ Mandatory delivery date
-			$delivery_date = trim($_POST['delivery_date'] ?? '');
-
-			if (empty($delivery_date)) {
-				echo json_encode([
-					'status' => 400,
-					'message' => 'Delivery Date is mandatory.'
-				]);
-				exit;
-			}
-
-			$remarks       = $_POST['remarks'] ?? '';
-
-
-
-			// ✅ Normalize date — handle both Y-m-d (HTML5 date input) and d/m/Y (manual input)
-
-			if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $delivery_date)) {
-
-				// Y-m-d format
-
-				$delivery_date = DateTime::createFromFormat('Y-m-d', $delivery_date);
-
-			} elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $delivery_date)) {
-
-				// d/m/Y format
-
-				$delivery_date = DateTime::createFromFormat('d/m/Y', $delivery_date);
-
-			} else {
-
-				$delivery_date = false;
-
-			}
-
-
-
-			$delivery_date = $delivery_date ? $delivery_date->format('Y-m-d 00:00:00') : date('Y-m-d 00:00:00');
-
-
-
-			// Get last delivery attempt for this order
-
-			$lastAttempt = $this->db->where('order_id', $order_id)
-
-				->order_by('delivery_attempt_no', 'DESC')
-
-				->limit(1)
-
-				->get('b2b_orders_delivery_details')
-
-				->row();
-
-
-
-			$currentAttempt = $lastAttempt ? (int)$lastAttempt->delivery_attempt_no : 0;
-
-			$nextAttempt    = $currentAttempt + 1;
-
-
-
-			// Allow maximum 2 attempts
-
-			if ($nextAttempt > 2) {
-
-				echo json_encode(['status' => 400, 'message' => 'Maximum 2 delivery attempts allowed.']);
-
-				exit;
-
-			}
-
-
-
-			// Map delivery + order status
-
-			$delivery_status = ($nextAttempt == 1) ? 1 : 3;
-
-			$order_status    = ($nextAttempt == 1) ? 4 : 5;
-
-
-
-			// Insert new delivery attempt record
-
-			$insertData = [
-
-				'order_id'            => $order_id,
-
-				'delivery_type'       => 2,
-
-				'driver_id'           => $driver_id,
-
-				'delivery_date'       => $delivery_date,
-
-				'remarks'             => $remarks,
-
-				'delivery_status'     => $delivery_status,
-
-				'delivery_attempt_no' => $nextAttempt,
-
-				'generate_by'         => $User_id,
-
-				'created_at'          => date('Y-m-d H:i:s'),
-
-				'ip'                  => $this->input->ip_address()
-
-			];
-
-
-
-			$this->CommonModel->insertData('b2b_orders_delivery_details', $insertData);
-
-
-
-			// Update b2b_orders table
-
-			$this->CommonModel->updateData('b2b_orders', ['order_id' => $order_id], ['status' => $order_status]);
-			// ✅ Get all products from this order
-			$orderItems = $this->db->select('product_id, qty_ordered')
-				->from('b2b_order_items')
-				->where('order_id', $order_id)
-				->get()
-				->result();
-			// echo "<pre>";
-			// print_r($orderItems);
-			// die;
-			
-
-			// ✅ Loop and update inventory
-			if (!empty($orderItems)) {
-				foreach ($orderItems as $item) {
-
-					$product_id = $item->product_id;
-					$ordered_qty = $item->qty_ordered;
-
-					// Reduce only available_qty
-					$this->db->set('qty', "qty - $ordered_qty", FALSE);
-					$this->db->where('product_id', $product_id);
-					$this->db->update('products_inventory');
-				}
-			}
-
-			echo json_encode(['status' => 200, 'message' => "Delivery attempt #$nextAttempt assigned successfully."]);
-
-			exit;
-
-		}
-
-
-
-		echo json_encode(['status' => 500, 'message' => 'Invalid data.']);
-
-		exit;
-
-	}
+{
+    if (isset($_POST['order_id'], $_POST['driver_id'])) {
+
+        $User_id   = $this->session->userdata('LoginID');
+        $order_id  = $_POST['order_id'];
+        $driver_id = $_POST['driver_id'];
+
+        // Mandatory delivery date
+        $delivery_date = trim($_POST['delivery_date'] ?? '');
+
+        if (empty($delivery_date)) {
+            echo json_encode([
+                'status'  => 400,
+                'message' => 'Delivery Date is mandatory.'
+            ]);
+            exit;
+        }
+
+        $remarks = $_POST['remarks'] ?? '';
+
+        // Normalize date
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $delivery_date)) {
+
+            // Y-m-d format
+            $delivery_date = DateTime::createFromFormat(
+                'Y-m-d',
+                $delivery_date
+            );
+
+        } elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $delivery_date)) {
+
+            // d/m/Y format
+            $delivery_date = DateTime::createFromFormat(
+                'd/m/Y',
+                $delivery_date
+            );
+
+        } else {
+            $delivery_date = false;
+        }
+
+        $delivery_date = $delivery_date
+            ? $delivery_date->format('Y-m-d 00:00:00')
+            : date('Y-m-d 00:00:00');
+
+
+        $lastAttempt = $this->db
+            ->where('order_id', $order_id)
+            ->order_by('delivery_attempt_no', 'DESC')
+            ->limit(1)
+            ->get('b2b_orders_delivery_details')
+            ->row();
+
+        $currentAttempt = $lastAttempt
+            ? (int)$lastAttempt->delivery_attempt_no
+            : 0;
+
+        $nextAttempt = $currentAttempt + 1;
+
+        if ($nextAttempt > 2) {
+            echo json_encode([
+                'status'  => 400,
+                'message' => 'Maximum 2 delivery attempts allowed.'
+            ]);
+            exit;
+        }
+
+        $delivery_status = ($nextAttempt == 1) ? 1 : 3;
+        $order_status    = ($nextAttempt == 1) ? 4 : 5;
+
+
+        $insertData = [
+            'order_id'            => $order_id,
+            'delivery_type'       => 2,
+            'driver_id'           => $driver_id,
+            'delivery_date'       => $delivery_date,
+            'remarks'             => $remarks,
+            'delivery_status'     => $delivery_status,
+            'delivery_attempt_no' => $nextAttempt,
+            'generate_by'         => $User_id,
+            'created_at'          => date('Y-m-d H:i:s'),
+            'ip'                  => $this->input->ip_address()
+        ];
+
+        $this->CommonModel->insertData(
+            'b2b_orders_delivery_details',
+            $insertData
+        );
+
+
+        $this->CommonModel->updateData(
+            'b2b_orders',
+            ['order_id' => $order_id],
+            ['status' => $order_status]
+        );
+
+
+        if ($nextAttempt == 1) {
+
+            // Get B2B order
+            $orderData = $this->CommonModel->getOrderDataByb2bOrderId(
+                $order_id
+            );
+
+            if (
+                $orderData &&
+                !empty($orderData->webshop_order_id)
+            ) {
+
+                // Get original webshop/sales order
+                $salesOrder = $this->ShopProductModel->getSingleDataByID(
+                    'sales_order',
+                    [
+                        'order_id' => $orderData->webshop_order_id
+                    ],
+                    ''
+                );
+
+                // Make sure shopper exists
+                if (
+                    $salesOrder &&
+                    !empty($salesOrder->customer_id)
+                ) {
+
+                    $current_time = date('Y-m-d H:i:s');
+
+                    $this->db->insert(
+                        'notifications',
+                        [
+                            'type'           => 'order',
+                            'subtype'        => 'order_shipped',
+                            'title'          => 'Order Shipped',
+                            'message'        => 'Your order no. ' .
+                                $salesOrder->increment_id .
+                                ' is shipped',
+                            'data'           => json_encode([
+                                'order_id' => $salesOrder->increment_id,
+                                'status'   => 'order_shipped'
+                            ]),
+                            'is_read'        => 0,
+                            'recipient_type' => 'shopper',
+                            'recipient_id'   => (int)$salesOrder->customer_id,
+                            'created_at'     => $current_time,
+                            'updated_at'     => $current_time
+                        ]
+                    );
+                }
+            }
+        }
+
+
+        $orderItems = $this->db
+            ->select('product_id, qty_ordered')
+            ->from('b2b_order_items')
+            ->where('order_id', $order_id)
+            ->get()
+            ->result();
+
+
+        if (!empty($orderItems)) {
+
+            foreach ($orderItems as $item) {
+
+                $product_id  = $item->product_id;
+                $ordered_qty = $item->qty_ordered;
+
+                $this->db->set(
+                    'qty',
+                    "qty - $ordered_qty",
+                    FALSE
+                );
+
+                $this->db->where(
+                    'product_id',
+                    $product_id
+                );
+
+                $this->db->update(
+                    'products_inventory'
+                );
+            }
+        }
+
+
+        echo json_encode([
+            'status'  => 200,
+            'message' => "Delivery attempt #$nextAttempt assigned successfully."
+        ]);
+
+        exit;
+    }
+
+    echo json_encode([
+        'status'  => 500,
+        'message' => 'Invalid data.'
+    ]);
+
+    exit;
+}
 
 
 
