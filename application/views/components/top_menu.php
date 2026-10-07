@@ -99,12 +99,12 @@ $lang = $this->session->userdata('site_lang');
                 </li>
             <?php endforeach; ?>
             <li style="text-align: center; padding-top: 8px;">
-                <a href="<?= base_url('notification'); ?>" style="color: #f60; font-weight: bold; font-size: 12px; display: block;">See all notifications</a>
+                <a href="<?= base_url('notification'); ?>" style="color: #f60; font-weight: bold; 
             </li>
         <?php else: ?>
             <li style="text-align: center; padding: 5px 0;">
                 <a href="<?= base_url('notification'); ?>" style="color: #777; font-size: 12px; text-decoration: none; display: block; padding: 5px;">
-                    No new notifications <br><span style="color: #f60; font-size: 11px; font-weight: bold;">Click to view all</span>
+                   <span style="color: #f60; font-size: 11px; font-weight: bold;">Click to view all</span>
                 </a>
             </li>
         <?php endif; ?>
