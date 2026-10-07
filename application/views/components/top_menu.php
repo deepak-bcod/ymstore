@@ -93,14 +93,10 @@ $lang = $this->session->userdata('site_lang');
             <?php foreach ($top_notifications as $notif): ?>
                 <li style="padding: 8px 0; border-bottom: 1px solid #f1f1f1;">
                     <a href="<?= base_url('notification'); ?>" style="color: #333; text-decoration: none; display: block;">
-                        <strong style="font-size: 13px; display: block;"><?= $notif->title; ?></strong>
-                        <small style="color: #777; font-size: 11px;"><?= character_limiter($notif->message, 50); ?></small>
+                        
                     </a>
                 </li>
-            <?php endforeach; ?>
-            <li style="text-align: center; padding-top: 8px;">
-                <a href="<?= base_url('notification'); ?>" style="color: #f60; font-weight: bold; font-size: 12px; display: block;">See all notifications</a>
-            </li>
+           
         <?php else: ?>
             <li style="text-align: center; padding: 5px 0;">
                 <a href="<?= base_url('notification'); ?>" style="color: #777; font-size: 12px; text-decoration: none; display: block; padding: 5px;">
