@@ -1,40 +1,4 @@
-<style>
-.notification-menu {
-    position: relative;
-    margin-left: 15px;
-}
 
-.notification-bell {
-    position: relative;
-    display: inline-block;
-    color: #fff !important;
-    font-size: 20px;
-    padding: 10px;
-}
-
-/* .notification-bell:hover {
-    color: #ffd400 !important;
-} */
-
-.notification-count {
-    position: absolute;
-    top: 2px;
-    right: 0;
-
-    background: #e53935;
-    color: #fff;
-
-    min-width: 18px;
-    height: 18px;
-
-    border-radius: 50%;
-
-    font-size: 10px;
-    line-height: 18px;
-    text-align: center;
-    font-weight: bold;
-}
-</style>
 <?php 
 // echo "<pre>"; print_r($navCatData); die;
 $allNavgte = array_column($navCatData, 'slug'); 
@@ -117,19 +81,5 @@ $lang = $this->session->userdata('site_lang');
         <?= $this->lang->line('blog'); ?>
     </a>
 </li>
-
-<!-- Notification Bell -->
-<li class="notification-menu">
-    <a href="<?= site_url('customer/notifications'); ?>" class="notification-bell">
-        <i class="fa fa-bell"></i>
-    </a>
-</li>
-
-
-
-
-
-
-
 
 </ul>
