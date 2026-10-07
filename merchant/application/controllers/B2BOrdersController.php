@@ -1063,7 +1063,7 @@ public function download_order_document($order_id) {
                     ]),
                     'is_read'        => 0,
                     'recipient_type' => 'shopper',
-                    'recipient_id'   => 8,
+                   'recipient_id'   => $orderData->customer_id,
                     'created_at'     => $current_time,
                     'updated_at'     => $current_time
                 ]
