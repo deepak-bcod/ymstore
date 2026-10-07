@@ -1048,76 +1048,31 @@ $search_term = '';
                         <!-- NOTIFICATION BELL -->
                         <!-- ================================================= -->
 
-                        <div class="customer-action notification-sign">
+                       <?php if ($this->session->userdata('LoginID')): ?>
 
+        <li class="menu-item-new notification-menu">
 
-                            <a
-                                href="javascript:void(0);"
-                                class="notification-link"
-                                id="notificationBell"
-                                aria-label="Notifications"
-                            >
+            <a href="<?= base_url('notification'); ?>"
+               class="notification-bell"
+               title="Notifications">
 
+                <!-- Bell Icon -->
+                <i class="fa fa-bell" aria-hidden="true"></i>
 
-                                <span class="notification-icon-wrapper">
+                <!-- Notification Count -->
+                <?php if (!empty($notification_count) && $notification_count > 0): ?>
 
+                    <span class="notification-count">
+                        <?= $notification_count; ?>
+                    </span>
 
-                                    <i class="fa-solid fa-bell"></i>
+                <?php endif; ?>
 
+            </a>
 
-                                    <span
-                                        class="notification-count"
-                                        id="notificationCount"
-                                        style="display:none;"
-                                    >
-                                        0
-                                    </span>
+        </li>
 
-
-                                </span>
-
-
-                            </a>
-
-
-                            <!-- ================================================= -->
-                            <!-- NOTIFICATION DROPDOWN -->
-                            <!-- ================================================= -->
-
-                            <div
-                                class="notification-dropdown"
-                                id="notificationDropdown"
-                            >
-
-
-                                <div class="notification-header">
-
-                                    <strong>
-                                        Notifications
-                                    </strong>
-
-                                </div>
-
-
-                                <div
-                                    class="notification-body"
-                                    id="notificationList"
-                                >
-
-                                    <div class="notification-empty">
-
-                                        No notifications
-
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-
-                        </div>
-
+    <?php endif; ?>
 
                         <!-- ================================================= -->
                         <!-- MERCHANT -->
