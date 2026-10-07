@@ -13,20 +13,20 @@ class Notification extends CI_Controller {
     }
 
     // View all notifications (table list page)
+    // View all notifications (table list page)
     public function index() {
         $user_id = $this->session->userdata('LoginID');
 
-        // Combine all view data into a single array or pass them cleanly
+        // Combine all view data into a single array
         $data['notifications'] = $this->Notification_model->get_notifications($user_id);
         $data['notification_count'] = $this->Notification_model->get_unread_count($user_id);
         $data['top_notifications'] = $this->Notification_model->get_latest_notifications($user_id, 3);
 
-        // Load header, view content, and footer sequentially
-        $this->load->view('header', $data);
-        $this->load->view('notification/index', $data);
-        $this->load->view('footer');
+        // Load views with their correct folder paths based on your sidebar structure
+        $this->load->view('common/header', $data); // Points to application/views/common/header.php
+        $this->load->view('notification/index', $data); // Points to application/views/notification/index.php
+        $this->load->view('common/footer'); // Points to application/views/common/footer.php
     }
-
     // Mark single notification as read
     public function mark_read($id) {
         $this->Notification_model->mark_as_read($id);
