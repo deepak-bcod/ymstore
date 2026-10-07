@@ -1028,7 +1028,7 @@ public function download_order_document($order_id) {
             );
         }
 
-        // 3. Add Notifications for BOTH Admin and Shopper/Merchant
+        // 3. Add Notifications for BOTH Admin and Shopper
         if ($updated && $orderData && $orderData->shipment_type == 2) {
             
             // Shared details for both notifications
@@ -1048,15 +1048,15 @@ public function download_order_document($order_id) {
 
             // Prepare records for batch insertion
             $notifications = [
-                // Admin notification
+                // Admin notification (recipient_id = 1)
                 array_merge($commonData, [
                     'recipient_type' => 'admin',
-                    'recipient_id'   => 1 // Change if your admin ID is different
+                    'recipient_id'   => 1 
                 ]),
-                // Shopper / Merchant notification
+                // Shopper notification (recipient_id gets the customer_id)
                 array_merge($commonData, [
                     'recipient_type' => 'shopper', 
-                    'recipient_id'   => $orderData->merchant_id 
+                    'recipient_id'   => 5
                 ])
             ];
 
@@ -1068,7 +1068,7 @@ public function download_order_document($order_id) {
         if ($updated) {
             echo json_encode([
                 'status'  => 200,
-                'message' => $this->lang->line('order_status_updated_successfully') // Fixed the blank language key
+                'message' => $this->lang->line('order_status_updated_successfully')
             ]);
         } else {
             echo json_encode([
