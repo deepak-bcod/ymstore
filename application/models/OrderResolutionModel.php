@@ -236,12 +236,14 @@ class OrderResolutionModel extends CI_Model
             }
         }
 
-        // 2. Update sales_order_items
-        $this->db->where('order_id', $order_id);
-        if (!empty($product_id)) {
-            $this->db->where('product_id', $product_id);
+        // 2. Update sales_order_items only if status column exists
+        if ($this->db->field_exists('status', 'sales_order_items')) {
+            $this->db->where('order_id', $order_id);
+            if (!empty($product_id)) {
+                $this->db->where('product_id', $product_id);
+            }
+            $this->db->update('sales_order_items', ['status' => $target_status]);
         }
-        $this->db->update('sales_order_items', ['status' => $target_status]);
     }
 
     /**
