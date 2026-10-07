@@ -266,7 +266,7 @@ function getSubOrderStatusText($status) {
                                                     30 => ['text' => $this->lang->line('not_ready') ?: 'Not Ready', 'class' => 'blue-text approved']
                                                 ];
                                                 
-                                                // If item status is not 0 → use item status
+                                                // If item status is not 0 â†’ use item status
                                                 // echo "<pre>";print_r($b2b->status);exit;
                                                 // $b2b_status_info = isset($status_map[$b2b->status]) ? $status_map[$b2b->status] : ['text'=>$this->lang->line('unknown'),'class'=>'green-text completed'];
 
@@ -324,10 +324,10 @@ function getSubOrderStatusText($status) {
                                                         $ret_item_st = isset($sub_item->return_status) ? (int)$sub_item->return_status : 0;
                                                         $sub_st = isset($sub_item->status) ? (int)$sub_item->status : 0;
 
-                                                        if ($ref_st == 1 || $ret_order_st == 4 || $ret_item_st == 4 || $sub_st == 17) {
-                                                            $final_status = 17; // Refund Paid
-                                                        } elseif (in_array($ret_order_st, [2, 5, 20]) || $ref_st == 2 || $sub_st == 20) {
+                                                        if (in_array($ret_order_st, [2, 5, 20]) || $ref_st == 2 || $ret_item_st == 2 || $sub_st == 20) {
                                                             $final_status = 20; // Return Rejected
+                                                        } elseif ($ref_st == 1 || $ret_order_st == 4 || $ret_item_st == 4 || $sub_st == 17) {
+                                                            $final_status = 17; // Refund Paid
                                                         } elseif (in_array($ret_order_st, [1, 3]) || $ret_item_st == 1 || $sub_st == 22) {
                                                             $final_status = 22; // Return Approved
                                                         } else {
@@ -561,32 +561,16 @@ function getSubOrderStatusText($status) {
                            
                              
                                 <?php
-                                // Order Resolution (Refund, Return, Replacement) is available ONLY when order status is Complete
                                 if ($order->status != 0 && $order->status != 1 && $order->status != 10 && $order->status != 11 && $order->status != 12 && $order->status != 3 && $order->status != 4 && $order->status != 5 && $order->status != 7 && $order->status != 16) {
                                 ?>
-                                    <div class="btn-group" style="margin-left: 5px; display: inline-block;">
-                                        <a href="<?php echo base_url('order_resolution/create/' . $order->order_id); ?>"
-                                            class="blue-btn-order"
-                                            style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
-                                            <i class="fa fa-ticket"></i> <?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?>
-                                        </a>
-                                        <button type="button"
-                                            class="blue-btn-order dropdown-toggle"
-                                            data-toggle="dropdown"
-                                            data-bs-toggle="dropdown"
-                                            aria-haspopup="true"
-                                            aria-expanded="false"
-                                            style="border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px; padding-right: 8px;">
-                                            <span class="caret"></span>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-right" style="min-width: 170px; padding: 5px 0;">
-                                            <li><a href="<?php echo base_url('order_resolution/create/' . $order->order_id . '?cat=Refund'); ?>" style="padding: 6px 15px; display: block; color: #333;"><i class="fa fa-undo"></i> <?php echo $this->lang->line('refund') ?: 'Refund'; ?></a></li>
-                                            <li><a href="<?php echo base_url('order_resolution/create/' . $order->order_id . '?cat=Return'); ?>" style="padding: 6px 15px; display: block; color: #333;"><i class="fa fa-exchange"></i> <?php echo $this->lang->line('return') ?: 'Return'; ?></a></li>
-                                            <li><a href="<?php echo base_url('order_resolution/create/' . $order->order_id . '?cat=Replacement'); ?>" style="padding: 6px 15px; display: block; color: #333;"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('replacement') ?: 'Replacement'; ?></a></li>
-                                        </ul>
-                                    </div>
+                                  <a href="javascript:void(0)"
+                                        class="blue-btn-order"
+                                        id="ret-btn-<?php echo $order->order_id; ?>"
+                                        onclick="openReturnPopup('<?php echo $order->order_id; ?>','<?php echo $order->increment_id; ?>'); return false;">
+                                            <?php echo $this->lang->line('return_order'); ?> / <?php echo $this->lang->line('replacement_order'); ?>
+                                    </a> 
                                 <?php 
-                                }
+                                     }
                                 ?>
                                  <?php if (isset($order->flag) && $order->flag == 'able_to_return'): ?>
                                     <!-- <button type="button"
