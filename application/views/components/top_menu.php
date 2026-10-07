@@ -97,7 +97,10 @@ $lang = $this->session->userdata('site_lang');
                         <small style="color: #777; font-size: 11px;"><?= character_limiter($notif->message, 50); ?></small>
                     </a>
                 </li>
-           
+            <?php endforeach; ?>
+            <li style="text-align: center; padding-top: 8px;">
+                <a href="<?= base_url('notification'); ?>" style="color: #f60; font-weight: bold; font-size: 12px; display: block;">See all notifications</a>
+            </li>
         <?php else: ?>
             <li style="text-align: center; padding: 5px 0;">
                 <a href="<?= base_url('notification'); ?>" style="color: #777; font-size: 12px; text-decoration: none; display: block; padding: 5px;">
