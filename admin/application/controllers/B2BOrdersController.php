@@ -18513,6 +18513,7 @@ public function markDelivered()
         $currentAttempt = $lastAttempt ? (int)$lastAttempt->delivery_attempt_no : 0;
         $nextAttempt    = $currentAttempt + 1;
 
+        // Insert delivery details
         $insertData = [
             'order_id'                  => $order_id,
             'delivery_type'             => 2,
@@ -18557,21 +18558,23 @@ public function markDelivered()
                 // SHOPPER NOTIFICATION - ORDER DELIVERED
                 // ==========================================
 
-                // Get shopper order number
+                // Get shopper order number and customer ID
                 $salesOrder = $this->db
-                    ->select('order_barcode, customer_id')
+                    ->select('increment_id, customer_id')
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
 
                 if ($salesOrder) {
 
-                    $orderNumber = $salesOrder->order_barcode;
+                    // Use increment_id as shopper order number
+                    $orderNumber = $salesOrder->increment_id;
 
-                    // Shopper/customer ID
+                    // Shopper / customer ID
                     $customerId = $salesOrder->customer_id;
 
-                    $notif_sql = "INSERT INTO notifications 
+                    // Insert shopper notification
+                    $notif_sql = "INSERT INTO notifications
                         (
                             type,
                             subtype,
@@ -18594,10 +18597,10 @@ public function markDelivered()
                         'Order delivered',
                         'Your order no. (' . $orderNumber . ') is delivered.',
                         json_encode([
-                            'order_id'         => $webshop_order_id,
-                            'order_barcode'    => $orderNumber,
-                            'b2b_order_id'     => $order_id,
-                            'status'           => 8
+                            'order_id'      => $webshop_order_id,
+                            'increment_id'  => $orderNumber,
+                            'b2b_order_id'  => $order_id,
+                            'status'        => 8
                         ]),
                         0,
                         date('Y-m-d H:i:s'),
@@ -18629,7 +18632,6 @@ public function markDelivered()
         ]);
     }
 }
-
 
 
 
