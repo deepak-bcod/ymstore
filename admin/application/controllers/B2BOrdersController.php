@@ -18494,113 +18494,141 @@ public function MarkAsFailedPopup() {
 
 
 
+public function markDelivered()
+{
+    if ($this->input->post('order_id')) {
 
-	public function markDelivered()
+        $order_id = $this->input->post('order_id');
 
-	{
+        $User_id = $this->session->userdata('LoginID');
 
-		if ($this->input->post('order_id')) {
-
-			$order_id = $this->input->post('order_id');
-
- 			$User_id    = $this->session->userdata('LoginID');
-
-
-
-
-
-			  // Get last delivery attempt for this order
-
-        $lastAttempt = $this->db->where('order_id', $order_id)
-
+        // Get last delivery attempt for this order
+        $lastAttempt = $this->db
+            ->where('order_id', $order_id)
             ->order_by('delivery_attempt_no', 'DESC')
-
             ->limit(1)
-
             ->get('b2b_orders_delivery_details')
-
             ->row();
 
-
-
         $currentAttempt = $lastAttempt ? (int)$lastAttempt->delivery_attempt_no : 0;
-
         $nextAttempt    = $currentAttempt + 1;
 
-
-
-			 $insertData = [
-
-            'order_id'            => $order_id,
-
-            'delivery_type'       => 2,
-
-            'driver_id'           => '',
-
-            'delivery_date'       => date('Y-m-d H:i:s'),
-
-            'remarks'             => 'Order Delivered Successfully',
-
-            'delivery_status'     => 8,
-
-            'delivery_attempt_no' =>   $nextAttempt,
-
-			'reason_for_attempt_failed' => 'Success',
-
-            'generate_by'         => $User_id,
-
-            'created_at'          => date('Y-m-d H:i:s'),
-
-            'ip'                  => $this->input->ip_address()
-
+        $insertData = [
+            'order_id'                  => $order_id,
+            'delivery_type'             => 2,
+            'driver_id'                 => '',
+            'delivery_date'             => date('Y-m-d H:i:s'),
+            'remarks'                   => 'Order Delivered Successfully',
+            'delivery_status'           => 8,
+            'delivery_attempt_no'       => $nextAttempt,
+            'reason_for_attempt_failed' => 'Success',
+            'generate_by'               => $User_id,
+            'created_at'                => date('Y-m-d H:i:s'),
+            'ip'                        => $this->input->ip_address()
         ];
 
+        $this->CommonModel->insertData(
+            'b2b_orders_delivery_details',
+            $insertData
+        );
 
+        // Update B2B order status to Delivered (8)
+        $updated = $this->CommonModel->updateData(
+            'b2b_orders',
+            ['order_id' => $order_id],
+            ['status' => 8]
+        );
 
-        $this->CommonModel->insertData('b2b_orders_delivery_details', $insertData);
+        if ($updated) {
 
+            // Get B2B order data
+            $orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
 
+            if ($orderData && !empty($orderData->webshop_order_id)) {
 
-			// Update status to Delivered (8)
+                $webshop_order_id = $orderData->webshop_order_id;
 
-			$updated = $this->CommonModel->updateData(
+                // Update main sales order status
+                $this->CommonModel->checkAndUpdateMainOrderStatus(
+                    $webshop_order_id
+                );
 
-				'b2b_orders',
+                // ==========================================
+                // SHOPPER NOTIFICATION - ORDER DELIVERED
+                // ==========================================
 
-				['order_id' => $order_id],
+                // Get shopper order number
+                $salesOrder = $this->db
+                    ->select('order_barcode, customer_id')
+                    ->where('order_id', $webshop_order_id)
+                    ->get('sales_order')
+                    ->row();
 
-				['status' => 8]
+                if ($salesOrder) {
 
-			);
+                    $orderNumber = $salesOrder->order_barcode;
 
+                    // Shopper/customer ID
+                    $customerId = $salesOrder->customer_id;
 
+                    $notif_sql = "INSERT INTO notifications 
+                        (
+                            type,
+                            subtype,
+                            recipient_type,
+                            recipient_id,
+                            title,
+                            message,
+                            data,
+                            is_read,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-			$orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
+                    $notif_params = [
+                        'order',
+                        'order_delivered',
+                        'shopper',
+                        $customerId,
+                        'Order delivered',
+                        'Your order no. (' . $orderNumber . ') is delivered.',
+                        json_encode([
+                            'order_id'         => $webshop_order_id,
+                            'order_barcode'    => $orderNumber,
+                            'b2b_order_id'     => $order_id,
+                            'status'           => 8
+                        ]),
+                        0,
+                        date('Y-m-d H:i:s'),
+                        date('Y-m-d H:i:s')
+                    ];
 
-			if ($orderData && !empty($orderData->webshop_order_id)) {
-				$this->CommonModel->checkAndUpdateMainOrderStatus($orderData->webshop_order_id);
-			}
+                    $this->db->query($notif_sql, $notif_params);
+                }
+            }
 
+            echo json_encode([
+                'status'  => 200,
+                'message' => 'Order marked as delivered successfully.'
+            ]);
 
+        } else {
 
-			if ($updated) {
+            echo json_encode([
+                'status'  => 500,
+                'message' => 'Failed to update order status.'
+            ]);
+        }
 
-				echo json_encode(['status' => 200, 'message' => 'Order marked as delivered successfully.']);
+    } else {
 
-			} else {
-
-				echo json_encode(['status' => 500, 'message' => 'Failed to update order status.']);
-
-			}
-
-		} else {
-
-			echo json_encode(['status' => 500, 'message' => 'Invalid request.']);
-
-		}
-
-	}
-
+        echo json_encode([
+            'status'  => 500,
+            'message' => 'Invalid request.'
+        ]);
+    }
+}
 
 
 
