@@ -1,5 +1,6 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
+defined('CURRENCY_TYPE') || define('CURRENCY_TYPE', 'MUR');
 
 class OrderResolutionModel extends CI_Model
 {

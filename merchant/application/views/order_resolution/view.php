@@ -1,4 +1,7 @@
-<?php $this->load->view('common/fbc-user/header'); ?>
+<?php 
+$currency = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
+$this->load->view('common/fbc-user/header'); 
+?>
 
 <style>
 .badge-status-open { background-color: #007bff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
@@ -97,7 +100,7 @@
                                 <?php endif; ?>
                                 <?php if ($resolution->refund_amount > 0): ?>
                                     <div class="col-md-4">
-                                        <strong>Approved Refund:</strong> <?= CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?>
+                                        <strong>Approved Refund:</strong> <?= $currency . ' ' . number_format($resolution->refund_amount, 2); ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -111,27 +114,27 @@
 
                             <!-- REFUND DECISION BUTTONS (Merchant Only) -->
                             <?php if ($resolution->merchant_action === 'none' || $resolution->merchant_action === 'refund_denied'): ?>
-                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#refundApproveModal">
+                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#refundApproveModal" data-bs-toggle="modal" data-bs-target="#refundApproveModal">
                                     <i class="fa fa-check"></i> Refund Approved
                                 </button>
                                 <?php if ($resolution->merchant_action !== 'refund_denied'): ?>
-                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#refundDeniedModal">
+                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#refundDeniedModal" data-bs-toggle="modal" data-bs-target="#refundDeniedModal">
                                         <i class="fa fa-times"></i> Refund Denied
                                     </button>
                                 <?php endif; ?>
                             <?php elseif ($resolution->merchant_action === 'refund_approved'): ?>
                                 <span class="badge badge-success p-2">
-                                    <i class="fa fa-check-circle"></i> Refund Approved (<?= CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?>)
+                                    <i class="fa fa-check-circle"></i> Refund Approved (<?= $currency . ' ' . number_format($resolution->refund_amount, 2); ?>)
                                 </span>
                             <?php endif; ?>
 
                             <!-- REPLACEMENT DECISION BUTTONS (Merchant Only) -->
                             <?php if ($resolution->merchant_action === 'none' || $resolution->merchant_action === 'replacement_denied'): ?>
-                                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#replacementApproveModal">
+                                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
                                     <i class="fa fa-refresh"></i> Replacement Approved
                                 </button>
                                 <?php if ($resolution->merchant_action !== 'replacement_denied'): ?>
-                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#replacementDeniedModal">
+                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#replacementDeniedModal" data-bs-toggle="modal" data-bs-target="#replacementDeniedModal">
                                         <i class="fa fa-ban"></i> Replacement Denied
                                     </button>
                                 <?php endif; ?>
@@ -140,7 +143,7 @@
                                     <i class="fa fa-check-circle"></i> Replacement Approved (<?= ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?>)
                                 </span>
                                 <!-- Replacement Completed: displayed ONLY after Replacement Approved AND delivery option selected -->
-                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal">
+                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
                                     <i class="fa fa-check-square-o"></i> Replacement Completed
                                 </button>
                             <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
@@ -229,7 +232,7 @@
                 <div class="modal-body">
                     <p>Confirm the approved refund amount for Order #<?= htmlspecialchars($resolution->order_number); ?>.</p>
                     <div class="form-group">
-                        <label>Refund Amount (<?= CURRENCY_TYPE ?>):</label>
+                        <label>Refund Amount (<?= $currency ?>):</label>
                         <input type="number" step="0.01" min="0.01" name="refund_amount" class="form-control" 
                                value="<?= !empty($order->grand_total) ? number_format((float)$order->grand_total, 2, '.', '') : '0.00'; ?>" required>
                     </div>
@@ -346,5 +349,31 @@
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    // Explicit click handlers for decision action modal buttons
+    $('[data-target="#refundApproveModal"], [data-bs-target="#refundApproveModal"]').on('click', function(e) {
+        e.preventDefault();
+        $('#refundApproveModal').modal('show');
+    });
+    $('[data-target="#refundDeniedModal"], [data-bs-target="#refundDeniedModal"]').on('click', function(e) {
+        e.preventDefault();
+        $('#refundDeniedModal').modal('show');
+    });
+    $('[data-target="#replacementApproveModal"], [data-bs-target="#replacementApproveModal"]').on('click', function(e) {
+        e.preventDefault();
+        $('#replacementApproveModal').modal('show');
+    });
+    $('[data-target="#replacementDeniedModal"], [data-bs-target="#replacementDeniedModal"]').on('click', function(e) {
+        e.preventDefault();
+        $('#replacementDeniedModal').modal('show');
+    });
+    $('[data-target="#replacementCompletedModal"], [data-bs-target="#replacementCompletedModal"]').on('click', function(e) {
+        e.preventDefault();
+        $('#replacementCompletedModal').modal('show');
+    });
+});
+</script>
 
 <?php $this->load->view('common/fbc-user/footer'); ?>

@@ -1,4 +1,7 @@
-<?php $this->load->view('common/fbc-user/header'); ?>
+<?php 
+$currency = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
+$this->load->view('common/fbc-user/header'); 
+?>
 
 <style>
 .badge-status-open { background-color: #007bff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
@@ -74,7 +77,7 @@
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <strong><?= ($res->refund_amount > 0) ? CURRENCY_TYPE . ' ' . number_format($res->refund_amount, 2) : 'N/A'; ?></strong>
+                                    <strong><?= ($res->refund_amount > 0) ? $currency . ' ' . number_format($res->refund_amount, 2) : 'N/A'; ?></strong>
                                 </td>
                                 <td>
                                     <span class="badge-status-<?= $status_slug; ?>">
