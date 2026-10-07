@@ -74,19 +74,19 @@ $lang = $this->session->userdata('site_lang');
         </a>
     </li>
 
-    <!-- Notification Bell Icon placed right after Blog (Visible only when logged in) -->
-    <?php if ($this->session->userdata('LoginID')): ?>
-    <li class="menu-item-new dropdown dropdown-notification" style="position: relative; display: inline-block;">
-        <a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown" style="padding: 10px; font-size: 16px; color: #333;">
-            <i class="fa fa-bell" aria-hidden="true"></i>
-            <?php if (!empty($notification_count) && $notification_count > 0): ?>
-                <span class="badge" style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; position: absolute; top: 0; right: 0;">
-                    <?= $notification_count; ?>
-                </span>
-            <?php endif; ?>
-        </a>
-        
-       <ul class="dropdown-menu dropdown-menu-right" style="width: 300px; padding: 10px; background: #fff; box-shadow: 0px 5px 15px rgba(0,0,0,0.1); left: auto; right: 0;">
+   <!-- Notification Bell Icon placed right after Blog (Visible only when logged in) -->
+<?php if ($this->session->userdata('LoginID')): ?>
+<li class="menu-item-new dropdown dropdown-notification" style="position: relative; display: inline-block;">
+    <a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown" style="padding: 10px; font-size: 16px; color: #333;">
+        <i class="fa fa-bell" aria-hidden="true"></i>
+        <?php if (!empty($notification_count) && $notification_count > 0): ?>
+            <span class="badge" style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; position: absolute; top: 0; right: 0;">
+                <?= $notification_count; ?>
+            </span>
+        <?php endif; ?>
+    </a>
+    
+    <ul class="dropdown-menu dropdown-menu-right" style="width: 300px; padding: 10px; background: #fff; box-shadow: 0px 5px 15px rgba(0,0,0,0.1); left: auto; right: 0;">
         <li style="font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 5px;">Notifications</li>
         
         <?php if (!empty($top_notifications)): ?>
@@ -99,7 +99,7 @@ $lang = $this->session->userdata('site_lang');
                 </li>
             <?php endforeach; ?>
             <li style="text-align: center; padding-top: 8px;">
-                <a href="<?= base_url('notification'); ?>" style="color: #f60; font-weight: bold; 
+                <a href="<?= base_url('notification'); ?>" style="color: #f60; font-weight: bold; font-size: 12px; display: block;">See all notifications</a>
             </li>
         <?php else: ?>
             <li style="text-align: center; padding: 5px 0;">
