@@ -99,10 +99,127 @@ $search_term = '';
       <?php (new TopMenu('top-menu'))->render(); ?>
 
     </div>
+    
+    <!-- =========================================
+         NOTIFICATION BELL
+         Bell Click -> Notification Page
+         Count Always Visible
+         ========================================= -->
+
+    <?php if ($this->session->userdata('LoginID')): ?>
+
+        <li class="menu-item-new notification-menu">
+
+            <a href="<?= base_url('notification'); ?>"
+               class="notification-bell"
+               title="Notifications">
+
+                <!-- Bell Icon -->
+                <i class="fa fa-bell" aria-hidden="true"></i>
+
+                <!-- Notification Count -->
+                <?php if (!empty($notification_count) && $notification_count > 0): ?>
+
+                    <span class="notification-count">
+                        <?= $notification_count; ?>
+                    </span>
+
+                <?php endif; ?>
+
+            </a>
+
+        </li>
+
+    <?php endif; ?>
+
+</ul>
+
+
+
+
    
     <!-- END NAVIGATION -->
   </div>
 </div>
+
+<style>
+
+/* =========================================
+   NOTIFICATION MENU
+   ========================================= */
+
+.notification-menu {
+    position: relative;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+
+/* =========================================
+   BELL ICON
+   ========================================= */
+
+.notification-bell {
+    position: relative;
+    display: inline-block;
+
+    padding: 10px;
+
+    font-size: 20px;
+
+    /* ALWAYS WHITE */
+    color: #fff !important;
+
+    text-decoration: none !important;
+
+    line-height: 1;
+}
+
+
+/* =========================================
+   REMOVE HOVER COLOR
+   ========================================= */
+
+.notification-bell:hover,
+.notification-bell:focus,
+.notification-bell:active {
+    color: #fff !important;
+    text-decoration: none !important;
+}
+
+
+/* =========================================
+   NOTIFICATION COUNT
+   ========================================= */
+
+.notification-count {
+    position: absolute;
+
+    top: 0;
+    right: 0;
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 2px 5px;
+
+    background: red;
+
+    color: #fff;
+
+    border-radius: 50%;
+
+    font-size: 10px;
+    font-weight: bold;
+
+    line-height: 14px;
+
+    text-align: center;
+
+    z-index: 10;
+}
+
+</style>
 
 
 
