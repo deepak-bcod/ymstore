@@ -128,6 +128,7 @@ if (location.pathname === '/daily-deals') {
     }
 
   }
+  
 
 
 
