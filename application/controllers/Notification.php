@@ -16,15 +16,15 @@ class Notification extends CI_Controller {
     public function index() {
         $user_id = $this->session->userdata('LoginID');
 
+        // Combine all view data into a single array or pass them cleanly
         $data['notifications'] = $this->Notification_model->get_notifications($user_id);
+        $data['notification_count'] = $this->Notification_model->get_unread_count($user_id);
+        $data['top_notifications'] = $this->Notification_model->get_latest_notifications($user_id, 3);
 
-        // Load header, view, and footer (adjust paths as per your project layout)
-        $this->load->view('frontend/header', [
-            'notification_count' => $this->Notification_model->get_unread_count($user_id),
-            'top_notifications'  => $this->Notification_model->get_latest_notifications($user_id, 3)
-        ]);
-        $this->load->view('frontend/notification/index', $data);
-        $this->load->view('frontend/footer');
+        // Load header, view content, and footer sequentially
+        $this->load->view('header', $data);
+        $this->load->view('notification/index', $data);
+        $this->load->view('footer');
     }
 
     // Mark single notification as read
