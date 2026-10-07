@@ -87,24 +87,30 @@ $lang = $this->session->userdata('site_lang');
         </a>
         
         <ul class="dropdown-menu dropdown-menu-right" style="width: 300px; padding: 10px; background: #fff; box-shadow: 0px 5px 15px rgba(0,0,0,0.1); left: auto; right: 0;">
-            <li style="font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 5px;">Notifications</li>
-            
-            <?php if (!empty($top_notifications)): ?>
-                <?php foreach ($top_notifications as $notif): ?>
-                    <li style="padding: 8px 0; border-bottom: 1px solid #f1f1f1;">
-                        <a href="<?= base_url('notification'); ?>" style="color: #333; text-decoration: none; display: block;">
-                            <strong style="font-size: 13px; display: block;"><?= $notif->title; ?></strong>
-                            <small style="color: #777; font-size: 11px;"><?= character_limiter($notif->message, 50); ?></small>
-                        </a>
-                    </li>
-                <?php endforeach; ?>
-                <li style="text-align: center; padding-top: 8px;">
-                    <a href="<?= base_url('notification'); ?>" style="color: #f60; font-weight: bold; font-size: 12px;">See all notifications</a>
+        <li style="font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 5px;">Notifications</li>
+        
+        <?php if (!empty($top_notifications)): ?>
+            <?php foreach ($top_notifications as $notif): ?>
+                <li style="padding: 8px 0; border-bottom: 1px solid #f1f1f1;">
+                    <a href="<?= base_url('notification'); ?>" style="color: #333; text-decoration: none; display: block;">
+                        <strong style="font-size: 13px; display: block;"><?= $notif->title; ?></strong>
+                        <small style="color: #777; font-size: 11px;"><?= character_limiter($notif->message, 50); ?></small>
+                    </a>
                 </li>
-            <?php else: ?>
-                <li style="text-align: center; padding: 10px; color: #777;">No new notifications</li>
-            <?php endif; ?>
-        </ul>
+            <?php endforeach; ?>
+            <li style="text-align: center; padding-top: 8px;">
+                <a href="<?= base_url('notification'); ?>" style="color: #f60; font-weight: bold; font-size: 12px; display: block;">See all notifications</a>
+            </li>
+        <?php else: ?>
+            <li style="text-align: center; padding: 5px 0;">
+                <a href="<?= base_url('notification'); ?>" style="color: #777; font-size: 12px; text-decoration: none; display: block; padding: 5px;">
+                    No new notifications <br><span style="color: #f60; font-size: 11px; font-weight: bold;">Click to view all</span>
+                </a>
+            </li>
+        <?php endif; ?>
+    </ul>
+</li>
+<?php endif; ?>
     </li>
     <?php endif; ?>
 
