@@ -15,9 +15,6 @@ class OrderResolutionController extends CI_Controller
 
         $this->load->model('CommonModel');
         $this->load->model('OrderResolutionModel');
-
-        $site_lang = $this->session->userdata('site_lang') ?: 'english';
-        $this->lang->load('content', $site_lang);
     }
 
     /**
