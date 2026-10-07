@@ -18312,15 +18312,23 @@ public function MarkAsFailed()
         $attempt_no = (int)$_POST['attempt_no'];
         $reason     = $_POST['reason_for_attempt_failed'] ?? '';
 
+        // ==========================================================
+        // VALIDATE REASON
+        // ==========================================================
         if (empty($reason)) {
+
             echo json_encode([
                 'status'  => 500,
                 'message' => 'Reason for failure is required.'
             ]);
+
             exit;
         }
 
-        // Map failed attempt status
+
+        // ==========================================================
+        // MAP FAILED ATTEMPT STATUS
+        // ==========================================================
         switch ($attempt_no) {
 
             case 1:
@@ -18337,31 +18345,40 @@ public function MarkAsFailed()
 
             default:
                 $failedStatus = 2;
+                break;
         }
 
-        // Check if delivery attempt exists
+
+        // ==========================================================
+        // CHECK IF DELIVERY ATTEMPT EXISTS
+        // ==========================================================
         $record = $this->CommonModel->getSingleDataByID(
             'b2b_orders_delivery_details',
             [
-                'order_id' => $order_id,
+                'order_id'            => $order_id,
                 'delivery_attempt_no' => $attempt_no
             ],
             '*'
         );
 
         if (!$record) {
+
             echo json_encode([
                 'status'  => 500,
                 'message' => 'Delivery attempt not found.'
             ]);
+
             exit;
         }
 
-        // Update delivery attempt
+
+        // ==========================================================
+        // UPDATE DELIVERY ATTEMPT
+        // ==========================================================
         $updated = $this->CommonModel->updateData(
             'b2b_orders_delivery_details',
             [
-                'order_id' => $order_id,
+                'order_id'            => $order_id,
                 'delivery_attempt_no' => $attempt_no
             ],
             [
@@ -18371,22 +18388,28 @@ public function MarkAsFailed()
             ]
         );
 
+
         if (!$updated) {
+
             echo json_encode([
                 'status'  => 500,
                 'message' => 'No changes were made.'
             ]);
+
             exit;
         }
 
-        /*
-         * ==========================================================
-         * ATTEMPT 2 FAILED
-         * ==========================================================
-         */
+
+        // ==========================================================
+        // ATTEMPT 2 FAILED
+        // ==========================================================
         if ($attempt_no == 2) {
 
-            // Update B2B order status to 13 = Warehouse Pickup
+
+            // ======================================================
+            // UPDATE B2B ORDER STATUS
+            // 13 = Collect From Warehouse
+            // ======================================================
             $this->CommonModel->updateData(
                 'b2b_orders',
                 [
@@ -18397,47 +18420,70 @@ public function MarkAsFailed()
                 ]
             );
 
-            /*
-             * Get B2B order
-             * webshop_order_id points to sales_order.order_id
-             */
+
+            // ======================================================
+            // GET B2B ORDER
+            // ======================================================
             $b2bOrder = $this->db
                 ->where('order_id', $order_id)
                 ->get('b2b_orders')
                 ->row();
 
-            if (!empty($b2bOrder) && !empty($b2bOrder->webshop_order_id)) {
 
-                // Get customer/order information
-                $salesOrder = $this->db
-                    ->where('order_id', $b2bOrder->webshop_order_id)
-                    ->get('sales_order')
-                    ->row();
+            if (!empty($b2bOrder)) {
 
-                if (!empty($salesOrder) && !empty($salesOrder->customer_email)) {
 
-                    $customerName = trim(
-                        ($salesOrder->customer_firstname ?? '') . ' ' .
-                        ($salesOrder->customer_lastname ?? '')
-                    );
+                // ==================================================
+                // GET SALES ORDER
+                // webshop_order_id points to sales_order.order_id
+                // ==================================================
+                $salesOrder = null;
+
+                if (!empty($b2bOrder->webshop_order_id)) {
+
+                    $salesOrder = $this->db
+                        ->where('order_id', $b2bOrder->webshop_order_id)
+                        ->get('sales_order')
+                        ->row();
+                }
+
+
+                // ==================================================
+                // CUSTOMER NAME
+                // ==================================================
+                $customerName = trim(
+                    ($b2bOrder->customer_firstname ?? '') . ' ' .
+                    ($b2bOrder->customer_lastname ?? '')
+                );
+
+
+                // ==================================================
+                // SEND ATTEMPT 2 FAILED EMAIL
+                // ==================================================
+                if (
+                    !empty($salesOrder) &&
+                    !empty($salesOrder->customer_email)
+                ) {
 
                     /*
                      * Email template variables
-                     *
-                     * These names MUST match the placeholders
-                     * used in your email_template content.
                      */
                     $TempVars = [
-						'##CUSTOMERNAME##',
-						'##ORDERNO##',
-						'##REASON##'
-					];
+                        '##CUSTOMERNAME##',
+                        '##ORDERNO##',
+                        '##REASON##'
+                    ];
 
-					$DynamicVars = [
-						$customerName,
-						$salesOrder->increment_id,
-						$reason
-					];
+
+                    /*
+                     * Use B2B increment_id for order number
+                     */
+                    $DynamicVars = [
+                        $customerName,
+                        $b2bOrder->increment_id,
+                        $reason
+                    ];
+
 
                     // Send Attempt 2 Failed email
                     $this->CommonModel->sendCommonHTMLEmail(
@@ -18447,25 +18493,88 @@ public function MarkAsFailed()
                         $DynamicVars
                     );
                 }
+
+
+                // ==================================================
+                // ADD SHOPPER NOTIFICATION
+                // ==================================================
+                if (!empty($b2bOrder->customer_id)) {
+
+
+                    /*
+                     * Notification title
+                     */
+                    $notificationTitle = 'Order Failed';
+
+
+                    /*
+                     * Use B2B increment_id in notification
+                     */
+                    $notificationMessage =
+                        'Your order no. (' .
+                        $b2bOrder->increment_id .
+                        ') could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.';
+
+
+                    /*
+                     * Notification data
+                     */
+                    $notificationData = json_encode([
+                        'order_id'          => $b2bOrder->order_id,
+                        'increment_id'      => $b2bOrder->increment_id,
+                        'order_barcode'     => $b2bOrder->order_barcode,
+                        'webshop_order_id'  => $b2bOrder->webshop_order_id,
+                        'failure_reason'    => $reason
+                    ]);
+
+
+                    /*
+                     * Insert shopper notification
+                     */
+                    $this->db->insert(
+                        'notifications',
+                        [
+                            'type'           => 'order',
+                            'subtype'        => 'delivery_failed',
+                            'recipient_type' => 'shopper',
+                            'recipient_id'   => $b2bOrder->customer_id,
+                            'title'          => $notificationTitle,
+                            'message'        => $notificationMessage,
+                            'data'           => $notificationData,
+                            'is_read'        => 0,
+                            'created_at'     => date('Y-m-d H:i:s'),
+                            'updated_at'     => date('Y-m-d H:i:s')
+                        ]
+                    );
+                }
             }
         }
 
+
+        // ==========================================================
+        // SUCCESS RESPONSE
+        // ==========================================================
         echo json_encode([
             'status'  => 200,
             'message' => 'Delivery attempt marked as failed.'
         ]);
+
         exit;
+
 
     } else {
 
+        // ==========================================================
+        // INVALID DATA
+        // ==========================================================
         echo json_encode([
             'status'  => 500,
             'message' => 'Invalid data.'
         ]);
+
         exit;
     }
 }
-
 
 
 
