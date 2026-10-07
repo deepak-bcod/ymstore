@@ -17999,8 +17999,8 @@ class B2BOrdersController extends CI_Controller
                             'subtype'        => 'order_shipped',
                             'title'          => 'Order Shipped',
                             'message'        => 'Your order no. ' .
-                                $salesOrder->increment_id .
-                                ' is shipped',
+                            $orderData->increment_id .
+                            ' is shipped',
                             'data'           => json_encode([
                                 'order_id' => $salesOrder->increment_id,
                                 'status'   => 'order_shipped'
