@@ -173,120 +173,232 @@
         /* NOTIFICATION BELL */
         /* ================================================= */
 
-/* =========================================
-   NOTIFICATION BELL
-========================================= */
+        .notification-sign {
+            position: relative;
 
-.notification-sign {
-    position: relative;
+            display: flex;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+            align-items: center;
 
-    margin: 0 5px;
+            justify-content: center;
 
-    flex-shrink: 0;
-}
+            margin: 0 5px;
 
-.notification-bell {
-    position: relative;
+            flex-shrink: 0;
+        }
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+        .notification-link {
+            position: relative;
 
-    width: 42px;
-    height: 42px;
+            display: flex;
 
-    color: #ffffff !important;
+            align-items: center;
 
-    text-decoration: none !important;
+            justify-content: center;
 
-    cursor: pointer;
-}
+            width: 42px;
 
+            height: 42px;
 
-/* Bell icon */
+            color: #ffffff !important;
 
-.notification-bell .notification-icon-wrapper {
-    position: relative;
+            text-decoration: none !important;
 
-    display: inline-flex;
+            cursor: pointer;
+        }
 
-    align-items: center;
-    justify-content: center;
-}
+        .notification-icon-wrapper {
+            position: relative;
 
+            display: inline-flex;
 
-.notification-bell .notification-icon-wrapper i {
-    font-size: 21px;
+            align-items: center;
 
-    color: #ffffff !important;
+            justify-content: center;
+        }
 
-    line-height: 1;
-}
+        .notification-icon-wrapper i {
+            font-size: 21px;
 
+            color: #ffffff !important;
 
-/* Hover */
+            line-height: 1;
+        }
 
-.notification-bell:hover .notification-icon-wrapper i {
-    color: #ffd400 !important;
-}
+        .notification-link:hover
+        .notification-icon-wrapper i {
+            color: #ffd400 !important;
+        }
 
 
-/* =========================================
-   RED COUNT
-========================================= */
+        /* ================================================= */
+        /* NOTIFICATION RED COUNT */
+        /* ================================================= */
 
-.notification-count {
-    position: absolute;
+        .notification-count {
+            position: absolute;
 
-    top: -9px;
-    right: -11px;
+            top: -8px;
 
-    min-width: 19px;
-    height: 19px;
+            right: -10px;
 
-    padding: 0 5px;
+            min-width: 18px;
 
-    background: #e60000;
+            height: 18px;
 
-    color: #ffffff !important;
+            padding: 0 5px;
 
-    border-radius: 50%;
+            background: #e60000;
 
-    font-size: 10px;
+            color: #ffffff;
 
-    font-weight: 700;
+            border-radius: 50%;
 
-    display: flex;
+            font-size: 10px;
 
-    align-items: center;
+            font-weight: 700;
 
-    justify-content: center;
+            display: flex;
 
-    line-height: 19px;
+            align-items: center;
 
-    text-align: center;
+            justify-content: center;
 
-    border: 2px solid #ffffff;
+            line-height: 18px;
 
-    z-index: 9999;
+            text-align: center;
 
-    box-sizing: border-box;
-}
+            border: 2px solid #ffffff;
 
-
-/* For 10+ notifications */
-
-.notification-count {
-    min-width: 20px;
-
-    border-radius: 10px;
-}
+            z-index: 10;
+        }
 
 
+        /* ================================================= */
+        /* NOTIFICATION DROPDOWN */
+        /* ================================================= */
+
+        .notification-dropdown {
+            position: absolute;
+
+            top: 48px;
+
+            right: -100px;
+
+            width: 320px;
+
+            background: #ffffff;
+
+            border-radius: 6px;
+
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.20);
+
+            z-index: 999999;
+
+            display: none;
+
+            overflow: hidden;
+        }
+
+        .notification-dropdown.show {
+            display: block;
+        }
+
+
+        /* ================================================= */
+        /* NOTIFICATION HEADER */
+        /* ================================================= */
+
+        .notification-header {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 12px 15px;
+
+            border-bottom: 1px solid #eeeeee;
+
+            background: #ffffff;
+
+            color: #333333;
+
+            font-size: 15px;
+        }
+
+
+        /* ================================================= */
+        /* NOTIFICATION BODY */
+        /* ================================================= */
+
+        .notification-body {
+            max-height: 350px;
+
+            overflow-y: auto;
+        }
+
+
+        /* ================================================= */
+        /* EMPTY NOTIFICATION */
+        /* ================================================= */
+
+        .notification-empty {
+            padding: 25px 15px;
+
+            text-align: center;
+
+            color: #777777;
+
+            font-size: 14px;
+        }
+
+
+        /* ================================================= */
+        /* NOTIFICATION ITEM */
+        /* ================================================= */
+
+        .notification-item {
+            display: block;
+
+            padding: 12px 15px;
+
+            border-bottom: 1px solid #eeeeee;
+
+            text-decoration: none !important;
+
+            color: #333333 !important;
+
+            background: #ffffff;
+        }
+
+        .notification-item:hover {
+            background: #f7f7f7;
+        }
+
+        .notification-item-title {
+            font-weight: 700;
+
+            font-size: 14px;
+
+            margin-bottom: 4px;
+        }
+
+        .notification-item-message {
+            font-size: 13px;
+
+            color: #666666;
+
+            line-height: 18px;
+        }
+
+        .notification-item-time {
+            font-size: 11px;
+
+            color: #999999;
+
+            margin-top: 5px;
+        }
 
 
         /* ================================================= */
@@ -936,31 +1048,76 @@ $search_term = '';
                         <!-- NOTIFICATION BELL -->
                         <!-- ================================================= -->
 
-                       <?php if ($this->session->userdata('LoginID')): ?>
+                        <div class="customer-action notification-sign">
 
-        <li class="menu-item-new notification-menu">
 
-            <a href="<?= base_url('notification'); ?>"
-               class="notification-bell"
-               title="Notifications">
+                            <a
+                                href="javascript:void(0);"
+                                class="notification-link"
+                                id="notificationBell"
+                                aria-label="Notifications"
+                            >
 
-                <!-- Bell Icon -->
-                <i class="fa fa-bell" aria-hidden="true"></i>
 
-                <!-- Notification Count -->
-                <?php if (!empty($notification_count) && $notification_count > 0): ?>
+                                <span class="notification-icon-wrapper">
 
-                    <span class="notification-count">
-                        <?= $notification_count; ?>
-                    </span>
 
-                <?php endif; ?>
+                                    <i class="fa-solid fa-bell"></i>
 
-            </a>
 
-        </li>
+                                    <span
+                                        class="notification-count"
+                                        id="notificationCount"
+                                        style="display:none;"
+                                    >
+                                        0
+                                    </span>
 
-    <?php endif; ?>
+
+                                </span>
+
+
+                            </a>
+
+
+                            <!-- ================================================= -->
+                            <!-- NOTIFICATION DROPDOWN -->
+                            <!-- ================================================= -->
+
+                            <div
+                                class="notification-dropdown"
+                                id="notificationDropdown"
+                            >
+
+
+                                <div class="notification-header">
+
+                                    <strong>
+                                        Notifications
+                                    </strong>
+
+                                </div>
+
+
+                                <div
+                                    class="notification-body"
+                                    id="notificationList"
+                                >
+
+                                    <div class="notification-empty">
+
+                                        No notifications
+
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
 
                         <!-- ================================================= -->
                         <!-- MERCHANT -->
@@ -1718,7 +1875,91 @@ $search_term = '';
 <!-- NOTIFICATION JAVASCRIPT -->
 <!-- ========================================================= -->
 
+<script>
 
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+
+
+        var notificationBell =
+            document.getElementById(
+                'notificationBell'
+            );
+
+
+        var notificationDropdown =
+            document.getElementById(
+                'notificationDropdown'
+            );
+
+
+        if (
+            !notificationBell ||
+            !notificationDropdown
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+         * OPEN / CLOSE BELL
+         */
+
+        notificationBell.addEventListener(
+            'click',
+            function (e) {
+
+
+                e.preventDefault();
+
+                e.stopPropagation();
+
+
+                notificationDropdown
+                    .classList
+                    .toggle('show');
+
+            }
+        );
+
+
+        /*
+         * DO NOT CLOSE INSIDE DROPDOWN
+         */
+
+        notificationDropdown.addEventListener(
+            'click',
+            function (e) {
+
+                e.stopPropagation();
+
+            }
+        );
+
+
+        /*
+         * CLOSE OUTSIDE
+         */
+
+        document.addEventListener(
+            'click',
+            function () {
+
+                notificationDropdown
+                    .classList
+                    .remove('show');
+
+            }
+        );
+
+
+    }
+);
+
+</script>
 
 
 </body>
