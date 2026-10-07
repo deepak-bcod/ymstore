@@ -128,7 +128,6 @@ if (location.pathname === '/daily-deals') {
     }
 
   }
-  
 
 
 
@@ -376,51 +375,6 @@ if (location.pathname === '/daily-deals') {
 
 
             </div>
-            <div class="col-lg-6 col-md-9 right-header-middle">
-
-            <div class="right-middle-header">
-
-              <div class="customer-action admin-sign">
-
-
-                <?php if ($this->session->userdata('LoginID')) {
-                  ?>
-         
-
-                  <ul class="header-link-profile">
-                    <li class="myprofile"><a href="<?php echo base_url() ?>customer/account">
-                      <div class="icon-white"><i class="fa fa-user"></i></div>
-                      <?= $this->lang->line('my_profile'); ?>
-                    </a></li>
-                    <li class="signout"><a class="login-link" href="<?php echo base_url() . 'customer/logout' ?>">
-                      <div class="icon-white"><i class="fa fa-sign-out"></i></div>
-                      <?= $this->lang->line('sign_out'); ?>
-                    </a></li>
-                  </ul>
-                <?php } else { ?>
-  <div class="icon-white"><i class="fa fa-user"></i></div>
-  <div class="link-customer-action">
-    <a class="login-link" href="<?php echo base_url() . 'customer/login' ?>">
-      <?= $this->lang->line('shopper_signin'); ?>
-    </a>
-    <a class="register-link" href="<?php echo base_url() . 'customer/register' ?>">
-      <?= $this->lang->line('register_as_shopper'); ?>
-    </a>
-  </div>
-<?php } ?>
-
-
-
-            </div>
-
-            <!-- Notification Bell Icon Section -->
-            <div class="customer-action notification-sign" style="display: flex; align-items: center; margin: 0 15px;">
-              <a href="javascript:void(0);" class="notification-link" style="color: #fff; text-decoration: none; display: flex; align-items: center;">
-                <div class="icon-white" style="font-size: 18px;"><i class="fa fa-bell"></i></div>
-              </a>
-            </div>
-
-          
 
             <!-- Merchant -->
             <div class="customer-action merchant-sign">
