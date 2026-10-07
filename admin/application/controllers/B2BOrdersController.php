@@ -18495,58 +18495,46 @@ public function MarkAsFailed()
                 }
 
 
-                // ==================================================
-                // ADD SHOPPER NOTIFICATION
-                // ==================================================
-                if (!empty($b2bOrder->customer_id)) {
+                /// ==================================================
+// ADD SHOPPER NOTIFICATION
+// ==================================================
+if (!empty($salesOrder) && !empty($salesOrder->customer_id)) {
 
+    // Notification title
+    $notificationTitle = 'Order Failed';
 
-                    /*
-                     * Notification title
-                     */
-                    $notificationTitle = 'Order Failed';
+    // Use B2B order increment_id
+    $notificationMessage =
+        'Your order no. (' .
+        $b2bOrder->increment_id .
+        ') could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.';
 
+    // Notification data
+    $notificationData = json_encode([
+        'order_id'         => $b2bOrder->order_id,
+        'increment_id'     => $b2bOrder->increment_id,
+        'order_barcode'    => $b2bOrder->order_barcode,
+        'webshop_order_id' => $b2bOrder->webshop_order_id,
+        'failure_reason'   => $reason
+    ]);
 
-                    /*
-                     * Use B2B increment_id in notification
-                     */
-                    $notificationMessage =
-                        'Your order no. (' .
-                        $b2bOrder->increment_id .
-                        ') could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.';
-
-
-                    /*
-                     * Notification data
-                     */
-                    $notificationData = json_encode([
-                        'order_id'          => $b2bOrder->order_id,
-                        'increment_id'      => $b2bOrder->increment_id,
-                        'order_barcode'     => $b2bOrder->order_barcode,
-                        'webshop_order_id'  => $b2bOrder->webshop_order_id,
-                        'failure_reason'    => $reason
-                    ]);
-
-
-                    /*
-                     * Insert shopper notification
-                     */
-                    $this->db->insert(
-                        'notifications',
-                        [
-                            'type'           => 'order',
-                            'subtype'        => 'delivery_failed',
-                            'recipient_type' => 'shopper',
-                            'recipient_id'   => $b2bOrder->customer_id,
-                            'title'          => $notificationTitle,
-                            'message'        => $notificationMessage,
-                            'data'           => $notificationData,
-                            'is_read'        => 0,
-                            'created_at'     => date('Y-m-d H:i:s'),
-                            'updated_at'     => date('Y-m-d H:i:s')
-                        ]
-                    );
-                }
+    // Insert shopper notification
+    $this->db->insert(
+        'notifications',
+        [
+            'type'           => 'order',
+            'subtype'        => 'delivery_failed',
+            'recipient_type' => 'shopper',
+            'recipient_id'   => $salesOrder->customer_id,
+            'title'          => $notificationTitle,
+            'message'        => $notificationMessage,
+            'data'           => $notificationData,
+            'is_read'        => 0,
+            'created_at'     => date('Y-m-d H:i:s'),
+            'updated_at'     => date('Y-m-d H:i:s')
+        ]
+    );
+}
             }
         }
 
