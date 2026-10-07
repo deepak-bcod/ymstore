@@ -458,3 +458,7 @@ $route['webshop/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
 $route['webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
 
 
+$route['notification'] = 'Notification/index';
+$route['notification/mark_read/(:num)'] = 'Notification/mark_read/$1';
+$route['notification/mark_all_read'] = 'Notification/mark_all_read';
+
