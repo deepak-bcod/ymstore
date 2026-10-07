@@ -86,7 +86,7 @@ $lang = $this->session->userdata('site_lang');
             <?php endif; ?>
         </a>
         
-        <ul class="dropdown-menu dropdown-menu-right" style="width: 300px; padding: 10px; background: #fff; box-shadow: 0px 5px 15px rgba(0,0,0,0.1); left: auto; right: 0;">
+       <ul class="dropdown-menu dropdown-menu-right" style="width: 300px; padding: 10px; background: #fff; box-shadow: 0px 5px 15px rgba(0,0,0,0.1); left: auto; right: 0;">
         <li style="font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 5px;">Notifications</li>
         
         <?php if (!empty($top_notifications)): ?>
@@ -111,7 +111,5 @@ $lang = $this->session->userdata('site_lang');
     </ul>
 </li>
 <?php endif; ?>
-    </li>
-    <?php endif; ?>
 
 </ul>
