@@ -1837,16 +1837,7 @@ document.addEventListener(
     function () {
 
 
-        var notificationBell =
-            document.getElementById(
-                'notificationBell'
-            );
-
-
-        var notificationDropdown =
-            document.getElementById(
-                'notificationDropdown'
-            );
+        
 
 
         if (
