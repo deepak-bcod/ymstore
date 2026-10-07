@@ -468,3 +468,8 @@ $route['order_resolution/reply']                         = 'OrderResolutionContr
 $route['order_resolution/request_resolution']           = 'OrderResolutionController/request_resolution';
 $route['order_resolution/get_order_products_ajax/(:num)']= 'OrderResolutionController/get_order_products_ajax/$1';
 
+$route['notification'] = 'Notification/index';
+$route['notification/mark_read/(:num)'] = 'Notification/mark_read/$1';
+$route['notification/mark_all_read'] = 'Notification/mark_all_read';
+
+

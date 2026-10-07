@@ -546,6 +546,8 @@ class DbCheckout
 
 				$this->dbl->dbl_conn->rawQuery($notif_sql, $notif_params);
 
+				
+
 
 				return $last_insert_id;
 
