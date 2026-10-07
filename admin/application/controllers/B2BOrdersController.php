@@ -18638,7 +18638,7 @@ public function markDelivered()
                             'Order delivered',
 
                             // ONLY B2B ORDER NUMBER
-                            'Your order no. (' . $b2bOrderNumber . ') is delivered.',
+                            'Your order no. ' . $b2bOrderNumber . ' is delivered.',
 
                             json_encode([
                                 'order_id'      => $webshop_order_id,
