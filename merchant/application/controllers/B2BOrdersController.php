@@ -1056,7 +1056,7 @@ public function download_order_document($order_id) {
                 // Shopper notification (recipient_id gets the customer_id)
                 array_merge($commonData, [
                     'recipient_type' => 'shopper', 
-                    'recipient_id'   => 5
+                    'recipient_id'   => 8
                 ])
             ];
 
