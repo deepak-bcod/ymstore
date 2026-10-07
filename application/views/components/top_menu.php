@@ -1,7 +1,5 @@
 
 <?php 
-// echo "<pre>"; print_r($navCatData); die;
-
 $allNavgte = array_column($navCatData, 'slug'); 
 $currNav   = $this->uri->segment(2);
 $currNav1  = $this->uri->segment(3);
@@ -14,20 +12,25 @@ $lang      = $this->session->userdata('site_lang');
     <?php if (!empty($navCatData) && $menuType === 'category_menu') : ?>
 
         <li class="dropdown dropdown-megamenu <?= in_array($currNav, $allNavgte) ? 'active' : ''; ?>">
+
             <a class="dropdown-toggle" data-toggle="dropdown" href="javascript:;">
                 <?= $this->lang->line('categories'); ?>
             </a>
 
             <ul class="dropdown-menu">
+
                 <li>
+
                     <?php $lang = $this->session->userdata('site_lang'); ?>
 
                     <div class="header-navigation-content">
+
                         <div class="row">
 
                             <?php foreach (array_chunk($navCatData, 12) as $navCat) : ?>
 
                                 <div class="col-md-3 header-navigation-col">
+
                                     <ul>
 
                                         <?php foreach ($navCat as $nav) :
@@ -44,23 +47,29 @@ $lang      = $this->session->userdata('site_lang');
                                         ?>
 
                                             <li class="<?= ($currNav === $nav->slug) ? 'active' : ''; ?>">
+
                                                 <a href="<?= linkUrl('category/' . $nav->slug); ?>">
                                                     <?= $nvName; ?>
                                                 </a>
+
                                             </li>
 
                                         <?php endforeach; ?>
 
                                     </ul>
+
                                 </div>
 
                             <?php endforeach; ?>
 
                         </div>
+
                     </div>
 
                 </li>
+
             </ul>
+
         </li>
 
     <?php endif; ?>
@@ -108,8 +117,8 @@ $lang      = $this->session->userdata('site_lang');
 
     <!-- =========================================
          NOTIFICATION BELL
-         Click Bell -> Notification Page
-         Count shown on Bell
+         Bell Click -> Notification Page
+         Count Always Visible
          ========================================= -->
 
     <?php if ($this->session->userdata('LoginID')): ?>
@@ -120,8 +129,10 @@ $lang      = $this->session->userdata('site_lang');
                class="notification-bell"
                title="Notifications">
 
+                <!-- Bell Icon -->
                 <i class="fa fa-bell" aria-hidden="true"></i>
 
+                <!-- Notification Count -->
                 <?php if (!empty($notification_count) && $notification_count > 0): ?>
 
                     <span class="notification-count">
@@ -141,29 +152,58 @@ $lang      = $this->session->userdata('site_lang');
 
 <style>
 
+/* =========================================
+   NOTIFICATION MENU
+   ========================================= */
+
 .notification-menu {
     position: relative;
     display: inline-block;
     margin-left: 10px;
 }
 
+
+/* =========================================
+   BELL ICON
+   ========================================= */
+
 .notification-bell {
     position: relative;
     display: inline-block;
+
     padding: 10px;
-    font-size: 18px;
-    color: #333 !important;
+
+    font-size: 20px;
+
+    /* ALWAYS WHITE */
+    color: #fff !important;
+
     text-decoration: none !important;
+
     line-height: 1;
 }
 
-.notification-bell:hover {
-    color: #f60 !important;
+
+/* =========================================
+   REMOVE HOVER COLOR
+   ========================================= */
+
+.notification-bell:hover,
+.notification-bell:focus,
+.notification-bell:active {
+    color: #fff !important;
+    text-decoration: none !important;
 }
+
+
+/* =========================================
+   NOTIFICATION COUNT
+   ========================================= */
 
 .notification-count {
     position: absolute;
-    top: 2px;
+
+    top: 0;
     right: 0;
 
     min-width: 18px;
@@ -172,6 +212,7 @@ $lang      = $this->session->userdata('site_lang');
     padding: 2px 5px;
 
     background: red;
+
     color: #fff;
 
     border-radius: 50%;
@@ -180,6 +221,7 @@ $lang      = $this->session->userdata('site_lang');
     font-weight: bold;
 
     line-height: 14px;
+
     text-align: center;
 
     z-index: 10;
