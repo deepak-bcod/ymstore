@@ -20,6 +20,64 @@ class OrderResolutionModel extends CI_Model
     }
 
     /**
+     * Check if an order is eligible for resolution (Status must be 'Complete')
+     *
+     * @param int|object $order_id_or_obj
+     * @return bool
+     */
+    public function is_order_complete($order_id_or_obj)
+    {
+        if (is_object($order_id_or_obj)) {
+            $status = $order_id_or_obj->status ?? null;
+        } else {
+            $row = $this->db->select('order_id, status')->where('order_id', (int)$order_id_or_obj)->get('sales_order')->row();
+            if (!$row) return false;
+            $status = $row->status;
+        }
+
+        if ($status === null) return false;
+
+        if (is_string($status) && strtolower($status) === 'complete') {
+            return true;
+        }
+
+        $non_completed_statuses = [0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 13, 16];
+        $status_int = (int)$status;
+
+        if (in_array($status_int, $non_completed_statuses, true)) {
+            return false;
+        }
+
+        // 2 = Completed, 8 = Completed, 9 = Completed, or dispute states (14..23)
+        $completed_statuses = [2, 8, 9, 14, 15, 17, 18, 19, 20, 21, 22, 23];
+        return in_array($status_int, $completed_statuses, true);
+    }
+
+    /**
+     * Fetch customer orders eligible for resolution (Only completed orders)
+     *
+     * @param int $customer_id
+     * @return array
+     */
+    public function get_customer_completed_orders($customer_id)
+    {
+        $all_orders = $this->db->select('order_id, increment_id, status, created_at, grand_total')
+            ->from('sales_order')
+            ->where('customer_id', (int)$customer_id)
+            ->order_by('order_id', 'DESC')
+            ->get()
+            ->result();
+
+        $completed_orders = [];
+        foreach ($all_orders as $order) {
+            if ($this->is_order_complete($order)) {
+                $completed_orders[] = $order;
+            }
+        }
+        return $completed_orders;
+    }
+
+    /**
      * Create a new Order Resolution ticket
      */
     public function create_resolution($data)
@@ -140,7 +198,7 @@ class OrderResolutionModel extends CI_Model
         // Update product / order status in b2b & sales_order
         if (strtolower($category) === 'replacement') {
             $this->update_order_item_status($order_id, $product_id, $merchant_id, 15); // Replacement Requested
-        } elseif (strtolower($category) === 'refund') {
+        } elseif (in_array(strtolower($category), ['refund', 'return'], true)) {
             $this->update_order_item_status($order_id, $product_id, $merchant_id, 14); // Return/Refund Requested
         }
 

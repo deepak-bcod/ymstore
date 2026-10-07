@@ -31,16 +31,22 @@
                         <div class="alert alert-danger"><?php echo $this->session->flashdata('error'); ?></div>
                     <?php endif; ?>
 
+                    <?php if (empty($orders)): ?>
+                        <div class="alert alert-warning" style="margin-bottom: 20px;">
+                            <i class="fa fa-exclamation-triangle"></i>
+                            <strong>No completed orders found.</strong> Order Resolution (Refund, Return, Replacement) is only available for orders with status "Complete". Once an order is completed, you can raise a resolution request here.
+                        </div>
+                    <?php endif; ?>
+
                     <form action="<?php echo base_url('order_resolution/store'); ?>" method="POST" enctype="multipart/form-data">
                         <div class="row">
                             <!-- Category -->
                             <div class="col-md-6 form-group">
                                 <label for="category"><b><?php echo $this->lang->line('category') ?: 'Category'; ?> <span class="text-danger">*</span></b></label>
-                                <select name="category" id="category" class="form-control" required>
-                                    <option value="Delivery" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Delivery') ? 'selected' : ''; ?>>Delivery</option>
-                                    <option value="Refund" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Refund') ? 'selected' : ''; ?>>Refund</option>
+                                <select name="category" id="category" class="form-control" required <?php echo empty($orders) ? 'disabled' : ''; ?>>
+                                    <option value="Refund" <?php echo (!isset($_GET['cat']) || $_GET['cat'] === 'Refund') ? 'selected' : ''; ?>>Refund</option>
+                                    <option value="Return" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Return') ? 'selected' : ''; ?>>Return</option>
                                     <option value="Replacement" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Replacement') ? 'selected' : ''; ?>>Replacement</option>
-                                    <option value="Others" <?php echo (!isset($_GET['cat']) || $_GET['cat'] === 'Others') ? 'selected' : ''; ?>>Others</option>
                                 </select>
                             </div>
 

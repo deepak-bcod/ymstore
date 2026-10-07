@@ -41,18 +41,26 @@ class OrderResolutionController extends CI_Controller
     /**
      * Raise a new Order Resolution Request
      */
+    /**
+     * Raise a new Order Resolution Request (Complete orders only)
+     */
     public function create($order_id = 0, $product_id = 0)
     {
         $customer_id = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
         $order_id = (int)$order_id;
         $product_id = (int)$product_id;
 
-        // Fetch customer's orders for dropdown
-        $this->db->select('order_id, increment_id');
-        $this->db->from('sales_order');
-        $this->db->where('customer_id', $customer_id);
-        $this->db->order_by('order_id', 'DESC');
-        $data['orders'] = $this->db->get()->result();
+        // If specific order is requested, verify it is Complete
+        if ($order_id > 0) {
+            if (!$this->OrderResolutionModel->is_order_complete($order_id)) {
+                $this->session->set_flashdata('error', $this->lang->line('resolution_complete_only') ?: 'Order Resolution (Refund, Return, Replacement) is only available for orders with status "Complete". This order is not yet Complete.');
+                redirect('customer/my-orders');
+                return;
+            }
+        }
+
+        // Fetch customer's COMPLETED orders only for dropdown
+        $data['orders'] = $this->OrderResolutionModel->get_customer_completed_orders($customer_id);
 
         $data['selected_order_id']   = $order_id;
         $data['selected_product_id'] = $product_id;
@@ -62,7 +70,7 @@ class OrderResolutionController extends CI_Controller
             $data['products'] = $this->CommonModel->get_order_products($order_id);
         }
 
-        $data['categories'] = ['Delivery', 'Refund', 'Replacement', 'Others'];
+        $data['categories'] = ['Refund', 'Return', 'Replacement'];
         $data['priorities'] = ['Low', 'Medium', 'High', 'Critical'];
         $data['PageTitle']  = 'Raise Order Resolution Request';
 
@@ -106,6 +114,13 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
+        // Eligibility check: Order status must be Complete
+        if (!$this->OrderResolutionModel->is_order_complete($order_check)) {
+            $this->session->set_flashdata('error', $this->lang->line('resolution_complete_only') ?: 'Order Resolution (Refund, Return, Replacement) can only be raised for orders with status "Complete".');
+            redirect('order_resolution/create');
+            return;
+        }
+
         if (empty($message)) {
             $this->session->set_flashdata('error', 'Message cannot be empty.');
             redirect("order_resolution/create/{$order_id}/{$product_id}");
@@ -131,11 +146,12 @@ class OrderResolutionController extends CI_Controller
             }
         }
 
+        $valid_categories = ['Refund', 'Return', 'Replacement', 'Delivery', 'Others'];
         $postData = [
             'order_id'    => $order_id,
             'product_id'  => $product_id,
             'customer_id' => $customer_id,
-            'category'    => in_array($category, ['Delivery', 'Refund', 'Replacement', 'Others'], true) ? $category : 'Others',
+            'category'    => in_array($category, $valid_categories, true) ? $category : 'Refund',
             'priority'    => in_array($priority, ['Low', 'Medium', 'High', 'Critical'], true) ? $priority : 'Medium',
             'message'     => $message,
             'attachment'  => $attachment,
