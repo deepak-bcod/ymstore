@@ -433,30 +433,6 @@ function getSubOrderStatusText($status) {
                                                                 ?>
                                                                 <p><?php echo $this->lang->line('quantity'); ?>: <?php echo isset($sub_item->qty_ordered) ? $sub_item->qty_ordered : 1; ?></p>
                                                                 <p><?php echo $this->lang->line('price'); ?>: <?php echo CURRENCY_TYPE . ' ' . number_format($price, 2); ?></p>
-                                                                <?php
-                                                                $item_ticket = null;
-                                                                if (!empty($sub_item->item_id)) {
-                                                                    $item_ticket = $CI->db->select('ticket_id, status_code')->from('help_desk')->where('order_item_id', $sub_item->item_id)->order_by('id', 'DESC')->get()->row();
-                                                                }
-                                                                ?>
-                                                                <div class="mt-2">
-                                                                    <?php if ($item_ticket): ?>
-                                                                        <a href="<?php echo base_url('order-resolution/view/' . $item_ticket->ticket_id); ?>" class="btn btn-xs" style="font-size: 11px; padding: 2px 8px; border: 1px solid #17a2b8; border-radius: 4px; color: #17a2b8;">
-                                                                            <i class="fa fa-ticket mr-1"></i> Ticket #<?php echo $item_ticket->ticket_id; ?> (<?php echo $item_ticket->status_code; ?>)
-                                                                        </a>
-                                                                    <?php else: ?>
-                                                                        <button type="button" class="btn btn-xs raise-ticket-btn"
-                                                                                style="font-size: 11px; padding: 2px 8px; border: 1px solid #f0ad4e; border-radius: 4px; color: #8a6d3b; background: #fcf8e3;"
-                                                                                data-order-id="<?php echo $order->order_id; ?>"
-                                                                                data-increment-id="<?php echo $order->increment_id; ?>"
-                                                                                data-item-id="<?php echo $sub_item->item_id; ?>"
-                                                                                data-product-id="<?php echo $sub_item->product_id; ?>"
-                                                                                data-merchant-id="<?php echo $b2b->merchant_id; ?>"
-                                                                                data-product-name="<?php echo htmlspecialchars(get_display_product_name($sub_item, $parent_item)); ?>">
-                                                                            <i class="fa fa-life-ring mr-1"></i> <?php echo $this->lang->line('ticket') ?: 'Ticket'; ?>
-                                                                        </button>
-                                                                    <?php endif; ?>
-                                                                </div>
                                                              </div>
                                                         </div>
                                                     </div>
@@ -585,16 +561,32 @@ function getSubOrderStatusText($status) {
                            
                              
                                 <?php
+                                // Order Resolution (Refund, Return, Replacement) is available ONLY when order status is Complete
                                 if ($order->status != 0 && $order->status != 1 && $order->status != 10 && $order->status != 11 && $order->status != 12 && $order->status != 3 && $order->status != 4 && $order->status != 5 && $order->status != 7 && $order->status != 16) {
                                 ?>
-                                  <a href="javascript:void(0)"
-                                        class="blue-btn-order"
-                                        id="ret-btn-<?php echo $order->order_id; ?>"
-                                        onclick="openReturnPopup('<?php echo $order->order_id; ?>','<?php echo $order->increment_id; ?>'); return false;">
-                                            <?php echo $this->lang->line('return_order'); ?> / <?php echo $this->lang->line('replacement_order'); ?>
-                                    </a> 
+                                    <div class="btn-group" style="margin-left: 5px; display: inline-block;">
+                                        <a href="<?php echo base_url('order_resolution/create/' . $order->order_id); ?>"
+                                            class="blue-btn-order"
+                                            style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                                            <i class="fa fa-ticket"></i> <?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?>
+                                        </a>
+                                        <button type="button"
+                                            class="blue-btn-order dropdown-toggle"
+                                            data-toggle="dropdown"
+                                            data-bs-toggle="dropdown"
+                                            aria-haspopup="true"
+                                            aria-expanded="false"
+                                            style="border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px; padding-right: 8px;">
+                                            <span class="caret"></span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-right" style="min-width: 170px; padding: 5px 0;">
+                                            <li><a href="<?php echo base_url('order_resolution/create/' . $order->order_id . '?cat=Refund'); ?>" style="padding: 6px 15px; display: block; color: #333;"><i class="fa fa-undo"></i> <?php echo $this->lang->line('refund') ?: 'Refund'; ?></a></li>
+                                            <li><a href="<?php echo base_url('order_resolution/create/' . $order->order_id . '?cat=Return'); ?>" style="padding: 6px 15px; display: block; color: #333;"><i class="fa fa-exchange"></i> <?php echo $this->lang->line('return') ?: 'Return'; ?></a></li>
+                                            <li><a href="<?php echo base_url('order_resolution/create/' . $order->order_id . '?cat=Replacement'); ?>" style="padding: 6px 15px; display: block; color: #333;"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('replacement') ?: 'Replacement'; ?></a></li>
+                                        </ul>
+                                    </div>
                                 <?php 
-                                     }
+                                }
                                 ?>
                                  <?php if (isset($order->flag) && $order->flag == 'able_to_return'): ?>
                                     <!-- <button type="button"
@@ -683,7 +675,3 @@ function downloadInvoice(orderId) {
 }
 </script>
 
-<?php 
-$CI =& get_instance();
-$CI->load->view('order_resolution/ticket_modal'); 
-?>
