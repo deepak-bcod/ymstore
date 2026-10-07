@@ -12,7 +12,6 @@ if ($this->session->userdata('LoginID')) {
   }
 }
 
-
 $first_segment = $this->uri->segment(1);
 $search_term = '';
 

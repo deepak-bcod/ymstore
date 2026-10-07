@@ -18502,7 +18502,10 @@ public function markDelivered()
 
         $User_id = $this->session->userdata('LoginID');
 
-        // Get last delivery attempt for this order
+        // ==========================================
+        // GET LAST DELIVERY ATTEMPT
+        // ==========================================
+
         $lastAttempt = $this->db
             ->where('order_id', $order_id)
             ->order_by('delivery_attempt_no', 'DESC')
@@ -18510,10 +18513,17 @@ public function markDelivered()
             ->get('b2b_orders_delivery_details')
             ->row();
 
-        $currentAttempt = $lastAttempt ? (int)$lastAttempt->delivery_attempt_no : 0;
-        $nextAttempt    = $currentAttempt + 1;
+        $currentAttempt = $lastAttempt
+            ? (int)$lastAttempt->delivery_attempt_no
+            : 0;
 
-        // Insert delivery details
+        $nextAttempt = $currentAttempt + 1;
+
+
+        // ==========================================
+        // INSERT DELIVERY DETAILS
+        // ==========================================
+
         $insertData = [
             'order_id'                  => $order_id,
             'delivery_type'             => 2,
@@ -18533,83 +18543,129 @@ public function markDelivered()
             $insertData
         );
 
-        // Update B2B order status to Delivered (8)
+
+        // ==========================================
+        // UPDATE B2B ORDER STATUS TO DELIVERED
+        // ==========================================
+
         $updated = $this->CommonModel->updateData(
             'b2b_orders',
             ['order_id' => $order_id],
             ['status' => 8]
         );
 
+
         if ($updated) {
 
-            // Get B2B order data
+            // ==========================================
+            // GET B2B ORDER DATA
+            // ==========================================
+
             $orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
 
             if ($orderData && !empty($orderData->webshop_order_id)) {
 
                 $webshop_order_id = $orderData->webshop_order_id;
 
-                // Update main sales order status
+
+                // ==========================================
+                // UPDATE MAIN SALES ORDER STATUS
+                // ==========================================
+
                 $this->CommonModel->checkAndUpdateMainOrderStatus(
                     $webshop_order_id
                 );
 
+
                 // ==========================================
-                // SHOPPER NOTIFICATION - ORDER DELIVERED
+                // GET SHOPPER CUSTOMER ID
                 // ==========================================
 
-                // Get shopper order number and customer ID
                 $salesOrder = $this->db
-                    ->select('increment_id, customer_id')
+                    ->select('customer_id')
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
 
+
                 if ($salesOrder) {
 
-                    // Use increment_id as shopper order number
-                    $orderNumber = $salesOrder->increment_id;
-
-                    // Shopper / customer ID
                     $customerId = $salesOrder->customer_id;
 
-                    // Insert shopper notification
-                    $notif_sql = "INSERT INTO notifications
-                        (
-                            type,
-                            subtype,
-                            recipient_type,
-                            recipient_id,
-                            title,
-                            message,
-                            data,
-                            is_read,
-                            created_at,
-                            updated_at
-                        )
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-                    $notif_params = [
-                        'order',
-                        'order_delivered',
-                        'shopper',
-                        $customerId,
-                        'Order delivered',
-                        'Your order no. (' . $orderNumber . ') is delivered.',
-                        json_encode([
-                            'order_id'      => $webshop_order_id,
-                            'increment_id'  => $orderNumber,
-                            'b2b_order_id'  => $order_id,
-                            'status'        => 8
-                        ]),
-                        0,
-                        date('Y-m-d H:i:s'),
-                        date('Y-m-d H:i:s')
-                    ];
+                    // ==========================================
+                    // GET B2B ORDER BARCODE
+                    // ==========================================
 
-                    $this->db->query($notif_sql, $notif_params);
+                    $b2bOrder = $this->db
+                        ->select('order_barcode')
+                        ->where('order_id', $order_id)
+                        ->get('b2b_orders')
+                        ->row();
+
+
+                    if ($b2bOrder && !empty($b2bOrder->order_barcode)) {
+
+                        $b2bOrderNumber = $b2bOrder->order_barcode;
+
+
+                        // ==========================================
+                        // SHOPPER NOTIFICATION - ORDER DELIVERED
+                        // ==========================================
+
+                        $notif_sql = "INSERT INTO notifications
+                            (
+                                type,
+                                subtype,
+                                recipient_type,
+                                recipient_id,
+                                title,
+                                message,
+                                data,
+                                is_read,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+
+                        $notif_params = [
+                            'order',
+                            'order_delivered',
+                            'shopper',
+                            $customerId,
+
+                            'Order delivered',
+
+                            // ONLY B2B ORDER NUMBER
+                            'Your order no. ' . $b2bOrderNumber . ' is delivered.',
+
+                            json_encode([
+                                'order_id'      => $webshop_order_id,
+                                'b2b_order_id'  => $order_id,
+                                'b2b_order_no'  => $b2bOrderNumber,
+                                'status'        => 8
+                            ]),
+
+                            0,
+                            date('Y-m-d H:i:s'),
+                            date('Y-m-d H:i:s')
+                        ];
+
+
+                        // Insert notification
+                        $this->db->query(
+                            $notif_sql,
+                            $notif_params
+                        );
+                    }
                 }
             }
+
+
+            // ==========================================
+            // SUCCESS RESPONSE
+            // ==========================================
 
             echo json_encode([
                 'status'  => 200,
@@ -18617,6 +18673,10 @@ public function markDelivered()
             ]);
 
         } else {
+
+            // ==========================================
+            // UPDATE FAILED
+            // ==========================================
 
             echo json_encode([
                 'status'  => 500,
@@ -18626,12 +18686,17 @@ public function markDelivered()
 
     } else {
 
+        // ==========================================
+        // INVALID REQUEST
+        // ==========================================
+
         echo json_encode([
             'status'  => 500,
             'message' => 'Invalid request.'
         ]);
     }
 }
+
 
 
 
