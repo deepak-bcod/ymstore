@@ -163,34 +163,9 @@
 					<div class="form-group">
 						<label>Admin Reply</label>
 						<textarea name="admin_reply" id="admin_reply_field" class="form-control" rows="3" required></textarea>
-						<?php if ($first_ticket->status != 2 && $first_ticket->merchant_action === 'replacement_approved' && $first_ticket->delivery_option === 'ym_delivery' && $first_ticket->assigned_role === 'Account'): ?>
-							<small class="form-text text-muted mt-1">
-								<button type="button" class="btn btn-outline-info btn-xs py-0 px-1" style="font-size: 11px;" onclick="document.getElementById('admin_reply_field').value = 'Please purchase the Replacement Delivery Service AddOn from your Merchant Dashboard (AddOns section) to proceed with YM Delivery for this replacement.';">
-									<i class="fa fa-pencil"></i> Fill: Request AddOn Purchase
-								</button>
-							</small>
-						<?php endif; ?>
 					</div>
 					<div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
 						<button type="submit" class="btn btn-primary btn-sm">Send Reply</button>
-						<?php 
-							$can_assign_acct = ($first_ticket->status != 2 && !empty($first_ticket->merchant_action) && (empty($first_ticket->assigned_role) || $first_ticket->assigned_role !== 'Account')) && 
-								($first_ticket->merchant_action === 'refund_approved' || ($first_ticket->merchant_action === 'replacement_approved' && $first_ticket->delivery_option === 'ym_delivery'));
-						?>
-						<?php if ($can_assign_acct): ?>
-							<a href="<?= base_url('CustomerController/assign_to_acct/' . $first_ticket->order_id . '/' . $first_ticket->ticket_id . '/' . $first_ticket->products); ?>"
-							   class="btn btn-warning btn-sm"
-							   onclick="return confirm('Assign this ticket to Accounts (@acct) for processing?');">
-								<i class="fa fa-share"></i> Assign to @acct
-							</a>
-						<?php endif; ?>
-						<?php if ($first_ticket->status != 2 && !empty($first_ticket->merchant_action) && $first_ticket->merchant_action === 'refund_approved' && !empty($first_ticket->assigned_role) && $first_ticket->assigned_role === 'Account' && (empty($first_ticket->status_code) || $first_ticket->status_code !== 'Done')): ?>
-							<a href="<?= base_url('CustomerController/complete_refund/' . $first_ticket->order_id . '/' . $first_ticket->ticket_id . '/' . $first_ticket->products); ?>"
-							   class="btn btn-success btn-sm"
-							   onclick="return confirm('Confirm refund completion? This will mark the refund as Done, deduct amount from merchant 15-day hold-back balance, and notify the shopper.');">
-								<i class="fa fa-check-circle"></i> Complete Refund (Done)
-							</a>
-						<?php endif; ?>
 						<?php if ($first_ticket->status != 2): ?>
 							<a href="<?= base_url('CustomerController/close_ticket/' . $first_ticket->order_id . '/' .
 							$first_ticket->category . '/' .
