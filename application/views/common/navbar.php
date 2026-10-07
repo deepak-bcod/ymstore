@@ -11,6 +11,29 @@ if ($this->session->userdata('LoginID')) {
     $this->session->set_userdata('sis_session_id', $_sis_session_id);
   }
 }
+$notification_count = 0;
+$top_notifications = [];
+
+$loginId = $this->session->userdata('LoginID');
+
+if (!empty($loginId)) {
+
+    $notification_count = $this->db
+        ->where('recipient_type', 'customer')
+        ->where('recipient_id', $loginId)
+        ->where('is_read', 0)
+        ->count_all_results('notifications');
+
+    $top_notifications = $this->db
+        ->where('recipient_type', 'customer')
+        ->where('recipient_id', $loginId)
+        ->where('is_read', 0)
+        ->order_by('created_at', 'DESC')
+        ->limit(3)
+        ->get('notifications')
+        ->result();
+}
+
 
 $first_segment = $this->uri->segment(1);
 $search_term = '';
