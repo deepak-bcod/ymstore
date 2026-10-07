@@ -48,7 +48,6 @@
                             <th>Product</th>
                             <th>Shopper</th>
                             <th>Category</th>
-                            <th>Priority</th>
                             <th>Status</th>
                             <th>Date</th>
                             <th>Action</th>
@@ -66,7 +65,6 @@
                                     <td><?= htmlspecialchars($res->product_name ?: 'All Items'); ?></td>
                                     <td><?= htmlspecialchars($shopper_name); ?></td>
                                     <td><span class="badge badge-secondary"><?= htmlspecialchars($res->category); ?></span></td>
-                                    <td><?= htmlspecialchars($res->priority); ?></td>
                                     <td>
                                         <span class="badge-status-<?= $status_slug; ?>">
                                             <?= htmlspecialchars($res->status); ?>

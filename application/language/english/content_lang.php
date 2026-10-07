@@ -2255,5 +2255,19 @@ $lang['maximum_cart_weight_message'] = 'Maximum cart weight is 60 KG. ';
 $lang['maximum_cart_weight_checkout'] = 'Exceeding Maximum Cart Weight';
 $lang['maximum_cart_weight_message_checkout'] = 'Maximum cart weight is 60 KG. Your cart weight is %s KG. You cannot proceed to checkout.';
 
+// Order Resolution
+$lang['order_resolution'] = 'Order Resolution';
+$lang['raise_resolution_request'] = 'Raise Resolution Request';
+$lang['submit_order_resolution_request'] = 'Submit Order Resolution Request';
+$lang['submit_request'] = 'Submit Request';
+$lang['resolution_request'] = 'Resolution Request';
+$lang['ticket_no'] = 'Ticket #';
+$lang['product_related'] = 'Product (Related to Order)';
+$lang['all_items_general'] = '-- All Items / General Issue --';
+$lang['select_order'] = '-- Select Order --';
+$lang['post_reply'] = 'Post a Reply';
+$lang['send_reply'] = 'Send Reply';
+
+
 
 

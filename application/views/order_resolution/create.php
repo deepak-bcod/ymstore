@@ -41,23 +41,13 @@
                     <form action="<?php echo base_url('order_resolution/store'); ?>" method="POST" enctype="multipart/form-data">
                         <div class="row">
                             <!-- Category -->
-                            <div class="col-md-6 form-group">
+                            <div class="col-md-12 form-group">
                                 <label for="category"><b><?php echo $this->lang->line('category') ?: 'Category'; ?> <span class="text-danger">*</span></b></label>
                                 <select name="category" id="category" class="form-control" required <?php echo empty($orders) ? 'disabled' : ''; ?>>
+                                    <option value="Delivery" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Delivery') ? 'selected' : ''; ?>>Delivery</option>
                                     <option value="Refund" <?php echo (!isset($_GET['cat']) || $_GET['cat'] === 'Refund') ? 'selected' : ''; ?>>Refund</option>
-                                    <option value="Return" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Return') ? 'selected' : ''; ?>>Return</option>
                                     <option value="Replacement" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Replacement') ? 'selected' : ''; ?>>Replacement</option>
-                                </select>
-                            </div>
-
-                            <!-- Priority -->
-                            <div class="col-md-6 form-group">
-                                <label for="priority"><b><?php echo $this->lang->line('priority') ?: 'Priority'; ?> <span class="text-danger">*</span></b></label>
-                                <select name="priority" id="priority" class="form-control" required>
-                                    <option value="Low">Low</option>
-                                    <option value="Medium" selected>Medium</option>
-                                    <option value="High">High</option>
-                                    <option value="Critical">Critical</option>
+                                    <option value="Others" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Others') ? 'selected' : ''; ?>>Others</option>
                                 </select>
                             </div>
                         </div>
@@ -112,7 +102,7 @@
                                 <?php echo $this->lang->line('cancel') ?: 'Cancel'; ?>
                             </a>
                             <button type="submit" class="btn btn-success btn-lg">
-                                <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('submit_ticket') ?: 'Submit Ticket'; ?>
+                                <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('submit_request') ?: 'Submit Request'; ?>
                             </button>
                         </div>
                     </form>

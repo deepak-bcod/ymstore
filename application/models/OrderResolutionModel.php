@@ -593,6 +593,8 @@ class OrderResolutionModel extends CI_Model
 
                 $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Refund Denied', 'merchant', $merchant_id, 'Merchant denied refund.');
                 $this->send_merchant_action_email_to_help($res, 'Refund Denied');
+                $this->send_refund_denied_shopper_email($res);
+                $this->send_refund_denied_help_email($res);
                 return ['status' => true, 'message' => 'Refund denied.'];
 
             case 'replacement_approved':
@@ -630,6 +632,8 @@ class OrderResolutionModel extends CI_Model
 
                 $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Denied', 'merchant', $merchant_id, 'Merchant denied replacement.');
                 $this->send_merchant_action_email_to_help($res, 'Replacement Denied');
+                $this->send_replacement_denied_shopper_email($res);
+                $this->send_replacement_denied_help_email($res);
                 return ['status' => true, 'message' => 'Replacement denied.'];
 
             case 'replacement_completed':
@@ -666,6 +670,7 @@ class OrderResolutionModel extends CI_Model
             'status'                  => 'ReOpen',
             'resolution_status'       => 'resolution_requested',
             'resolution_requested_at' => $time,
+            'is_active_dispute'       => 1,
             'updated_at'              => $time,
         ]);
 
@@ -674,6 +679,11 @@ class OrderResolutionModel extends CI_Model
         }
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'ReOpen', 'Resolution Request', 'shopper', $customer_id, 'Shopper requested resolution escalation.');
+
+        // Section 15: Notify @Help and Merchant
+        $this->send_dispute_help_email($res, $message);
+        $this->send_dispute_merchant_email($res, $message);
+
         return ['status' => true, 'message' => 'Resolution request submitted successfully.'];
     }
 
@@ -727,7 +737,7 @@ class OrderResolutionModel extends CI_Model
         ]);
 
         // Update order status to 17 (Refund Paid) if refund
-        if ($res->merchant_action === 'refund_approved' || strtolower($res->category) === 'refund') {
+        if ($res->merchant_action === 'refund_approved' || strtolower($res->category) === 'refund' || $res->resolution_status === 'resolution_approved') {
             $this->update_order_item_status($res->order_id, $res->product_id, $res->merchant_id, 17);
         }
 
@@ -763,8 +773,13 @@ class OrderResolutionModel extends CI_Model
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes);
 
-        // Email to Merchant: order-resolution-refund-ticket-closed-merchant
+        // Email to Merchant: order-resolution-ticket-closed-merchant
         $this->send_ticket_closed_merchant_email($res);
+
+        // If replacement was completed, notify shopper
+        if ($res->merchant_action === 'replacement_completed') {
+            $this->send_replacement_completed_shopper_email($res);
+        }
 
         return ['status' => true, 'message' => 'Ticket closed successfully.'];
     }
@@ -789,6 +804,10 @@ class OrderResolutionModel extends CI_Model
         ]);
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Ticket Closed (Final)', 'admin', $admin_id, $notes);
+
+        // Section 16 & 17: Email to Merchant: Closed (Final)
+        $this->send_closed_final_merchant_email($res);
+
         return ['status' => true, 'message' => 'Ticket finally closed with no further options.'];
     }
 
@@ -802,15 +821,44 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'Ticket not found.'];
         }
 
-        $res_status = ($decision === 'approved') ? 'resolution_approved' : 'resolution_denied';
         $time = time();
-        $this->db->where('id', $res->id)->update('order_resolutions', [
-            'resolution_status' => $res_status,
-            'updated_at'        => $time,
-        ]);
 
-        $this->audit_log($res->id, $ticket_number, $res->status, $res->status, ucfirst($res_status), 'admin', $admin_id, $notes);
-        return ['status' => true, 'message' => 'Resolution decision recorded successfully.'];
+        if ($decision === 'approved') {
+            // Section 16: Decision in Favour of Shopper -> Assign to @Acct (Status: Processing)
+            $this->db->where('id', $res->id)->update('order_resolutions', [
+                'status'            => 'Processing',
+                'assigned_role'     => 'Acct',
+                'resolution_status' => 'resolution_approved',
+                'updated_at'        => $time,
+            ]);
+
+            $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', 'Resolution Approved (In Favour of Shopper)', 'admin', $admin_id, $notes);
+
+            // Email to @Acct: Refund Request
+            $this->send_refund_acct_email($res);
+
+            return ['status' => true, 'message' => 'Resolution decision approved in favour of shopper and assigned to Accounting.'];
+        } else {
+            // Section 17: Decision in Favour of Merchant -> Status: Close (Final)
+            $this->db->where('id', $res->id)->update('order_resolutions', [
+                'status'            => 'Close (Final)',
+                'resolution_status' => 'resolution_denied',
+                'is_active_dispute' => 0,
+                'closed_at'         => $time,
+                'closed_by'         => 'admin',
+                'updated_at'        => $time,
+            ]);
+
+            $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Resolution Denied (In Favour of Merchant)', 'admin', $admin_id, $notes);
+
+            // Merchant receives: Order Resolution No.: [TicketNumber] - Closed (Final)
+            $this->send_closed_final_merchant_email($res);
+
+            // Shopper receives: Order Resolution No.: [TicketNumber] - Refund Disapproved
+            $this->send_refund_disapproved_shopper_email($res);
+
+            return ['status' => true, 'message' => 'Resolution decision recorded in favour of merchant and closed (Final).'];
+        }
     }
 
     // =========================================================================
@@ -1003,7 +1051,98 @@ class OrderResolutionModel extends CI_Model
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##MERCHANT_NAME##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_merchant_name($res), 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-refund-ticket-closed-merchant', $tempVars, $dynamicVars);
+        $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-ticket-closed-merchant', $tempVars, $dynamicVars);
+    }
+
+    private function send_refund_denied_shopper_email($res)
+    {
+        $shopper_email = $this->get_shopper_email($res);
+        if (!$shopper_email) return;
+
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), base_url('order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-refund-denied-shopper', $tempVars, $dynamicVars);
+    }
+
+    private function send_refund_denied_help_email($res)
+    {
+        $help_email = $this->get_help_email();
+        if (!$help_email) return;
+
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##TICKET_URL##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, base_url('admin/order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($help_email, 'order-resolution-refund-denied-help', $tempVars, $dynamicVars);
+    }
+
+    private function send_replacement_denied_shopper_email($res)
+    {
+        $shopper_email = $this->get_shopper_email($res);
+        if (!$shopper_email) return;
+
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), base_url('order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-denied-shopper', $tempVars, $dynamicVars);
+    }
+
+    private function send_replacement_denied_help_email($res)
+    {
+        $help_email = $this->get_help_email();
+        if (!$help_email) return;
+
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##TICKET_URL##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, base_url('admin/order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($help_email, 'order-resolution-replacement-denied-help', $tempVars, $dynamicVars);
+    }
+
+    private function send_replacement_completed_shopper_email($res)
+    {
+        $shopper_email = $this->get_shopper_email($res);
+        if (!$shopper_email) return;
+
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), base_url('order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-completed-shopper', $tempVars, $dynamicVars);
+    }
+
+    private function send_dispute_help_email($res, $message = '')
+    {
+        $help_email = $this->get_help_email();
+        if (!$help_email) return;
+
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_MESSAGE##', '##TICKET_URL##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8')), base_url('admin/order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($help_email, 'order-resolution-dispute-help', $tempVars, $dynamicVars);
+    }
+
+    private function send_dispute_merchant_email($res, $message = '')
+    {
+        $m_email = $this->get_merchant_email($res);
+        if (!$m_email) return;
+
+        $merchant_url = (defined('BASE_URL2') ? rtrim(BASE_URL2, '/') . '/' : base_url('merchant/')) . 'order_resolution/view/' . $res->ticket_number;
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##MERCHANT_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_merchant_name($res), $merchant_url, 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-dispute-merchant', $tempVars, $dynamicVars);
+    }
+
+    private function send_refund_disapproved_shopper_email($res)
+    {
+        $shopper_email = $this->get_shopper_email($res);
+        if (!$shopper_email) return;
+
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-refund-disapproved-shopper', $tempVars, $dynamicVars);
+    }
+
+    private function send_closed_final_merchant_email($res)
+    {
+        $m_email = $this->get_merchant_email($res);
+        if (!$m_email) return;
+
+        $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##MERCHANT_NAME##', '##WEBSHOPNAME##'];
+        $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_merchant_name($res), 'Yellow Markets'];
+        $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-closed-final-merchant', $tempVars, $dynamicVars);
     }
 
     // =========================================================================

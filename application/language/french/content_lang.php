@@ -1361,3 +1361,17 @@ $lang['maximum_cart_weight_message'] = 'Le poids maximum du panier est de 60 KG.
 $lang['maximum_cart_weight_checkout'] = 'Dépassement du poids maximal du chariot';
 $lang['maximum_cart_weight_message_checkout'] = 'Le poids maximum du panier est de 60 KG. Le poids de votre panier est de %s KG. Vous ne pouvez pas procéder au paiement.';
 $lang['ok'] = 'OK';
+
+// Order Resolution
+$lang['order_resolution'] = 'Résolution de commande';
+$lang['raise_resolution_request'] = 'Demander une résolution';
+$lang['submit_order_resolution_request'] = 'Soumettre une demande de résolution';
+$lang['submit_request'] = 'Soumettre la demande';
+$lang['resolution_request'] = 'Demande de résolution';
+$lang['ticket_no'] = 'N° de ticket';
+$lang['product_related'] = 'Produit (lié à la commande)';
+$lang['all_items_general'] = '-- Tous les articles / Problème général --';
+$lang['select_order'] = '-- Sélectionner la commande --';
+$lang['post_reply'] = 'Poster une réponse';
+$lang['send_reply'] = 'Envoyer la réponse';
+

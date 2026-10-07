@@ -1112,3 +1112,8 @@ $lang['please_select_at_least_one_document'] = 'Please select at least one docum
 
 $lang['product_badge_received_title'] = 'Product Badge Received';
 $lang['product_badge_received_message'] = 'Your product badge for %s has been received.';
+
+// Order Resolution
+$lang['order_resolution'] = 'Order Resolution';
+$lang['order_resolutions'] = 'Order Resolutions';
+$lang['resolution_request'] = 'Resolution Request';

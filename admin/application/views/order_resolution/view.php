@@ -79,10 +79,9 @@
                         <p><?= htmlspecialchars($product ? $product->name : 'All Items / General'); ?></p>
                     </div>
                     <div class="col-md-3">
-                        <p class="mb-1"><strong>Category / Priority:</strong></p>
+                        <p class="mb-1"><strong>Category:</strong></p>
                         <p>
                             <span class="badge badge-info"><?= htmlspecialchars($resolution->category); ?></span>
-                            <span class="badge badge-secondary"><?= htmlspecialchars($resolution->priority); ?></span>
                         </p>
                     </div>
                 </div>
