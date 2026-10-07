@@ -89,9 +89,8 @@
                                     </p>
                                 </div>
                                 <div class="col-md-3 col-sm-6">
-                                    <p><b>Category / Priority:</b><br>
+                                    <p><b>Category:</b><br>
                                         <span class="label label-info"><?php echo htmlspecialchars($resolution->category); ?></span>
-                                        <span class="label label-default"><?php echo htmlspecialchars($resolution->priority); ?></span>
                                     </p>
                                 </div>
                             </div>

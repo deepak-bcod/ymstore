@@ -72,10 +72,9 @@
                             <p><?= htmlspecialchars($product ? $product->name : 'All Items / General'); ?></p>
                         </div>
                         <div class="col-md-3">
-                            <p class="mb-1"><strong>Category / Priority:</strong></p>
+                            <p class="mb-1"><strong>Category:</strong></p>
                             <p>
                                 <span class="badge badge-info"><?= htmlspecialchars($resolution->category); ?></span>
-                                <span class="badge badge-secondary"><?= htmlspecialchars($resolution->priority); ?></span>
                             </p>
                         </div>
                         <div class="col-md-3">
@@ -286,10 +285,10 @@
                             <option value="">-- Select Delivery Option --</option>
                             <option value="own_delivery">Own Delivery</option>
                             <option value="self_pickup">Self Pickup</option>
-                            <option value="ym_delivery">YM Delivery</option>
+                            <option value="ym_delivery">YM Delivery Service</option>
                         </select>
                         <small class="form-text text-muted">
-                            Selecting <strong>YM Delivery</strong> notifies Yellow Markets (@Help) to organize fulfillment.
+                            Selecting <strong>YM Delivery Service</strong> notifies Yellow Markets (@Help) to organize fulfillment.
                         </small>
                     </div>
                 </div>

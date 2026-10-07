@@ -70,8 +70,7 @@ class OrderResolutionController extends CI_Controller
             $data['products'] = $this->CommonModel->get_order_products($order_id);
         }
 
-        $data['categories'] = ['Refund', 'Return', 'Replacement'];
-        $data['priorities'] = ['Low', 'Medium', 'High', 'Critical'];
+        $data['categories'] = ['Delivery', 'Refund', 'Replacement', 'Others'];
         $data['PageTitle']  = 'Raise Order Resolution Request';
 
         $this->load->view('order_resolution/create', $data);
@@ -96,7 +95,6 @@ class OrderResolutionController extends CI_Controller
         $order_id    = (int)$this->input->post('order_id', true);
         $product_id  = (int)$this->input->post('product_id', true);
         $category    = trim($this->input->post('category', true));
-        $priority    = trim($this->input->post('priority', true));
         $message     = trim($this->input->post('message', true));
 
         // Validation
@@ -146,13 +144,12 @@ class OrderResolutionController extends CI_Controller
             }
         }
 
-        $valid_categories = ['Refund', 'Return', 'Replacement', 'Delivery', 'Others'];
+        $valid_categories = ['Delivery', 'Refund', 'Replacement', 'Others'];
         $postData = [
             'order_id'    => $order_id,
             'product_id'  => $product_id,
             'customer_id' => $customer_id,
             'category'    => in_array($category, $valid_categories, true) ? $category : 'Refund',
-            'priority'    => in_array($priority, ['Low', 'Medium', 'High', 'Critical'], true) ? $priority : 'Medium',
             'message'     => $message,
             'attachment'  => $attachment,
             'ip'          => $this->input->ip_address(),
