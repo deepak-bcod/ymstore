@@ -457,8 +457,19 @@ $route['webshop/b2b-orders'] = 'B2BOrdersController/index';
 $route['webshop/b2b-orders/(:any)'] = 'B2BOrdersController/index/$1';
 $route['webshop/b2b/order/detail/(:num)'] = 'B2BOrdersController/detail/$1';
 
+// Order Resolution Module Routes (Shopper)
+$route['order_resolution']                               = 'OrderResolutionController/index';
+$route['order_resolution/create']                        = 'OrderResolutionController/create';
+$route['order_resolution/create/(:num)']                 = 'OrderResolutionController/create/$1';
+$route['order_resolution/create/(:num)/(:num)']          = 'OrderResolutionController/create/$1/$2';
+$route['order_resolution/store']                         = 'OrderResolutionController/store';
+$route['order_resolution/view/(:any)']                   = 'OrderResolutionController/view/$1';
+$route['order_resolution/reply']                         = 'OrderResolutionController/reply';
+$route['order_resolution/request_resolution']           = 'OrderResolutionController/request_resolution';
+$route['order_resolution/get_order_products_ajax/(:num)']= 'OrderResolutionController/get_order_products_ajax/$1';
 
 $route['notification'] = 'Notification/index';
 $route['notification/mark_read/(:num)'] = 'Notification/mark_read/$1';
 $route['notification/mark_all_read'] = 'Notification/mark_all_read';
+
 

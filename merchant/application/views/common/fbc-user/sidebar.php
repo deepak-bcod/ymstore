@@ -190,6 +190,12 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
     </div>
 </li>
 
+<li class="nav-item <?php echo (isset($side_menu) && ($side_menu == 'order_resolution')) ? 'active' : ''; ?>">
+    <a class="nav-link" href="<?php echo base_url('order_resolution'); ?>">
+        <i class="fa fa-ticket mr-1"></i> <?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?>
+    </a>
+</li>
+
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='messaging')) ? 'has-submenu show' : ''; ?>
                <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"

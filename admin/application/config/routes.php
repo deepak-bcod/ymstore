@@ -489,3 +489,15 @@ $route['notifications'] = 'notifications';
 $route['notifications/mark'] = 'notifications/mark';
 $route['notifications/mark_all'] = 'notifications/mark_all';
 $route['notifications/latest'] = 'notifications/latest';
+
+// Order Resolution Module Routes (Admin - @Help & @Acct)
+$route['order_resolution']                          = 'OrderResolutionController/index';
+$route['order_resolution/acct']                     = 'OrderResolutionController/acct_list';
+$route['order_resolution/view/(:any)']              = 'OrderResolutionController/view/$1';
+$route['order_resolution/reply']                    = 'OrderResolutionController/reply';
+$route['order_resolution/assign_to_acct']          = 'OrderResolutionController/assign_to_acct';
+$route['order_resolution/mark_done']               = 'OrderResolutionController/mark_done';
+$route['order_resolution/close_ticket']             = 'OrderResolutionController/close_ticket';
+$route['order_resolution/close_final']              = 'OrderResolutionController/close_final';
+$route['order_resolution/resolution_decision']     = 'OrderResolutionController/resolution_decision';
+

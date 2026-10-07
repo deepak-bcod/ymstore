@@ -30,6 +30,13 @@
             </a>
         </li>
 
+        <li class="<?php echo (isset($side_tab) && $side_tab == 'order_resolution') ? 'active' : ''; ?> list-group-item clearfix">
+            <a href="<?= BASE_URL ?>order_resolution">
+                <i class="fa fa-angle-right"></i>
+                <span class="help-desk-i"><?= lang('sidebar.order_resolution') ?: 'Order Resolution' ?></span>
+            </a>
+        </li>
+
         <li class="<?php echo (isset($side_tab) && $side_tab == 'messaging') ? 'active' : ''; ?> list-group-item clearfix">
             <a href="<?= BASE_URL ?>customer/messaging">
                 <i class="fa fa-angle-right"></i>

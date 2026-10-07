@@ -313,6 +313,25 @@
     </div>
 </li>
 
+<li class="nav-item <?php echo (isset($side_menu) && in_array($side_menu, ['order_resolution', 'order_resolution_acct'])) ? 'active' : ''; ?>">
+    <a class="nav-link <?php echo (isset($side_menu) && in_array($side_menu, ['order_resolution', 'order_resolution_acct'])) ? 'has-submenu collapsed' : ''; ?>"
+       href="#OrderResolutionMenu"
+       data-toggle="collapse"
+       data-parent="#OrderResolutionMenu">
+        Order Resolution
+        <i class="fas fa-angle-down"></i>
+    </a>
+    <div class="submenu <?php echo (isset($side_menu) && in_array($side_menu, ['order_resolution', 'order_resolution_acct'])) ? 'collapse show' : 'collapse'; ?>"
+         id="OrderResolutionMenu">
+        <a class="list-submenu" href="<?php echo base_url('order_resolution'); ?>">
+            Resolution Tickets (@Help)
+        </a>
+        <a class="list-submenu" href="<?php echo base_url('order_resolution/acct'); ?>">
+            Assigned Resolution (@Acct)
+        </a>
+    </div>
+</li>
+
          <?php if (empty($this->session->userdata('userPermission')) || in_array('reports', $this->session->userdata('userPermission'))) { ?>
 
             <li class="nav-item">
