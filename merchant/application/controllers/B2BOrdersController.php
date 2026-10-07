@@ -1005,72 +1005,85 @@ public function download_order_document($order_id) {
 
 
 	public function markProcessing()
-	{
-		if ($this->input->post('order_id')) {
+{
+    if ($this->input->post('order_id')) {
 
-			$order_id = $this->input->post('order_id');
+        $order_id = $this->input->post('order_id');
 
-			// Update B2B Order Status
-			$updated = $this->CommonModel->updateData(
-				'b2b_orders',
-				['order_id' => $order_id],
-				['status' => 1]
-			);
+        // 1. Update B2B Order Status
+        $updated = $this->CommonModel->updateData(
+            'b2b_orders',
+            ['order_id' => $order_id],
+            ['status' => 1]
+        );
 
-			$orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
+        $orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
 
-			// Update Webshop Order Status
-			if ($orderData && !empty($orderData->webshop_order_id)) {
-				$this->CommonModel->updateData(
-					'sales_order',
-					['order_id' => $orderData->webshop_order_id],
-					['status' => 1]
-				);
-			}
+        // 2. Update Webshop Order Status
+        if ($orderData && !empty($orderData->webshop_order_id)) {
+            $this->CommonModel->updateData(
+                'sales_order',
+                ['order_id' => $orderData->webshop_order_id],
+                ['status' => 1]
+            );
+        }
 
-			// Add Notification
-			if ($updated && $orderData && $orderData->shipment_type == 2) {
+        // 3. Add Notifications for BOTH Admin and Shopper/Merchant
+        if ($updated && $orderData && $orderData->shipment_type == 2) {
+            
+            // Shared details for both notifications
+            $commonData = [
+                'type'         => 'order',
+                'subtype'      => 'b2b_processing',
+                'title'        => 'Started Processing',
+                'message'      => $orderData->order_barcode . ' Merchant has started processing the order',
+                'data'         => json_encode([
+                    'order_id' => $orderData->order_barcode,
+                    'status'   => 'order_processing'
+                ]),
+                'is_read'      => 0,
+                'created_at'   => date('Y-m-d H:i:s'),
+                'updated_at'   => date('Y-m-d H:i:s')
+            ];
 
-				$notificationData = [
-					'type'           => 'order',
-					'subtype'        => 'b2b_processing',
-					'recipient_type' => 'admin',
-					'recipient_id'   => 1,
-					'title'          =>'Started Processing',
-					'message'        => $orderData->order_barcode  . ' '   . 
-						                   'Merchant has started processing the order',
-					'data'           => json_encode([
-						'order_id' => $orderData->order_barcode,
-						'status'   => 'order_processing'
-					]),
-					'is_read'        => 0,
-					'created_at'     => date('Y-m-d H:i:s'),
-					'updated_at'     => date('Y-m-d H:i:s')
-				];
+            // Prepare records for batch insertion
+            $notifications = [
+                // Admin notification
+                array_merge($commonData, [
+                    'recipient_type' => 'admin',
+                    'recipient_id'   => 1 // Change if your admin ID is different
+                ]),
+                // Shopper / Merchant notification
+                array_merge($commonData, [
+                    'recipient_type' => 'shopper', // Ensure this matches what your shopper app checks (e.g., 'merchant' or 'shopper')
+                    'recipient_id'   => $orderData->merchant_id // <-- Make sure this property matches your table column name (e.g. user_id, merchant_id, etc.)
+                ])
+            ];
 
-				$this->db->insert('notifications', $notificationData);
-			}
+            // Insert both notifications at once using CodeIgniter's batch insert
+            $this->db->insert_batch('notifications', $notifications);
+        }
 
-			if ($updated) {
-				echo json_encode([
-					'status'  => 200,
-					'message' => $this->lang->line('	')
-				]);
-			} else {
-				echo json_encode([
-					'status'  => 500,
-					'message' => $this->lang->line('order_status_update_failed')
-				]);
-			}
+        // 4. JSON Responses
+        if ($updated) {
+            echo json_encode([
+                'status'  => 200,
+                'message' => $this->lang->line('order_status_updated_successfully') // Fixed the blank language key
+            ]);
+        } else {
+            echo json_encode([
+                'status'  => 500,
+                'message' => $this->lang->line('order_status_update_failed')
+            ]);
+        }
 
-		} else {
-			echo json_encode([
-				'status'  => 500,
-				'message' => $this->lang->line('invalid_request')
-			]);
-		}
-	}
-
+    } else {
+        echo json_encode([
+            'status'  => 500,
+            'message' => $this->lang->line('invalid_request')
+        ]);
+    }
+}
 
 
 
