@@ -518,41 +518,83 @@ class DbCheckout
 
 
 
-			if ($this->dbl->dbl_conn->count > 0) {
+			if ($this->dbl->dbl_conn->getLastErrno() === 0) {
 
-				// ================================
-				// ADD NOTIFICATION FOR NEW SALES ORDER
-				// ================================
-				$notif_sql = "INSERT INTO notifications 
-					(type, subtype, recipient_type, recipient_id, title, message, data, is_read, created_at, updated_at)
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $last_insert_id = $this->dbl->dbl_conn->getInsertId();
 
-				$notif_params = [
-					'order',                     // type
-					'new_sales_order',           // subtype
-					'admin',                     // recipient_type
-					1,                           // recipient_id (admin)
-					'New shopper order received',  // title
-					'New shopper order #' . $increment_id . ' has been placed by ' . $customer_firstname . ' ' . $customer_lastname . '.', // message
-					json_encode([
-						'sales_order_id' => $last_insert_id,
-						'increment_id'   => $increment_id,
-						'customer_name'  => $customer_firstname . ' ' . $customer_lastname
-					]),
-					0,                           // is_read
-					date('Y-m-d H:i:s'),         // created_at
-					date('Y-m-d H:i:s')          // updated_at
-				];
+    if ($this->dbl->dbl_conn->count > 0) {
 
-				$this->dbl->dbl_conn->rawQuery($notif_sql, $notif_params);
-				
-				
+        // ==========================================
+        // 1. ADD NOTIFICATION FOR ADMIN
+        // ==========================================
+        $notif_sql = "INSERT INTO notifications
+            (
+                type,
+                subtype,
+                recipient_type,
+                recipient_id,
+                title,
+                message,
+                data,
+                is_read,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $notif_params = [
+            'order',
+            'new_sales_order',
+            'admin',
+            1,
+            'New shopper order received',
+            'New shopper order #' . $increment_id . ' has been placed by ' .
+                $customer_firstname . ' ' . $customer_lastname . '.',
+            json_encode([
+                'sales_order_id' => $last_insert_id,
+                'increment_id'   => $increment_id,
+                'customer_name'  => $customer_firstname . ' ' . $customer_lastname
+            ]),
+            0,
+            date('Y-m-d H:i:s'),
+            date('Y-m-d H:i:s')
+        ];
+
+        $this->dbl->dbl_conn->rawQuery($notif_sql, $notif_params);
 
 
-				return $last_insert_id;
-				
+        // ==========================================
+        // 2. ADD NOTIFICATION FOR SHOPPER
+        // ==========================================
+        $shopper_notif_params = [
+            'order',
+            'order_placed',
+            'customer',
+            $customer_id,
+            'Order placed successfully',
+            'Your order #' . $increment_id . ' has been placed successfully.',
+            json_encode([
+                'sales_order_id' => $last_insert_id,
+                'increment_id'   => $increment_id,
+                'customer_id'    => $customer_id
+            ]),
+            0,
+            date('Y-m-d H:i:s'),
+            date('Y-m-d H:i:s')
+        ];
 
-			} else {
+        $this->dbl->dbl_conn->rawQuery(
+            $notif_sql,
+            $shopper_notif_params
+        );
+
+
+        // ==========================================
+        // RETURN ORDER ID
+        // ==========================================
+        return $last_insert_id;
+
+    } else {
 
 
 
