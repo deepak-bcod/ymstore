@@ -569,7 +569,20 @@ function getSubOrderStatusText($status) {
                                         onclick="openReturnPopup('<?php echo $order->order_id; ?>','<?php echo $order->increment_id; ?>'); return false;">
                                             <?php echo $this->lang->line('return_order'); ?> / <?php echo $this->lang->line('replacement_order'); ?>
                                     </a> 
+                                    <a href="<?php echo base_url('order_resolution/create/' . $order->order_id); ?>"
+                                        class="blue-btn-order"
+                                        style="margin-left: 5px;">
+                                        <i class="fa fa-ticket"></i> <?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?>
+                                    </a>
                                 <?php 
+                                     } else {
+                                ?>
+                                    <a href="<?php echo base_url('order_resolution/create/' . $order->order_id); ?>"
+                                        class="blue-btn-order"
+                                        style="margin-left: 5px;">
+                                        <i class="fa fa-ticket"></i> <?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?>
+                                    </a>
+                                <?php
                                      }
                                 ?>
                                  <?php if (isset($order->flag) && $order->flag == 'able_to_return'): ?>
