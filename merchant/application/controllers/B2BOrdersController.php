@@ -1029,49 +1029,54 @@ public function download_order_document($order_id) {
         }
 
         // 3. Add Notifications for BOTH Admin and Shopper
-        if ($updated && $orderData && $orderData->shipment_type == 2) {
-            
-            $current_time = date('Y-m-d H:i:s');
-            
-            // Prepare records for batch insertion with separate titles/messages
-            $notifications = [
-                // Admin notification
-                [
-                    'type'           => 'order',
-                    'subtype'        => 'b2b_processing',
-                    'title'          => 'Started Processing',
-                    'message'        => $orderData->order_barcode . ' Merchant has started processing the order',
-                    'data'           => json_encode([
-                        'order_id' => $orderData->order_barcode,
-                        'status'   => 'order_processing'
-                    ]),
-                    'is_read'        => 0,
-                    'recipient_type' => 'admin',
-                    'recipient_id'   => 1,
-                    'created_at'     => $current_time,
-                    'updated_at'     => $current_time
-                ],
-                // Shopper notification with custom title and message
-                [
-                    'type'           => 'order',
-                    'subtype'        => 'b2b_processing',
-                    'title'          => 'Order Processing',
-                    'message'        => 'Your order no. ' . $orderData->order_barcode . ' is under process.',
-                    'data'           => json_encode([
-                        'order_id' => $orderData->order_barcode,
-                        'status'   => 'order_processing'
-                    ]),
-                    'is_read'        => 0,
-                    'recipient_type' => 'shopper',
-                   'recipient_id'   => $orderData->customer_id,
-                    'created_at'     => $current_time,
-                    'updated_at'     => $current_time
-                ]
-            ];
+if ($updated && $orderData && $orderData->shipment_type == 2) {
 
-            // Insert both notifications at once using CodeIgniter's batch insert
-            $this->db->insert_batch('notifications', $notifications);
-        }
+    $current_time = date('Y-m-d H:i:s');
+
+    // DEBUG: Check order data
+    echo '<pre>';
+    print_r($orderData);
+    die;
+
+    // Prepare records for batch insertion
+    $notifications = [
+        // Admin notification
+        [
+            'type'           => 'order',
+            'subtype'        => 'b2b_processing',
+            'title'          => 'Started Processing',
+            'message'        => $orderData->order_barcode . ' Merchant has started processing the order',
+            'data'           => json_encode([
+                'order_id' => $orderData->order_barcode,
+                'status'   => 'order_processing'
+            ]),
+            'is_read'        => 0,
+            'recipient_type' => 'admin',
+            'recipient_id'   => 1,
+            'created_at'     => $current_time,
+            'updated_at'     => $current_time
+        ],
+
+        // Shopper notification
+        [
+            'type'           => 'order',
+            'subtype'        => 'b2b_processing',
+            'title'          => 'Order Processing',
+            'message'        => 'Your order no. ' . $orderData->order_barcode . ' is under process.',
+            'data'           => json_encode([
+                'order_id' => $orderData->order_barcode,
+                'status'   => 'order_processing'
+            ]),
+            'is_read'        => 0,
+            'recipient_type' => 'shopper',
+            'recipient_id'   => $orderData->customer_id,
+            'created_at'     => $current_time,
+            'updated_at'     => $current_time
+        ]
+    ];
+
+    $this->db->insert_batch('notifications', $notifications);
+}
 
         // 4. JSON Responses
         if ($updated) {
