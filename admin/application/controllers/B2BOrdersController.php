@@ -17912,10 +17912,6 @@ class B2BOrdersController extends CI_Controller
             : date('Y-m-d 00:00:00');
 
 
-        // ==========================================
-        // GET LAST DELIVERY ATTEMPT
-        // ==========================================
-
         $lastAttempt = $this->db
             ->where('order_id', $order_id)
             ->order_by('delivery_attempt_no', 'DESC')
@@ -17929,11 +17925,6 @@ class B2BOrdersController extends CI_Controller
 
         $nextAttempt = $currentAttempt + 1;
 
-
-        // ==========================================
-        // MAXIMUM 2 ATTEMPTS
-        // ==========================================
-
         if ($nextAttempt > 2) {
             echo json_encode([
                 'status'  => 400,
@@ -17942,18 +17933,9 @@ class B2BOrdersController extends CI_Controller
             exit;
         }
 
-
-        // ==========================================
-        // MAP DELIVERY + ORDER STATUS
-        // ==========================================
-
         $delivery_status = ($nextAttempt == 1) ? 1 : 3;
         $order_status    = ($nextAttempt == 1) ? 4 : 5;
 
-
-        // ==========================================
-        // INSERT DELIVERY ATTEMPT
-        // ==========================================
 
         $insertData = [
             'order_id'            => $order_id,
@@ -17974,21 +17956,12 @@ class B2BOrdersController extends CI_Controller
         );
 
 
-        // ==========================================
-        // UPDATE B2B ORDER STATUS
-        // ==========================================
-
         $this->CommonModel->updateData(
             'b2b_orders',
             ['order_id' => $order_id],
             ['status' => $order_status]
         );
 
-
-        // ==========================================
-        // SEND SHOPPER NOTIFICATION
-        // ONLY ON FIRST DELIVERY ASSIGNMENT
-        // ==========================================
 
         if ($nextAttempt == 1) {
 
@@ -18044,10 +18017,6 @@ class B2BOrdersController extends CI_Controller
         }
 
 
-        // ==========================================
-        // GET ALL PRODUCTS FROM THIS ORDER
-        // ==========================================
-
         $orderItems = $this->db
             ->select('product_id, qty_ordered')
             ->from('b2b_order_items')
@@ -18055,10 +18024,6 @@ class B2BOrdersController extends CI_Controller
             ->get()
             ->result();
 
-
-        // ==========================================
-        // UPDATE INVENTORY
-        // ==========================================
 
         if (!empty($orderItems)) {
 
@@ -18085,10 +18050,6 @@ class B2BOrdersController extends CI_Controller
         }
 
 
-        // ==========================================
-        // SUCCESS RESPONSE
-        // ==========================================
-
         echo json_encode([
             'status'  => 200,
             'message' => "Delivery attempt #$nextAttempt assigned successfully."
@@ -18096,11 +18057,6 @@ class B2BOrdersController extends CI_Controller
 
         exit;
     }
-
-
-    // ==========================================
-    // INVALID REQUEST
-    // ==========================================
 
     echo json_encode([
         'status'  => 500,
