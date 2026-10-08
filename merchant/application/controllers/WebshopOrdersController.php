@@ -4968,7 +4968,10 @@ class WebshopOrdersController extends CI_Controller {
             ?: ($_SESSION['LoginID'] ?? 0)
         );
 
-        // Fetch item details including shipment_type and publisher_id
+        // =====================================================
+        // FETCH REPLACEMENT ITEM DETAILS
+        // =====================================================
+
         $itemRow = $this->db
             ->select('
                 sori.replacement_item_id,
@@ -5012,7 +5015,10 @@ class WebshopOrdersController extends CI_Controller {
             return;
         }
 
-        // Validate ownership
+        // =====================================================
+        // VALIDATE MERCHANT OWNERSHIP
+        // =====================================================
+
         if (
             $LogindID > 0 &&
             !empty($itemRow->publisher_id) &&
@@ -5033,8 +5039,8 @@ class WebshopOrdersController extends CI_Controller {
         // BACKEND ENFORCEMENT
         // =====================================================
 
-        // If currently status 2 (YM Replacement Approved):
-        // Merchant cannot process or complete it from Merchant Panel
+        // Status 2 = YM Replacement Approved
+        // Merchant cannot process/complete it.
         if ($currentItemStatus === 2) {
 
             echo json_encode([
@@ -5062,10 +5068,10 @@ class WebshopOrdersController extends CI_Controller {
 
         if ($currentItemStatus === 0) {
 
-            // From Pending:
-            // Merchant can approve as Own (1),
-            // approve as YM (2),
-            // or reject (4)
+            // Pending:
+            // 1 = Own Replacement Approved
+            // 2 = YM Replacement Approved
+            // 4 = Rejected
 
             if (!in_array($status, [1, 2, 4])) {
 
@@ -5079,8 +5085,9 @@ class WebshopOrdersController extends CI_Controller {
 
         } elseif ($currentItemStatus === 1) {
 
-            // From Own Replacement Approved:
-            // Merchant can complete (5) or reject (4)
+            // Own Replacement Approved:
+            // 5 = Completed
+            // 4 = Rejected
 
             if (!in_array($status, [4, 5])) {
 
@@ -5140,7 +5147,7 @@ class WebshopOrdersController extends CI_Controller {
         }
 
         // =====================================================
-        // 1. UPDATE REPLACEMENT ITEM STATUS & TYPE
+        // UPDATE REPLACEMENT ITEM STATUS & TYPE
         // =====================================================
 
         $updated = $this->WebshopOrdersModel
@@ -5151,22 +5158,26 @@ class WebshopOrdersController extends CI_Controller {
             );
 
         // =====================================================
-        // 2. NOTIFY ADMIN ON STATUS CHANGE
+        // NOTIFICATIONS
         // =====================================================
 
         if ($updated && in_array($status, [1, 2, 4, 5])) {
 
             // =================================================
-            // 3. GET REPLACEMENT + ORDER + SHOPPER + PRODUCT
+            // GET REPLACEMENT + ORDER + SHOPPER + PRODUCT
+            //
+            // IMPORTANT:
+            // shopper/customer ID comes from:
+            // sales_order_replacement.customer_id
             // =================================================
 
             $replacement = $this->db
                 ->select('
                     sor.order_id,
                     sor.replacement_order_id,
+                    sor.customer_id,
                     bo.increment_id,
                     bo.publisher_id,
-                    so.customer_id,
                     p.name as product_name
                 ')
                 ->from('sales_order_replacement_items sori')
@@ -5188,11 +5199,6 @@ class WebshopOrdersController extends CI_Controller {
                     'left'
                 )
                 ->join(
-                    'sales_order so',
-                    'so.order_id = sor.order_id',
-                    'left'
-                )
-                ->join(
                     'products p',
                     'p.id = boi.product_id',
                     'left'
@@ -5206,15 +5212,16 @@ class WebshopOrdersController extends CI_Controller {
 
             if (!empty($replacement)) {
 
-                // =============================================
-                // ADMIN NOTIFICATION DATA
-                // =============================================
+                // =================================================
+                // ADMIN NOTIFICATION
+                // =================================================
 
                 if ($status === 1) {
 
                     $title = 'Own Replacement Approved';
 
-                    $message = 'Own replacement request approved by merchant for order '
+                    $message =
+                        'Own replacement request approved by merchant for order '
                         . $replacement->increment_id . '.';
 
                     $subtype = 'own_replacement_approved';
@@ -5223,7 +5230,8 @@ class WebshopOrdersController extends CI_Controller {
 
                     $title = 'YM Replacement Request Approved';
 
-                    $message = 'YM replacement request approved by merchant for order '
+                    $message =
+                        'YM replacement request approved by merchant for order '
                         . $replacement->increment_id
                         . '. Awaiting processing from Admin Panel.';
 
@@ -5233,7 +5241,8 @@ class WebshopOrdersController extends CI_Controller {
 
                     $title = 'Own Replacement Completed';
 
-                    $message = 'Own replacement marked as done by merchant for order '
+                    $message =
+                        'Own replacement marked as done by merchant for order '
                         . $replacement->increment_id . '.';
 
                     $subtype = 'own_replacement_completed';
@@ -5242,45 +5251,45 @@ class WebshopOrdersController extends CI_Controller {
 
                     $title = 'Replacement Rejected';
 
-                    $message = 'Replacement request rejected by merchant for order '
+                    $message =
+                        'Replacement request rejected by merchant for order '
                         . $replacement->increment_id . '.';
 
                     $subtype = 'rejected';
                 }
 
-                // =============================================
-                // 4. INSERT ADMIN NOTIFICATION
-                // =============================================
-
-                $notification_data = [
-                    'type'           => 'replacement',
-                    'subtype'        => $subtype,
-                    'recipient_type' => 'admin',
-                    'recipient_id'   => 1,
-                    'title'          => $title,
-                    'message'        => $message,
-                    'data'           => json_encode([
-                        'order_id'         => $replacement->order_id,
-                        'increment_id'     => $replacement->increment_id,
-                        'replacement_id'   => $replacement_item_id,
-                        'replacement_type' => $replacement_type,
-                        'status'           => $status
-                    ]),
-                    'is_read'         => 0,
-                    'created_at'      => date('Y-m-d H:i:s'),
-                    'updated_at'      => date('Y-m-d H:i:s')
-                ];
+                // =================================================
+                // INSERT ADMIN NOTIFICATION
+                // =================================================
 
                 $this->db->insert(
                     'notifications',
-                    $notification_data
+                    [
+                        'type'           => 'replacement',
+                        'subtype'        => $subtype,
+                        'recipient_type' => 'admin',
+                        'recipient_id'   => 1,
+                        'title'          => $title,
+                        'message'        => $message,
+                        'data'           => json_encode([
+                            'order_id'         => $replacement->order_id,
+                            'increment_id'     => $replacement->increment_id,
+                            'replacement_id'   => $replacement_item_id,
+                            'replacement_type' => $replacement_type,
+                            'status'           => $status
+                        ]),
+                        'is_read'         => 0,
+                        'created_at'       => date('Y-m-d H:i:s'),
+                        'updated_at'       => date('Y-m-d H:i:s')
+                    ]
                 );
 
                 // =====================================================
-                // 5. SHOPPER NOTIFICATION
+                // SHOPPER NOTIFICATION
+                //
                 // ONLY:
-                // status 1 = Approved
-                // status 4 = Rejected
+                // 1 = Approved
+                // 4 = Rejected
                 // =====================================================
 
                 if (
@@ -5290,9 +5299,9 @@ class WebshopOrdersController extends CI_Controller {
 
                     $shopper_title = 'Return / Replacement';
 
-                    // ---------------------------------------------
+                    // =================================================
                     // REPLACEMENT APPROVED
-                    // ---------------------------------------------
+                    // =================================================
 
                     if ($status === 1) {
 
@@ -5300,16 +5309,18 @@ class WebshopOrdersController extends CI_Controller {
                             'Your replacement for ('
                             . $replacement->increment_id
                             . ') – ('
-                            . (!empty($replacement->product_name)
-                                ? $replacement->product_name
-                                : 'Product')
+                            . (
+                                !empty($replacement->product_name)
+                                    ? $replacement->product_name
+                                    : 'Product'
+                            )
                             . ') is accepted.';
 
                         $shopper_subtype = 'replacement_approved';
 
-                    // ---------------------------------------------
+                    // =================================================
                     // REPLACEMENT REJECTED
-                    // ---------------------------------------------
+                    // =================================================
 
                     } else {
 
@@ -5317,52 +5328,53 @@ class WebshopOrdersController extends CI_Controller {
                             'Your replacement for ('
                             . $replacement->increment_id
                             . ') – ('
-                            . (!empty($replacement->product_name)
-                                ? $replacement->product_name
-                                : 'Product')
+                            . (
+                                !empty($replacement->product_name)
+                                    ? $replacement->product_name
+                                    : 'Product'
+                            )
                             . ') was rejected.';
 
                         $shopper_subtype = 'replacement_rejected';
                     }
 
-                    // ---------------------------------------------
+                    // =================================================
                     // INSERT SHOPPER NOTIFICATION
-                    // ---------------------------------------------
+                    // =================================================
 
-                    $this->db->insert('notifications', [
+                    $this->db->insert(
+                        'notifications',
+                        [
+                            'type'           => 'replacement',
+                            'subtype'        => $shopper_subtype,
+                            'recipient_type' => 'shopper',
 
-                        'type'           => 'replacement',
+                            // IMPORTANT:
+                            // shopper ID from sales_order_replacement.customer_id
+                            'recipient_id'   => (int)$replacement->customer_id,
 
-                        'subtype'        => $shopper_subtype,
+                            'title'          => $shopper_title,
+                            'message'        => $shopper_message,
 
-                        'recipient_type' => 'shopper',
+                            'data'           => json_encode([
+                                'order_id'         => $replacement->order_id,
+                                'increment_id'     => $replacement->increment_id,
+                                'replacement_id'   => $replacement_item_id,
+                                'replacement_type' => $replacement_type,
+                                'status'           => $status
+                            ]),
 
-                        'recipient_id'   => $replacement->customer_id,
-
-                        'title'          => $shopper_title,
-
-                        'message'        => $shopper_message,
-
-                        'data'           => json_encode([
-                            'order_id'         => $replacement->order_id,
-                            'increment_id'     => $replacement->increment_id,
-                            'replacement_id'   => $replacement_item_id,
-                            'replacement_type' => $replacement_type,
-                            'status'           => $status
-                        ]),
-
-                        'is_read'         => 0,
-
-                        'created_at'      => date('Y-m-d H:i:s'),
-
-                        'updated_at'      => date('Y-m-d H:i:s')
-                    ]);
+                            'is_read'         => 0,
+                            'created_at'      => date('Y-m-d H:i:s'),
+                            'updated_at'      => date('Y-m-d H:i:s')
+                        ]
+                    );
                 }
             }
         }
 
         // =====================================================
-        // 6. AJAX RESPONSE
+        // AJAX RESPONSE
         // =====================================================
 
         echo json_encode([
@@ -5380,7 +5392,6 @@ class WebshopOrdersController extends CI_Controller {
     }
 }
 
-
 public function return_update_status()
 {
     $id     = $this->input->post('id');
@@ -5390,10 +5401,15 @@ public function return_update_status()
 
         $status = (int)$status;
 
+        // =====================================================
+        // UPDATE RETURN STATUS
+        // =====================================================
+
         $updated = $this->WebshopOrdersModel
             ->return_update_status($id, $status);
 
         // =====================================================
+        // ONLY:
         // 1 = APPROVED
         // 2 = REJECTED
         // =====================================================
@@ -5436,7 +5452,10 @@ public function return_update_status()
                 // ADMIN NOTIFICATION
                 // =================================================
 
-                // APPROVED
+                // -----------------------------------------------
+                // RETURN APPROVED
+                // -----------------------------------------------
+
                 if ($status === 1) {
 
                     $title = 'Return Request Approved';
@@ -5447,7 +5466,10 @@ public function return_update_status()
 
                     $subtype = 'approved';
 
-                // REJECTED
+                // -----------------------------------------------
+                // RETURN REJECTED
+                // -----------------------------------------------
+
                 } else {
 
                     $title = 'Return Request Rejected';
@@ -5460,41 +5482,33 @@ public function return_update_status()
                 }
 
                 // =================================================
-                // ADMIN ONLY NOTIFICATION
+                // INSERT ADMIN NOTIFICATION
                 // =================================================
 
-                $this->db->insert('notifications', [
+                $this->db->insert(
+                    'notifications',
+                    [
+                        'type'           => 'return',
+                        'subtype'        => $subtype,
+                        'recipient_type' => 'admin',
+                        'recipient_id'   => 1,
+                        'title'          => $title,
+                        'message'        => $message,
+                        'data'           => json_encode([
+                            'order_id'     => $order->order_id,
+                            'increment_id' => $order->increment_id,
+                            'return_id'    => $id,
+                            'status'       => $status
+                        ]),
+                        'is_read'         => 0,
+                        'created_at'      => date('Y-m-d H:i:s'),
+                        'updated_at'      => date('Y-m-d H:i:s')
+                    ]
+                );
 
-                    'type'           => 'return',
-
-                    'subtype'        => $subtype,
-
-                    'recipient_type' => 'admin',
-
-                    'recipient_id'   => 1,
-
-                    'title'          => $title,
-
-                    'message'        => $message,
-
-                    'data'           => json_encode([
-                        'order_id'     => $order->order_id,
-                        'increment_id' => $order->increment_id,
-                        'return_id'    => $id,
-                        'status'       => $status
-                    ]),
-
-                    'is_read'         => 0,
-
-                    'created_at'      => date('Y-m-d H:i:s'),
-
-                    'updated_at'      => date('Y-m-d H:i:s')
-                ]);
-
-
-                // =====================================================
-                // GET PRODUCT NAME FOR SHOPPER NOTIFICATION
-                // =====================================================
+                // =================================================
+                // GET PRODUCT NAME
+                // =================================================
 
                 $return_product = $this->db
                     ->select('p.name as product_name')
@@ -5517,6 +5531,9 @@ public function return_update_status()
                     ->get()
                     ->row();
 
+                // =================================================
+                // DEFAULT PRODUCT NAME
+                // =================================================
 
                 $product_name = 'Product';
 
@@ -5528,13 +5545,13 @@ public function return_update_status()
                     $product_name = $return_product->product_name;
                 }
 
-
-                // =====================================================
+                // =================================================
                 // SHOPPER NOTIFICATION
+                //
                 // ONLY:
-                // status 1 = Approved
-                // status 2 = Rejected
-                // =====================================================
+                // 1 = Approved
+                // 2 = Rejected
+                // =================================================
 
                 if (
                     in_array($status, [1, 2]) &&
@@ -5542,7 +5559,6 @@ public function return_update_status()
                 ) {
 
                     $shopper_title = 'Return / Replacement';
-
 
                     // =================================================
                     // RETURN APPROVED
@@ -5558,7 +5574,6 @@ public function return_update_status()
                             . ') is accepted.';
 
                         $shopper_subtype = 'return_approved';
-
 
                     // =================================================
                     // RETURN REJECTED
@@ -5576,42 +5591,38 @@ public function return_update_status()
                         $shopper_subtype = 'return_rejected';
                     }
 
-
                     // =================================================
                     // INSERT SHOPPER NOTIFICATION
                     // =================================================
 
-                    $this->db->insert('notifications', [
+                    $this->db->insert(
+                        'notifications',
+                        [
+                            'type'           => 'return',
+                            'subtype'        => $shopper_subtype,
+                            'recipient_type' => 'shopper',
 
-                        'type'           => 'return',
+                            // Shopper/customer ID
+                            'recipient_id'   => (int)$order->customer_id,
 
-                        'subtype'        => $shopper_subtype,
+                            'title'          => $shopper_title,
+                            'message'        => $shopper_message,
 
-                        'recipient_type' => 'shopper',
+                            'data'           => json_encode([
+                                'order_id'     => $order->order_id,
+                                'increment_id' => $order->increment_id,
+                                'return_id'    => $id,
+                                'status'       => $status
+                            ]),
 
-                        'recipient_id'   => $order->customer_id,
-
-                        'title'          => $shopper_title,
-
-                        'message'        => $shopper_message,
-
-                        'data'           => json_encode([
-                            'order_id'     => $order->order_id,
-                            'increment_id' => $order->increment_id,
-                            'return_id'    => $id,
-                            'status'       => $status
-                        ]),
-
-                        'is_read'         => 0,
-
-                        'created_at'      => date('Y-m-d H:i:s'),
-
-                        'updated_at'      => date('Y-m-d H:i:s')
-                    ]);
+                            'is_read'         => 0,
+                            'created_at'      => date('Y-m-d H:i:s'),
+                            'updated_at'      => date('Y-m-d H:i:s')
+                        ]
+                    );
                 }
             }
         }
-
 
         // =====================================================
         // AJAX RESPONSE
