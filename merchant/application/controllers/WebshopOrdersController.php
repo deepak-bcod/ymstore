@@ -4976,6 +4976,7 @@ public function replacement_update_item_status()
          * GET CURRENT REPLACEMENT ITEM
          * =====================================================
          */
+
         $currentItem = $this->db
             ->select('
                 sori.replacement_item_id,
@@ -5017,6 +5018,7 @@ public function replacement_update_item_status()
          * GET REPLACEMENT / ORDER DETAILS
          * =====================================================
          */
+
         $replacement = $this->db
             ->select('
                 sor.replacement_order_id,
@@ -5163,7 +5165,9 @@ public function replacement_update_item_status()
 
             /*
              * STATUS 1
+             * Own replacement approved
              */
+
             case 1:
 
                 $adminTitle   = 'Own Replacement Approved';
@@ -5179,7 +5183,9 @@ public function replacement_update_item_status()
 
             /*
              * STATUS 2
+             * YM replacement approved
              */
+
             case 2:
 
                 $adminTitle   = 'YM Replacement Request Approved';
@@ -5195,7 +5201,9 @@ public function replacement_update_item_status()
 
             /*
              * STATUS 4
+             * Rejected
              */
+
             case 4:
 
                 $adminTitle   = 'Replacement Rejected';
@@ -5211,7 +5219,9 @@ public function replacement_update_item_status()
 
             /*
              * STATUS 5
+             * Own replacement completed
              */
+
             case 5:
 
                 $adminTitle   = 'Own Replacement Completed';
@@ -5239,6 +5249,7 @@ public function replacement_update_item_status()
                 'subtype'        => $adminSubtype,
                 'recipient_type' => 'admin',
                 'recipient_id'   => 1,
+
                 'title'          => $adminTitle,
                 'message'        => $adminMessage,
 
@@ -5262,7 +5273,7 @@ public function replacement_update_item_status()
                         $status
                 ]),
 
-                'is_read'   => 0,
+                'is_read'    => 0,
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ];
@@ -5287,28 +5298,25 @@ public function replacement_update_item_status()
          * =====================================================
          * SHOPPER NOTIFICATION
          *
-         * 1 = Approved
-         * 4 = Rejected
+         * STATUS 1 = Own Replacement Approved
+         * STATUS 2 = YM Replacement Approved
+         * STATUS 4 = Replacement Rejected
+         *
+         * IMPORTANT:
+         * Previously this was:
+         *
+         * if (in_array($status, [1, 4]))
+         *
+         * Therefore status 2 never reached this code.
          * =====================================================
          */
 
-        if (in_array($status, [1, 4])) {
+        if (in_array($status, [1, 2, 4])) {
 
 
             /*
              * =================================================
              * FIND SHOPPER CUSTOMER ID
-             *
-             * We check:
-             *
-             * 1. sales_order_replacement.customer_id
-             *
-             * 2. sales_order.customer_id where
-             *    sales_order.order_id =
-             *    sales_order_replacement.order_id
-             *
-             * 3. b2b_orders.webshop_order_id =
-             *    sales_order.order_id
              * =================================================
              */
 
@@ -5377,6 +5385,7 @@ public function replacement_update_item_status()
                  *
                  * sales_order_replacement.customer_id
                  */
+
                 if (
                     !empty($shopper->replacement_customer_id) &&
                     (int)$shopper->replacement_customer_id > 0
@@ -5392,6 +5401,7 @@ public function replacement_update_item_status()
                  *
                  * sales_order.customer_id
                  */
+
                 elseif (
                     !empty($shopper->direct_order_customer_id) &&
                     (int)$shopper->direct_order_customer_id > 0
@@ -5407,6 +5417,7 @@ public function replacement_update_item_status()
                  *
                  * sales_order through b2b_orders.webshop_order_id
                  */
+
                 elseif (
                     !empty($shopper->b2b_webshop_customer_id) &&
                     (int)$shopper->b2b_webshop_customer_id > 0
@@ -5420,10 +5431,9 @@ public function replacement_update_item_status()
 
             /*
              * =================================================
-             * FALLBACK DIRECT QUERY
+             * FALLBACK 1
              *
-             * If previous query did not find customer_id,
-             * try sales_order directly.
+             * Direct sales_order query
              * =================================================
              */
 
@@ -5456,16 +5466,16 @@ public function replacement_update_item_status()
 
             /*
              * =================================================
-             * SECOND FALLBACK THROUGH B2B ORDER
+             * FALLBACK 2
+             *
+             * B2B order -> sales_order
              * =================================================
              */
 
             if ($customerId <= 0) {
 
                 $b2bShopper = $this->db
-                    ->select('
-                        so.customer_id
-                    ')
+                    ->select('so.customer_id')
                     ->from('b2b_orders bo')
                     ->join(
                         'sales_order so',
@@ -5492,6 +5502,46 @@ public function replacement_update_item_status()
                         (int)$b2bShopper->customer_id;
                 }
             }
+
+
+            /*
+             * =================================================
+             * FALLBACK 3
+             *
+             * Use customer_id already loaded from replacement
+             * =================================================
+             */
+
+            if ($customerId <= 0) {
+
+                if (
+                    !empty($replacement->customer_id) &&
+                    (int)$replacement->customer_id > 0
+                ) {
+
+                    $customerId =
+                        (int)$replacement->customer_id;
+                }
+            }
+
+
+            /*
+             * =================================================
+             * LOG CUSTOMER ID
+             * =================================================
+             */
+
+            log_message(
+                'error',
+                'REPLACEMENT SHOPPER CUSTOMER LOOKUP: ' .
+                'replacement_item_id=' . $replacement_item_id .
+                ', replacement_order_id=' .
+                $replacement->replacement_order_id .
+                ', order_id=' .
+                $replacement->order_id .
+                ', customer_id=' .
+                $customerId
+            );
 
 
             /*
@@ -5533,7 +5583,6 @@ public function replacement_update_item_status()
             $productId   = 0;
             $productName = 'Product';
 
-
             if ($product) {
 
                 if (!empty($product->product_id)) {
@@ -5574,8 +5623,19 @@ public function replacement_update_item_status()
 
             /*
              * =================================================
-             * STATUS 1 = APPROVED
+             * SHOPPER MESSAGE
              * =================================================
+             */
+
+            $shopperTitle   = '';
+            $shopperSubtype = '';
+            $shopperMessage = '';
+
+
+            /*
+             * STATUS 1
+             *
+             * OWN REPLACEMENT APPROVED
              */
 
             if ($status == 1) {
@@ -5596,12 +5656,35 @@ public function replacement_update_item_status()
 
 
             /*
-             * =================================================
-             * STATUS 4 = REJECTED
-             * =================================================
+             * STATUS 2
+             *
+             * YM REPLACEMENT APPROVED
              */
 
-            else {
+            elseif ($status == 2) {
+
+                $shopperTitle =
+                    'YM Replacement Approved';
+
+                $shopperSubtype =
+                    'ym_replacement_approved';
+
+                $shopperMessage =
+                    'Your replacement for (' .
+                    $orderNumber .
+                    ') – (' .
+                    $productName .
+                    ') has been approved and is being processed by Yellow Market.';
+            }
+
+
+            /*
+             * STATUS 4
+             *
+             * REJECTED
+             */
+
+            elseif ($status == 4) {
 
                 $shopperTitle =
                     'Replacement Rejected';
@@ -5624,10 +5707,15 @@ public function replacement_update_item_status()
              * =================================================
              */
 
-            if ($customerId > 0) {
+            if (
+                $customerId > 0 &&
+                $shopperTitle !== '' &&
+                $shopperSubtype !== ''
+            ) {
 
                 $shopperNotification = [
                     'type'           => 'replacement',
+
                     'subtype'        => $shopperSubtype,
 
                     /*
@@ -5636,11 +5724,12 @@ public function replacement_update_item_status()
                     'recipient_type' => 'shopper',
 
                     /*
-                     * This must be the actual shopper/customer ID
+                     * Actual customer ID
                      */
                     'recipient_id'   => $customerId,
 
                     'title'          => $shopperTitle,
+
                     'message'        => $shopperMessage,
 
                     'data' => json_encode([
@@ -5656,6 +5745,9 @@ public function replacement_update_item_status()
                         'increment_id' =>
                             $orderNumber,
 
+                        'replacement_increment_id' =>
+                            $replacement->replacement_order_increment_id,
+
                         'product_id' =>
                             $productId,
 
@@ -5670,14 +5762,21 @@ public function replacement_update_item_status()
                     ]),
 
                     'is_read'    => 0,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
+
+                    'created_at' =>
+                        date('Y-m-d H:i:s'),
+
+                    'updated_at' =>
+                        date('Y-m-d H:i:s')
                 ];
 
 
                 /*
+                 * =================================================
                  * INSERT
+                 * =================================================
                  */
+
                 $shopperInserted = $this->db->insert(
                     'notifications',
                     $shopperNotification
@@ -5685,8 +5784,11 @@ public function replacement_update_item_status()
 
 
                 /*
+                 * =================================================
                  * INSERT FAILED
+                 * =================================================
                  */
+
                 if (!$shopperInserted) {
 
                     $dbError = $this->db->error();
@@ -5720,6 +5822,23 @@ public function replacement_update_item_status()
 
                     log_message(
                         'error',
+                        'Original Order ID: ' .
+                        $replacement->order_id
+                    );
+
+                    log_message(
+                        'error',
+                        'Status: ' . $status
+                    );
+
+                    log_message(
+                        'error',
+                        'Subtype: ' .
+                        $shopperSubtype
+                    );
+
+                    log_message(
+                        'error',
                         'DB ERROR: ' .
                         json_encode($dbError)
                     );
@@ -5738,23 +5857,33 @@ public function replacement_update_item_status()
                 } else {
 
                     /*
+                     * =================================================
                      * SUCCESS LOG
+                     * =================================================
                      */
+
                     log_message(
                         'error',
                         'SHOPPER REPLACEMENT NOTIFICATION SUCCESS: ' .
                         'customer_id=' .
                         $customerId .
                         ', replacement_item_id=' .
-                        $replacement_item_id
+                        $replacement_item_id .
+                        ', status=' .
+                        $status .
+                        ', subtype=' .
+                        $shopperSubtype
                     );
                 }
 
             } else {
 
                 /*
-                 * CUSTOMER ID COULD NOT BE FOUND
+                 * =================================================
+                 * CUSTOMER ID NOT FOUND
+                 * =================================================
                  */
+
                 log_message(
                     'error',
                     '============================================'
@@ -5767,7 +5896,13 @@ public function replacement_update_item_status()
 
                 log_message(
                     'error',
-                    'Customer ID = 0'
+                    'Customer ID = ' . $customerId
+                );
+
+                log_message(
+                    'error',
+                    'Replacement Item ID = ' .
+                    $replacement_item_id
                 );
 
                 log_message(
@@ -5786,6 +5921,24 @@ public function replacement_update_item_status()
                     'error',
                     'Replacement Customer ID = ' .
                     $replacement->customer_id
+                );
+
+                log_message(
+                    'error',
+                    'Status = ' .
+                    $status
+                );
+
+                log_message(
+                    'error',
+                    'Shopper Title = ' .
+                    $shopperTitle
+                );
+
+                log_message(
+                    'error',
+                    'Shopper Subtype = ' .
+                    $shopperSubtype
                 );
 
                 log_message(
@@ -5823,7 +5976,6 @@ public function replacement_update_item_status()
         'message' => 'Invalid replacement request.'
     ]);
 }
-
 
 
 
