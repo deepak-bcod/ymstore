@@ -5582,7 +5582,7 @@ public function return_update_status()
         ) {
 
             // =================================================
-            // GET RETURN + B2B ORDER + CUSTOMER + PRODUCT
+            // GET RETURN + ORDER + CUSTOMER + PRODUCT
             // =================================================
 
             $order = $this->db
@@ -5590,9 +5590,9 @@ public function return_update_status()
                     sor.order_id,
                     sor.return_order_id,
 
-                    bo.order_id AS b2b_order_id,
-                    bo.order_barcode AS b2b_order_barcode,
+                    bo.increment_id,
 
+                    so.order_barcode,
                     so.customer_id,
 
                     soi.product_id,
@@ -5623,26 +5623,6 @@ public function return_update_status()
                     $id
                 )
 
-                // IMPORTANT:
-                // Only use B2B records which have an order barcode
-                ->where(
-                    'bo.order_barcode IS NOT NULL',
-                    null,
-                    false
-                )
-
-                ->where(
-                    'bo.order_barcode !=',
-                    ''
-                )
-
-                ->order_by(
-                    'bo.order_id',
-                    'ASC'
-                )
-
-                ->limit(1)
-
                 ->get()
                 ->row();
 
@@ -5652,24 +5632,18 @@ public function return_update_status()
                 // =================================================
                 // ORDER NUMBER
                 // =================================================
-                // ONLY:
-                // b2b_orders.order_barcode
-                //
-                // Example:
-                // ES-1182
-                // =================================================
 
                 $orderNumber = '';
 
-                if (!empty($order->b2b_order_barcode)) {
+                if (!empty($order->order_barcode)) {
 
                     $orderNumber =
-                        trim($order->b2b_order_barcode);
+                        $order->order_barcode;
 
-                } else {
+                } elseif (!empty($order->increment_id)) {
 
                     $orderNumber =
-                        'Order';
+                        $order->increment_id;
                 }
 
 
@@ -5682,21 +5656,13 @@ public function return_update_status()
                 if (!empty($order->product_name)) {
 
                     $productName =
-                        trim($order->product_name);
+                        $order->product_name;
 
                 } else {
 
                     $productName =
                         'Product';
                 }
-
-
-                // =================================================
-                // CURRENT DATE/TIME
-                // =================================================
-
-                $currentDateTime =
-                    date('Y-m-d H:i:s');
 
 
                 // =================================================
@@ -5729,51 +5695,97 @@ public function return_update_status()
                 }
 
 
-                // =================================================
                 // ADMIN NOTIFICATION
+
+                $this->db->insert('notifications', [
+
+                    'type' =>
+                        'return',
+
+                    'subtype' =>
+                        $subtype,
+
+                    'recipient_type' =>
+                        'admin',
+
+                    'recipient_id' =>
+                        1,
+
+                    'title' =>
+                        $title,
+
+                    'message' =>
+                        $message,
+
+                    'data' =>
+                        json_encode([
+                            'order_id' =>
+                                $order->order_id,
+
+                            'increment_id' =>
+                                $orderNumber,
+
+                            'return_id' =>
+                                $id,
+
+                            'status' =>
+                                $status
+                        ]),
+
+                    'is_read' =>
+                        0,
+
+                    'created_at' =>
+                        date('Y-m-d H:i:s'),
+
+                    'updated_at' =>
+                        date('Y-m-d H:i:s')
+                ]);
+
+
+                // =================================================
+                // 4. SHOPPER NOTIFICATION - APPROVED
                 // =================================================
 
-                $this->db->insert(
-                    'notifications',
-                    [
+                if (
+                    $status === 1 &&
+                    !empty($order->customer_id)
+                ) {
+
+                    $this->db->insert('notifications', [
 
                         'type' =>
                             'return',
 
                         'subtype' =>
-                            $subtype,
+                            'return_approved',
 
                         'recipient_type' =>
-                            'admin',
+                            'shopper',
 
                         'recipient_id' =>
-                            1,
+                            (int)$order->customer_id,
 
                         'title' =>
-                            $title,
+                            'Return',
 
                         'message' =>
-                            $message,
+                            'Your return for (' .
+                            $orderNumber .
+                            ') – (' .
+                            $productName .
+                            ') is accepted.',
 
                         'data' =>
                             json_encode([
                                 'order_id' =>
                                     $order->order_id,
 
-                                'b2b_order_id' =>
-                                    $order->b2b_order_id,
-
                                 'order_number' =>
                                     $orderNumber,
 
-                                'b2b_order_barcode' =>
-                                    $order->b2b_order_barcode,
-
                                 'return_id' =>
                                     $id,
-
-                                'product_id' =>
-                                    $order->product_id,
 
                                 'product_name' =>
                                     $productName,
@@ -5786,86 +5798,11 @@ public function return_update_status()
                             0,
 
                         'created_at' =>
-                            $currentDateTime,
+                            date('Y-m-d H:i:s'),
 
                         'updated_at' =>
-                            $currentDateTime
-                    ]
-                );
-
-
-                // =================================================
-                // 4. SHOPPER NOTIFICATION - APPROVED
-                // =================================================
-
-                if (
-                    $status === 1 &&
-                    !empty($order->customer_id)
-                ) {
-
-                    $this->db->insert(
-                        'notifications',
-                        [
-
-                            'type' =>
-                                'return',
-
-                            'subtype' =>
-                                'return_approved',
-
-                            'recipient_type' =>
-                                'shopper',
-
-                            'recipient_id' =>
-                                (int)$order->customer_id,
-
-                            'title' =>
-                                'Return',
-
-                            'message' =>
-                                'Your return for (' .
-                                $orderNumber .
-                                ') – (' .
-                                $productName .
-                                ') is accepted.',
-
-                            'data' =>
-                                json_encode([
-                                    'order_id' =>
-                                        $order->order_id,
-
-                                    'b2b_order_id' =>
-                                        $order->b2b_order_id,
-
-                                    'order_number' =>
-                                        $orderNumber,
-
-                                    'b2b_order_barcode' =>
-                                        $order->b2b_order_barcode,
-
-                                    'return_id' =>
-                                        $id,
-
-                                    'product_id' =>
-                                        $order->product_id,
-
-                                    'product_name' =>
-                                        $productName,
-
-                                    'status' =>
-                                        $status
-                                ]),
-
-                            'is_read' =>
-                                0,
-
-                            'created_at' =>
-                                $currentDateTime,
-
-                            'updated_at' =>
-                                $currentDateTime
-                        ]
-                    );
+                            date('Y-m-d H:i:s')
+                    ]);
                 }
 
 
@@ -5878,69 +5815,57 @@ public function return_update_status()
                     !empty($order->customer_id)
                 ) {
 
-                    $this->db->insert(
-                        'notifications',
-                        [
+                    $this->db->insert('notifications', [
 
-                            'type' =>
-                                'return',
+                        'type' =>
+                            'return',
 
-                            'subtype' =>
-                                'return_rejected',
+                        'subtype' =>
+                            'return_rejected',
 
-                            'recipient_type' =>
-                                'shopper',
+                        'recipient_type' =>
+                            'shopper',
 
-                            'recipient_id' =>
-                                (int)$order->customer_id,
+                        'recipient_id' =>
+                            (int)$order->customer_id,
 
-                            'title' =>
-                                'Return',
+                        'title' =>
+                            'Return',
 
-                            'message' =>
-                                'Your return for (' .
-                                $orderNumber .
-                                ') – (' .
-                                $productName .
-                                ') was rejected.',
+                        'message' =>
+                            'Your return for (' .
+                            $orderNumber .
+                            ') – (' .
+                            $productName .
+                            ') was rejected.',
 
-                            'data' =>
-                                json_encode([
-                                    'order_id' =>
-                                        $order->order_id,
+                        'data' =>
+                            json_encode([
+                                'order_id' =>
+                                    $order->order_id,
 
-                                    'b2b_order_id' =>
-                                        $order->b2b_order_id,
+                                'order_number' =>
+                                    $orderNumber,
 
-                                    'order_number' =>
-                                        $orderNumber,
+                                'return_id' =>
+                                    $id,
 
-                                    'b2b_order_barcode' =>
-                                        $order->b2b_order_barcode,
+                                'product_name' =>
+                                    $productName,
 
-                                    'return_id' =>
-                                        $id,
+                                'status' =>
+                                    $status
+                            ]),
 
-                                    'product_id' =>
-                                        $order->product_id,
+                        'is_read' =>
+                            0,
 
-                                    'product_name' =>
-                                        $productName,
+                        'created_at' =>
+                            date('Y-m-d H:i:s'),
 
-                                    'status' =>
-                                        $status
-                                ]),
-
-                            'is_read' =>
-                                0,
-
-                            'created_at' =>
-                                $currentDateTime,
-
-                            'updated_at' =>
-                                $currentDateTime
-                        ]
-                    );
+                        'updated_at' =>
+                            date('Y-m-d H:i:s')
+                    ]);
                 }
             }
         }
