@@ -1,3 +1,11 @@
+<style>
+    /* Forces all table headers and data cells to stay on a single line */
+    .table-responsive table th, 
+    .table-responsive table td {
+        white-space: nowrap !important;
+    }
+</style>
+
 <div class="container" style="padding: 40px 0;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2>Notifications</h2>
@@ -40,7 +48,7 @@
                             </td>
 
                             <td style="padding: 12px; border: 1px solid #ddd;">
-                              <?= date('d-m-Y H:i:s', strtotime($row->created_at)); ?>
+                                <?= date('d-m-Y H:i:s', strtotime($row->created_at)); ?>
                             </td>
 
                             <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
