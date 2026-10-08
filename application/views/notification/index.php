@@ -1,13 +1,15 @@
 <style>
-    /* Limits the message cell to a maximum of 2 lines with an ellipsis */
+    /* Limits the message cell to a maximum of 2 lines cleanly inside the box */
     .message-cell {
+        max-width: 450px; /* Adjust width as needed */
+    }
+    .message-text {
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: normal !important;
-        max-width: 450px; /* Adjust width as needed */
     }
 </style>
 
@@ -49,7 +51,9 @@
                             </td>
 
                             <td style="padding: 12px; border: 1px solid #ddd;" class="message-cell">
-                                <?= htmlspecialchars($row->message); ?>
+                                <div class="message-text">
+                                    <?= htmlspecialchars($row->message); ?>
+                                </div>
                             </td>
 
                             <td style="padding: 12px; border: 1px solid #ddd; white-space: nowrap; text-align: center;">
