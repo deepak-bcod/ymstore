@@ -563,12 +563,13 @@ function getSubOrderStatusText($status) {
                                 <?php
                                 if ($order->status != 0 && $order->status != 1 && $order->status != 10 && $order->status != 11 && $order->status != 12 && $order->status != 3 && $order->status != 4 && $order->status != 5 && $order->status != 7 && $order->status != 16) {
                                 ?>
-                                  <a href="javascript:void(0)"
-                                        class="blue-btn-order"
-                                        id="ret-btn-<?php echo $order->order_id; ?>"
-                                        onclick="openReturnPopup('<?php echo $order->order_id; ?>','<?php echo $order->increment_id; ?>'); return false;">
-                                            <?php echo $this->lang->line('return_order'); ?> / <?php echo $this->lang->line('replacement_order'); ?>
-                                    </a> 
+                                    <a href="<?php echo base_url('order_resolution/create/' . $order->order_id); ?>"
+                                       class="blue-btn-order"
+                                       id="res-btn-<?php echo $order->order_id; ?>"
+                                       style="background: #e6a817; color: #fff; margin-left: 5px;"
+                                       title="Order Resolution (Refund / Replacement)">
+                                        <i class="fa fa-handshake-o"></i> <?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?>
+                                    </a>
                                 <?php 
                                      }
                                 ?>

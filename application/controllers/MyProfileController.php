@@ -377,7 +377,6 @@ class MyProfileController extends CI_Controller
     {
         $subject        = $this->input->post('subject');
         $category       = $this->input->post('category_id');
-        $subject_type   = $this->input->post('priority_id');
         $message        = $this->input->post('message');
         $order_id       = $this->input->post('order_id');
         $product_id     = $this->input->post('product_id');
@@ -398,11 +397,6 @@ class MyProfileController extends CI_Controller
 
         if (empty($category)) {
             echo json_encode(['flag' => 0, 'msg' => $this->lang->line('err_support_type_required')]);
-            return;
-        }
-
-        if (empty($subject_type)) {
-            echo json_encode(['flag' => 0, 'msg' => !empty($this->lang->line('err_subject_type_required')) ? $this->lang->line('err_subject_type_required') : 'Please select a subject type.']);
             return;
         }
 

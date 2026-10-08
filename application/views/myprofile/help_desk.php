@@ -80,27 +80,19 @@ th.p, td.p {
 
                                 <form class="default-form" id="customer-personal-info-form" method="POST" action="<?php echo BASE_URL; ?>MyProfileController/helpDeskPost" enctype="multipart/form-data">
                                     <div class="row">
-                                        <div class="col-md-4 col-sm-4">
+                                        <div class="col-md-6 col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo lang('subject'); ?></label>
                                                 <input type="text" class="form-control" placeholder="" value="" id="subject" name="subject">
                                             </div>
                                         </div>
-                                        <div class="col-md-4 col-sm-4">
+                                        <div class="col-md-6 col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo lang('recipient_type'); ?></label>
                                                 <select id="category_id" name="category_id" class="form-control select2 required-entry" style="width: 100%;">
                                                     <option value=""><?php echo lang('select_support'); ?></option>
                                                     <option value="1"><?php echo lang('merchant_'); ?></option>
                                                     <option value="2"><?php echo lang('yellow_market'); ?></option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 col-sm-4">
-                                            <div class="form-group">
-                                                <label><?php echo lang('subject_type'); ?></label>
-                                                <select id="priority_id" name="priority_id" class="form-control select2 required-entry" style="width: 100%;">
-                                                    <option value=""><?php echo !empty(lang('select_subject_type')) ? lang('select_subject_type') : 'Select a Subject Type'; ?></option>
                                                 </select>
                                             </div>
                                         </div>
@@ -281,22 +273,6 @@ th.p, td.p {
 
 <script>
 $(document).ready(function() {
-   
-    const subjectTypesMap = {
-        "1": [
-            { value: "1", text: "<?= lang('order_issue'); ?>" },
-            { value: "2", text: "<?= lang('refund_request'); ?>" },
-            { value: "3", text: "<?= lang('replacement_request'); ?>" },
-            { value: "4", text: "<?= lang('merchant_delivery'); ?>" }
-        ],
-        "2": [
-            { value: "5", text: "<?= lang('ym_delivery'); ?>" },
-            { value: "6", text: "<?= lang('resolution_request'); ?>" },
-            { value: "7", text: "<?= lang('general_support'); ?>" },
-            { value: "8", text: "<?= lang('technical_issue'); ?>" }
-        ]
-    };
-
     
     const initialMerchantsHtml = $('#merchant_id').html();
     const selectMerchantText = '<?= !empty(lang('select_merchant')) ? addslashes(lang('select_merchant')) : 'Select Merchant'; ?>';
@@ -348,15 +324,6 @@ $(document).ready(function() {
 
     $('#category_id').on('change', function() {
         var categoryId = $(this).val();
-        var $subjectTypeDropdown = $('#priority_id');
-
-        $subjectTypeDropdown.empty().append('<option value=""><?= lang('select_subject_type'); ?></option>');
- 
-        if (categoryId !== '' && subjectTypesMap[categoryId]) {
-            $.each(subjectTypesMap[categoryId], function(index, item) {
-                $subjectTypeDropdown.append('<option value="' + item.value + '">' + item.text + '</option>');
-            });
-        }
 
         if (categoryId === '1') {
             $('#merchant_select_wrapper').show();
@@ -365,10 +332,6 @@ $(document).ready(function() {
             $('#merchant_select_wrapper').hide();
             $('#merchant_id').prop('required', false);
             $('#merchant_id').val('').trigger('change.select2');
-        }
-
-        if ($.fn.select2) {
-            $subjectTypeDropdown.val('').trigger('change.select2');
         }
     });
 
@@ -490,7 +453,7 @@ $(document).ready(function() {
         }
     });
 
-    $('#subject, #category_id, #priority_id, #message, #merchant_id, #order_id, #product_id').on('keyup change', function () {
+    $('#subject, #category_id, #message, #merchant_id, #order_id, #product_id').on('keyup change', function () {
         $(this).removeClass('is-invalid');
         $(this).parent().find('.validation-error').remove();
     });
@@ -505,7 +468,6 @@ $(document).ready(function() {
 
         let subject = $('#subject').val().trim();
         let category = $('#category_id').val();
-        let priority = $('#priority_id').val();
         let message = $('#message').val().trim();
         let merchant = $('#merchant_id').val();
         let order = $('#order_id').val();
@@ -538,11 +500,6 @@ $(document).ready(function() {
                 showError('#product_id', 'The selected product does not belong to the selected order.');
                 isValid = false;
             }
-        }
-
-        if (priority === '') {
-            showError('#priority_id', 'Please select a subject type.');
-            isValid = false;
         }
 
         if (message === '') {

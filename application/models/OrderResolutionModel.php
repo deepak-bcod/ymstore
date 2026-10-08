@@ -11,6 +11,39 @@ class OrderResolutionModel extends CI_Model
     }
 
     /**
+     * Send in-app notification using existing 'notifications' table
+     *
+     * @param string $subtype
+     * @param string $recipient_type ('admin', 'merchant', 'customer')
+     * @param int|string $recipient_id
+     * @param string $title
+     * @param string $message
+     * @param array $data
+     * @return int|bool
+     */
+    public function send_in_app_notification($subtype, $recipient_type, $recipient_id, $title, $message, $data = [])
+    {
+        if (empty($recipient_type) || empty($recipient_id)) {
+            return false;
+        }
+
+        $notifData = [
+            'type'           => 'order_resolution',
+            'subtype'        => $subtype,
+            'recipient_type' => $recipient_type,
+            'recipient_id'   => (int)$recipient_id,
+            'title'          => $title,
+            'message'        => $message,
+            'data'           => !empty($data) ? (is_string($data) ? $data : json_encode($data)) : null,
+            'is_read'        => 0,
+            'created_at'     => date('Y-m-d H:i:s'),
+            'updated_at'     => date('Y-m-d H:i:s'),
+        ];
+
+        return $this->db->insert('notifications', $notifData);
+    }
+
+    /**
      * Generate unique sequential ticket number (e.g. RES-0001)
      */
     public function generate_ticket_number()
@@ -206,6 +239,26 @@ class OrderResolutionModel extends CI_Model
         // Send Email Notifications
         $this->send_creation_emails($resolution_data, $shopper_name);
 
+        // Send In-App Notifications (Merchant and Admin/@Help)
+        if (!empty($merchant_id)) {
+            $this->send_in_app_notification(
+                'new_resolution',
+                'merchant',
+                $merchant_id,
+                'New Order Resolution',
+                "New Order Resolution ticket #{$ticket_number} submitted for order #{$order_number}.",
+                ['ticket_number' => $ticket_number, 'order_id' => $order_id, 'product_id' => $product_id]
+            );
+        }
+        $this->send_in_app_notification(
+            'new_resolution',
+            'admin',
+            1,
+            'New Order Resolution',
+            "New Order Resolution ticket #{$ticket_number} submitted for order #{$order_number}.",
+            ['ticket_number' => $ticket_number, 'order_id' => $order_id, 'product_id' => $product_id]
+        );
+
         return $this->get_resolution_by_ticket_number($ticket_number);
     }
 
@@ -377,8 +430,28 @@ class OrderResolutionModel extends CI_Model
         // Trigger Notifications based on sender
         if ($sender_role === 'merchant') {
             $this->send_merchant_reply_notification($res, $message);
+            if (!empty($res->customer_id)) {
+                $this->send_in_app_notification(
+                    'merchant_reply',
+                    'customer',
+                    $res->customer_id,
+                    'Resolution Reply from Merchant',
+                    "Merchant replied to your Order Resolution ticket #{$res->ticket_number}.",
+                    ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+                );
+            }
         } elseif ($sender_role === 'shopper') {
             $this->send_shopper_reply_notification($res, $message);
+            if (!empty($res->merchant_id)) {
+                $this->send_in_app_notification(
+                    'shopper_reply',
+                    'merchant',
+                    $res->merchant_id,
+                    'Resolution Reply from Shopper',
+                    "Shopper replied to Order Resolution ticket #{$res->ticket_number}.",
+                    ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+                );
+            }
         }
 
         return true;
@@ -588,6 +661,27 @@ class OrderResolutionModel extends CI_Model
 
                 // 3. Email to @Help: order-resolution-refund-approved-help
                 $this->send_refund_approved_help_email($res, $refund_amount);
+
+                // 4. In-App Notifications
+                if (!empty($res->customer_id)) {
+                    $this->send_in_app_notification(
+                        'refund_approved',
+                        'customer',
+                        $res->customer_id,
+                        'Refund Approved',
+                        "Merchant approved refund for Order Resolution #{$res->ticket_number}.",
+                        ['ticket_number' => $res->ticket_number, 'refund_amount' => $refund_amount]
+                    );
+                }
+                $this->send_in_app_notification(
+                    'refund_approved',
+                    'admin',
+                    1,
+                    'Refund Approved by Merchant',
+                    "Merchant approved refund for Order Resolution #{$res->ticket_number}. Please assign to Accounting for processing.",
+                    ['ticket_number' => $res->ticket_number, 'refund_amount' => $refund_amount]
+                );
+
                 return ['status' => true, 'message' => 'Refund approved successfully.'];
 
             case 'refund_denied':
@@ -598,6 +692,27 @@ class OrderResolutionModel extends CI_Model
                 $this->send_merchant_action_email_to_help($res, 'Refund Denied');
                 $this->send_refund_denied_shopper_email($res);
                 $this->send_refund_denied_help_email($res);
+
+                // In-App Notifications
+                if (!empty($res->customer_id)) {
+                    $this->send_in_app_notification(
+                        'refund_denied',
+                        'customer',
+                        $res->customer_id,
+                        'Refund Request Denied',
+                        "Merchant denied refund for Order Resolution #{$res->ticket_number}.",
+                        ['ticket_number' => $res->ticket_number]
+                    );
+                }
+                $this->send_in_app_notification(
+                    'refund_denied',
+                    'admin',
+                    1,
+                    'Refund Denied by Merchant',
+                    "Merchant denied refund for Order Resolution #{$res->ticket_number}. Ready for review/closure.",
+                    ['ticket_number' => $res->ticket_number]
+                );
+
                 return ['status' => true, 'message' => 'Refund denied.'];
 
             case 'replacement_approved':
@@ -624,6 +739,28 @@ class OrderResolutionModel extends CI_Model
                     // Send order-resolution-replacement-underway-shopper
                     $this->send_replacement_underway_shopper_email($res, $delivery_option);
                 }
+
+                // In-App Notifications
+                $del_label = ucwords(str_replace('_', ' ', $delivery_option));
+                if (!empty($res->customer_id)) {
+                    $this->send_in_app_notification(
+                        'replacement_approved',
+                        'customer',
+                        $res->customer_id,
+                        'Replacement Approved',
+                        "Merchant approved replacement for Order Resolution #{$res->ticket_number} (Delivery: {$del_label}).",
+                        ['ticket_number' => $res->ticket_number, 'delivery_option' => $delivery_option]
+                    );
+                }
+                $this->send_in_app_notification(
+                    'replacement_approved',
+                    'admin',
+                    1,
+                    'Replacement Approved by Merchant',
+                    "Merchant approved replacement for Order Resolution #{$res->ticket_number} (Delivery: {$del_label}).",
+                    ['ticket_number' => $res->ticket_number, 'delivery_option' => $delivery_option]
+                );
+
                 return ['status' => true, 'message' => 'Replacement approved successfully.'];
 
             case 'replacement_denied':
@@ -637,6 +774,27 @@ class OrderResolutionModel extends CI_Model
                 $this->send_merchant_action_email_to_help($res, 'Replacement Denied');
                 $this->send_replacement_denied_shopper_email($res);
                 $this->send_replacement_denied_help_email($res);
+
+                // In-App Notifications
+                if (!empty($res->customer_id)) {
+                    $this->send_in_app_notification(
+                        'replacement_denied',
+                        'customer',
+                        $res->customer_id,
+                        'Replacement Request Denied',
+                        "Merchant denied replacement for Order Resolution #{$res->ticket_number}.",
+                        ['ticket_number' => $res->ticket_number]
+                    );
+                }
+                $this->send_in_app_notification(
+                    'replacement_denied',
+                    'admin',
+                    1,
+                    'Replacement Denied by Merchant',
+                    "Merchant denied replacement for Order Resolution #{$res->ticket_number}. Ready for review/closure.",
+                    ['ticket_number' => $res->ticket_number]
+                );
+
                 return ['status' => true, 'message' => 'Replacement denied.'];
 
             case 'replacement_completed':
@@ -651,6 +809,17 @@ class OrderResolutionModel extends CI_Model
 
                 $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Completed', 'merchant', $merchant_id, 'Merchant marked replacement completed.');
                 $this->send_merchant_action_email_to_help($res, 'Replacement Completed');
+
+                // In-App Notification (@Help)
+                $this->send_in_app_notification(
+                    'replacement_completed',
+                    'admin',
+                    1,
+                    'Replacement Completed by Merchant',
+                    "Merchant completed replacement for Order Resolution #{$res->ticket_number}. Ready for closure.",
+                    ['ticket_number' => $res->ticket_number]
+                );
+
                 return ['status' => true, 'message' => 'Replacement marked as completed.'];
 
             default:
@@ -687,6 +856,26 @@ class OrderResolutionModel extends CI_Model
         $this->send_dispute_help_email($res, $message);
         $this->send_dispute_merchant_email($res, $message);
 
+        // In-App Notifications
+        $this->send_in_app_notification(
+            'resolution_request',
+            'admin',
+            1,
+            'Resolution Escalation Requested',
+            "Shopper submitted a resolution escalation request for ticket #{$res->ticket_number}.",
+            ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+        );
+        if (!empty($res->merchant_id)) {
+            $this->send_in_app_notification(
+                'resolution_request',
+                'merchant',
+                $res->merchant_id,
+                'Resolution Escalation Requested',
+                "Shopper requested resolution escalation for ticket #{$res->ticket_number}.",
+                ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+            );
+        }
+
         return ['status' => true, 'message' => 'Resolution request submitted successfully.'];
     }
 
@@ -718,6 +907,26 @@ class OrderResolutionModel extends CI_Model
             $this->send_ym_delivery_acct_email($res);
         } else {
             $this->send_refund_acct_email($res);
+        }
+
+        // In-App Notifications
+        $this->send_in_app_notification(
+            'resolution_processing',
+            'admin',
+            $admin_id ?: 1,
+            'Resolution Assigned for Processing',
+            "Order Resolution #{$res->ticket_number} assigned to Accounting for payment/refund processing.",
+            ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+        );
+        if (!empty($res->merchant_id)) {
+            $this->send_in_app_notification(
+                'resolution_processing',
+                'merchant',
+                $res->merchant_id,
+                'Refund Processing Initiated',
+                "Refund processing initiated for Order Resolution #{$res->ticket_number}.",
+                ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+            );
         }
 
         return ['status' => true, 'message' => 'Ticket assigned to Accounting successfully.'];
@@ -753,6 +962,26 @@ class OrderResolutionModel extends CI_Model
             $this->send_refund_completed_shopper_email($res);
         }
 
+        // In-App Notifications
+        if (!empty($res->customer_id)) {
+            $this->send_in_app_notification(
+                'resolution_done',
+                'customer',
+                $res->customer_id,
+                'Refund / Payment Completed',
+                "Payment/refund processing for Order Resolution #{$res->ticket_number} has been completed.",
+                ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+            );
+        }
+        $this->send_in_app_notification(
+            'resolution_done',
+            'admin',
+            1,
+            'Resolution Processed by Accounting',
+            "Accounting marked Order Resolution #{$res->ticket_number} as Done. Ready for closure.",
+            ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+        );
+
         return ['status' => true, 'message' => 'Ticket marked as Done.'];
     }
 
@@ -784,6 +1013,28 @@ class OrderResolutionModel extends CI_Model
             $this->send_replacement_completed_shopper_email($res);
         }
 
+        // In-App Notifications
+        if (!empty($res->merchant_id)) {
+            $this->send_in_app_notification(
+                'resolution_closed',
+                'merchant',
+                $res->merchant_id,
+                'Order Resolution Closed',
+                "Order Resolution #{$res->ticket_number} has been closed.",
+                ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+            );
+        }
+        if (!empty($res->customer_id)) {
+            $this->send_in_app_notification(
+                'resolution_closed',
+                'customer',
+                $res->customer_id,
+                'Order Resolution Closed',
+                "Order Resolution #{$res->ticket_number} has been closed.",
+                ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+            );
+        }
+
         return ['status' => true, 'message' => 'Ticket closed successfully.'];
     }
 
@@ -810,6 +1061,28 @@ class OrderResolutionModel extends CI_Model
 
         // Section 16 & 17: Email to Merchant: Closed (Final)
         $this->send_closed_final_merchant_email($res);
+
+        // In-App Notifications
+        if (!empty($res->merchant_id)) {
+            $this->send_in_app_notification(
+                'resolution_closed_final',
+                'merchant',
+                $res->merchant_id,
+                'Order Resolution Closed (Final)',
+                "Order Resolution #{$res->ticket_number} has been closed (Final). Order is now active in Manage Transactions.",
+                ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+            );
+        }
+        if (!empty($res->customer_id)) {
+            $this->send_in_app_notification(
+                'resolution_closed_final',
+                'customer',
+                $res->customer_id,
+                'Order Resolution Closed (Final)',
+                "Order Resolution #{$res->ticket_number} has been closed (Final).",
+                ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+            );
+        }
 
         return ['status' => true, 'message' => 'Ticket finally closed with no further options.'];
     }
@@ -840,6 +1113,26 @@ class OrderResolutionModel extends CI_Model
             // Email to @Acct: Refund Request
             $this->send_refund_acct_email($res);
 
+            // In-App Notifications
+            if (!empty($res->customer_id)) {
+                $this->send_in_app_notification(
+                    'resolution_approved',
+                    'customer',
+                    $res->customer_id,
+                    'Resolution Request Approved',
+                    "Your resolution escalation request #{$res->ticket_number} was approved in your favour and assigned to Accounting.",
+                    ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+                );
+            }
+            $this->send_in_app_notification(
+                'resolution_approved',
+                'admin',
+                1,
+                'Resolution Decision: Approved',
+                "Resolution decision approved for #{$res->ticket_number} and assigned to Accounting for refund processing.",
+                ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+            );
+
             return ['status' => true, 'message' => 'Resolution decision approved in favour of shopper and assigned to Accounting.'];
         } else {
             // Section 17: Decision in Favour of Merchant -> Status: Close (Final)
@@ -859,6 +1152,28 @@ class OrderResolutionModel extends CI_Model
 
             // Shopper receives: Order Resolution No.: [TicketNumber] - Refund Disapproved
             $this->send_refund_disapproved_shopper_email($res);
+
+            // In-App Notifications
+            if (!empty($res->customer_id)) {
+                $this->send_in_app_notification(
+                    'resolution_denied',
+                    'customer',
+                    $res->customer_id,
+                    'Resolution Request Denied',
+                    "Resolution escalation request #{$res->ticket_number} was denied in favour of the merchant and closed (Final).",
+                    ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+                );
+            }
+            if (!empty($res->merchant_id)) {
+                $this->send_in_app_notification(
+                    'resolution_closed_final',
+                    'merchant',
+                    $res->merchant_id,
+                    'Resolution Decision in Your Favour',
+                    "Resolution #{$res->ticket_number} was closed (Final) in your favour.",
+                    ['ticket_number' => $res->ticket_number, 'order_id' => $res->order_id]
+                );
+            }
 
             return ['status' => true, 'message' => 'Resolution decision recorded in favour of merchant and closed (Final).'];
         }
