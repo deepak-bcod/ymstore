@@ -12440,6 +12440,7 @@ class B2BOrdersController extends CI_Controller
 	{
 		$this->load->model('B2BOrdersModel');
 		$orders = $this->B2BOrdersModel->getPayoutOrders(10000,0); // load many at once
+		$visible_orders = [];
 		if (!empty($orders)) {
 			foreach ($orders as &$order) {
 				$eligibility = $this->checkPayoutEligibility($order['order_id']);
@@ -12449,9 +12450,17 @@ class B2BOrdersController extends CI_Controller
 				if (isset($eligibility['payout_status'])) {
 					$order['payout_status'] = $eligibility['payout_status'];
 				}
+
+				// Phase 12: Hide orders with active resolution from Manage Transactions / Payouts
+				// Once resolution is closed (Close / Close Final), order/payout becomes visible again.
+				if (!empty($eligibility['is_resolution_active'])) {
+					continue;
+				}
+
+				$visible_orders[] = $order;
 			}
 		}
-		$data['orders'] = $orders;
+		$data['orders'] = $visible_orders;
 		$data['PageTitle'] = 'B2B - Orders';
 		$data['side_menu'] = 'b2b';
 		$this->load->view('b2b/order/payoutsorderlist', $data);
@@ -12606,7 +12615,8 @@ class B2BOrdersController extends CI_Controller
 		// the order/payout is held in Manage Transactions / Payouts.
 		// Once resolution is closed, order/payout becomes available.
 		// -------------------------------------------------------------
-		if (!$is_on_hold && $this->db->table_exists('order_resolutions')) {
+		$is_resolution_active = false;
+		if ($this->db->table_exists('order_resolutions')) {
 			$active_res_count = $this->db->from('order_resolutions')
  				->group_start()
 					->where_in('order_id', $order_ids)
@@ -12619,6 +12629,7 @@ class B2BOrdersController extends CI_Controller
 				->count_all_results();
 
 			if ($active_res_count > 0) {
+				$is_resolution_active = true;
 				$is_on_hold = true;
 				$hold_reason = 'Disputed - Order Resolution Active';
 			}
@@ -12633,7 +12644,7 @@ class B2BOrdersController extends CI_Controller
 				$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 3]);
 				$payout_status = 3;
 			}
-			return ['allowed' => false, 'reason' => $hold_reason, 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
+			return ['allowed' => false, 'reason' => $hold_reason, 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status, 'is_resolution_active' => $is_resolution_active];
 		}
 
 		// All return and replacement resolved or no hold condition:
@@ -12643,7 +12654,7 @@ class B2BOrdersController extends CI_Controller
 			$payout_status = 1;
 		}
 
-		return ['allowed' => true, 'reason' => '', 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
+		return ['allowed' => true, 'reason' => '', 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status, 'is_resolution_active' => false];
 	}
 
 	public function isPayoutAllowed($order_id)
