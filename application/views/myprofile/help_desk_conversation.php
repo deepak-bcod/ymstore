@@ -116,10 +116,12 @@
 							<form method="POST" id="customer-personal-info-form" action="<?= base_url('MyProfileController/helpDeskPost'); ?>" enctype="multipart/form-data" class="mt-3">
 								<input type="hidden" name="subject" value="<?= $first_ticket->subject; ?>">
 								<input type="hidden" name="category_id" value="<?= $first_ticket->category; ?>">
+								<input type="hidden" name="priority_id" value="<?= $first_ticket->priority; ?>">
 								<input type="hidden" name="order_id" value="<?= $first_ticket->order_id; ?>">
 								<input type="hidden" name="product_id" value="<?= $first_ticket->products; ?>">
 								<input type="hidden" name="ticket_id" value="<?= $first_ticket->ticket_id; ?>">
 								<input type="hidden" name="merchant_id" value="<?= $first_ticket->merchant_id ?? ''; ?>">
+								<input type="hidden" name="priority_level" value="<?= $first_ticket->priority_level ?? ''; ?>">
 
 								<div class="form-group">
 									<label>New Query</label>
