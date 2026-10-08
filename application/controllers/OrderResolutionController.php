@@ -95,12 +95,20 @@ class OrderResolutionController extends CI_Controller
         $order_id    = (int)$this->input->post('order_id', true);
         $product_id  = (int)$this->input->post('product_id', true);
         $category    = trim($this->input->post('category', true));
+        $priority    = trim($this->input->post('priority', true));
         $message     = trim($this->input->post('message', true));
 
         // Validation
         if (empty($order_id)) {
             $this->session->set_flashdata('error', 'Please select a valid order.');
             redirect('order_resolution/create');
+            return;
+        }
+
+        $valid_priorities = ['High', 'Medium', 'Low'];
+        if (empty($priority) || !in_array($priority, $valid_priorities, true)) {
+            $this->session->set_flashdata('error', $this->lang->line('err_priority_required') ?: 'Please select a valid priority (High, Medium, or Low).');
+            redirect("order_resolution/create/{$order_id}/{$product_id}");
             return;
         }
 
@@ -150,6 +158,7 @@ class OrderResolutionController extends CI_Controller
             'product_id'  => $product_id,
             'customer_id' => $customer_id,
             'category'    => in_array($category, $valid_categories, true) ? $category : 'Refund',
+            'priority'    => $priority,
             'message'     => $message,
             'attachment'  => $attachment,
             'ip'          => $this->input->ip_address(),

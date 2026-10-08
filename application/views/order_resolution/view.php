@@ -83,14 +83,27 @@
                                         <?php echo htmlspecialchars($product ? $product->name : 'All Items'); ?>
                                     </p>
                                 </div>
-                                <div class="col-md-3 col-sm-6">
+                                <div class="col-md-2 col-sm-4">
                                     <p><b>Merchant:</b><br>
                                         <?php echo htmlspecialchars($merchant ? $merchant->publication_name : 'N/A'); ?>
                                     </p>
                                 </div>
-                                <div class="col-md-3 col-sm-6">
-                                    <p><b>Category:</b><br>
+                                <div class="col-md-2 col-sm-4">
+                                    <p><b>Subject Type:</b><br>
                                         <span class="label label-info"><?php echo htmlspecialchars($resolution->category); ?></span>
+                                    </p>
+                                </div>
+                                <div class="col-md-2 col-sm-4">
+                                    <p><b>Priority:</b><br>
+                                        <?php
+                                        $p_class = 'label-info';
+                                        if ($resolution->priority === 'High') {
+                                            $p_class = 'label-danger';
+                                        } elseif ($resolution->priority === 'Medium') {
+                                            $p_class = 'label-warning';
+                                        }
+                                        ?>
+                                        <span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($resolution->priority ?: 'Medium'); ?></span>
                                     </p>
                                 </div>
                             </div>

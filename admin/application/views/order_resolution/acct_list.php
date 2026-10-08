@@ -50,6 +50,7 @@ $this->load->view('common/fbc-user/header');
                         <th>Shopper</th>
                         <th>Merchant</th>
                         <th>Product</th>
+                        <th>Priority</th>
                         <th>Action Required</th>
                         <th>Refund / Cost</th>
                         <th>Status</th>
@@ -69,6 +70,19 @@ $this->load->view('common/fbc-user/header');
                                 <td><?= htmlspecialchars($shopper_name); ?></td>
                                 <td><?= htmlspecialchars($res->merchant_name ?: 'N/A'); ?></td>
                                 <td><?= htmlspecialchars($res->product_name ?: 'All Items'); ?></td>
+                                <td>
+                                    <?php
+                                    $p_badge = 'badge-secondary';
+                                    if ($res->priority === 'High') {
+                                        $p_badge = 'badge-danger';
+                                    } elseif ($res->priority === 'Medium') {
+                                        $p_badge = 'badge-warning';
+                                    } elseif ($res->priority === 'Low') {
+                                        $p_badge = 'badge-info';
+                                    }
+                                    ?>
+                                    <span class="badge <?= $p_badge; ?>"><?= htmlspecialchars($res->priority ?: 'Medium'); ?></span>
+                                </td>
                                 <td>
                                     <?php if ($res->delivery_option === 'ym_delivery'): ?>
                                         <span class="badge badge-info p-1">YM Delivery Service</span>
@@ -94,7 +108,7 @@ $this->load->view('common/fbc-user/header');
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-muted">
+                            <td colspan="11" class="text-center py-4 text-muted">
                                 No tickets currently assigned to Accounting (@Acct).
                             </td>
                         </tr>

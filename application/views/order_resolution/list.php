@@ -61,6 +61,7 @@
                                     <th><?php echo $this->lang->line('order_number') ?: 'Order #'; ?></th>
                                     <th><?php echo $this->lang->line('product') ?: 'Product'; ?></th>
                                     <th><?php echo $this->lang->line('category') ?: 'Category'; ?></th>
+                                    <th><?php echo $this->lang->line('priority') ?: 'Priority'; ?></th>
                                     <th><?php echo $this->lang->line('status') ?: 'Status'; ?></th>
                                     <th><?php echo $this->lang->line('date') ?: 'Date'; ?></th>
                                     <th style="width: 80px; text-align: center;"><?php echo $this->lang->line('action') ?: 'Action'; ?></th>
@@ -77,6 +78,17 @@
                                             <td><?php echo htmlspecialchars($res->order_number); ?></td>
                                             <td><?php echo htmlspecialchars($res->product_name ?: 'All Items'); ?></td>
                                             <td><span class="label label-default"><?php echo htmlspecialchars($res->category); ?></span></td>
+                                            <td>
+                                                <?php
+                                                $p_class = 'label-info';
+                                                if ($res->priority === 'High') {
+                                                    $p_class = 'label-danger';
+                                                } elseif ($res->priority === 'Medium') {
+                                                    $p_class = 'label-warning';
+                                                }
+                                                ?>
+                                                <span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($res->priority ?: 'Medium'); ?></span>
+                                            </td>
                                             <td>
                                                 <span class="<?php echo $badge_class; ?>">
                                                     <?php echo htmlspecialchars($res->status); ?>

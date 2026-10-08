@@ -47,7 +47,8 @@
                             <th>Order #</th>
                             <th>Product</th>
                             <th>Shopper</th>
-                            <th>Category</th>
+                            <th>Subject Type</th>
+                            <th>Priority</th>
                             <th>Status</th>
                             <th>Date</th>
                             <th>Action</th>
@@ -65,6 +66,19 @@
                                     <td><?= htmlspecialchars($res->product_name ?: 'All Items'); ?></td>
                                     <td><?= htmlspecialchars($shopper_name); ?></td>
                                     <td><span class="badge badge-secondary"><?= htmlspecialchars($res->category); ?></span></td>
+                                    <td>
+                                        <?php
+                                        $p_badge = 'badge-secondary';
+                                        if ($res->priority === 'High') {
+                                            $p_badge = 'badge-danger';
+                                        } elseif ($res->priority === 'Medium') {
+                                            $p_badge = 'badge-warning';
+                                        } elseif ($res->priority === 'Low') {
+                                            $p_badge = 'badge-info';
+                                        }
+                                        ?>
+                                        <span class="badge <?= $p_badge; ?>"><?= htmlspecialchars($res->priority ?: 'Medium'); ?></span>
+                                    </td>
                                     <td>
                                         <span class="badge-status-<?= $status_slug; ?>">
                                             <?= htmlspecialchars($res->status); ?>

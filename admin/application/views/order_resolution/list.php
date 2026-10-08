@@ -77,7 +77,8 @@
                         <th>Shopper</th>
                         <th>Merchant</th>
                         <th>Product</th>
-                        <th>Category</th>
+                        <th>Subject Type</th>
+                        <th>Priority</th>
                         <th>Status</th>
                         <th>Assigned</th>
                         <th>Date</th>
@@ -97,6 +98,19 @@
                                 <td><?= htmlspecialchars($res->merchant_name ?: 'N/A'); ?></td>
                                 <td><?= htmlspecialchars($res->product_name ?: 'All Items'); ?></td>
                                 <td><span class="badge badge-secondary"><?= htmlspecialchars($res->category); ?></span></td>
+                                <td>
+                                    <?php
+                                    $p_badge = 'badge-secondary';
+                                    if ($res->priority === 'High') {
+                                        $p_badge = 'badge-danger';
+                                    } elseif ($res->priority === 'Medium') {
+                                        $p_badge = 'badge-warning';
+                                    } elseif ($res->priority === 'Low') {
+                                        $p_badge = 'badge-info';
+                                    }
+                                    ?>
+                                    <span class="badge <?= $p_badge; ?>"><?= htmlspecialchars($res->priority ?: 'Medium'); ?></span>
+                                </td>
                                 <td>
                                     <span class="badge-status-<?= $status_slug; ?>">
                                         <?= htmlspecialchars($res->status); ?>
@@ -123,7 +137,7 @@
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="10" class="text-center py-4 text-muted">
+                            <td colspan="11" class="text-center py-4 text-muted">
                                 No Order Resolution tickets found.
                             </td>
                         </tr>

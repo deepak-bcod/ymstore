@@ -74,13 +74,29 @@ $this->load->view('common/fbc-user/header');
                             <p class="mb-1"><strong>Product:</strong></p>
                             <p><?= htmlspecialchars($product ? $product->name : 'All Items / General'); ?></p>
                         </div>
-                        <div class="col-md-3">
-                            <p class="mb-1"><strong>Category:</strong></p>
+                        <div class="col-md-2">
+                            <p class="mb-1"><strong>Subject Type:</strong></p>
                             <p>
                                 <span class="badge badge-info"><?= htmlspecialchars($resolution->category); ?></span>
                             </p>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <p class="mb-1"><strong>Priority:</strong></p>
+                            <p>
+                                <?php
+                                $p_badge = 'badge-secondary';
+                                if ($resolution->priority === 'High') {
+                                    $p_badge = 'badge-danger';
+                                } elseif ($resolution->priority === 'Medium') {
+                                    $p_badge = 'badge-warning';
+                                } elseif ($resolution->priority === 'Low') {
+                                    $p_badge = 'badge-info';
+                                }
+                                ?>
+                                <span class="badge <?= $p_badge; ?>"><?= htmlspecialchars($resolution->priority ?: 'Medium'); ?></span>
+                            </p>
+                        </div>
+                        <div class="col-md-2">
                             <p class="mb-1"><strong>Date Created:</strong></p>
                             <p><?= date('d M Y, h:i A', $resolution->created_at); ?></p>
                         </div>
