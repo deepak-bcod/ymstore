@@ -5171,41 +5171,26 @@ class WebshopOrdersController extends CI_Controller {
 	}
 
 
-	
-public function return_update_status()
+	public function return_update_status()
 {
     $id     = $this->input->post('id');
     $status = $this->input->post('status');
 
     if ($id && $status !== null) {
 
-        $status = (int)$status;
-
         $updated = $this->WebshopOrdersModel
             ->return_update_status($id, $status);
 
-        /*
-         * =====================================================
-         * RETURN STATUS
-         * 1 = Approved
-         * 2 = Rejected
-         * =====================================================
-         */
+        // 1 = Approved
+        // 2 = Rejected
+        if ($updated && in_array((int)$status, [1, 2])) {
 
-        if ($updated && in_array($status, [1, 2])) {
-
-            /*
-             * =====================================================
-             * GET RETURN + ORDER + SHOPPER INFORMATION
-             * =====================================================
-             */
             $order = $this->db
                 ->select('
                     sor.order_id,
                     sor.return_order_id,
                     bo.increment_id,
-                    bo.publisher_id,
-                    so.customer_id
+                    bo.publisher_id
                 ')
                 ->from('sales_order_return sor')
                 ->join(
@@ -5222,191 +5207,53 @@ public function return_update_status()
                 ->get()
                 ->row();
 
-
             if (!empty($order)) {
 
-                /*
-                 * =====================================================
-                 * GET PRODUCT NAME
-                 * =====================================================
-                 *
-                 * sales_order_return
-                 *       ↓
-                 * sales_order
-                 *       ↓
-                 * b2b_orders
-                 *       ↓
-                 * b2b_order_items
-                 *       ↓
-                 * products
-                 *
-                 */
+                // APPROVED
+                if ((int)$status === 1) {
 
-                $product = $this->db
-                    ->select('p.name as product_name')
-                    ->from('b2b_order_items boi')
-                    ->join(
-                        'products p',
-                        'p.product_id = boi.product_id',
-                        'left'
-                    )
-                    ->where(
-                        'boi.order_id',
-                        $order->order_id
-                    )
-                    ->limit(1)
-                    ->get()
-                    ->row();
+                    $title = 'Return Request Approved';
 
-
-                $product_name = !empty($product->product_name)
-                    ? $product->product_name
-                    : 'Product';
-
-
-                /*
-                 * =====================================================
-                 * ORDER NUMBER
-                 * =====================================================
-                 */
-                $increment_id = !empty($order->increment_id)
-                    ? $order->increment_id
-                    : '';
-
-
-                /*
-                 * =====================================================
-                 * ADMIN NOTIFICATION
-                 * =====================================================
-                 */
-
-                if ($status === 1) {
-
-                    $admin_title   = 'Return Request Approved';
-
-                    $admin_message = 'Merchant approved return request for order '
-                                   . $increment_id . '.';
+                    $message = 'Merchant approved return request for order '
+                             . $order->increment_id . '.';
 
                     $subtype = 'approved';
 
+                // REJECTED
                 } else {
 
-                    $admin_title   = 'Return Request Rejected';
+                    $title = 'Return Request Rejected';
 
-                    $admin_message = 'Merchant rejected return request for order '
-                                   . $increment_id . '.';
+                    $message = 'Merchant rejected return request for order '
+                             . $order->increment_id . '.';
 
                     $subtype = 'rejected';
                 }
 
-
-                /*
-                 * =====================================================
-                 * ADMIN NOTIFICATION
-                 * =====================================================
-                 */
-
+                // ADMIN ONLY NOTIFICATION
                 $this->db->insert('notifications', [
-
                     'type'           => 'return',
                     'subtype'        => $subtype,
 
                     'recipient_type' => 'admin',
                     'recipient_id'   => 1,
 
-                    'title'          => $admin_title,
-                    'message'        => $admin_message,
+                    'title'          => $title,
+                    'message'        => $message,
 
                     'data'           => json_encode([
                         'order_id'     => $order->order_id,
-                        'increment_id' => $increment_id,
+                        'increment_id' => $order->increment_id,
                         'return_id'    => $id,
-                        'status'       => $status
+                        'status'       => (int)$status
                     ]),
 
-                    'is_read'        => 0,
-                    'created_at'     => date('Y-m-d H:i:s'),
-                    'updated_at'     => date('Y-m-d H:i:s')
+                    'is_read'         => 0,
+                    'created_at'      => date('Y-m-d H:i:s'),
+                    'updated_at'      => date('Y-m-d H:i:s')
                 ]);
-
-
-                /*
-                 * =====================================================
-                 * SHOPPER NOTIFICATION
-                 * =====================================================
-                 *
-                 * Only send to the shopper who created the order.
-                 *
-                 * Status 1 = Accepted
-                 * Status 2 = Rejected
-                 *
-                 */
-
-                if (!empty($order->customer_id)) {
-
-                    if ($status === 1) {
-
-                        $shopper_title = 'Return Accepted';
-
-                        $shopper_message =
-                            'Your return for ('
-                            . $increment_id
-                            . ') – ('
-                            . $product_name
-                            . ') is accepted.';
-
-                    } else {
-
-                        $shopper_title = 'Return Rejected';
-
-                        $shopper_message =
-                            'Your return for ('
-                            . $increment_id
-                            . ') – ('
-                            . $product_name
-                            . ') was rejected.';
-                    }
-
-
-                    /*
-                     * =================================================
-                     * INSERT SHOPPER NOTIFICATION
-                     * =================================================
-                     */
-
-                    $this->db->insert('notifications', [
-
-                        'type'           => 'return',
-                        'subtype'        => $subtype,
-
-                        'recipient_type' => 'shopper',
-                        'recipient_id'   => (int)$order->customer_id,
-
-                        'title'          => $shopper_title,
-                        'message'        => $shopper_message,
-
-                        'data'           => json_encode([
-                            'order_id'     => $order->order_id,
-                            'increment_id' => $increment_id,
-                            'return_id'    => $id,
-                            'product_name' => $product_name,
-                            'status'       => $status
-                        ]),
-
-                        'is_read'        => 0,
-                        'created_at'     => date('Y-m-d H:i:s'),
-                        'updated_at'     => date('Y-m-d H:i:s')
-                    ]);
-                }
             }
         }
-
-
-        /*
-         * =====================================================
-         * RESPONSE
-         * =====================================================
-         */
 
         echo json_encode([
             'success' => $updated ? true : false
