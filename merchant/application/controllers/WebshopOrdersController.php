@@ -4954,222 +4954,172 @@ class WebshopOrdersController extends CI_Controller {
 	}
 
 	public function replacement_update_item_status()
-	{
-		$replacement_item_id = $this->input->post('replacement_item_id');
-		$status = $this->input->post('status');
-		$replacement_type = $this->input->post('replacement_type');
+{
+    $replacement_item_id =$this->input->post('replacement_item_id');
+    $status =$this->input->post('status');
+    $replacement_type =$this->input->post('replacement_type');
 
-		if ($replacement_item_id && $status !== null) {
+    if ($replacement_item_id &&$status !== null) {
 
-			$status = (int)$status;
-			$LogindID = (int)($this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 0));
+        $status = (int)$status;
+        $LogindID = (int)($this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 0));
 
-			// Fetch item details including shipment_type and publisher_id
-			$itemRow = $this->db
-				->select('sori.replacement_item_id, sori.status as item_status, sori.replacement_order_id, bo.shipment_type, bo.publisher_id')
-				->from('sales_order_replacement_items sori')
-				->join('sales_order_replacement sor', 'sor.replacement_order_id = sori.replacement_order_id', 'left')
-				->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
-				->join('b2b_orders bo', '(bo.order_id = boi.order_id OR bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
-				->where('sori.replacement_item_id', $replacement_item_id)
-				->get()
-				->row();
+        // Fetch item details including customer_id directly from sales_order_replacement
+        $itemRow =$this->db
+            ->select('sori.replacement_item_id, sori.status as item_status, sori.replacement_order_id, bo.shipment_type, bo.publisher_id, sor.customer_id, bo.increment_id, bo.order_id, p.name as product_name')
+            ->from('sales_order_replacement_items sori')
+            ->join('sales_order_replacement sor', 'sor.replacement_order_id = sori.replacement_order_id', 'left')
+            ->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+            ->join('b2b_orders bo', '(bo.order_id = boi.order_id OR bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)', 'left')
+            ->join('products p', 'p.product_id = boi.product_id', 'left')
+            ->where('sori.replacement_item_id', $replacement_item_id)
+            ->get()
+            ->row();
 
-			if (!$itemRow) {
-				echo json_encode(['success' => false, 'error' => 'Replacement item not found']);
-				return;
-			}
+        if (!$itemRow) {
+            echo json_encode(['success' => false, 'error' => 'Replacement item not found']);
+            return;
+        }
 
-			// Validate ownership
-			if ($LogindID > 0 && !empty($itemRow->publisher_id) && (int)$itemRow->publisher_id !== $LogindID) {
-				echo json_encode(['success' => false, 'error' => 'Unauthorized action']);
-				return;
-			}
+        // Validate ownership
+        if ($LogindID > 0 && !empty($itemRow->publisher_id) && (int)$itemRow->publisher_id !==$LogindID) {
+            echo json_encode(['success' => false, 'error' => 'Unauthorized action']);
+            return;
+        }
 
-			$currentItemStatus = (int)$itemRow->item_status;
+        $currentItemStatus = (int)$itemRow->item_status;
 
-			// BACKEND ENFORCEMENT:
-			// 1. If currently status 2 (YM Replacement Approved):
-			//    Merchant CANNOT process or complete it from the Merchant Panel!
-			if ($currentItemStatus === 2) {
-				echo json_encode([
-					'success' => false,
-					'error'   => 'YM Replacement can only be processed and completed from Admin Panel.'
-				]);
-				return;
-			}
+        // BACKEND ENFORCEMENT:
+        if ($currentItemStatus === 2) {
+            echo json_encode([
+                'success' => false,
+                'error'   => 'YM Replacement can only be processed and completed from Admin Panel.'
+            ]);
+            return;
+        }
 
-			// 2. Merchant CANNOT set status 6 (Replaced YM)
-			if ($status === 6) {
-				echo json_encode([
-					'success' => false,
-					'error'   => 'YM Replacement can only be completed from Admin Panel.'
-				]);
-				return;
-			}
+        if ($status === 6) {
+            echo json_encode([
+                'success' => false,
+                'error'   => 'YM Replacement can only be completed from Admin Panel.'
+            ]);
+            return;
+        }
 
-			// 3. Status transition validations for Merchant Panel:
-			if ($currentItemStatus === 0) {
-				// From Pending: Merchant can approve as Own (1), approve as YM (2), or reject (4)
-				if (!in_array($status, [1, 2, 4])) {
-					echo json_encode([
-						'success' => false,
-						'error'   => 'Invalid status update for pending replacement request.'
-					]);
-					return;
-				}
-			} elseif ($currentItemStatus === 1) {
-				// From Own Replacement Approved: Merchant can complete (5) or reject (4)
-				if (!in_array($status, [4, 5])) {
-					echo json_encode([
-						'success' => false,
-						'error'   => 'Invalid status update for Own Replacement.'
-					]);
-					return;
-				}
-			} elseif (in_array($currentItemStatus, [3, 5, 6])) {
-				echo json_encode([
-					'success' => false,
-					'error'   => 'Replacement request has already been completed.'
-				]);
-				return;
-			} elseif (in_array($currentItemStatus, [4, 21])) {
-				echo json_encode([
-					'success' => false,
-					'error'   => 'Replacement request has already been rejected.'
-				]);
-				return;
-			} else {
-				if (!in_array($status, [1, 2, 4, 5])) {
-					echo json_encode([
-						'success' => false,
-						'error'   => 'Invalid status update for Merchant Panel.'
-					]);
-					return;
-				}
-			}
+        // Status transition validations
+        if ($currentItemStatus === 0) {
+            if (!in_array($status, [1, 2, 4])) {
+                echo json_encode(['success' => false, 'error' => 'Invalid status update for pending replacement request.']);
+                return;
+            }
+        } elseif ($currentItemStatus === 1) {
+            if (!in_array($status, [4, 5])) {
+                echo json_encode(['success' => false, 'error' => 'Invalid status update for Own Replacement.']);
+                return;
+            }
+        } elseif (in_array($currentItemStatus, [3, 5, 6])) {             echo json_encode(['success' => false, 'error' => 'Replacement request has already been completed.']);             return;         } elseif (in_array($currentItemStatus, [4, 21])) {
+            echo json_encode(['success' => false, 'error' => 'Replacement request has already been rejected.']);
+            return;
+        } else {
+            if (!in_array($status, [1, 2, 4, 5])) {
+                echo json_encode(['success' => false, 'error' => 'Invalid status update for Merchant Panel.']);
+                return;
+            }
+        }
 
-			// Determine replacement_type string
-			if (empty($replacement_type)) {
-				if (in_array($status, [1, 5])) {
-					$replacement_type = 'own';
-				} elseif (in_array($status, [2, 6])) {
-					$replacement_type = 'ym';
-				}
-			}
+        if (empty($replacement_type)) {
+            if (in_array($status, [1, 5])) {$replacement_type = 'own';
+            } elseif (in_array($status, [2, 6])) {$replacement_type = 'ym';
+            }
+        }
 
-			// ---------------------------------------
-			// 1. Update replacement item status & type
-			// ---------------------------------------
-			$updated = $this->WebshopOrdersModel
-				->replacement_update_item_status(
-					$replacement_item_id,
-					$status,
-					$replacement_type
-				);
+        // 1. Update replacement item status & type
+        $updated =$this->WebshopOrdersModel
+            ->replacement_update_item_status(
+                $replacement_item_id,
+                $status,$replacement_type
+            );
 
-			// ---------------------------------------
-			// 2. Notify Admin on status change
-			// ---------------------------------------
-			if ($updated && in_array($status, [1, 2, 4, 5])) {
+        // 2. Notify Admin and Shopper on status change
+        if ($updated && in_array($status, [1, 2, 4, 5])) {
 
-				// ---------------------------------------
-				// 3. Get replacement + order
-				// ---------------------------------------
-				$replacement = $this->db
-					->select('
-						sor.order_id,
-						bo.increment_id,
-						sor.replacement_order_increment_id,
-						bo.publisher_id
-					')
-					->from('sales_order_replacement_items sori')
-					->join(
-						'sales_order_replacement sor',
-						'sor.replacement_order_id = sori.replacement_order_id',
-						'left'
-					)
-					->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
-					->join(
-						'b2b_orders bo',
-						'(bo.order_id = boi.order_id OR bo.order_id = sor.order_id OR bo.webshop_order_id = sor.order_id)',
-						'left'
-					)
-					->where(
-						'sori.replacement_item_id',
-						$replacement_item_id
-					)
-					->get()
-					->row();
+            $productName = !empty($itemRow->product_name) ?$itemRow->product_name : 'Product';
+            $incrementId =$itemRow->increment_id;
 
-				if (!empty($replacement)) {
+            // Admin Notification setup
+            if ($status === 1) {
+                $adminTitle = 'Own Replacement Approved';$adminMessage = 'Own replacement request approved by merchant for order ' . $incrementId . '.';$adminSubtype = 'own_replacement_approved';
+            } elseif ($status === 2) {$adminTitle = 'YM Replacement Request Approved';
+                $adminMessage = 'YM replacement request approved by merchant for order ' .$incrementId . '. Awaiting processing from Admin Panel.';
+                $adminSubtype = 'ym_replacement_approved';
+            } elseif ($status === 5) {
+                $adminTitle = 'Own Replacement Completed';$adminMessage = 'Own replacement marked as done by merchant for order ' . $incrementId . '.';$adminSubtype = 'own_replacement_completed';
+            } elseif ($status === 4) {
+                $adminTitle = 'Replacement Rejected';$adminMessage = 'Replacement request rejected by merchant for order ' . $incrementId . '.';$adminSubtype = 'rejected';
+            }
 
-					if ($status === 1) {
-						$title = 'Own Replacement Approved';
-						$message = 'Own replacement request approved by merchant for order '
-								 . $replacement->increment_id . '.';
-						$subtype = 'own_replacement_approved';
-					} elseif ($status === 2) {
-						$title = 'YM Replacement Request Approved';
-						$message = 'YM replacement request approved by merchant for order '
-								 . $replacement->increment_id . '. Awaiting processing from Admin Panel.';
-						$subtype = 'ym_replacement_approved';
-					} elseif ($status === 5) {
-						$title = 'Own Replacement Completed';
-						$message = 'Own replacement marked as done by merchant for order '
-								 . $replacement->increment_id . '.';
-						$subtype = 'own_replacement_completed';
-					} elseif ($status === 4) {
-						$title = 'Replacement Rejected';
-						$message = 'Replacement request rejected by merchant for order '
-								. $replacement->increment_id . '.';
-						$subtype = 'rejected';
-					}
+            // Insert ADMIN notification
+            $this->db->insert('notifications', [
+                'type'           => 'replacement',
+                'subtype'        => $adminSubtype,
+                'recipient_type' => 'admin',
+                'recipient_id'   => 1,
+                'title'          => $adminTitle,
+                'message'        => $adminMessage,
+                'data'           => json_encode([
+                    'order_id'         => $itemRow->order_id,
+                    'increment_id'     => $incrementId,
+                    'replacement_id'   => $replacement_item_id,
+                    'replacement_type' => $replacement_type,
+                    'status'           => $status
+                ]),
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s')
+            ]);
 
-					// ---------------------------------------
-					// 4. Insert ADMIN notification
-					// ---------------------------------------
-					$notification_data = [
-						'type'           => 'replacement',
-						'subtype'        => $subtype,
-						'recipient_type' => 'admin',
-						'recipient_id'   => 1,
-						'title'          => $title,
-						'message'        => $message,
-						'data'           => json_encode([
-							'order_id'         => $replacement->order_id,
-							'increment_id'     => $replacement->increment_id,
-							'replacement_id'   => $replacement_item_id,
-							'replacement_type' => $replacement_type,
-							'status'           => $status
-						]),
-						'is_read'         => 0,
-						'created_at'      => date('Y-m-d H:i:s'),
-						'updated_at'      => date('Y-m-d H:i:s')
-					];
+            // Insert SHOPPER notification (using `sor.customer_id`)
+            if (!empty($itemRow->customer_id) && in_array($status, [1, 4])) {$shopperTitle = 'Return / Replacement';
+                $shopperSubtype = ($status === 1) ? 'accepted' : 'rejected';
+                
+                if ($status === 1) {$shopperMessage = "Your replacement for ({$incrementId}) – ({$productName}) is accepted.";
+                } else {
+                    $shopperMessage = "Your replacement for ({$incrementId}) – ({$productName}) was rejected.";
+                }
 
-					$this->db->insert('notifications', $notification_data);
-				}
-			}
+                $this->db->insert('notifications', [
+                    'type'           => 'replacement',
+                    'subtype'        => $shopperSubtype,
+                    'recipient_type' => 'shopper',
+                    'recipient_id'   => $itemRow->customer_id,
+                    'title'          => $shopperTitle,
+                    'message'        => $shopperMessage,
+                    'data'           => json_encode([
+                        'order_id'         => $itemRow->order_id,
+                        'increment_id'     => $incrementId,
+                        'replacement_id'   => $replacement_item_id,
+                        'status'           => $status
+                    ]),
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s'),
+                    'updated_at'     => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
 
-			// ---------------------------------------
-			// 5. AJAX response
-			// ---------------------------------------
-			echo json_encode([
-				'success'          => $updated ? true : false,
-				'status'           => $status,
-				'replacement_type' => $replacement_type
-			]);
+        echo json_encode([
+            'success'          => $updated ? true : false,
+            'status'           => $status,
+            'replacement_type' => $replacement_type
+        ]);
 
-		} else {
-
-			echo json_encode([
-				'success' => false,
-				'error'   => 'Invalid request'
-			]);
-		}
-	}
-
+    } else {
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Invalid request'
+        ]);
+    }
+}
 
 	public function return_update_status()
 {
@@ -5181,8 +5131,7 @@ class WebshopOrdersController extends CI_Controller {
         $updated = $this->WebshopOrdersModel
             ->return_update_status($id, $status);
 
-        // 1 = Approved
-        // 2 = Rejected
+        // 1 = Approved, 2 = Rejected
         if ($updated && in_array((int)$status, [1, 2])) {
 
             $order = $this->db
@@ -5190,68 +5139,76 @@ class WebshopOrdersController extends CI_Controller {
                     sor.order_id,
                     sor.return_order_id,
                     bo.increment_id,
-                    bo.publisher_id
+                    bo.publisher_id,
+                    bo.customer_id,
+                    p.name as product_name
                 ')
                 ->from('sales_order_return sor')
-                ->join(
-                    'sales_order so',
-                    'so.order_id = sor.order_id',
-                    'left'
-                )
-                ->join(
-                    'b2b_orders bo',
-                    'bo.webshop_order_id = so.order_id',
-                    'left'
-                )
+                ->join('sales_order so', 'so.order_id = sor.order_id', 'left')
+                ->join('b2b_orders bo', 'bo.webshop_order_id = so.order_id', 'left')
+                ->join('sales_order_item soi', 'soi.order_id = so.order_id', 'left')
+                ->join('products p', 'p.product_id = soi.product_id', 'left')
                 ->where('sor.return_order_id', $id)
                 ->get()
                 ->row();
 
             if (!empty($order)) {
+                $incrementId = $order->increment_id;
+                $productName = !empty($order->product_name) ? $order->product_name : 'Product';
 
-                // APPROVED
                 if ((int)$status === 1) {
-
-                    $title = 'Return Request Approved';
-
-                    $message = 'Merchant approved return request for order '
-                             . $order->increment_id . '.';
-
-                    $subtype = 'approved';
-
-                // REJECTED
+                    $adminTitle = 'Return Request Approved';
+                    $adminMessage = 'Merchant approved return request for order ' . $incrementId . '.';
+                    $adminSubtype = 'approved';
+                    
+                    $shopperMessage = "Your return for ({$incrementId}) – ({$productName}) is accepted.";
                 } else {
+                    $adminTitle = 'Return Request Rejected';
+                    $adminMessage = 'Merchant rejected return request for order ' . $incrementId . '.';
+                    $adminSubtype = 'rejected';
 
-                    $title = 'Return Request Rejected';
-
-                    $message = 'Merchant rejected return request for order '
-                             . $order->increment_id . '.';
-
-                    $subtype = 'rejected';
+                    $shopperMessage = "Your return for ({$incrementId}) – ({$productName}) was rejected.";
                 }
 
-                // ADMIN ONLY NOTIFICATION
+                // 1. ADMIN NOTIFICATION
                 $this->db->insert('notifications', [
                     'type'           => 'return',
-                    'subtype'        => $subtype,
-
+                    'subtype'        => $adminSubtype,
                     'recipient_type' => 'admin',
                     'recipient_id'   => 1,
-
-                    'title'          => $title,
-                    'message'        => $message,
-
+                    'title'          => $adminTitle,
+                    'message'        => $adminMessage,
                     'data'           => json_encode([
                         'order_id'     => $order->order_id,
-                        'increment_id' => $order->increment_id,
+                        'increment_id' => $incrementId,
                         'return_id'    => $id,
                         'status'       => (int)$status
                     ]),
-
-                    'is_read'         => 0,
-                    'created_at'      => date('Y-m-d H:i:s'),
-                    'updated_at'      => date('Y-m-d H:i:s')
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s'),
+                    'updated_at'     => date('Y-m-d H:i:s')
                 ]);
+
+                // 2. SHOPPER NOTIFICATION
+                if (!empty($order->customer_id)) {
+                    $this->db->insert('notifications', [
+                        'type'           => 'return',
+                        'subtype'        => $adminSubtype,
+                        'recipient_type' => 'shopper',
+                        'recipient_id'   => $order->customer_id,
+                        'title'          => 'Return / Replacement',
+                        'message'        => $shopperMessage,
+                        'data'           => json_encode([
+                            'order_id'     => $order->order_id,
+                            'increment_id' => $incrementId,
+                            'return_id'    => $id,
+                            'status'       => (int)$status
+                        ]),
+                        'is_read'        => 0,
+                        'created_at'     => date('Y-m-d H:i:s'),
+                        'updated_at'     => date('Y-m-d H:i:s')
+                    ]);
+                }
             }
         }
 
@@ -5260,7 +5217,6 @@ class WebshopOrdersController extends CI_Controller {
         ]);
 
     } else {
-
         echo json_encode([
             'success' => false,
             'error'   => 'Invalid request'
