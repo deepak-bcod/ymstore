@@ -1,0 +1,3384 @@
+translations_version|s:12:"en3043401755";translations|a:302:{i:0;s:6:"%.3f s";i:1;s:24:"Unable to upload a file.";i:2;s:33:"Maximum allowed file size is %sB.";i:3;s:20:"File does not exist.";i:4;s:1:",";i:5;s:10:"0123456789";i:6;s:10:"User types";i:7;s:13:"Are you sure?";i:8;s:12:"Increase %s.";i:9;s:26:"File uploads are disabled.";i:10;s:8:"original";i:11;s:10:"No tables.";i:12;s:4:"Edit";i:13;s:6:"Insert";i:14;s:8:"No rows.";i:15;s:44:"You have no privileges to update this table.";i:16;s:4:"Save";i:17;s:22:"Save and continue edit";i:18;s:20:"Save and insert next";i:19;s:6:"Saving";i:20;s:6:"Delete";i:21;s:8:"Language";i:22;s:3:"Use";i:23;s:14:"Unknown error.";i:24;s:35:"Database does not support password.";i:25;s:36:"Please use one of the extensions %s.";i:26;s:12:"File exists.";i:27;s:7:"Numbers";i:28;s:13:"Date and time";i:29;s:7:"Strings";i:30;s:6:"Binary";i:31;s:7:"Network";i:32;s:8:"Geometry";i:33;s:6:"System";i:34;s:6:"Server";i:35;s:8:"Username";i:36;s:8:"Password";i:37;s:8:"Database";i:38;s:5:"Login";i:39;s:15:"Permanent login";i:40;s:136:"Adminer does not support accessing a database without a password, <a href="https://www.adminer.org/en/password/"%s>more information</a>.";i:41;s:11:"Select data";i:42;s:14:"Show structure";i:43;s:11:"Alter table";i:44;s:10:"Alter view";i:45;s:8:"New item";i:46;s:8:"Warnings";i:47;a:2:{i:0;s:7:"%d byte";i:1;s:8:"%d bytes";}i:48;s:6:"Column";i:49;s:4:"Type";i:50;s:7:"Comment";i:51;s:14:"Auto Increment";i:52;s:13:"Default value";i:53;s:6:"Select";i:54;s:9:"Functions";i:55;s:11:"Aggregation";i:56;s:6:"Search";i:57;s:8:"anywhere";i:58;s:4:"Sort";i:59;s:10:"descending";i:60;s:5:"Limit";i:61;s:11:"Text length";i:62;s:6:"Action";i:63;s:15:"Full table scan";i:64;s:11:"SQL command";i:65;s:4:"open";i:66;s:4:"save";i:67;s:14:"Alter database";i:68;s:12:"Alter schema";i:69;s:13:"Create schema";i:70;s:15:"Database schema";i:71;s:10:"Privileges";i:72;s:8:"Routines";i:73;s:9:"Sequences";i:74;s:6:"Events";i:75;s:6:"Import";i:76;s:6:"Export";i:77;s:12:"Create table";i:78;s:2:"DB";i:79;s:6:"Schema";i:80;s:6:"select";i:81;s:33:"%s must <a%s>return an array</a>.";i:82;s:28:"<a%s>Configure</a> %s in %s.";i:83;s:41:"Disable %s or enable %s or %s extensions.";i:84;s:5:"Lists";i:85;s:3:"ltr";i:86;s:16:"You are offline.";i:87;s:6:"Logout";i:88;a:2:{i:0;s:53:"Too many unsuccessful logins, try again in %d minute.";i:1;s:54:"Too many unsuccessful logins, try again in %d minutes.";}i:89;s:18:"Logout successful.";i:90;s:95:"Thanks for using Adminer, consider <a href="https://www.adminer.org/en/donation/">donating</a>.";i:91;s:36:"Session expired, please login again.";i:92;s:120:"Master password expired. <a href="https://www.adminer.org/en/extension/"%s>Implement</a> %s method to make it permanent.";i:93;s:32:"Session support must be enabled.";i:94;s:78:"The action will be performed after successful login with the same credentials.";i:95;s:12:"No extension";i:96;s:56:"None of the supported PHP extensions (%s) are available.";i:97;s:46:"Connecting to privileged ports is not allowed.";i:98;s:20:"Invalid credentials.";i:99;s:64:"There is a space in the input password which might be the cause.";i:100;s:40:"Invalid CSRF token. Send the form again.";i:101;s:62:"Maximum number of allowed fields exceeded. Please increase %s.";i:102;s:67:"If you did not send this request from Adminer then close this page.";i:103;s:78:"Too big POST data. Reduce the data or increase the %s configuration directive.";i:104;s:64:"You can upload a big SQL file via FTP and import it from server.";i:105;s:12:"Foreign keys";i:106;s:9:"collation";i:107;s:9:"ON UPDATE";i:108;s:9:"ON DELETE";i:109;s:11:"Column name";i:110;s:14:"Parameter name";i:111;s:6:"Length";i:112;s:7:"Options";i:113;s:8:"Add next";i:114;s:7:"Move up";i:115;s:9:"Move down";i:116;s:6:"Remove";i:117;s:17:"Invalid database.";i:118;s:28:"Databases have been dropped.";i:119;s:15:"Select database";i:120;s:15:"Create database";i:121;s:12:"Process list";i:122;s:9:"Variables";i:123;s:6:"Status";i:124;s:39:"%s version: %s through PHP extension %s";i:125;s:13:"Logged as: %s";i:126;s:7:"Refresh";i:127;s:9:"Collation";i:128;s:6:"Tables";i:129;s:4:"Size";i:130;s:7:"Compute";i:131;s:8:"Selected";i:132;s:4:"Drop";i:133;s:14:"Loaded plugins";i:134;s:10:"screenshot";i:135;s:15:"Invalid schema.";i:136;s:17:"Materialized view";i:137;s:4:"View";i:138;s:5:"Table";i:139;s:13:"Inherits from";i:140;s:7:"Indexes";i:141;s:13:"Alter indexes";i:142;s:6:"Source";i:143;s:6:"Target";i:144;s:5:"Alter";i:145;s:15:"Add foreign key";i:146;s:6:"Checks";i:147;s:12:"Create check";i:148;s:8:"Triggers";i:149;s:11:"Add trigger";i:150;s:12:"Inherited by";i:151;s:14:"Permanent link";i:152;s:6:"Output";i:153;s:6:"Format";i:154;s:4:"Data";i:155;s:11:"Create user";i:156;s:33:"ATTACH queries are not supported.";i:157;s:14:"Error in query";i:158;s:5:"%d / ";i:159;a:2:{i:0;s:6:"%d row";i:1;s:7:"%d rows";}i:160;a:2:{i:0;s:35:"Query executed OK, %d row affected.";i:1;s:36:"Query executed OK, %d rows affected.";}i:161;s:23:"No commands to execute.";i:162;a:2:{i:0;s:21:"%d query executed OK.";i:1;s:23:"%d queries executed OK.";}i:163;s:7:"Execute";i:164;s:10:"Limit rows";i:165;s:11:"File upload";i:166;s:11:"From server";i:167;s:17:"Webserver file %s";i:168;s:8:"Run file";i:169;s:13:"Stop on error";i:170;s:16:"Show only errors";i:171;s:7:"History";i:172;s:5:"Clear";i:173;s:8:"Edit all";i:174;s:22:"Item has been deleted.";i:175;s:22:"Item has been updated.";i:176;s:25:"Item%s has been inserted.";i:177;s:23:"Table has been dropped.";i:178;s:23:"Table has been altered.";i:179;s:23:"Table has been created.";i:180;s:10:"Table name";i:181;s:6:"engine";i:182;s:14:"Default values";i:183;s:8:"Drop %s?";i:184;s:12:"Partition by";i:185;s:10:"Partitions";i:186;s:14:"Partition name";i:187;s:6:"Values";i:188;s:26:"Indexes have been altered.";i:189;s:10:"Index Type";i:190;s:9:"Algorithm";i:191;s:7:"Columns";i:192;s:6:"length";i:193;s:4:"Name";i:194;s:9:"Condition";i:195;s:26:"Database has been dropped.";i:196;s:26:"Database has been renamed.";i:197;s:26:"Database has been created.";i:198;s:26:"Database has been altered.";i:199;s:24:"Schema has been dropped.";i:200;s:24:"Schema has been created.";i:201;s:24:"Schema has been altered.";i:202;s:4:"Call";i:203;a:2:{i:0;s:41:"Routine has been called, %d row affected.";i:1;s:42:"Routine has been called, %d rows affected.";}i:204;s:29:"Foreign key has been dropped.";i:205;s:29:"Foreign key has been altered.";i:206;s:29:"Foreign key has been created.";i:207;s:132:"Source and target columns must have the same data type, there must be an index on the target columns and referenced data must exist.";i:208;s:11:"Foreign key";i:209;s:12:"Target table";i:210;s:6:"Change";i:211;s:10:"Add column";i:212;s:22:"View has been altered.";i:213;s:22:"View has been dropped.";i:214;s:22:"View has been created.";i:215;s:11:"Create view";i:216;s:23:"Event has been dropped.";i:217;s:23:"Event has been altered.";i:218;s:23:"Event has been created.";i:219;s:11:"Alter event";i:220;s:12:"Create event";i:221;s:5:"Start";i:222;s:3:"End";i:223;s:5:"Every";i:224;s:22:"On completion preserve";i:225;s:25:"Routine has been dropped.";i:226;s:25:"Routine has been altered.";i:227;s:25:"Routine has been created.";i:228;s:14:"Alter function";i:229;s:15:"Alter procedure";i:230;s:15:"Create function";i:231;s:16:"Create procedure";i:232;s:11:"Return type";i:233;s:26:"Sequence has been dropped.";i:234;s:26:"Sequence has been created.";i:235;s:26:"Sequence has been altered.";i:236;s:14:"Alter sequence";i:237;s:15:"Create sequence";i:238;s:22:"Type has been dropped.";i:239;s:22:"Type has been created.";i:240;s:10:"Alter type";i:241;s:11:"Create type";i:242;s:23:"Check has been dropped.";i:243;s:23:"Check has been altered.";i:244;s:23:"Check has been created.";i:245;s:11:"Alter check";i:246;s:25:"Trigger has been dropped.";i:247;s:25:"Trigger has been altered.";i:248;s:25:"Trigger has been created.";i:249;s:13:"Alter trigger";i:250;s:14:"Create trigger";i:251;s:4:"Time";i:252;s:5:"Event";i:253;s:22:"User has been dropped.";i:254;s:22:"User has been altered.";i:255;s:22:"User has been created.";i:256;s:6:"Hashed";i:257;s:7:"Routine";i:258;s:5:"Grant";i:259;s:6:"Revoke";i:260;a:2:{i:0;s:27:"%d process has been killed.";i:1;s:30:"%d processes have been killed.";}i:261;s:5:"Clone";i:262;s:11:"%d in total";i:263;s:4:"Kill";i:264;a:2:{i:0;s:26:"%d item has been affected.";i:1;s:28:"%d items have been affected.";}i:265;s:35:"Ctrl+click on a value to modify it.";i:266;s:31:"File must be in UTF-8 encoding.";i:267;a:2:{i:0;s:25:"%d row has been imported.";i:1;s:27:"%d rows have been imported.";}i:268;s:26:"Unable to select the table";i:269;s:6:"Modify";i:270;s:9:"Relations";i:271;s:4:"edit";i:272;s:35:"Use edit link to modify this value.";i:273;s:14:"Load more data";i:274;s:7:"Loading";i:275;s:4:"Page";i:276;s:4:"last";i:277;s:12:"Whole result";i:278;s:27:"Tables have been truncated.";i:279;s:23:"Tables have been moved.";i:280;s:24:"Tables have been copied.";i:281;s:25:"Tables have been dropped.";i:282;s:27:"Tables have been optimized.";i:283;s:16:"Tables and views";i:284;s:21:"Search data in tables";i:285;s:6:"Engine";i:286;s:11:"Data Length";i:287;s:12:"Index Length";i:288;s:9:"Data Free";i:289;s:4:"Rows";i:290;s:6:"Vacuum";i:291;s:8:"Optimize";i:292;s:5:"Check";i:293;s:7:"Analyze";i:294;s:6:"Repair";i:295;s:8:"Truncate";i:296;s:22:"Move to other database";i:297;s:4:"Move";i:298;s:4:"Copy";i:299;s:9:"overwrite";i:300;s:8:"Schedule";i:301;s:13:"At given time";}pwds|a:1:{s:6:"server";a:1:{s:0:"";a:1:{s:4:"root";a:1:{i:0;s:24:"��Id����SK��`H?�3����";}}}}token|i:622840;dbs|a:1:{s:6:"server";a:1:{s:0:"";a:1:{s:4:"root";a:7:{i:0;s:11:"holidays_db";i:1;s:18:"information_schema";i:2;s:5:"mysql";i:3;s:18:"performance_schema";i:4;s:12:"yellowmarket";i:5;s:3:"ysm";i:6;s:7:"ysm_bak";}}}}db|a:1:{s:6:"server";a:1:{s:0:"";a:1:{s:4:"root";a:1:{s:3:"ysm";b:1;}}}}queries|a:1:{s:6:"server";a:1:{s:0:"";a:1:{s:4:"root";a:1:{s:3:"ysm";a:18:{i:0;a:3:{i:0;s:46:"DELETE FROM `help_desk`
+WHERE ((`id` = '34'));";i:1;i:1791181365;i:2;s:7:"0.005 s";}i:1;a:2:{i:0;s:96:"ALTER TABLE `help_desk` ADD COLUMN `priority_level` VARCHAR(50) DEFAULT NULL AFTER `priority`;
+";i:1;i:1791182086;}i:2;a:2:{i:0;s:11382:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+(
+    'order-resolution-merchant',
+    'Order Resolution - Merchant',
+    'Résolution de commande - Marchand',
+    'Order Resolution No.: ##TICKET_NUMBER##',
+    'Résolution de commande N° : ##TICKET_NUMBER##',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>Order Resolution No.: <span class="no-link">##TICKET_NUMBER##</span></h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Category:</strong></td>
+                            <td>##CATEGORY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priority:</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p style="margin-top:20px;">
+                    Please access the Ticket section to view the complete details and take the required action.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Résolution de commande</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>Résolution de commande N° : <span class="no-link">##TICKET_NUMBER##</span></h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Catégorie :</strong></td>
+                            <td>##CATEGORY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priorité :</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p style="margin-top:20px;">
+                    Veuillez accéder à la section Tickets pour consulter les détails complets et effectuer l'action requise.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-help',
+    'Order Resolution - Help',
+    'Résolution de commande - Assistance',
+    'Order Resolution No.: ##TICKET_NUMBER##',
+    'Résolution de commande N° : ##TICKET_NUMBER##',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>Order Resolution No.: <span class="no-link">##TICKET_NUMBER##</span></h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Category:</strong></td>
+                            <td>##CATEGORY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Merchant Name:</strong></td>
+                            <td>##MERCHANT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shopper Name:</strong></td>
+                            <td>##SHOPPER_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priority:</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>Original message from shopper:</strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                ##SHOPPER_MESSAGE##
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Résolution de commande</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>Résolution de commande N° : <span class="no-link">##TICKET_NUMBER##</span></h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Catégorie :</strong></td>
+                            <td>##CATEGORY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du marchand :</strong></td>
+                            <td>##MERCHANT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du client :</strong></td>
+                            <td>##SHOPPER_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priorité :</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>Message original du client :</strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                ##SHOPPER_MESSAGE##
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+);";i:1;i:1791183185;}i:3;a:2:{i:0;s:11383:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+(
+    'order-resolution-merchant',
+    'Order Resolution - Merchant',
+    'Résolution de commande - Marchand',
+    'Order Resolution No.: ##TICKET_NUMBER##',
+    'Résolution de commande N° : ##TICKET_NUMBER##',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>Order Resolution No.: <span class="no-link">##TICKET_NUMBER##</span></h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Category:</strong></td>
+                            <td>##CATEGORY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priority:</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p style="margin-top:20px;">
+                    Please access the Ticket section to view the complete details and take the required action.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Résolution de commande</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>Résolution de commande N° : <span class="no-link">##TICKET_NUMBER##</span></h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Catégorie :</strong></td>
+                            <td>##CATEGORY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priorité :</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p style="margin-top:20px;">
+                    Veuillez accéder à la section Tickets pour consulter les détails complets et effectuer l''action requise.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-help',
+    'Order Resolution - Help',
+    'Résolution de commande - Assistance',
+    'Order Resolution No.: ##TICKET_NUMBER##',
+    'Résolution de commande N° : ##TICKET_NUMBER##',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>Order Resolution No.: <span class="no-link">##TICKET_NUMBER##</span></h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Category:</strong></td>
+                            <td>##CATEGORY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Merchant Name:</strong></td>
+                            <td>##MERCHANT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shopper Name:</strong></td>
+                            <td>##SHOPPER_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priority:</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>Original message from shopper:</strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                ##SHOPPER_MESSAGE##
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Résolution de commande</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>Résolution de commande N° : <span class="no-link">##TICKET_NUMBER##</span></h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Catégorie :</strong></td>
+                            <td>##CATEGORY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du marchand :</strong></td>
+                            <td>##MERCHANT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du client :</strong></td>
+                            <td>##SHOPPER_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priorité :</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>Message original du client :</strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                ##SHOPPER_MESSAGE##
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+);";i:1;i:1791183441;}i:4;a:3:{i:0;s:46:"DELETE FROM `help_desk`
+WHERE ((`id` = '35'));";i:1;i:1791185060;i:2;s:7:"0.010 s";}i:5;a:3:{i:0;s:80:"DELETE FROM `help_desk`
+WHERE ((`id` = '38') OR (`id` = '37') OR (`id` = '36'));";i:1;i:1791186086;i:2;s:7:"0.002 s";}i:6;a:3:{i:0;s:46:"DELETE FROM `help_desk`
+WHERE ((`id` = '39'));";i:1;i:1791186556;i:2;s:7:"0.007 s";}i:7;a:2:{i:0;s:6806:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+(
+    'order-resolution-merchant-reply-shopper',
+    'Order Resolution - Merchant Reply',
+    'Résolution de commande - Réponse du marchand',
+    'Order Resolution Update No.: ##TICKET_NUMBER##',
+    'Mise à jour de la résolution de commande N° : ##TICKET_NUMBER##',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution Update</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Order Resolution Update No.:
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Merchant has responded to ticket. Please access the Ticket section to view the response.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Mise à jour de la résolution de commande</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Mise à jour de la résolution de commande N° :
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Le marchand a répondu au ticket. Veuillez accéder à la section Tickets pour consulter la réponse.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-shopper-reply-merchant',
+    'Order Resolution - Shopper Reply',
+    'Résolution de commande - Réponse du client',
+    'Order Resolution Update No.: ##TICKET_NUMBER##',
+    'Mise à jour de la résolution de commande N° : ##TICKET_NUMBER##',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution Update</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Order Resolution Update No.:
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Shopper has responded to ticket. Please access the Ticket section to view the response.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Mise à jour de la résolution de commande</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Mise à jour de la résolution de commande N° :
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Le client a répondu au ticket. Veuillez accéder à la section Tickets pour consulter la réponse.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+);";i:1;i:1791186916;}i:8;a:2:{i:0;s:1351:"UPDATE `email_template`
+SET
+    `content` = REPLACE(
+        `content`,
+        '<p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>',
+        '<table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+    <tbody>
+        <tr>
+            <td>
+                <strong>Merchant''s Reply:</strong>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                ##REPLY_TEXT##
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>'
+    ),
+    `content_fr` = REPLACE(
+        `content_fr`,
+        '<p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>',
+        '<table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+    <tbody>
+        <tr>
+            <td>
+                <strong>Réponse du marchand :</strong>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                ##REPLY_TEXT##
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>'
+    ),
+    `updated_at` = UNIX_TIMESTAMP()
+WHERE `id` = 61
+  AND `email_code` = 'order-resolution-merchant-reply-shopper';";i:1;i:1791193240;}i:9;a:2:{i:0;s:1348:"UPDATE `email_template`
+SET
+    `content` = REPLACE(
+        `content`,
+        '<p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>',
+        '<table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+    <tbody>
+        <tr>
+            <td>
+                <strong>Shopper''s Reply:</strong>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                ##REPLY_TEXT##
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>'
+    ),
+    `content_fr` = REPLACE(
+        `content_fr`,
+        '<p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>',
+        '<table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+    <tbody>
+        <tr>
+            <td>
+                <strong>Réponse du client :</strong>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                ##REPLY_TEXT##
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>'
+    ),
+    `updated_at` = UNIX_TIMESTAMP()
+WHERE `id` = 62
+  AND `email_code` = 'order-resolution-shopper-reply-merchant';";i:1;i:1791193268;}i:10;a:2:{i:0;s:33485:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+
+/* =========================================================
+   1. REFUND APPROVED - SHOPPER
+   Merchant clicks Refund Approved
+   ========================================================= */
+(
+    'order-resolution-refund-approved-shopper',
+    'Order Resolution - Refund Approved',
+    'Résolution de commande - Remboursement approuvé',
+
+    'Order Resolution No.: ##TICKET_NUMBER## - We Approve Refund',
+    'Résolution de commande N° : ##TICKET_NUMBER## - Nous approuvons le remboursement',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution - Refund Approved</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Order Resolution No.:
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    We approve your refund request.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Refund Amount:</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Please access the Ticket section for more details.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Résolution de commande - Remboursement approuvé</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Résolution de commande N° :
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Nous approuvons votre demande de remboursement.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Montant du remboursement :</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Veuillez accéder à la section Tickets pour plus de détails.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+/* =========================================================
+   2. REFUND APPROVED - HELP
+   Merchant clicks Refund Approved
+   ========================================================= */
+(
+    'order-resolution-refund-approved-help',
+    'Order Resolution - Refund Approved - Help',
+    'Résolution de commande - Remboursement approuvé - Assistance',
+
+    'Order Resolution Update No.: ##TICKET_NUMBER##',
+    'Mise à jour de la résolution de commande N° : ##TICKET_NUMBER##',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution Update</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Order Resolution Update No.:
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    The Merchant has approved the refund for this Order Resolution ticket.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Merchant Name:</strong></td>
+                            <td>##MERCHANT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shopper Name:</strong></td>
+                            <td>##SHOPPER_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priority:</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Merchant Action:</strong></td>
+                            <td>Refund Approved</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Please access the Ticket section to continue processing this request.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Mise à jour de la résolution de commande</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Mise à jour de la résolution de commande N° :
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Le marchand a approuvé le remboursement pour ce ticket de résolution de commande.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Nom du marchand :</strong></td>
+                            <td>##MERCHANT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du client :</strong></td>
+                            <td>##SHOPPER_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priorité :</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Action du marchand :</strong></td>
+                            <td>Remboursement approuvé</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Veuillez accéder à la section Tickets pour poursuivre le traitement de cette demande.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+/* =========================================================
+   3. REFUND INITIATED - MERCHANT
+   @help assigns ticket to @acct
+   ========================================================= */
+(
+    'order-resolution-refund-initiated-merchant',
+    'Order Resolution - Refund Initiated',
+    'Résolution de commande - Remboursement initié',
+
+    'Order Resolution No.: ##TICKET_NUMBER## - Refund initiated',
+    'Résolution de commande N° : ##TICKET_NUMBER## - Remboursement initié',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Refund Initiated</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Order Resolution No.:
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Your refund request has been initiated and is being processed.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Refund Amount:</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Please access the Ticket section for more details.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Remboursement initié</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Résolution de commande N° :
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Votre demande de remboursement a été initiée et est en cours de traitement.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Montant du remboursement :</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Veuillez accéder à la section Tickets pour plus de détails.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+/* =========================================================
+   4. REFUND REQUEST - ACCOUNT
+   @help assigns ticket to @acct
+   ========================================================= */
+(
+    'order-resolution-refund-request-acct',
+    'Order Resolution - Refund Request',
+    'Résolution de commande - Demande de remboursement',
+
+    'Order Resolution No.: ##TICKET_NUMBER## - Refund Request',
+    'Résolution de commande N° : ##TICKET_NUMBER## - Demande de remboursement',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Refund Request</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Order Resolution No.:
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    A refund request has been assigned to you for processing.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Shopper Name:</strong></td>
+                            <td>##SHOPPER_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Merchant Name:</strong></td>
+                            <td>##MERCHANT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Refund Amount:</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priority:</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Please process the refund from the Merchant's 15-day hold-back sales.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Demande de remboursement</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Résolution de commande N° :
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Une demande de remboursement vous a été attribuée pour traitement.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Nom du client :</strong></td>
+                            <td>##SHOPPER_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du marchand :</strong></td>
+                            <td>##MERCHANT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Montant du remboursement :</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Priorité :</strong></td>
+                            <td>##PRIORITY##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Veuillez traiter le remboursement à partir des ventes retenues du marchand pendant 15 jours.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+/* =========================================================
+   5. REFUND CLOSED - MERCHANT
+   @help closes ticket
+   ========================================================= */
+(
+    'order-resolution-refund-closed-merchant',
+    'Order Resolution - Refund Closed',
+    'Résolution de commande - Remboursement clôturé',
+
+    'Order Resolution No.: ##TICKET_NUMBER## - Closed',
+    'Résolution de commande N° : ##TICKET_NUMBER## - Clôturé',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Order Resolution Closed</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Order Resolution No.:
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    The Order Resolution ticket has been closed.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Refund Amount:</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Please access the Ticket section if you need to review the resolution details.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Résolution de commande clôturée</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Résolution de commande N° :
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Le ticket de résolution de commande a été clôturé.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Montant du remboursement :</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Veuillez accéder à la section Tickets si vous souhaitez consulter les détails de la résolution.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+/* =========================================================
+   6. REFUND COMPLETED - SHOPPER
+   @acct completes refund and ticket is marked Done
+   ========================================================= */
+(
+    'order-resolution-refund-completed-shopper',
+    'Order Resolution - Refund Completed',
+    'Résolution de commande - Remboursement effectué',
+
+    'Order Resolution No.: ##TICKET_NUMBER## - You Are Being Refunded',
+    'Résolution de commande N° : ##TICKET_NUMBER## - Votre remboursement est en cours',
+
+    '<!-- Header -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>You Are Being Refunded</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Order Resolution No.:
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Your refund is being processed.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Order Number:</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Name:</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Refund Amount:</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    The refunded amount will be credited according to the applicable payment and refund process.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Access Ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    '<!-- En-tête -->
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="email-notice">
+                <table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td class="sub-email">
+                                <h3 style="font-size:15px;">
+                                    <strong>Votre remboursement est en cours</strong>
+                                </h3>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<table border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tbody>
+        <tr>
+            <td class="order-details">
+                <h3>
+                    Résolution de commande N° :
+                    <span class="no-link">##TICKET_NUMBER##</span>
+                </h3>
+            </td>
+        </tr>
+
+        <tr class="order-information">
+            <td>
+                <p>
+                    Votre remboursement est en cours de traitement.
+                </p>
+
+                <table border="0" cellpadding="8" cellspacing="0" style="width:100%;">
+                    <tbody>
+                        <tr>
+                            <td><strong>Numéro de commande :</strong></td>
+                            <td>##ORDER_NUMBER##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nom du produit :</strong></td>
+                            <td>##PRODUCT_NAME##</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Montant du remboursement :</strong></td>
+                            <td>##REFUND_AMOUNT##</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Le montant remboursé sera crédité conformément au processus de paiement et de remboursement applicable.
+                </p>
+
+                <p>
+                    <a href="##TICKET_URL##">Accéder au ticket</a>
+                </p>
+            </td>
+        </tr>
+    </tbody>
+</table>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+);";i:1;i:1791194787;}i:11;a:2:{i:0;s:16286:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+
+(
+    'order-resolution-refund-approved-shopper',
+    'Order Resolution - Refund Approved - Shopper',
+    'Résolution de commande - Remboursement approuvé - Client',
+    'Order Resolution No.: ##TICKET_NUMBER## - We Approve Refund',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Nous approuvons le remboursement',
+
+    '<p>Dear ##SHOPPER_NAME##,</p>
+     <p>We have reviewed your Order Resolution request and the merchant has approved your refund.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Refund Amount:</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>The refund process will now be initiated.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##SHOPPER_NAME##,</p>
+     <p>Nous avons examiné votre demande de résolution de commande et le marchand a approuvé votre remboursement.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Montant du remboursement :</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>La procédure de remboursement va maintenant être lancée.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-refund-approved-help',
+    'Order Resolution - Refund Approved - Help',
+    'Résolution de commande - Remboursement approuvé - Assistance',
+    'Order Resolution Update No.: ##TICKET_NUMBER##',
+    'Mise à jour de la résolution de commande n° : ##TICKET_NUMBER##',
+
+    '<p>Hello Support Team,</p>
+     <p>The merchant has approved the refund for the following Order Resolution ticket.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Merchant:</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Shopper:</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Action:</strong></td>
+                <td>Refund Approved</td>
+            </tr>
+            <tr>
+                <td><strong>Refund Amount:</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Please assign this ticket to the Accounts team (@acct) for refund processing.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>',
+
+    '<p>Bonjour équipe Support,</p>
+     <p>Le marchand a approuvé le remboursement pour la résolution de commande suivante.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Marchand :</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Client :</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Action :</strong></td>
+                <td>Remboursement approuvé</td>
+            </tr>
+            <tr>
+                <td><strong>Montant du remboursement :</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Veuillez attribuer ce ticket à l''équipe Comptabilité (@acct) pour le traitement du remboursement.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-refund-initiated-merchant',
+    'Order Resolution - Refund Initiated - Merchant',
+    'Résolution de commande - Remboursement lancé - Marchand',
+    'Order Resolution No.: ##TICKET_NUMBER## - Refund initiated',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Remboursement lancé',
+
+    '<p>Dear ##MERCHANT_NAME##,</p>
+     <p>The refund process has been initiated for the following Order Resolution ticket.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Refund Amount:</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>The ticket has been assigned to the Accounts team for refund processing.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##MERCHANT_NAME##,</p>
+     <p>La procédure de remboursement a été lancée pour la résolution de commande suivante.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Montant du remboursement :</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Le ticket a été attribué à l''équipe Comptabilité pour le traitement du remboursement.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-refund-request-acct',
+    'Order Resolution - Refund Request - Accounts',
+    'Résolution de commande - Demande de remboursement - Comptabilité',
+    'Order Resolution No.: ##TICKET_NUMBER## - Refund Request',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Demande de remboursement',
+
+    '<p>Hello Accounts Team (@acct),</p>
+     <p>A refund request has been assigned to you for the following Order Resolution ticket.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Merchant:</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Shopper:</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Refund Amount:</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Please process the refund from the Merchant''s 15-day hold-back sales.</p>
+     <p>Once the refund is completed, please mark the Order Resolution ticket as Done.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>',
+
+    '<p>Bonjour équipe Comptabilité (@acct),</p>
+     <p>Une demande de remboursement vous a été attribuée pour la résolution de commande suivante.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Marchand :</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Client :</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Montant du remboursement :</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Veuillez traiter le remboursement à partir des ventes retenues pendant 15 jours du marchand.</p>
+     <p>Une fois le remboursement effectué, veuillez marquer le ticket de résolution de commande comme Terminé.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-refund-closed-merchant',
+    'Order Resolution - Refund Closed - Merchant',
+    'Résolution de commande - Remboursement clôturé - Marchand',
+    'Order Resolution No.: ##TICKET_NUMBER## - Closed',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Clôturée',
+
+    '<p>Dear ##MERCHANT_NAME##,</p>
+     <p>The following Order Resolution ticket has been closed.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Refund Amount:</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>The Order Resolution process for this request is now closed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##MERCHANT_NAME##,</p>
+     <p>Le ticket de résolution de commande suivant a été clôturé.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Montant du remboursement :</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>La procédure de résolution de commande pour cette demande est maintenant clôturée.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-refund-completed-shopper',
+    'Order Resolution - Refund Completed - Shopper',
+    'Résolution de commande - Remboursement effectué - Client',
+    'Order Resolution No.: ##TICKET_NUMBER## - You Are Being Refunded',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Votre remboursement est en cours',
+
+    '<p>Dear ##SHOPPER_NAME##,</p>
+     <p>Your refund has been processed as part of the Order Resolution process.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Refund Amount:</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>You are being refunded according to the approved Order Resolution.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##SHOPPER_NAME##,</p>
+     <p>Votre remboursement a été traité dans le cadre de la procédure de résolution de commande.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Montant du remboursement :</strong></td>
+                <td>##REFUND_AMOUNT##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Votre remboursement est en cours conformément à la résolution de commande approuvée.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+);";i:1;i:1791194941;}i:12;a:2:{i:0;s:423:"SELECT
+    id,
+    email_code,
+    title,
+    subject,
+    status
+FROM `email_template`
+WHERE `email_code` IN (
+    'order-resolution-refund-approved-shopper',
+    'order-resolution-refund-approved-help',
+    'order-resolution-refund-initiated-merchant',
+    'order-resolution-refund-request-acct',
+    'order-resolution-refund-closed-merchant',
+    'order-resolution-refund-completed-shopper'
+)
+ORDER BY id;";i:1;i:1791195029;}i:13;a:2:{i:0;s:10112:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+
+(
+    'order-resolution-replacement-underway-shopper',
+    'Order Resolution - Replacement Underway - Shopper',
+    'Résolution de commande - Remplacement en cours - Client',
+    'Order Resolution No.: ##TICKET_NUMBER## - Product Replacement Underway',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Remplacement du produit en cours',
+
+    '<p>Dear ##SHOPPER_NAME##,</p>
+     <p>Your product replacement has been approved and is now underway.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Replacement Method:</strong></td>
+                <td>##REPLACEMENT_METHOD##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>The merchant will arrange the replacement using the selected replacement method.</p>
+     <p>You may communicate with the merchant through the Order Resolution ticket where applicable.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##SHOPPER_NAME##,</p>
+     <p>Le remplacement de votre produit a été approuvé et est maintenant en cours.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Mode de remplacement :</strong></td>
+                <td>##REPLACEMENT_METHOD##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Le marchand organisera le remplacement selon le mode de remplacement sélectionné.</p>
+     <p>Vous pouvez communiquer avec le marchand via le ticket de résolution de commande, le cas échéant.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-replacement-completed-help',
+    'Order Resolution - Replacement Completed - Help',
+    'Résolution de commande - Remplacement terminé - Assistance',
+    'Order Resolution Update No.: ##TICKET_NUMBER##',
+    'Mise à jour de la résolution de commande n° : ##TICKET_NUMBER##',
+
+    '<p>Hello Support Team,</p>
+     <p>The merchant has successfully completed the product replacement for the following Order Resolution ticket.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Merchant:</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Shopper:</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Action:</strong></td>
+                <td>Replacement Completed</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Please review the ticket and mark the Order Resolution ticket as Closed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>',
+
+    '<p>Bonjour équipe Support,</p>
+     <p>Le marchand a terminé avec succès le remplacement du produit pour la résolution de commande suivante.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Marchand :</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Client :</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Action :</strong></td>
+                <td>Remplacement terminé</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Veuillez vérifier le ticket et marquer la résolution de commande comme clôturée.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-replacement-closed-merchant',
+    'Order Resolution - Replacement Closed - Merchant',
+    'Résolution de commande - Remplacement clôturé - Marchand',
+    'Order Resolution No.: ##TICKET_NUMBER## - Closed',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Clôturée',
+
+    '<p>Dear ##MERCHANT_NAME##,</p>
+     <p>The following Order Resolution ticket has been closed.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>The product replacement has been completed and the Order Resolution ticket is now closed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##MERCHANT_NAME##,</p>
+     <p>Le ticket de résolution de commande suivant a été clôturé.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Le remplacement du produit a été effectué et le ticket de résolution de commande est maintenant clôturé.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-replacement-completed-shopper',
+    'Order Resolution - Replacement Completed - Shopper',
+    'Résolution de commande - Remplacement terminé - Client',
+    'Order Resolution No.: ##TICKET_NUMBER## - Your Product Replacement Completed',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Le remplacement de votre produit est terminé',
+
+    '<p>Dear ##SHOPPER_NAME##,</p>
+     <p>Your product replacement has been successfully completed.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Your replacement has been completed successfully and the Order Resolution ticket has been closed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##SHOPPER_NAME##,</p>
+     <p>Le remplacement de votre produit a été effectué avec succès.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Votre remplacement a été effectué avec succès et le ticket de résolution de commande a été clôturé.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+);";i:1;i:1791201771;}i:14;a:2:{i:0;s:12192:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+
+(
+    'order-resolution-replacement-ym-delivery-approved-help',
+    'Order Resolution - YM Delivery Replacement Approved - Help',
+    'Résolution de commande - Remplacement avec livraison YM approuvé - Assistance',
+    'Order Resolution Update No.: ##TICKET_NUMBER##',
+    'Mise à jour de la résolution de commande n° : ##TICKET_NUMBER##',
+
+    '<p>Hello Support Team,</p>
+     <p>The merchant has approved the product replacement and selected YM Delivery Service for the replacement.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Merchant:</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Shopper:</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Replacement Method:</strong></td>
+                <td>YM Delivery Service</td>
+            </tr>
+            <tr>
+                <td><strong>Action:</strong></td>
+                <td>Replacement Approved</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Please assign this ticket to the Accounts team (@acct) for further processing.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>',
+
+    '<p>Bonjour équipe Support,</p>
+     <p>Le marchand a approuvé le remplacement du produit et a sélectionné le service de livraison YM pour le remplacement.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Marchand :</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Client :</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Mode de remplacement :</strong></td>
+                <td>Service de livraison YM</td>
+            </tr>
+            <tr>
+                <td><strong>Action :</strong></td>
+                <td>Remplacement approuvé</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Veuillez attribuer ce ticket à l''équipe Comptabilité (@acct) pour la suite du traitement.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-replacement-ym-delivery-request-acct',
+    'Order Resolution - YM Delivery AddOn Request - Accounts',
+    'Résolution de commande - Demande de service complémentaire de livraison YM - Comptabilité',
+    'Order Resolution No.: ##TICKET_NUMBER## - Replacement Delivery AddOn Request',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Demande de service complémentaire de livraison pour remplacement',
+
+    '<p>Hello Accounts Team (@acct),</p>
+     <p>The following Order Resolution ticket has been assigned to you for processing.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Merchant:</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Shopper:</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Delivery Service:</strong></td>
+                <td>YM Delivery Service</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Please request the merchant to purchase the replacement delivery service as an AddOn Service through the normal process.</p>
+     <p>Once the replacement delivery service has been purchased and the product has been successfully replaced, the merchant will mark the replacement as completed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>',
+
+    '<p>Bonjour équipe Comptabilité (@acct),</p>
+     <p>La résolution de commande suivante vous a été attribuée pour traitement.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Marchand :</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Client :</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Service de livraison :</strong></td>
+                <td>Service de livraison YM</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Veuillez demander au marchand d''acheter le service de livraison de remplacement en tant que service complémentaire via le processus normal.</p>
+     <p>Une fois le service de livraison acheté et le produit remplacé avec succès, le marchand indiquera que le remplacement est terminé.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-replacement-ym-delivery-closed-merchant',
+    'Order Resolution - YM Delivery Replacement Closed - Merchant',
+    'Résolution de commande - Remplacement avec livraison YM clôturé - Marchand',
+    'Order Resolution No.: ##TICKET_NUMBER## - Closed',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Clôturée',
+
+    '<p>Dear ##MERCHANT_NAME##,</p>
+     <p>The following Order Resolution ticket has been closed.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Replacement Method:</strong></td>
+                <td>YM Delivery Service</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>The product replacement has been completed and the Order Resolution ticket is now closed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##MERCHANT_NAME##,</p>
+     <p>Le ticket de résolution de commande suivant a été clôturé.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Mode de remplacement :</strong></td>
+                <td>Service de livraison YM</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Le remplacement du produit a été effectué et le ticket de résolution de commande est maintenant clôturé.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-replacement-ym-delivery-completed-shopper',
+    'Order Resolution - YM Delivery Replacement Completed - Shopper',
+    'Résolution de commande - Remplacement avec livraison YM terminé - Client',
+    'Order Resolution No.: ##TICKET_NUMBER## - Your Product Replacement Completed',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Le remplacement de votre produit est terminé',
+
+    '<p>Dear ##SHOPPER_NAME##,</p>
+     <p>Your product replacement has been successfully completed.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Replacement Method:</strong></td>
+                <td>YM Delivery Service</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Your replacement has been completed successfully and the Order Resolution ticket has been closed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##SHOPPER_NAME##,</p>
+     <p>Le remplacement de votre produit a été effectué avec succès.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Mode de remplacement :</strong></td>
+                <td>Service de livraison YM</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Votre remplacement a été effectué avec succès et le ticket de résolution de commande a été clôturé.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+);";i:1;i:1791202807;}i:15;a:2:{i:0;s:8775:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+
+(
+    'order-resolution-replacement-denied-shopper',
+    'Order Resolution - Replacement Denied - Shopper',
+    'Résolution de commande - Remplacement refusé - Client',
+    'Order Resolution No.: ##TICKET_NUMBER## - No Replacement for Product',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Aucun remplacement pour le produit',
+
+    '<p>Dear ##SHOPPER_NAME##,</p>
+     <p>The merchant has reviewed your replacement request and has determined that the merchant is not at fault. Therefore, no replacement will be provided for the product.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Decision:</strong></td>
+                <td>No Replacement for Product</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>The Order Resolution ticket will be reviewed by our Support Team for closure.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##SHOPPER_NAME##,</p>
+     <p>Le marchand a examiné votre demande de remplacement et a déterminé qu''il n''est pas responsable. Par conséquent, aucun remplacement ne sera fourni pour le produit.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Décision :</strong></td>
+                <td>Aucun remplacement pour le produit</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Le ticket de résolution de commande sera examiné par notre équipe Support pour clôture.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-replacement-denied-help',
+    'Order Resolution - Replacement Denied - Help',
+    'Résolution de commande - Remplacement refusé - Assistance',
+    'Order Resolution No.: ##TICKET_NUMBER## - No Replacement for Product',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Aucun remplacement pour le produit',
+
+    '<p>Hello Support Team,</p>
+     <p>The merchant has denied the replacement request and has determined that the merchant is not at fault. No replacement is required.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Merchant:</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Shopper:</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Action:</strong></td>
+                <td>Replacement Denied</td>
+            </tr>
+            <tr>
+                <td><strong>Decision:</strong></td>
+                <td>No Replacement for Product</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Please review the ticket and mark the Order Resolution ticket as Closed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>',
+
+    '<p>Bonjour équipe Support,</p>
+     <p>Le marchand a refusé la demande de remplacement et a déterminé qu''il n''est pas responsable. Aucun remplacement n''est requis.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Marchand :</strong></td>
+                <td>##MERCHANT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Client :</strong></td>
+                <td>##SHOPPER_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Action :</strong></td>
+                <td>Remplacement refusé</td>
+            </tr>
+            <tr>
+                <td><strong>Décision :</strong></td>
+                <td>Aucun remplacement pour le produit</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Veuillez vérifier le ticket et marquer la résolution de commande comme clôturée.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+),
+
+(
+    'order-resolution-replacement-denied-closed-merchant',
+    'Order Resolution - Replacement Denied - Closed - Merchant',
+    'Résolution de commande - Remplacement refusé - Clôturé - Marchand',
+    'Order Resolution No.: ##TICKET_NUMBER## - Closed',
+    'Résolution de commande n° : ##TICKET_NUMBER## - Clôturée',
+
+    '<p>Dear ##MERCHANT_NAME##,</p>
+     <p>The following Order Resolution ticket has been closed after the replacement request was denied.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Order Resolution Number:</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Order Number:</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Product:</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Decision:</strong></td>
+                <td>No Replacement for Product</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>The Order Resolution ticket is now closed.</p>
+     <p><a href="##TICKET_URL##">Access Order Resolution</a></p>
+     <p>Regards,<br>Support Team</p>',
+
+    '<p>Cher ##MERCHANT_NAME##,</p>
+     <p>Le ticket de résolution de commande suivant a été clôturé après le refus de la demande de remplacement.</p>
+     <table cellpadding="10" cellspacing="0" style="width:100%; margin-top:20px;">
+        <tbody>
+            <tr>
+                <td><strong>Numéro de résolution de commande :</strong></td>
+                <td>##TICKET_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Numéro de commande :</strong></td>
+                <td>##ORDER_NUMBER##</td>
+            </tr>
+            <tr>
+                <td><strong>Produit :</strong></td>
+                <td>##PRODUCT_NAME##</td>
+            </tr>
+            <tr>
+                <td><strong>Décision :</strong></td>
+                <td>Aucun remplacement pour le produit</td>
+            </tr>
+        </tbody>
+     </table>
+     <p>Le ticket de résolution de commande est maintenant clôturé.</p>
+     <p><a href="##TICKET_URL##">Accéder à la résolution de commande</a></p>
+     <p>Cordialement,<br>Équipe Support</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    NULL,
+    NULL
+);";i:1;i:1791203421;}i:16;a:2:{i:0;s:1553:"INSERT INTO `email_template`
+(
+    `email_code`,
+    `title`,
+    `title_fr`,
+    `subject`,
+    `subject_fr`,
+    `content`,
+    `content_fr`,
+    `status`,
+    `created_by`,
+    `created_at`,
+    `updated_at`,
+    `ip`
+)
+VALUES
+(
+    'merchant-ticket-button-action',
+    'Merchant Ticket Action Notification',
+    'Notification d''action du marchand sur le ticket',
+    'Order Resolution Update + No.: ##TICKET_NUMBER##',
+    'Mise à jour de la résolution de la commande + N° : ##TICKET_NUMBER##',
+
+    '<p>Hello @help,</p>
+    <p>Merchant <strong>##MERCHANT_NAME##</strong> has clicked on a button in the ticket.</p>
+    <p><strong>Ticket Number:</strong> ##TICKET_NUMBER##</p>
+    <p><strong>Order Number:</strong> ##ORDER_NUMBER##</p>
+    <p><strong>Action:</strong> ##ACTION##</p>
+    <p><strong>Date &amp; Time:</strong> ##ACTION_DATE_TIME##</p>
+    <p>Please review the ticket for further details.</p>
+    <p>Regards,<br>IndiaMags System</p>',
+
+    '<p>Bonjour @help,</p>
+    <p>Le marchand <strong>##MERCHANT_NAME##</strong> a cliqué sur un bouton dans le ticket.</p>
+    <p><strong>Numéro du ticket :</strong> ##TICKET_NUMBER##</p>
+    <p><strong>Numéro de commande :</strong> ##ORDER_NUMBER##</p>
+    <p><strong>Action :</strong> ##ACTION##</p>
+    <p><strong>Date et heure :</strong> ##ACTION_DATE_TIME##</p>
+    <p>Veuillez consulter le ticket pour plus de détails.</p>
+    <p>Cordialement,<br>Système IndiaMags</p>',
+
+    1,
+    1,
+    UNIX_TIMESTAMP(),
+    UNIX_TIMESTAMP(),
+    ''
+);";i:1;i:1791269449;}i:17;a:2:{i:0;s:4182:"-- =======================================================================
+-- Yellow Markets - Order Resolution Dedicated Tables Migration
+-- Date: 2026-10-07
+-- Description: Creates isolated tables for Order Resolution module
+-- Tables: order_resolutions, order_resolution_messages, order_resolution_audit_log
+-- =======================================================================
+
+SET NAMES utf8mb4;
+SET foreign_key_checks = 0;
+
+-- 1. Dedicated Order Resolutions Table
+CREATE TABLE IF NOT EXISTS `order_resolutions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ticket_number` varchar(50) NOT NULL COMMENT 'Sequential or formatted resolution ticket ID',
+  `order_id` int(11) NOT NULL COMMENT 'sales_order.order_id',
+  `order_number` varchar(100) DEFAULT NULL COMMENT 'sales_order.increment_id',
+  `product_id` int(11) DEFAULT NULL COMMENT 'products.id',
+  `order_item_id` int(11) DEFAULT NULL COMMENT 'sales_order_items.item_id',
+  `b2b_order_id` int(11) DEFAULT NULL COMMENT 'b2b_orders.order_id',
+  `merchant_id` int(11) DEFAULT NULL COMMENT 'publisher.id',
+  `customer_id` int(11) NOT NULL COMMENT 'customers.id',
+  `category` enum('Delivery','Refund','Replacement','Others') NOT NULL DEFAULT 'Others',
+  `priority` varchar(50) NOT NULL DEFAULT 'Medium',
+  `status` enum('Open','Processing','Done','Close','ReOpen','Close (Final)') NOT NULL DEFAULT 'Open',
+  `merchant_action` enum('none','refund_approved','refund_denied','replacement_approved','replacement_denied','replacement_completed') NOT NULL DEFAULT 'none',
+  `delivery_option` enum('none','own_delivery','self_pickup','ym_delivery') NOT NULL DEFAULT 'none',
+  `addon_purchase_id` int(11) DEFAULT NULL,
+  `refund_amount` decimal(12,2) DEFAULT '0.00',
+  `refund_deducted_from_holdback` tinyint(1) DEFAULT '0',
+  `resolution_status` enum('none','resolution_requested','resolution_approved','resolution_denied') NOT NULL DEFAULT 'none',
+  `resolution_requested_at` int(11) DEFAULT NULL,
+  `assigned_role` enum('Help','Acct') DEFAULT 'Help',
+  `assigned_to` int(11) DEFAULT NULL COMMENT 'adminusers.id',
+  `subject` varchar(255) DEFAULT NULL,
+  `message` text NOT NULL,
+  `attachment` varchar(255) DEFAULT NULL,
+  `is_active_dispute` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` int(11) NOT NULL,
+  `updated_at` int(11) NOT NULL,
+  `closed_at` int(11) DEFAULT NULL,
+  `closed_by` varchar(50) DEFAULT NULL,
+  `ip` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_ticket_number` (`ticket_number`),
+  KEY `idx_order_id` (`order_id`),
+  KEY `idx_customer_id` (`customer_id`),
+  KEY `idx_merchant_id` (`merchant_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_assigned_role` (`assigned_role`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. Dedicated Order Resolution Messages Table (Conversation)
+CREATE TABLE IF NOT EXISTS `order_resolution_messages` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `resolution_id` int(11) NOT NULL,
+  `ticket_number` varchar(50) NOT NULL,
+  `sender_role` enum('shopper','merchant','help','acct') NOT NULL,
+  `sender_id` int(11) NOT NULL,
+  `sender_name` varchar(255) DEFAULT NULL,
+  `message` text NOT NULL,
+  `attachment` varchar(255) DEFAULT NULL,
+  `created_at` int(11) NOT NULL,
+  `ip` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_msg_res_id` (`resolution_id`),
+  KEY `idx_msg_ticket_num` (`ticket_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Dedicated Order Resolution Audit Log
+CREATE TABLE IF NOT EXISTS `order_resolution_audit_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `resolution_id` int(11) NOT NULL,
+  `ticket_number` varchar(50) NOT NULL,
+  `from_status` varchar(50) NOT NULL,
+  `to_status` varchar(50) NOT NULL,
+  `action` varchar(100) NOT NULL,
+  `actor_role` varchar(50) NOT NULL,
+  `actor_id` int(11) NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_res_id` (`resolution_id`),
+  KEY `idx_audit_ticket_num` (`ticket_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET foreign_key_checks = 1;
+";i:1;i:1791347177;}}}}}}messages|a:0:{}
