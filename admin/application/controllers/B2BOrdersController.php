@@ -18323,9 +18323,6 @@ public function MarkAsFailed()
         $attempt_no = (int)$_POST['attempt_no'];
         $reason     = $_POST['reason_for_attempt_failed'] ?? '';
 
-        // ==========================================================
-        // VALIDATE REASON
-        // ==========================================================
         if (empty($reason)) {
 
             echo json_encode([
@@ -18336,10 +18333,6 @@ public function MarkAsFailed()
             exit;
         }
 
-
-        // ==========================================================
-        // MAP FAILED ATTEMPT STATUS
-        // ==========================================================
         switch ($attempt_no) {
 
             case 1:
@@ -18359,10 +18352,6 @@ public function MarkAsFailed()
                 break;
         }
 
-
-        // ==========================================================
-        // CHECK IF DELIVERY ATTEMPT EXISTS
-        // ==========================================================
         $record = $this->CommonModel->getSingleDataByID(
             'b2b_orders_delivery_details',
             [
@@ -18382,10 +18371,6 @@ public function MarkAsFailed()
             exit;
         }
 
-
-        // ==========================================================
-        // UPDATE DELIVERY ATTEMPT
-        // ==========================================================
         $updated = $this->CommonModel->updateData(
             'b2b_orders_delivery_details',
             [
@@ -18410,17 +18395,8 @@ public function MarkAsFailed()
             exit;
         }
 
-
-        // ==========================================================
-        // ATTEMPT 2 FAILED
-        // ==========================================================
         if ($attempt_no == 2) {
 
-
-            // ======================================================
-            // UPDATE B2B ORDER STATUS
-            // 13 = Collect From Warehouse
-            // ======================================================
             $this->CommonModel->updateData(
                 'b2b_orders',
                 [
@@ -18431,10 +18407,6 @@ public function MarkAsFailed()
                 ]
             );
 
-
-            // ======================================================
-            // GET B2B ORDER
-            // ======================================================
             $b2bOrder = $this->db
                 ->where('order_id', $order_id)
                 ->get('b2b_orders')
@@ -18443,11 +18415,6 @@ public function MarkAsFailed()
 
             if (!empty($b2bOrder)) {
 
-
-                // ==================================================
-                // GET SALES ORDER
-                // webshop_order_id points to sales_order.order_id
-                // ==================================================
                 $salesOrder = null;
 
                 if (!empty($b2bOrder->webshop_order_id)) {
@@ -18458,37 +18425,22 @@ public function MarkAsFailed()
                         ->row();
                 }
 
-
-                // ==================================================
-                // CUSTOMER NAME
-                // ==================================================
                 $customerName = trim(
                     ($b2bOrder->customer_firstname ?? '') . ' ' .
                     ($b2bOrder->customer_lastname ?? '')
                 );
 
-
-                // ==================================================
-                // SEND ATTEMPT 2 FAILED EMAIL
-                // ==================================================
                 if (
                     !empty($salesOrder) &&
                     !empty($salesOrder->customer_email)
                 ) {
 
-                    /*
-                     * Email template variables
-                     */
                     $TempVars = [
                         '##CUSTOMERNAME##',
                         '##ORDERNO##',
                         '##REASON##'
                     ];
 
-
-                    /*
-                     * Use B2B increment_id for order number
-                     */
                     $DynamicVars = [
                         $customerName,
                         $b2bOrder->increment_id,
@@ -18506,65 +18458,48 @@ public function MarkAsFailed()
                 }
 
 
-                // ==================================================
-                // ADD SHOPPER NOTIFICATION
-                // ==================================================
-                if (!empty($b2bOrder->customer_id)) {
+                /// ==================================================
+				// ADD SHOPPER NOTIFICATION
+				// ==================================================
+				if (!empty($salesOrder) && !empty($salesOrder->customer_id)) {
 
+					
+					$notificationTitle = 'Order Failed';
 
-                    /*
-                     * Notification title
-                     */
-                    $notificationTitle = 'Order Failed';
+					
+					$notificationMessage =
+						'Your order no. ' .
+						$b2bOrder->increment_id .
+						' could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.';
 
+					
+					$notificationData = json_encode([
+						'order_id'         => $b2bOrder->order_id,
+						'increment_id'     => $b2bOrder->increment_id,
+						'order_barcode'    => $b2bOrder->order_barcode,
+						'webshop_order_id' => $b2bOrder->webshop_order_id,
+						'failure_reason'   => $reason
+					]);
 
-                    /*
-                     * Use B2B increment_id in notification
-                     */
-                    $notificationMessage =
-                        'Your order no. (' .
-                        $b2bOrder->increment_id .
-                        ') could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.';
-
-
-                    /*
-                     * Notification data
-                     */
-                    $notificationData = json_encode([
-                        'order_id'          => $b2bOrder->order_id,
-                        'increment_id'      => $b2bOrder->increment_id,
-                        'order_barcode'     => $b2bOrder->order_barcode,
-                        'webshop_order_id'  => $b2bOrder->webshop_order_id,
-                        'failure_reason'    => $reason
-                    ]);
-
-
-                    /*
-                     * Insert shopper notification
-                     */
-                    $this->db->insert(
-                        'notifications',
-                        [
-                            'type'           => 'order',
-                            'subtype'        => 'delivery_failed',
-                            'recipient_type' => 'shopper',
-                            'recipient_id'   => $b2bOrder->customer_id,
-                            'title'          => $notificationTitle,
-                            'message'        => $notificationMessage,
-                            'data'           => $notificationData,
-                            'is_read'        => 0,
-                            'created_at'     => date('Y-m-d H:i:s'),
-                            'updated_at'     => date('Y-m-d H:i:s')
-                        ]
-                    );
-                }
+					
+					$this->db->insert(
+						'notifications',
+						[
+							'type'           => 'order',
+							'subtype'        => 'delivery_failed',
+							'recipient_type' => 'shopper',
+							'recipient_id'   => $salesOrder->customer_id,
+							'title'          => $notificationTitle,
+							'message'        => $notificationMessage,
+							'data'           => $notificationData,
+							'is_read'        => 0,
+							'created_at'     => date('Y-m-d H:i:s'),
+							'updated_at'     => date('Y-m-d H:i:s')
+						]
+					);
+				}
             }
         }
-
-
-        // ==========================================================
-        // SUCCESS RESPONSE
-        // ==========================================================
         echo json_encode([
             'status'  => 200,
             'message' => 'Delivery attempt marked as failed.'
@@ -18574,10 +18509,6 @@ public function MarkAsFailed()
 
 
     } else {
-
-        // ==========================================================
-        // INVALID DATA
-        // ==========================================================
         echo json_encode([
             'status'  => 500,
             'message' => 'Invalid data.'
