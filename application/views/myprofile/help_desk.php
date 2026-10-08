@@ -98,18 +98,6 @@ th.st, td.st {
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-md-3 col-sm-6">
-                                            <div class="form-group">
-                                                <label><?php echo lang('priority'); ?></label>
-                                                <select id="priority" name="priority" class="form-control select2" style="width: 100%;">
-                                                    <option value="" selected><?php echo !empty(lang('select_priority')) ? lang('select_priority') : 'Select Priority'; ?></option>
-                                                    <option value="Low"><?php echo !empty(lang('low')) ? lang('low') : 'Low'; ?></option>
-                                                    <option value="Medium"><?php echo !empty(lang('medium')) ? lang('medium') : 'Medium'; ?></option>
-                                                    <option value="High"><?php echo !empty(lang('high')) ? lang('high') : 'High'; ?></option>
-                                                    <option value="Critical"><?php echo !empty(lang('critical')) ? lang('critical') : 'Critical'; ?></option>
-                                                </select>
-                                            </div>
-                                        </div>
                                         <div class="col-md-12">
                                             <div class="form-group">
                                                 <label><?php echo lang('message'); ?></label>
