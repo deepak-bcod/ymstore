@@ -1,8 +1,13 @@
 <style>
-    /* Forces all table headers and data cells to stay on a single line */
-    .table-responsive table th, 
-    .table-responsive table td {
-        white-space: nowrap !important;
+    /* Limits the message cell to a maximum of 2 lines with an ellipsis */
+    .message-cell {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal !important;
+        max-width: 450px; /* Adjust width as needed */
     }
 </style>
 
@@ -25,8 +30,8 @@
                 <tr style="background: #ffeb3b; color: #000;">
                     <th style="padding: 12px; border: 1px solid #ddd;">Title</th>
                     <th style="padding: 12px; border: 1px solid #ddd;">Message</th>
-                    <th style="padding: 12px; border: 1px solid #ddd;">Date</th>
-                    <th style="padding: 12px; border: 1px solid #ddd;">Action</th>
+                    <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;">Date</th>
+                    <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;">Action</th>
                 </tr>
             </thead>
 
@@ -39,19 +44,20 @@
                             ? 'background-color: #fffdf0; font-weight: bold;'
                             : ''; ?>">
 
-                            <td style="padding: 12px; border: 1px solid #ddd;">
+                            <td style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;">
                                 <?= htmlspecialchars($row->title); ?>
                             </td>
 
-                            <td style="padding: 12px; border: 1px solid #ddd;">
+                            <td style="padding: 12px; border: 1px solid #ddd;" class="message-cell">
                                 <?= htmlspecialchars($row->message); ?>
                             </td>
 
-                            <td style="padding: 12px; border: 1px solid #ddd;">
-                                <?= date('d-m-Y H:i:s', strtotime($row->created_at)); ?>
+                            <td style="padding: 12px; border: 1px solid #ddd; white-space: nowrap; text-align: center;">
+                                <?= date('d-m-Y', strtotime($row->created_at)); ?><br>
+                                <span style="font-size: 12px; color: #555;"><?= date('H:i:s', strtotime($row->created_at)); ?></span>
                             </td>
 
-                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
+                            <td style="padding: 12px; border: 1px solid #ddd; text-align: center; white-space: nowrap;">
 
                                 <?php if ($row->is_read == 0): ?>
 
