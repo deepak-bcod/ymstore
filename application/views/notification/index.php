@@ -40,7 +40,7 @@
                             </td>
 
                             <td style="padding: 12px; border: 1px solid #ddd;">
-                                <?= date('d-m-Y', strtotime($row->created_at)); ?>
+                               <?= date('d-m-Y h:i A', strtotime($row->created_at)); ?>
                             </td>
 
                             <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
