@@ -5159,7 +5159,7 @@ public function replacement_update_item_status()
         ? trim((string) $replacement->product_name)
         : 'your product';
 
-    $orderMessage = 'YM Order No: ' . $ymOrderNumber;
+    $orderMessage = 'Order No ' . $ymOrderNumber;
 
     // STEP 9: Prepare notification messages.
     $notificationMap = [
@@ -5173,7 +5173,7 @@ public function replacement_update_item_status()
         2 => [
             'subtype' => 'ym_replacement_approved',
             'title'   => 'YM Replacement Approved',
-            'message' => 'Your YM replacement request for '
+            'message' => 'Your replacement request for '
                 . $orderMessage . ' (' . $productName
                 . ') has been approved.'
         ],
