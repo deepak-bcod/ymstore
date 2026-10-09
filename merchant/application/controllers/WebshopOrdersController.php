@@ -4963,6 +4963,7 @@ public function replacement_update_item_status()
     $status              = $this->input->post('status');
     $replacement_type    = $this->input->post('replacement_type');
 
+    // STEP 1: Validate input.
     if ($replacement_item_id <= 0 || $status === null || $status === '') {
         echo json_encode([
             'success' => false,
@@ -4973,7 +4974,7 @@ public function replacement_update_item_status()
 
     $status = (int) $status;
 
-    // STEP 1: Get replacement item details.
+    // STEP 2: Fetch replacement item details.
     $itemRow = $this->db
         ->select('
             sori.replacement_item_id,
@@ -4984,11 +4985,6 @@ public function replacement_update_item_status()
         ')
         ->from('sales_order_replacement_items sori')
         ->join(
-            'sales_order_replacement sor',
-            'sor.replacement_order_id = sori.replacement_order_id',
-            'left'
-        )
-        ->join(
             'b2b_order_items boi',
             'boi.item_id = sori.order_item_id',
             'left'
@@ -4998,7 +4994,10 @@ public function replacement_update_item_status()
             'bo.order_id = boi.order_id',
             'left'
         )
-        ->where('sori.replacement_item_id', $replacement_item_id)
+        ->where(
+            'sori.replacement_item_id',
+            $replacement_item_id
+        )
         ->limit(1)
         ->get()
         ->row();
@@ -5013,7 +5012,7 @@ public function replacement_update_item_status()
 
     $currentStatus = (int) $itemRow->item_status;
 
-    // STEP 2: Validate status transitions.
+    // STEP 3: Validate status transitions.
     if ($currentStatus === 2) {
         echo json_encode([
             'success' => false,
@@ -5046,7 +5045,7 @@ public function replacement_update_item_status()
         return;
     }
 
-    // STEP 3: Validate merchant.
+    // STEP 4: Validate merchant.
     $loginId = (int) $this->session->userdata('LoginID');
 
     if (
@@ -5060,7 +5059,7 @@ public function replacement_update_item_status()
         return;
     }
 
-    // STEP 4: Set replacement type.
+    // STEP 5: Determine replacement type.
     if (empty($replacement_type)) {
         if (in_array($status, [1, 5], true)) {
             $replacement_type = 'own';
@@ -5069,7 +5068,7 @@ public function replacement_update_item_status()
         }
     }
 
-    // STEP 5: Update status.
+    // STEP 6: Update replacement status.
     $updated = $this->WebshopOrdersModel
         ->replacement_update_item_status(
             $replacement_item_id,
@@ -5085,13 +5084,12 @@ public function replacement_update_item_status()
         return;
     }
 
-    // STEP 6: Fetch the original ES order, YM order and shopper.
+    // STEP 7: Fetch order, shopper and product details.
     $replacement = $this->db
         ->select('
             sori.replacement_item_id,
             sori.order_item_id,
-            sor.replacement_order_id,
-            sor.order_id AS replacement_b2b_order_id,
+            sori.replacement_order_id,
             sor.replacement_order_increment_id,
             bo.order_id AS b2b_order_id,
             bo.webshop_order_id,
@@ -5127,7 +5125,10 @@ public function replacement_update_item_status()
             'p.id = boi.product_id',
             'left'
         )
-        ->where('sori.replacement_item_id', $replacement_item_id)
+        ->where(
+            'sori.replacement_item_id',
+            $replacement_item_id
+        )
         ->limit(1)
         ->get()
         ->row();
@@ -5135,7 +5136,8 @@ public function replacement_update_item_status()
     if (!$replacement) {
         log_message(
             'error',
-            'Replacement details not found. Item ID: ' . $replacement_item_id
+            'Replacement details not found. Item ID: '
+            . $replacement_item_id
         );
 
         echo json_encode([
@@ -5147,32 +5149,19 @@ public function replacement_update_item_status()
         return;
     }
 
-    // STEP 7: Format both order numbers.
-    $esOrderNumber = !empty($replacement->es_increment_id)
-        ? trim((string) $replacement->es_increment_id)
-        : '';
-
-    if (
-        $esOrderNumber !== '' &&
-        strpos($esOrderNumber, 'ES-') !== 0
-    ) {
-        $esOrderNumber = 'ES-' . $esOrderNumber;
-    }
-
+    // STEP 8: Prepare YM order number ONLY.
+    // The ES order number is deliberately not included in the message.
     $ymOrderNumber = !empty($replacement->ym_order_number)
         ? trim((string) $replacement->ym_order_number)
-        : '';
+        : 'N/A';
 
     $productName = !empty($replacement->product_name)
-        ? $replacement->product_name
+        ? trim((string) $replacement->product_name)
         : 'your product';
 
-    $orderMessage = 'ES Order No: '
-        . ($esOrderNumber !== '' ? $esOrderNumber : 'N/A')
-        . ' / YM Order No: '
-        . ($ymOrderNumber !== '' ? $ymOrderNumber : 'N/A');
+    $orderMessage = 'YM Order No: ' . $ymOrderNumber;
 
-    // STEP 8: Notification messages.
+    // STEP 9: Prepare notification messages.
     $notificationMap = [
         1 => [
             'subtype' => 'own_replacement_approved',
@@ -5207,18 +5196,21 @@ public function replacement_update_item_status()
     $adminNotificationInserted   = false;
     $shopperNotificationInserted = false;
 
+    // STEP 10: Insert notifications.
     if (isset($notificationMap[$status])) {
         $notice = $notificationMap[$status];
 
+        // Do not include the ES order number in notification data.
         $notificationData = [
             'replacement_item_id'  => $replacement_item_id,
             'replacement_order_id' => $replacement->replacement_order_id,
-            'es_order_number'      => $esOrderNumber,
             'ym_order_number'      => $ymOrderNumber,
             'status'               => $status
         ];
 
-        // STEP 9: Insert admin notification.
+        $now = date('Y-m-d H:i:s');
+
+        // Admin notification.
         $adminData = [
             'type'           => 'replacement',
             'subtype'        => $notice['subtype'],
@@ -5228,8 +5220,8 @@ public function replacement_update_item_status()
             'message'        => $notice['message'],
             'data'           => json_encode($notificationData),
             'is_read'        => 0,
-            'created_at'     => date('Y-m-d H:i:s'),
-            'updated_at'     => date('Y-m-d H:i:s')
+            'created_at'     => $now,
+            'updated_at'     => $now
         ];
 
         $adminNotificationInserted = $this->db->insert(
@@ -5245,7 +5237,7 @@ public function replacement_update_item_status()
             );
         }
 
-        // STEP 10: Insert shopper notification.
+        // Shopper notification.
         $customerId = (int) $replacement->customer_id;
 
         if ($customerId > 0) {
@@ -5258,8 +5250,8 @@ public function replacement_update_item_status()
                 'message'        => $notice['message'],
                 'data'           => json_encode($notificationData),
                 'is_read'        => 0,
-                'created_at'     => date('Y-m-d H:i:s'),
-                'updated_at'     => date('Y-m-d H:i:s')
+                'created_at'     => $now,
+                'updated_at'     => $now
             ];
 
             $shopperNotificationInserted = $this->db->insert(
@@ -5271,7 +5263,8 @@ public function replacement_update_item_status()
                 log_message(
                     'error',
                     'Shopper replacement notification failed. Customer ID: '
-                    . $customerId . '. DB error: '
+                    . $customerId
+                    . '. DB error: '
                     . json_encode($this->db->error())
                 );
             }
@@ -5279,25 +5272,24 @@ public function replacement_update_item_status()
             log_message(
                 'error',
                 'Shopper notification skipped: customer_id is empty. '
-                . 'Replacement item ID: ' . $replacement_item_id
+                . 'Replacement item ID: '
+                . $replacement_item_id
             );
         }
     }
 
-    // STEP 11: Return result to AJAX.
+    // STEP 11: Return AJAX response.
     echo json_encode([
         'success'                       => true,
         'message'                       => 'Replacement status updated.',
         'replacement_item_id'           => $replacement_item_id,
         'status'                        => $status,
         'customer_id'                   => (int) $replacement->customer_id,
-        'es_order_number'               => $esOrderNumber,
         'ym_order_number'               => $ymOrderNumber,
         'admin_notification_inserted'   => (bool) $adminNotificationInserted,
         'shopper_notification_inserted' => (bool) $shopperNotificationInserted
     ]);
 }
-
 
 
 
