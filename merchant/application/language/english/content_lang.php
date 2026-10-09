@@ -1118,17 +1118,3 @@ $lang['order_resolution'] = 'Order Resolution';
 $lang['order_resolutions'] = 'Order Resolutions';
 $lang['resolution_request'] = 'Resolution Request';
 
-
-$lang['replacement_approved_en'] = 'Your replacement request for';
-$lang['replacement_approved_end_en'] = 'has been approved.';
-
-// YM Replacement Approved
-$lang['replacement_approved_ym_en'] = 'Your replacement request for';
-
-// Replacement Rejected
-$lang['replacement_rejected_en'] = 'Your replacement request for';
-$lang['replacement_rejected_end_en'] = 'was rejected.';
-
-// Replacement Completed
-$lang['replacement_completed_en'] = 'Your replacement for';
-$lang['replacement_completed_end_en'] = 'has been completed.';
