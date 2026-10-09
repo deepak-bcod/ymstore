@@ -5483,7 +5483,7 @@ public function return_update_status()
         'recipient_id'   => 1,
         'title'          => $title,
         'message'        => 'Return request for (' . $orderNumber .
-                            ') - (' . $productName . ')' .
+                            ') ' .
                             ($isApproved
                                 ? ' was approved.'
                                 : ' was rejected.'),
