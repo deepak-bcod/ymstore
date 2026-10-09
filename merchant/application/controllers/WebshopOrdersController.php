@@ -5332,11 +5332,13 @@ public function replacement_update_item_status()
 
 
 
+
 public function return_update_status()
 {
     $id     = (int) $this->input->post('id');
     $status = $this->input->post('status');
 
+    // Validate request
     if ($id <= 0 || $status === null || $status === '') {
         echo json_encode([
             'success' => false,
@@ -5356,7 +5358,7 @@ public function return_update_status()
         return;
     }
 
-    // Update the return status
+    // Update return status
     $updated = $this->WebshopOrdersModel->return_update_status(
         $id,
         $status
@@ -5371,53 +5373,38 @@ public function return_update_status()
     }
 
     /*
-     * IMPORTANT:
-     * sales_order_return.order_id references b2b_orders.order_id.
-     * b2b_orders.webshop_order_id references sales_order.order_id.
+     * 1. GET ORDER AND SHOPPER DETAILS
+     *
+     * sales_order_return.order_id = b2b_orders.order_id
+     * b2b_orders.webshop_order_id = sales_order.order_id
      */
     $order = $this->db
-    ->select('
-        sor.return_order_id,
-        sor.order_id AS b2b_order_id,
-        bo.webshop_order_id,
-        bo.increment_id,
-        so.customer_id,
-        p.name AS product_name
-    ')
-    ->from('sales_order_return sor')
-    ->join(
-        'b2b_orders bo',
-        'bo.order_id = sor.order_id',
-        'left'
-    )
-    ->join(
-        'sales_order so',
-        'so.order_id = bo.webshop_order_id',
-        'left'
-    )
-    ->join(
-        'sales_order_return_items sri',
-        'sri.return_order_id = sor.return_order_id',
-        'left'
-    )
-    ->join(
-        'b2b_order_items boi',
-        'boi.item_id = sri.order_item_id',
-        'left'
-    )
-    ->join(
-        'products p',
-        'p.product_id = boi.product_id',
-        'left'
-    )
-    ->where('sor.return_order_id', $id)
-    ->get()
-    ->row();
+        ->select('
+            sor.return_order_id,
+            sor.order_id AS b2b_order_id,
+            bo.webshop_order_id,
+            bo.increment_id,
+            so.customer_id
+        ')
+        ->from('sales_order_return sor')
+        ->join(
+            'b2b_orders bo',
+            'bo.order_id = sor.order_id',
+            'left'
+        )
+        ->join(
+            'sales_order so',
+            'so.order_id = bo.webshop_order_id',
+            'left'
+        )
+        ->where('sor.return_order_id', $id)
+        ->get()
+        ->row();
 
     if (!$order) {
         log_message(
             'error',
-            'Return notification failed: no order found for return ID ' . $id
+            'Return notification: order not found for return ID ' . $id
         );
 
         echo json_encode([
@@ -5427,10 +5414,38 @@ public function return_update_status()
         return;
     }
 
+    // Order number
     $orderNumber = !empty($order->increment_id)
         ? $order->increment_id
         : (string) $order->b2b_order_id;
 
+    /*
+     * 2. GET PRODUCT NAME
+     *
+     * products primary key is "id", not "product_id".
+     */
+    $productName = 'Product';
+
+    $product = $this->db
+        ->select('p.name AS product_name')
+        ->from('b2b_order_items boi')
+        ->join(
+            'products p',
+            'p.id = boi.product_id',
+            'left'
+        )
+        ->where('boi.order_id', $order->b2b_order_id)
+        ->limit(1)
+        ->get()
+        ->row();
+
+    if ($product && !empty($product->product_name)) {
+        $productName = $product->product_name;
+    }
+
+    /*
+     * 3. PREPARE NOTIFICATION MESSAGE
+     */
     $isApproved = ($status === 1);
 
     $title = $isApproved
@@ -5441,24 +5456,25 @@ public function return_update_status()
         ? 'return_approved'
         : 'return_rejected';
 
-   $productName = !empty($order->product_name)
-    ? $order->product_name
-    : 'Product';
-
-$message = $isApproved
-    ? 'Your return for (' . $orderNumber . ') - (' . $productName . ') is accepted.'
-    : 'Your return for (' . $orderNumber . ') - (' . $productName . ') was rejected.';
+    $message = $isApproved
+        ? 'Your return for (' . $orderNumber . ') - (' .
+            $productName . ') is accepted.'
+        : 'Your return for (' . $orderNumber . ') - (' .
+            $productName . ') was rejected.';
 
     $notificationData = [
-        'return_id'     => $id,
-        'order_id'      => $order->webshop_order_id,
-        'b2b_order_id'  => $order->b2b_order_id,
-        'increment_id'  => $orderNumber,
-        'status'        => $status
+        'return_id'    => $id,
+        'order_id'     => $order->webshop_order_id,
+        'b2b_order_id' => $order->b2b_order_id,
+        'increment_id' => $orderNumber,
+        'product_name' => $productName,
+        'status'       => $status
     ];
 
+    $now = date('Y-m-d H:i:s');
+
     /*
-     * 1. ADMIN NOTIFICATION
+     * 4. ADMIN NOTIFICATION
      */
     $adminNotification = [
         'type'           => 'return',
@@ -5466,20 +5482,35 @@ $message = $isApproved
         'recipient_type' => 'admin',
         'recipient_id'   => 1,
         'title'          => $title,
-        'message'        => 'Return request for order ' . $orderNumber .
-                            ($isApproved ? ' was approved.' : ' was rejected.'),
+        'message'        => 'Return request for (' . $orderNumber .
+                            ') - (' . $productName . ')' .
+                            ($isApproved
+                                ? ' was approved.'
+                                : ' was rejected.'),
         'data'           => json_encode($notificationData),
         'is_read'        => 0,
-        'created_at'     => date('Y-m-d H:i:s'),
-        'updated_at'     => date('Y-m-d H:i:s')
+        'created_at'     => $now,
+        'updated_at'     => $now
     ];
 
-    $this->db->insert('notifications', $adminNotification);
+    $adminInserted = $this->db->insert(
+        'notifications',
+        $adminNotification
+    );
+
+    if (!$adminInserted) {
+        log_message(
+            'error',
+            'Admin return notification failed for return ID ' . $id .
+            ': ' . json_encode($this->db->error())
+        );
+    }
 
     /*
-     * 2. SHOPPER NOTIFICATION
+     * 5. SHOPPER NOTIFICATION
      */
     $customerId = (int) $order->customer_id;
+    $shopperInserted = false;
 
     if ($customerId > 0) {
         $shopperNotification = [
@@ -5491,32 +5522,39 @@ $message = $isApproved
             'message'        => $message,
             'data'           => json_encode($notificationData),
             'is_read'        => 0,
-            'created_at'     => date('Y-m-d H:i:s'),
-            'updated_at'     => date('Y-m-d H:i:s')
+            'created_at'     => $now,
+            'updated_at'     => $now
         ];
 
-        $this->db->insert('notifications', $shopperNotification);
+        $shopperInserted = $this->db->insert(
+            'notifications',
+            $shopperNotification
+        );
 
-        if ($this->db->affected_rows() <= 0) {
+        if (!$shopperInserted) {
             log_message(
                 'error',
-                'Shopper return notification insert failed. Return ID: ' .
-                $id . ', Customer ID: ' . $customerId
+                'Shopper return notification failed. Return ID: ' .
+                $id . ', Customer ID: ' . $customerId .
+                ', DB error: ' . json_encode($this->db->error())
             );
         }
     } else {
         log_message(
             'error',
-            'Shopper ID missing for return ID ' . $id .
-            '. Check sales_order and b2b_orders joins.'
+            'Shopper customer ID missing for return ID ' . $id
         );
     }
 
     echo json_encode([
         'success' => true,
-        'message' => 'Return status updated.'
+        'message' => 'Return status updated.',
+        'admin_notification' => (bool) $adminInserted,
+        'shopper_notification' => (bool) $shopperInserted
     ]);
 }
+
+
 
 
 
