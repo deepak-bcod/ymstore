@@ -1122,7 +1122,9 @@ $lang['resolution_request'] = 'Resolution Request';
 $lang['replacement_approved_en'] = 'Your replacement request for';
 $lang['replacement_approved_end_en'] = 'has been approved.';
 $lang['replacement_approved_ym_en'] = 'Your replacement request for';
+
 $lang['replacement_rejected_en'] = 'Your replacement request for';
 $lang['replacement_rejected_end_en'] = 'was rejected.';
+
 $lang['replacement_completed_en'] = 'Your replacement for';
 $lang['replacement_completed_end_en'] = 'has been completed.';
