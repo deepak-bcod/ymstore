@@ -4974,7 +4974,7 @@ public function replacement_update_item_status()
 
     $status = (int) $status;
 
-    // STEP 2: Fetch replacement item details.
+    // STEP 2: Fetch replacement item and merchant details.
     $itemRow = $this->db
         ->select('
             sori.replacement_item_id,
@@ -4994,10 +4994,7 @@ public function replacement_update_item_status()
             'bo.order_id = boi.order_id',
             'left'
         )
-        ->where(
-            'sori.replacement_item_id',
-            $replacement_item_id
-        )
+        ->where('sori.replacement_item_id', $replacement_item_id)
         ->limit(1)
         ->get()
         ->row();
@@ -5125,10 +5122,7 @@ public function replacement_update_item_status()
             'p.id = boi.product_id',
             'left'
         )
-        ->where(
-            'sori.replacement_item_id',
-            $replacement_item_id
-        )
+        ->where('sori.replacement_item_id', $replacement_item_id)
         ->limit(1)
         ->get()
         ->row();
@@ -5149,20 +5143,20 @@ public function replacement_update_item_status()
         return;
     }
 
-    // STEP 8: Prepare YM order number ONLY.
-    // The ES order number is deliberately not included in the message.
-    $ymOrderNumber = !empty($replacement->ym_order_number)
+    // STEP 8: Prepare order number and product name.
+    $orderNumber = !empty($replacement->ym_order_number)
         ? trim((string) $replacement->ym_order_number)
         : 'N/A';
+
+    // Show only the order number, without "YM Order No:".
+    $orderMessage = 'Order No ' . $orderNumber;
 
     $productName = !empty($replacement->product_name)
         ? trim((string) $replacement->product_name)
         : 'your product';
 
-    $orderMessage = 'Order No ' . $ymOrderNumber;
-
-    // STEP 9: Prepare notification messages.
-    $notificationMap = [
+    // STEP 9: English-only messages for admin.
+    $adminNotificationMap = [
         1 => [
             'subtype' => 'own_replacement_approved',
             'title'   => 'Replacement Approved',
@@ -5193,31 +5187,82 @@ public function replacement_update_item_status()
         ]
     ];
 
+    // STEP 10: English AND French messages for shoppers.
+    $shopperNotificationMap = [
+        1 => [
+            'subtype' => 'own_replacement_approved',
+            'title'   => 'Replacement Approved / Remplacement approuvé',
+            'message' =>
+                'EN: Your replacement request for '
+                . $orderMessage . ' (' . $productName
+                . ') has been approved.'
+                . "\n\n"
+                . 'FR: Votre demande de remplacement pour '
+                . $orderMessage . ' (' . $productName
+                . ') a été approuvée.'
+        ],
+        2 => [
+            'subtype' => 'ym_replacement_approved',
+            'title'   => 'Replacement Approved / Remplacement approuvé',
+            'message' =>
+                'EN: Your replacement request for '
+                . $orderMessage . ' (' . $productName
+                . ') has been approved.'
+                . "\n\n"
+                . 'FR: Votre demande de remplacement YM pour '
+                . $orderMessage . ' (' . $productName
+                . ') a été approuvée.'
+        ],
+        4 => [
+            'subtype' => 'rejected',
+            'title'   => 'Replacement Rejected / Remplacement refusé',
+            'message' =>
+                'EN: Your replacement request for '
+                . $orderMessage . ' (' . $productName
+                . ') was rejected.'
+                . "\n\n"
+                . 'FR: Votre demande de remplacement pour '
+                . $orderMessage . ' (' . $productName
+                . ') a été rejetée.'
+        ],
+        5 => [
+            'subtype' => 'own_replacement_completed',
+            'title'   => 'Replacement Completed / Remplacement effectué',
+            'message' =>
+                'EN: Your replacement for '
+                . $orderMessage . ' (' . $productName
+                . ') has been completed.'
+                . "\n\n"
+                . 'FR: Votre remplacement pour '
+                . $orderMessage . ' (' . $productName
+                . ') a été effectué.'
+        ]
+    ];
+
     $adminNotificationInserted   = false;
     $shopperNotificationInserted = false;
 
-    // STEP 10: Insert notifications.
-    if (isset($notificationMap[$status])) {
-        $notice = $notificationMap[$status];
+    // STEP 11: Prepare notification data.
+    $notificationData = [
+        'replacement_item_id'  => $replacement_item_id,
+        'replacement_order_id' => $replacement->replacement_order_id,
+        'ym_order_number'      => $orderNumber,
+        'status'               => $status
+    ];
 
-        // Do not include the ES order number in notification data.
-        $notificationData = [
-            'replacement_item_id'  => $replacement_item_id,
-            'replacement_order_id' => $replacement->replacement_order_id,
-            'ym_order_number'      => $ymOrderNumber,
-            'status'               => $status
-        ];
+    $now = date('Y-m-d H:i:s');
 
-        $now = date('Y-m-d H:i:s');
+    // STEP 12: Insert admin notification in English only.
+    if (isset($adminNotificationMap[$status])) {
+        $adminNotice = $adminNotificationMap[$status];
 
-        // Admin notification.
         $adminData = [
             'type'           => 'replacement',
-            'subtype'        => $notice['subtype'],
+            'subtype'        => $adminNotice['subtype'],
             'recipient_type' => 'admin',
             'recipient_id'   => 1,
-            'title'          => $notice['title'],
-            'message'        => $notice['message'],
+            'title'          => $adminNotice['title'],
+            'message'        => $adminNotice['message'],
             'data'           => json_encode($notificationData),
             'is_read'        => 0,
             'created_at'     => $now,
@@ -5236,18 +5281,21 @@ public function replacement_update_item_status()
                 . json_encode($this->db->error())
             );
         }
+    }
 
-        // Shopper notification.
+    // STEP 13: Insert shopper notification in both languages.
+    if (isset($shopperNotificationMap[$status])) {
+        $shopperNotice = $shopperNotificationMap[$status];
         $customerId = (int) $replacement->customer_id;
 
         if ($customerId > 0) {
             $shopperData = [
                 'type'           => 'replacement',
-                'subtype'        => $notice['subtype'],
+                'subtype'        => $shopperNotice['subtype'],
                 'recipient_type' => 'shopper',
                 'recipient_id'   => $customerId,
-                'title'          => $notice['title'],
-                'message'        => $notice['message'],
+                'title'          => $shopperNotice['title'],
+                'message'        => $shopperNotice['message'],
                 'data'           => json_encode($notificationData),
                 'is_read'        => 0,
                 'created_at'     => $now,
@@ -5263,8 +5311,7 @@ public function replacement_update_item_status()
                 log_message(
                     'error',
                     'Shopper replacement notification failed. Customer ID: '
-                    . $customerId
-                    . '. DB error: '
+                    . $customerId . '. DB error: '
                     . json_encode($this->db->error())
                 );
             }
@@ -5272,20 +5319,19 @@ public function replacement_update_item_status()
             log_message(
                 'error',
                 'Shopper notification skipped: customer_id is empty. '
-                . 'Replacement item ID: '
-                . $replacement_item_id
+                . 'Replacement item ID: ' . $replacement_item_id
             );
         }
     }
 
-    // STEP 11: Return AJAX response.
+    // STEP 14: Return AJAX response.
     echo json_encode([
         'success'                       => true,
         'message'                       => 'Replacement status updated.',
         'replacement_item_id'           => $replacement_item_id,
         'status'                        => $status,
         'customer_id'                   => (int) $replacement->customer_id,
-        'ym_order_number'               => $ymOrderNumber,
+        'order_number'                  => $orderNumber,
         'admin_notification_inserted'   => (bool) $adminNotificationInserted,
         'shopper_notification_inserted' => (bool) $shopperNotificationInserted
     ]);
