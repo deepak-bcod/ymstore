@@ -5376,27 +5376,43 @@ public function return_update_status()
      * b2b_orders.webshop_order_id references sales_order.order_id.
      */
     $order = $this->db
-        ->select('
-            sor.return_order_id,
-            sor.order_id AS b2b_order_id,
-            bo.webshop_order_id,
-            bo.increment_id,
-            so.customer_id
-        ')
-        ->from('sales_order_return sor')
-        ->join(
-            'b2b_orders bo',
-            'bo.order_id = sor.order_id',
-            'left'
-        )
-        ->join(
-            'sales_order so',
-            'so.order_id = bo.webshop_order_id',
-            'left'
-        )
-        ->where('sor.return_order_id', $id)
-        ->get()
-        ->row();
+    ->select('
+        sor.return_order_id,
+        sor.order_id AS b2b_order_id,
+        bo.webshop_order_id,
+        bo.increment_id,
+        so.customer_id,
+        p.name AS product_name
+    ')
+    ->from('sales_order_return sor')
+    ->join(
+        'b2b_orders bo',
+        'bo.order_id = sor.order_id',
+        'left'
+    )
+    ->join(
+        'sales_order so',
+        'so.order_id = bo.webshop_order_id',
+        'left'
+    )
+    ->join(
+        'sales_order_return_items sri',
+        'sri.return_order_id = sor.return_order_id',
+        'left'
+    )
+    ->join(
+        'b2b_order_items boi',
+        'boi.item_id = sri.order_item_id',
+        'left'
+    )
+    ->join(
+        'products p',
+        'p.product_id = boi.product_id',
+        'left'
+    )
+    ->where('sor.return_order_id', $id)
+    ->get()
+    ->row();
 
     if (!$order) {
         log_message(
@@ -5425,9 +5441,13 @@ public function return_update_status()
         ? 'return_approved'
         : 'return_rejected';
 
-    $message = $isApproved
-        ? 'Your return request for order ' . $orderNumber . ' has been approved.'
-        : 'Your return request for order ' . $orderNumber . ' has been rejected.';
+   $productName = !empty($order->product_name)
+    ? $order->product_name
+    : 'Product';
+
+$message = $isApproved
+    ? 'Your return for (' . $orderNumber . ') - (' . $productName . ') is accepted.'
+    : 'Your return for (' . $orderNumber . ') - (' . $productName . ') was rejected.';
 
     $notificationData = [
         'return_id'     => $id,
