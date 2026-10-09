@@ -5332,11 +5332,13 @@ public function replacement_update_item_status()
 
 
 
+
 public function return_update_status()
 {
     $id     = (int) $this->input->post('id');
     $status = $this->input->post('status');
 
+    // Validate input
     if ($id <= 0 || $status === null || $status === '') {
         echo json_encode([
             'success' => false,
@@ -5356,7 +5358,7 @@ public function return_update_status()
         return;
     }
 
-    // Update the return status
+    // Update return status
     $updated = $this->WebshopOrdersModel->return_update_status(
         $id,
         $status
@@ -5371,9 +5373,10 @@ public function return_update_status()
     }
 
     /*
-     * IMPORTANT:
-     * sales_order_return.order_id references b2b_orders.order_id.
-     * b2b_orders.webshop_order_id references sales_order.order_id.
+     * Fetch order, shopper and product details.
+     *
+     * sales_order_return.order_id -> b2b_orders.order_id
+     * b2b_orders.webshop_order_id -> sales_order.order_id
      */
     $order = $this->db
         ->select('
@@ -5381,7 +5384,8 @@ public function return_update_status()
             sor.order_id AS b2b_order_id,
             bo.webshop_order_id,
             bo.increment_id,
-            so.customer_id
+            so.customer_id,
+            p.name AS product_name
         ')
         ->from('sales_order_return sor')
         ->join(
@@ -5394,6 +5398,21 @@ public function return_update_status()
             'so.order_id = bo.webshop_order_id',
             'left'
         )
+        ->join(
+            'sales_order_return_items sri',
+            'sri.return_order_id = sor.return_order_id',
+            'left'
+        )
+        ->join(
+            'b2b_order_items boi',
+            'boi.item_id = sri.order_item_id',
+            'left'
+        )
+        ->join(
+            'products p',
+            'p.product_id = boi.product_id',
+            'left'
+        )
         ->where('sor.return_order_id', $id)
         ->get()
         ->row();
@@ -5401,7 +5420,7 @@ public function return_update_status()
     if (!$order) {
         log_message(
             'error',
-            'Return notification failed: no order found for return ID ' . $id
+            'Return notification: order not found for return ID ' . $id
         );
 
         echo json_encode([
@@ -5411,9 +5430,15 @@ public function return_update_status()
         return;
     }
 
+    // Order number
     $orderNumber = !empty($order->increment_id)
         ? $order->increment_id
         : (string) $order->b2b_order_id;
+
+    // Product name
+    $productName = !empty($order->product_name)
+        ? $order->product_name
+        : 'Product';
 
     $isApproved = ($status === 1);
 
@@ -5425,16 +5450,20 @@ public function return_update_status()
         ? 'return_approved'
         : 'return_rejected';
 
+    // Shopper notification message
     $message = $isApproved
-        ? 'Your return request for order ' . $orderNumber . ' has been approved.'
-        : 'Your return request for order ' . $orderNumber . ' has been rejected.';
+        ? 'Your return for (' . $orderNumber . ') - (' .
+            $productName . ') is accepted.'
+        : 'Your return for (' . $orderNumber . ') - (' .
+            $productName . ') was rejected.';
 
     $notificationData = [
-        'return_id'     => $id,
-        'order_id'      => $order->webshop_order_id,
-        'b2b_order_id'  => $order->b2b_order_id,
-        'increment_id'  => $orderNumber,
-        'status'        => $status
+        'return_id'    => $id,
+        'order_id'     => $order->webshop_order_id,
+        'b2b_order_id' => $order->b2b_order_id,
+        'increment_id' => $orderNumber,
+        'product_name' => $productName,
+        'status'       => $status
     ];
 
     /*
@@ -5446,8 +5475,11 @@ public function return_update_status()
         'recipient_type' => 'admin',
         'recipient_id'   => 1,
         'title'          => $title,
-        'message'        => 'Return request for order ' . $orderNumber .
-                            ($isApproved ? ' was approved.' : ' was rejected.'),
+        'message'        => 'Return request for (' . $orderNumber .
+                            ') - (' . $productName . ')' .
+                            ($isApproved
+                                ? ' was approved.'
+                                : ' was rejected.'),
         'data'           => json_encode($notificationData),
         'is_read'        => 0,
         'created_at'     => date('Y-m-d H:i:s'),
@@ -5455,6 +5487,13 @@ public function return_update_status()
     ];
 
     $this->db->insert('notifications', $adminNotification);
+
+    if ($this->db->affected_rows() <= 0) {
+        log_message(
+            'error',
+            'Admin return notification insert failed. Return ID: ' . $id
+        );
+    }
 
     /*
      * 2. SHOPPER NOTIFICATION
@@ -5497,6 +5536,7 @@ public function return_update_status()
         'message' => 'Return status updated.'
     ]);
 }
+
 
 
 
