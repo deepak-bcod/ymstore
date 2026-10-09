@@ -5334,157 +5334,169 @@ public function replacement_update_item_status()
 
 public function return_update_status()
 {
-    $id     = $this->input->post('id');
+    $id     = (int) $this->input->post('id');
     $status = $this->input->post('status');
 
-    if ($id && $status !== null) {
-
-        $status = (int)$status;
-
-        // =========================================
-        // UPDATE RETURN STATUS
-        // =========================================
-        $updated = $this->WebshopOrdersModel
-            ->return_update_status($id, $status);
-
-        // =========================================
-        // NOTIFY FOR APPROVED / REJECTED ONLY
-        // 1 = Approved
-        // 2 = Rejected
-        // =========================================
-        if ($updated && in_array($status, [1, 2])) {
-
-            // =====================================
-            // FETCH ORDER + SHOPPER DETAILS
-            // =====================================
-            $order = $this->db
-                ->select('
-                    sor.order_id,
-                    sor.return_order_id,
-                    so.customer_id,
-                    bo.increment_id,
-                    bo.publisher_id
-                ')
-                ->from('sales_order_return sor')
-                ->join(
-                    'sales_order so',
-                    'so.order_id = sor.order_id',
-                    'left'
-                )
-                ->join(
-                    'b2b_orders bo',
-                    'bo.webshop_order_id = so.order_id',
-                    'left'
-                )
-                ->where('sor.return_order_id', $id)
-                ->get()
-                ->row();
-
-            if (!empty($order)) {
-
-                // =================================
-                // ADMIN NOTIFICATION
-                // EXISTING BEHAVIOR RETAINED
-                // =================================
-                if ($status === 1) {
-
-                    $title   = 'Return Request Approved';
-                    $message = 'Merchant approved return request for order '
-                        . $order->increment_id . '.';
-                    $subtype = 'approved';
-
-                } else {
-
-                    $title   = 'Return Request Rejected';
-                    $message = 'Merchant rejected return request for order '
-                        . $order->increment_id . '.';
-                    $subtype = 'rejected';
-                }
-
-                // =================================
-                // INSERT ADMIN NOTIFICATION
-                // =================================
-                $this->db->insert('notifications', [
-                    'type'           => 'return',
-                    'subtype'        => $subtype,
-                    'recipient_type' => 'admin',
-                    'recipient_id'   => 1,
-                    'title'          => $title,
-                    'message'        => $message,
-                    'data'           => json_encode([
-                        'order_id'     => $order->order_id,
-                        'increment_id' => $order->increment_id,
-                        'return_id'    => $id,
-                        'status'       => $status
-                    ]),
-                    'is_read'    => 0,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-
-                // =================================
-                // SHOPPER NOTIFICATION
-                // =================================
-                if (!empty($order->customer_id)) {
-
-                    if ($status === 1) {
-
-                        $shopperTitle = 'Return Request Approved';
-
-                        $shopperMessage = 'Your return for ('
-                            . $order->increment_id
-                            . ') is accepted.';
-
-                        $shopperSubtype = 'return_approved';
-
-                    } else {
-
-                        $shopperTitle = 'Return Request Rejected';
-
-                        $shopperMessage = 'Your return for ('
-                            . $order->increment_id
-                            . ') was rejected.';
-
-                        $shopperSubtype = 'return_rejected';
-                    }
-
-                    $this->db->insert('notifications', [
-                        'type'           => 'return',
-                        'subtype'        => $shopperSubtype,
-                        'recipient_type' => 'shopper',
-                        'recipient_id'   => (int)$order->customer_id,
-                        'title'          => $shopperTitle,
-                        'message'        => $shopperMessage,
-                        'data'           => json_encode([
-                            'order_id'     => $order->order_id,
-                            'increment_id' => $order->increment_id,
-                            'return_id'    => $id,
-                            'status'       => $status
-                        ]),
-                        'is_read'    => 0,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                }
-            }
-        }
-
-        // =========================================
-        // AJAX RESPONSE
-        // =========================================
-        echo json_encode([
-            'success' => $updated ? true : false
-        ]);
-
-    } else {
-
+    if ($id <= 0 || $status === null || $status === '') {
         echo json_encode([
             'success' => false,
-            'error'   => 'Invalid request'
+            'message' => 'Invalid return ID or status.'
         ]);
+        return;
     }
-}
 
+    $status = (int) $status;
+
+    // 1 = Approved, 2 = Rejected
+    if (!in_array($status, [1, 2], true)) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid return status.'
+        ]);
+        return;
+    }
+
+    // Update the return status
+    $updated = $this->WebshopOrdersModel->return_update_status(
+        $id,
+        $status
+    );
+
+    if (!$updated) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Failed to update return status.'
+        ]);
+        return;
+    }
+
+    /*
+     * IMPORTANT:
+     * sales_order_return.order_id references b2b_orders.order_id.
+     * b2b_orders.webshop_order_id references sales_order.order_id.
+     */
+    $order = $this->db
+        ->select('
+            sor.return_order_id,
+            sor.order_id AS b2b_order_id,
+            bo.webshop_order_id,
+            bo.increment_id,
+            so.customer_id
+        ')
+        ->from('sales_order_return sor')
+        ->join(
+            'b2b_orders bo',
+            'bo.order_id = sor.order_id',
+            'left'
+        )
+        ->join(
+            'sales_order so',
+            'so.order_id = bo.webshop_order_id',
+            'left'
+        )
+        ->where('sor.return_order_id', $id)
+        ->get()
+        ->row();
+
+    if (!$order) {
+        log_message(
+            'error',
+            'Return notification failed: no order found for return ID ' . $id
+        );
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Status updated, but order details were not found.'
+        ]);
+        return;
+    }
+
+    $orderNumber = !empty($order->increment_id)
+        ? $order->increment_id
+        : (string) $order->b2b_order_id;
+
+    $isApproved = ($status === 1);
+
+    $title = $isApproved
+        ? 'Return Request Approved'
+        : 'Return Request Rejected';
+
+    $subtype = $isApproved
+        ? 'return_approved'
+        : 'return_rejected';
+
+    $message = $isApproved
+        ? 'Your return request for order ' . $orderNumber . ' has been approved.'
+        : 'Your return request for order ' . $orderNumber . ' has been rejected.';
+
+    $notificationData = [
+        'return_id'     => $id,
+        'order_id'      => $order->webshop_order_id,
+        'b2b_order_id'  => $order->b2b_order_id,
+        'increment_id'  => $orderNumber,
+        'status'        => $status
+    ];
+
+    /*
+     * 1. ADMIN NOTIFICATION
+     */
+    $adminNotification = [
+        'type'           => 'return',
+        'subtype'        => $subtype,
+        'recipient_type' => 'admin',
+        'recipient_id'   => 1,
+        'title'          => $title,
+        'message'        => 'Return request for order ' . $orderNumber .
+                            ($isApproved ? ' was approved.' : ' was rejected.'),
+        'data'           => json_encode($notificationData),
+        'is_read'        => 0,
+        'created_at'     => date('Y-m-d H:i:s'),
+        'updated_at'     => date('Y-m-d H:i:s')
+    ];
+
+    $this->db->insert('notifications', $adminNotification);
+
+    /*
+     * 2. SHOPPER NOTIFICATION
+     */
+    $customerId = (int) $order->customer_id;
+
+    if ($customerId > 0) {
+        $shopperNotification = [
+            'type'           => 'return',
+            'subtype'        => $subtype,
+            'recipient_type' => 'shopper',
+            'recipient_id'   => $customerId,
+            'title'          => $title,
+            'message'        => $message,
+            'data'           => json_encode($notificationData),
+            'is_read'        => 0,
+            'created_at'     => date('Y-m-d H:i:s'),
+            'updated_at'     => date('Y-m-d H:i:s')
+        ];
+
+        $this->db->insert('notifications', $shopperNotification);
+
+        if ($this->db->affected_rows() <= 0) {
+            log_message(
+                'error',
+                'Shopper return notification insert failed. Return ID: ' .
+                $id . ', Customer ID: ' . $customerId
+            );
+        }
+    } else {
+        log_message(
+            'error',
+            'Shopper ID missing for return ID ' . $id .
+            '. Check sales_order and b2b_orders joins.'
+        );
+    }
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Return status updated.'
+    ]);
+}
 
 
 
