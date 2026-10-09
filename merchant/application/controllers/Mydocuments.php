@@ -199,52 +199,142 @@ class Mydocuments extends CI_Controller
         $this->load->view('messaging_conversation', $data);
     }
 
-    public function update_messaging()
-    {
-        $publisher_id = $this->session->userdata('LoginID');
-        $product_id = $this->input->post('product_id');
-        $customer_id = $this->input->post('customer_id');
-        $merchant_reply = trim($this->input->post('merchant_reply'));
+    
+public function update_messaging()
+{
+    $publisher_id   = (int) $this->session->userdata('LoginID');
+    $product_id     = (int) $this->input->post('product_id');
+    $customer_id    = (int) $this->input->post('customer_id');
+    $merchant_reply = trim((string) $this->input->post('merchant_reply'));
 
-        if (!empty($merchant_reply)) {
-            // Fetch the latest message for this product + merchant + customer
-            $this->db->from('product_questions');
-            $this->db->where('product_id', $product_id);
-            $this->db->where('merchant_id', $publisher_id);
-            $this->db->where('customer_id', $customer_id);
-            $this->db->order_by('created_at', 'ASC');
-            $this->db->limit(1);
-            $last_msg = $this->db->get()->row();
+    // STEP 1: Validate request
+    if (
+        $publisher_id <= 0 ||
+        $product_id <= 0 ||
+        $customer_id <= 0 ||
+        $merchant_reply === ''
+    ) {
+        $this->session->set_flashdata(
+            'error',
+            'Invalid request or reply cannot be empty.'
+        );
 
-            // Case 1: If the latest message has an empty merchant_reply, just update it
-            if (!empty($last_msg) && empty($last_msg->merchant_reply) && !empty($last_msg->message)) {
-                $update_data = [
-                    'merchant_reply' => $merchant_reply,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
-                $this->db->where('id', $last_msg->id);
-                $this->db->update('product_questions', $update_data);
-            }
-            // Case 2: Otherwise, insert a new reply record
-            else {
-                $insert_data = [
-                    'product_id' => $product_id,
-                    'merchant_id' => $publisher_id,
-                    'customer_id' => ($last_msg && $last_msg->customer_id > 0) ? $last_msg->customer_id : 0,
-                    'name' => $last_msg ? $last_msg->name : '',
-                    'category' => $last_msg ? $last_msg->category : '',
-                    'message' => '', // merchant replying
-                    'merchant_reply' => $merchant_reply,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
-                $this->db->insert('product_questions', $insert_data);
-            }
-
-            $this->session->set_flashdata('success', 'Reply sent successfully!');
-        }
-
-        redirect('Mydocuments/messages_view/' . $product_id . '/' . $customer_id);
-
+        redirect(
+            'Mydocuments/messages_view/' .
+            $product_id . '/' . $customer_id
+        );
+        return;
     }
+
+    // STEP 2: Get the shopper's original question
+    $this->db->from('product_questions');
+    $this->db->where('product_id', $product_id);
+    $this->db->where('merchant_id', $publisher_id);
+    $this->db->where('customer_id', $customer_id);
+    $this->db->where('message !=', '');
+    $this->db->order_by('id', 'ASC');
+    $this->db->limit(1);
+
+    $question = $this->db->get()->row();
+
+    if (!$question) {
+        $this->session->set_flashdata(
+            'error',
+            'Question not found.'
+        );
+
+        redirect(
+            'Mydocuments/messages_view/' .
+            $product_id . '/' . $customer_id
+        );
+        return;
+    }
+
+    $now = date('Y-m-d H:i:s');
+
+    // STEP 3: Save the merchant's reply
+    if (empty($question->merchant_reply)) {
+
+        // Update the original question if it has no reply yet.
+        $this->db->where('id', (int) $question->id);
+        $this->db->where('product_id', $product_id);
+        $this->db->where('merchant_id', $publisher_id);
+        $this->db->where('customer_id', $customer_id);
+
+        $this->db->update('product_questions', [
+            'merchant_reply' => $merchant_reply,
+            'updated_at'     => $now
+        ]);
+
+        $saved = ($this->db->affected_rows() > 0);
+
+    } else {
+
+        // Insert a new reply if the original question
+        // already has a merchant reply.
+        $this->db->insert('product_questions', [
+            'product_id'     => $product_id,
+            'merchant_id'    => $publisher_id,
+            'customer_id'    => $customer_id,
+            'name'           => $question->name,
+            'category'       => $question->category,
+            'message'        => '',
+            'merchant_reply' => $merchant_reply,
+            'created_at'     => $now,
+            'updated_at'     => $now
+        ]);
+
+        $saved = ($this->db->affected_rows() > 0);
+    }
+
+    // STEP 4: Stop if the reply was not saved
+    if (!$saved) {
+        $this->session->set_flashdata(
+            'error',
+            'Unable to save the reply.'
+        );
+
+        redirect(
+            'Mydocuments/messages_view/' .
+            $product_id . '/' . $customer_id
+        );
+        return;
+    }
+
+    // STEP 5: Create shopper notification
+    $notification_data = [
+        'question_id' => (int) $question->id,
+        'product_id'  => $product_id,
+        'customer_id' => $customer_id,
+        'merchant_id' => $publisher_id
+    ];
+
+    $notification = [
+        'type'           => 'product_question',
+        'subtype'        => 'merchant_reply',
+        'recipient_type' => 'shopper',
+        'recipient_id'   => $customer_id,
+        'title'          => 'Message / Ask a Question',
+        'message'        => 'You got a reply to your Ask a Question message.',
+        'data'           => json_encode($notification_data),
+        'is_read'        => 0,
+        'created_at'     => $now,
+        'updated_at'     => $now
+    ];
+
+    $this->db->insert('notifications', $notification);
+
+    // STEP 6: Show result and return to conversation
+    $this->session->set_flashdata(
+        'success',
+        'Reply sent successfully!'
+    );
+
+    redirect(
+        'Mydocuments/messages_view/' .
+        $product_id . '/' . $customer_id
+    );
+}
+
+
 }
