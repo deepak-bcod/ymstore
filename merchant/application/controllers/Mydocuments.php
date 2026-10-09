@@ -314,7 +314,7 @@ public function update_messaging()
         'subtype'        => 'merchant_reply',
         'recipient_type' => 'shopper',
         'recipient_id'   => $customer_id,
-        'title'          => 'Message / Ask a Question',
+        'title'          => 'Ask a Question',
         'message'        => 'You got a reply to your Ask a Question message.',
         'data'           => json_encode($notification_data),
         'is_read'        => 0,
