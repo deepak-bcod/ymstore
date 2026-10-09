@@ -5302,7 +5302,7 @@ public function return_update_status()
     $id     = (int) $this->input->post('id');
     $status = $this->input->post('status');
 
-    // Validate request
+    // 1. VALIDATE REQUEST
     if ($id <= 0 || $status === null || $status === '') {
         echo json_encode([
             'success' => false,
@@ -5322,11 +5322,9 @@ public function return_update_status()
         return;
     }
 
-    // Update return status
-    $updated = $this->WebshopOrdersModel->return_update_status(
-        $id,
-        $status
-    );
+    // 2. UPDATE RETURN STATUS
+    $updated = $this->WebshopOrdersModel
+        ->return_update_status($id, $status);
 
     if (!$updated) {
         echo json_encode([
@@ -5336,12 +5334,7 @@ public function return_update_status()
         return;
     }
 
-    /*
-     * 1. GET ORDER AND SHOPPER DETAILS
-     *
-     * sales_order_return.order_id = b2b_orders.order_id
-     * b2b_orders.webshop_order_id = sales_order.order_id
-     */
+    // 3. GET ORDER AND SHOPPER DETAILS
     $order = $this->db
         ->select('
             sor.return_order_id,
@@ -5378,16 +5371,12 @@ public function return_update_status()
         return;
     }
 
-    // Order number
+    // 4. GET ORDER NUMBER
     $orderNumber = !empty($order->increment_id)
         ? $order->increment_id
         : (string) $order->b2b_order_id;
 
-    /*
-     * 2. GET PRODUCT NAME
-     *
-     * products primary key is "id", not "product_id".
-     */
+    // 5. GET PRODUCT NAME
     $productName = 'Product';
 
     $product = $this->db
@@ -5407,12 +5396,10 @@ public function return_update_status()
         $productName = $product->product_name;
     }
 
-    /*
-     * 3. PREPARE NOTIFICATION MESSAGE
-     */
+    // 6. PREPARE ADMIN NOTIFICATION (ENGLISH ONLY)
     $isApproved = ($status === 1);
 
-    $title = $isApproved
+    $adminTitle = $isApproved
         ? 'Return Request Approved'
         : 'Return Request Rejected';
 
@@ -5420,12 +5407,79 @@ public function return_update_status()
         ? 'return_approved'
         : 'return_rejected';
 
-    $message = $isApproved
-        ? 'Your return for (' . $orderNumber . ') - (' .
-            $productName . ') is accepted.'
-        : 'Your return for (' . $orderNumber . ') - (' .
+    $adminMessage = $isApproved
+        ? 'Return request for (' . $orderNumber . ') - (' .
+            $productName . ') was approved.'
+        : 'Return request for (' . $orderNumber . ') - (' .
             $productName . ') was rejected.';
 
+    // 7. GET SHOPPER'S SAVED LANGUAGE
+    $customerId = (int) $order->customer_id;
+    $shopperLanguage = 'english';
+
+    /*
+     * IMPORTANT:
+     * Retrieve the shopper's saved language from your actual
+     * customer table and language column.
+     *
+     * Example below assumes:
+     * Table: customers
+     * Primary key: customer_id
+     * Language column: site_lang
+     *
+     * Change these names if your database uses different names.
+     */
+    if ($customerId > 0) {
+        $customerLanguage = $this->db
+            ->select('site_lang')
+            ->from('customers')
+            ->where('customer_id', $customerId)
+            ->limit(1)
+            ->get()
+            ->row();
+
+        if ($customerLanguage && !empty($customerLanguage->site_lang)) {
+            $savedLanguage = strtolower(
+                trim($customerLanguage->site_lang)
+            );
+
+            if (in_array($savedLanguage, ['fr', 'french'], true)) {
+                $shopperLanguage = 'french';
+            } else {
+                $shopperLanguage = 'english';
+            }
+        }
+    }
+
+    // 8. LOAD SHOPPER'S LANGUAGE FILE
+    $this->lang->load('content', $shopperLanguage);
+
+    $shopperTitleKey = $isApproved
+        ? 'return_request_approved_title'
+        : 'return_request_rejected_title';
+
+    $shopperMessageKey = $isApproved
+        ? 'return_approved_message'
+        : 'return_rejected_message';
+
+    $shopperTitle = $this->lang->line($shopperTitleKey);
+
+    $shopperMessage = sprintf(
+        $this->lang->line($shopperMessageKey),
+        $orderNumber,
+        $productName
+    );
+
+    // 9. FALLBACK IF TRANSLATION IS MISSING
+    if (empty($shopperTitle)) {
+        $shopperTitle = $adminTitle;
+    }
+
+    if (empty($shopperMessage)) {
+        $shopperMessage = $adminMessage;
+    }
+
+    // 10. NOTIFICATION DATA
     $notificationData = [
         'return_id'    => $id,
         'order_id'     => $order->webshop_order_id,
@@ -5437,20 +5491,14 @@ public function return_update_status()
 
     $now = date('Y-m-d H:i:s');
 
-    /*
-     * 4. ADMIN NOTIFICATION
-     */
+    // 11. INSERT ADMIN NOTIFICATION (ENGLISH ONLY)
     $adminNotification = [
         'type'           => 'return',
         'subtype'        => $subtype,
         'recipient_type' => 'admin',
         'recipient_id'   => 1,
-        'title'          => $title,
-        'message'        => 'Return request for (' . $orderNumber .
-                            ') ' .
-                            ($isApproved
-                                ? ' was approved.'
-                                : ' was rejected.'),
+        'title'          => $adminTitle,
+        'message'        => $adminMessage,
         'data'           => json_encode($notificationData),
         'is_read'        => 0,
         'created_at'     => $now,
@@ -5465,15 +5513,12 @@ public function return_update_status()
     if (!$adminInserted) {
         log_message(
             'error',
-            'Admin return notification failed for return ID ' . $id .
-            ': ' . json_encode($this->db->error())
+            'Admin return notification failed. Return ID: ' . $id .
+            ', DB error: ' . json_encode($this->db->error())
         );
     }
 
-    /*
-     * 5. SHOPPER NOTIFICATION
-     */
-    $customerId = (int) $order->customer_id;
+    // 12. INSERT SHOPPER NOTIFICATION (SELECTED LANGUAGE ONLY)
     $shopperInserted = false;
 
     if ($customerId > 0) {
@@ -5482,8 +5527,8 @@ public function return_update_status()
             'subtype'        => $subtype,
             'recipient_type' => 'shopper',
             'recipient_id'   => $customerId,
-            'title'          => $title,
-            'message'        => $message,
+            'title'          => $shopperTitle,
+            'message'        => $shopperMessage,
             'data'           => json_encode($notificationData),
             'is_read'        => 0,
             'created_at'     => $now,
@@ -5510,14 +5555,15 @@ public function return_update_status()
         );
     }
 
+    // 13. RETURN RESPONSE
     echo json_encode([
-        'success' => true,
-        'message' => 'Return status updated.',
-        'admin_notification' => (bool) $adminInserted,
-        'shopper_notification' => (bool) $shopperInserted
+        'success'             => true,
+        'message'             => 'Return status updated.',
+        'admin_notification'  => (bool) $adminInserted,
+        'shopper_notification' => (bool) $shopperInserted,
+        'shopper_language'    => $shopperLanguage
     ]);
 }
-
 
 
 

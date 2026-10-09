@@ -1118,3 +1118,8 @@ $lang['order_resolution'] = 'Order Resolution';
 $lang['order_resolutions'] = 'Order Resolutions';
 $lang['resolution_request'] = 'Resolution Request';
 
+$lang['return_request_approved_title'] = 'Return Request Approved';
+$lang['return_request_rejected_title'] = 'Return Request Rejected';
+
+$lang['return_approved_message'] = 'Your return for (%s) - (%s) has been approved.';
+$lang['return_rejected_message'] = 'Your return for (%s) - (%s) has been rejected.';

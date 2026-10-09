@@ -1074,3 +1074,8 @@ $lang['order_resolution'] = 'Résolution de commande';
 $lang['order_resolutions'] = 'Résolutions de commandes';
 $lang['resolution_request'] = 'Demande de résolution';
 
+$lang['return_request_approved_title'] = 'Demande de retour approuvée';
+$lang['return_request_rejected_title'] = 'Demande de retour refusée';
+
+$lang['return_approved_message'] = 'Votre demande de retour pour (%s) - (%s) a été approuvée.';
+$lang['return_rejected_message'] = 'Votre demande de retour pour (%s) - (%s) a été refusée.';
