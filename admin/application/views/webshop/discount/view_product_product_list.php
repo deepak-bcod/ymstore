@@ -24,7 +24,7 @@
 		                      		<th>Categories</th>
 			                  		<th>Product Name</th>
 			                  		<th>Price</th>
-			      			  		<th>Variants</th>
+			      			  		<!-- <th>Variants</th> -->
 			      			  		<th>Details</th>
 		                    	</tr>
 		                  	</thead>
