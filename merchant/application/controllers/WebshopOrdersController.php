@@ -5172,7 +5172,7 @@ public function replacement_update_item_status()
         ],
         2 => [
             'subtype' => 'ym_replacement_approved',
-            'title'   => 'YM Replacement Approved',
+            'title'   => 'Replacement Approved',
             'message' => 'Your replacement request for '
                 . $orderMessage . ' (' . $productName
                 . ') has been approved.'
