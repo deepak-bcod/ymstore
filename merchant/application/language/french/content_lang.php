@@ -1076,10 +1076,14 @@ $lang['resolution_request'] = 'Demande de résolution';
 
 $lang['replacement_approved_fr'] = 'Votre demande de remplacement pour';
 $lang['replacement_approved_end_fr'] = 'a été approuvée.';
-$lang['replacement_approved_ym_fr'] = 'Votre demande de remplacement pour';
 
+// YM Replacement Approved
+$lang['replacement_approved_ym_fr'] = 'Votre demande de remplacement YM pour';
+
+// Replacement Rejected
 $lang['replacement_rejected_fr'] = 'Votre demande de remplacement pour';
 $lang['replacement_rejected_end_fr'] = 'a été rejetée.';
 
+// Replacement Completed
 $lang['replacement_completed_fr'] = 'Votre remplacement pour';
 $lang['replacement_completed_end_fr'] = 'a été effectué.';

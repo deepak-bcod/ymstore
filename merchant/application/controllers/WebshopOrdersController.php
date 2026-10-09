@@ -4959,12 +4959,18 @@ class WebshopOrdersController extends CI_Controller {
 
 public function replacement_update_item_status()
 {
+    header('Content-Type: application/json; charset=utf-8');
+
+    // STEP 1: Validate input.
     $replacement_item_id = (int) $this->input->post('replacement_item_id');
     $status              = $this->input->post('status');
     $replacement_type    = $this->input->post('replacement_type');
 
-    // STEP 1: Validate input.
-    if ($replacement_item_id <= 0 || $status === null || $status === '') {
+    if (
+        $replacement_item_id <= 0 ||
+        $status === null ||
+        $status === ''
+    ) {
         echo json_encode([
             'success' => false,
             'message' => 'Invalid replacement item or status.'
@@ -5081,7 +5087,7 @@ public function replacement_update_item_status()
         return;
     }
 
-    // STEP 7: Fetch order, shopper, product details and preferred language.
+    // STEP 7: Fetch order, shopper and product details.
     $replacement = $this->db
         ->select('
             sori.replacement_item_id,
@@ -5094,8 +5100,7 @@ public function replacement_update_item_status()
             so.order_id AS es_order_id,
             so.customer_id,
             so.increment_id AS es_increment_id,
-            p.name AS product_name,
-            c.language AS customer_language
+            p.name AS product_name
         ')
         ->from('sales_order_replacement_items sori')
         ->join(
@@ -5123,11 +5128,6 @@ public function replacement_update_item_status()
             'p.id = boi.product_id',
             'left'
         )
-        ->join(
-            'customers c',
-            'c.customer_id = so.customer_id',
-            'left'
-        )
         ->where('sori.replacement_item_id', $replacement_item_id)
         ->limit(1)
         ->get()
@@ -5149,18 +5149,7 @@ public function replacement_update_item_status()
         return;
     }
 
-    // STEP 8: Determine shopper language (default to english if not french)
-    $shopperLang = strtolower($replacement->customer_language ?? 'english');
-    $isFrench = ($shopperLang === 'french' || $shopperLang === 'fr');
-    $langKey = $isFrench ? 'fr' : 'en';
-
-    // Load language files (always load english for admin, load french if shopper is french)
-    $this->lang->load('content', 'english');
-    if ($isFrench) {
-        $this->lang->load('content', 'french');
-    }
-
-    // STEP 9: Prepare order number and product name.
+    // STEP 8: Prepare order number and product name.
     $orderNumber = !empty($replacement->ym_order_number)
         ? trim((string) $replacement->ym_order_number)
         : 'N/A';
@@ -5171,90 +5160,215 @@ public function replacement_update_item_status()
 
     $orderMessageEn = 'Order No ' . $orderNumber;
     $orderMessageFr = 'N° de commande ' . $orderNumber;
-    $orderMessage = $isFrench ? $orderMessageFr : $orderMessageEn;
 
-    // STEP 10: Admin notifications — English only.
+    // STEP 9: Load the language files containing your existing keys.
+    // Assumes the files are:
+    // application/language/english/content_lang.php
+    // application/language/french/content_lang.php
+    //
+    // Both files must contain the appropriate replacement_* keys.
+    $this->lang->load('content', 'english');
+    $this->lang->load('content', 'french');
+
+    // Helper to safely retrieve a language string.
+    $getLanguageText = function ($key, $fallback) {
+        $value = $this->lang->line($key);
+
+        if ($value === false || $value === '' || $value === $key) {
+            return $fallback;
+        }
+
+        return $value;
+    };
+
+    // STEP 10: Admin notification map — English ONLY.
     $adminNotificationMap = [
         1 => [
             'subtype' => 'own_replacement_approved',
             'title'   => 'Replacement Approved',
-            'message' =>
-                $this->lang->line('replacement_approved_en') . ' ' .
-                $orderMessageEn . ' (' . $productName . ') ' .
-                $this->lang->line('replacement_approved_end_en')
+            'message' => $getLanguageText(
+                'replacement_approved_en',
+                'Your replacement request for'
+            ) . ' ' . $orderMessageEn . ' (' . $productName . ') ' .
+            $getLanguageText(
+                'replacement_approved_end_en',
+                'has been approved.'
+            )
         ],
 
         2 => [
             'subtype' => 'ym_replacement_approved',
             'title'   => 'Replacement Approved',
-            'message' =>
-                $this->lang->line('replacement_approved_ym_en') . ' ' .
-                $orderMessageEn . ' (' . $productName . ') ' .
-                $this->lang->line('replacement_approved_end_en')
+            'message' => $getLanguageText(
+                'replacement_approved_ym_en',
+                'Your replacement request for'
+            ) . ' ' . $orderMessageEn . ' (' . $productName . ') ' .
+            $getLanguageText(
+                'replacement_approved_end_en',
+                'has been approved.'
+            )
         ],
 
         4 => [
             'subtype' => 'rejected',
             'title'   => 'Replacement Rejected',
-            'message' =>
-                $this->lang->line('replacement_rejected_en') . ' ' .
-                $orderMessageEn . ' (' . $productName . ') ' .
-                $this->lang->line('replacement_rejected_end_en')
+            'message' => $getLanguageText(
+                'replacement_rejected_en',
+                'Your replacement request for'
+            ) . ' ' . $orderMessageEn . ' (' . $productName . ') ' .
+            $getLanguageText(
+                'replacement_rejected_end_en',
+                'was rejected.'
+            )
         ],
 
         5 => [
             'subtype' => 'own_replacement_completed',
             'title'   => 'Replacement Completed',
-            'message' =>
-                $this->lang->line('replacement_completed_en') . ' ' .
-                $orderMessageEn . ' (' . $productName . ') ' .
-                $this->lang->line('replacement_completed_end_en')
+            'message' => $getLanguageText(
+                'replacement_completed_en',
+                'Your replacement for'
+            ) . ' ' . $orderMessageEn . ' (' . $productName . ') ' .
+            $getLanguageText(
+                'replacement_completed_end_en',
+                'has been completed.'
+            )
         ]
     ];
 
-    // STEP 11: Shopper notifications — single language matching customer's choice.
+    // STEP 11: Determine the SHOPPER'S selected language.
+    // IMPORTANT:
+    // This example assumes customer_entity.language stores
+    // en / english / fr / french.
+    // Change the table/column if your schema differs.
+    $customerId = (int) $replacement->customer_id;
+    $customerLanguage = 'en';
+
+    if ($customerId > 0) {
+        $languageRow = $this->db
+            ->select('language')
+            ->from('customer_entity')
+            ->where('entity_id', $customerId)
+            ->limit(1)
+            ->get()
+            ->row();
+
+        if ($languageRow && !empty($languageRow->language)) {
+            $selectedLanguage = strtolower(
+                trim((string) $languageRow->language)
+            );
+
+            if (in_array(
+                $selectedLanguage,
+                ['fr', 'french', 'français'],
+                true
+            )) {
+                $customerLanguage = 'fr';
+            }
+        }
+    }
+
+    // STEP 12: Build shopper notifications using language-file keys.
+    // Only ONE language is inserted for each shopper notification.
     $shopperNotificationMap = [
         1 => [
             'subtype' => 'own_replacement_approved',
-            'title'   => $isFrench ? 'Remplacement approuvé' : 'Replacement Approved',
-            'message' =>
-                $this->lang->line('replacement_approved_' . $langKey) . ' ' .
-                $orderMessage . ' (' . $productName . ') ' .
-                $this->lang->line('replacement_approved_end_' . $langKey)
+            'title' => $customerLanguage === 'fr'
+                ? 'Remplacement approuvé'
+                : 'Replacement Approved',
+            'message' => $customerLanguage === 'fr'
+                ? $getLanguageText(
+                    'replacement_approved_fr',
+                    'Votre demande de remplacement pour'
+                ) . ' ' . $orderMessageFr . ' (' . $productName . ') ' .
+                  $getLanguageText(
+                      'replacement_approved_end_fr',
+                      'a été approuvée.'
+                  )
+                : $getLanguageText(
+                    'replacement_approved_en',
+                    'Your replacement request for'
+                ) . ' ' . $orderMessageEn . ' (' . $productName . ') ' .
+                  $getLanguageText(
+                      'replacement_approved_end_en',
+                      'has been approved.'
+                  )
         ],
 
         2 => [
             'subtype' => 'ym_replacement_approved',
-            'title'   => $isFrench ? 'Remplacement approuvé' : 'Replacement Approved',
-            'message' =>
-                $this->lang->line('replacement_approved_ym_' . $langKey) . ' ' .
-                $orderMessage . ' (' . $productName . ') ' .
-                $this->lang->line('replacement_approved_end_' . $langKey)
+            'title' => $customerLanguage === 'fr'
+                ? 'Remplacement approuvé'
+                : 'Replacement Approved',
+            'message' => $customerLanguage === 'fr'
+                ? $getLanguageText(
+                    'replacement_approved_ym_fr',
+                    'Votre demande de remplacement pour'
+                ) . ' ' . $orderMessageFr . ' (' . $productName . ') ' .
+                  $getLanguageText(
+                      'replacement_approved_end_fr',
+                      'a été approuvée.'
+                  )
+                : $getLanguageText(
+                    'replacement_approved_ym_en',
+                    'Your replacement request for'
+                ) . ' ' . $orderMessageEn . ' (' . $productName . ') ' .
+                  $getLanguageText(
+                      'replacement_approved_end_en',
+                      'has been approved.'
+                  )
         ],
 
         4 => [
             'subtype' => 'rejected',
-            'title'   => $isFrench ? 'Remplacement refusé' : 'Replacement Rejected',
-            'message' =>
-                $this->lang->line('replacement_rejected_' . $langKey) . ' ' .
-                $orderMessage . ' (' . $productName . ') ' .
-                $this->lang->line('replacement_rejected_end_' . $langKey)
+            'title' => $customerLanguage === 'fr'
+                ? 'Remplacement refusé'
+                : 'Replacement Rejected',
+            'message' => $customerLanguage === 'fr'
+                ? $getLanguageText(
+                    'replacement_rejected_fr',
+                    'Votre demande de remplacement pour'
+                ) . ' ' . $orderMessageFr . ' (' . $productName . ') ' .
+                  $getLanguageText(
+                      'replacement_rejected_end_fr',
+                      'a été rejetée.'
+                  )
+                : $getLanguageText(
+                    'replacement_rejected_en',
+                    'Your replacement request for'
+                ) . ' ' . $orderMessageEn . ' (' . $productName . ') ' .
+                  $getLanguageText(
+                      'replacement_rejected_end_en',
+                      'was rejected.'
+                  )
         ],
 
         5 => [
             'subtype' => 'own_replacement_completed',
-            'title'   => $isFrench ? 'Remplacement effectué' : 'Replacement Completed',
-            'message' =>
-                $this->lang->line('replacement_completed_' . $langKey) . ' ' .
-                $orderMessage . ' (' . $productName . ') ' .
-                $this->lang->line('replacement_completed_end_' . $langKey)
+            'title' => $customerLanguage === 'fr'
+                ? 'Remplacement effectué'
+                : 'Replacement Completed',
+            'message' => $customerLanguage === 'fr'
+                ? $getLanguageText(
+                    'replacement_completed_fr',
+                    'Votre remplacement pour'
+                ) . ' ' . $orderMessageFr . ' (' . $productName . ') ' .
+                  $getLanguageText(
+                      'replacement_completed_end_fr',
+                      'a été effectué.'
+                  )
+                : $getLanguageText(
+                    'replacement_completed_en',
+                    'Your replacement for'
+                ) . ' ' . $orderMessageEn . ' (' . $productName . ') ' .
+                  $getLanguageText(
+                      'replacement_completed_end_en',
+                      'has been completed.'
+                  )
         ]
     ];
 
-    $adminNotificationInserted   = false;
-    $shopperNotificationInserted = false;
-
-    // STEP 12: Notification data.
+    // STEP 13: Prepare notification data.
     $notificationData = [
         'replacement_item_id'  => $replacement_item_id,
         'replacement_order_id' => $replacement->replacement_order_id,
@@ -5264,7 +5378,10 @@ public function replacement_update_item_status()
 
     $now = date('Y-m-d H:i:s');
 
-    // STEP 13: Insert admin notification in English only.
+    $adminNotificationInserted = false;
+    $shopperNotificationInserted = false;
+
+    // STEP 14: Insert ADMIN notification — always English.
     if (isset($adminNotificationMap[$status])) {
         $adminNotice = $adminNotificationMap[$status];
 
@@ -5295,10 +5412,9 @@ public function replacement_update_item_status()
         }
     }
 
-    // STEP 14: Insert shopper notification in their selected language.
+    // STEP 15: Insert SHOPPER notification — selected language only.
     if (isset($shopperNotificationMap[$status])) {
         $shopperNotice = $shopperNotificationMap[$status];
-        $customerId = (int) $replacement->customer_id;
 
         if ($customerId > 0) {
             $shopperData = [
@@ -5336,18 +5452,21 @@ public function replacement_update_item_status()
         }
     }
 
-    // STEP 15: Return AJAX response.
+    // STEP 16: Return AJAX response.
     echo json_encode([
-        'success'                     => true,
-        'message'                     => 'Replacement status updated.',
-        'replacement_item_id'         => $replacement_item_id,
-        'status'                      => $status,
-        'customer_id'                 => (int) $replacement->customer_id,
-        'order_number'                => $orderNumber,
-        'admin_notification_inserted' => (bool) $adminNotificationInserted,
+        'success'                       => true,
+        'message'                       => 'Replacement status updated.',
+        'replacement_item_id'           => $replacement_item_id,
+        'status'                        => $status,
+        'customer_id'                   => $customerId,
+        'shopper_language'              => $customerLanguage,
+        'order_number'                  => $orderNumber,
+        'admin_notification_inserted'   => (bool) $adminNotificationInserted,
         'shopper_notification_inserted' => (bool) $shopperNotificationInserted
     ]);
 }
+
+
 
 
 
