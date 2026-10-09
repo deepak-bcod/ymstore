@@ -47,9 +47,9 @@
 			                      	<td><?php echo $value->name;?></td>
 			                      	<?php if($value->product_type == 'configurable') { ?>
 	                      		 	<td>-</td>
-			                      	<td>
+			                      	<!-- <td>
 			                			<a class="variant-popup-link" href="javascript:void(0)" onclick="openVariantListPopup(<?php echo $value->id; ?>,'<?php echo $value->cat_name; ?>')">View</a>
-				                	</td>
+				                	</td> -->
 				                	<?php } else { ?>
 				                	<td><?php echo $value->webshop_price; ?></td>
 						      		<td>-</td>
