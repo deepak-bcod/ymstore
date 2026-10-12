@@ -42,7 +42,7 @@ class OrderResolutionController extends CI_Controller
      * Raise a new Order Resolution Request
      */
     /**
-     * Raise a new Order Resolution Request (Complete orders only)
+     * Raise a new Order Resolution Request (Exclusively for rejected return/replacement items)
      */
     public function create($order_id = 0, $product_id = 0)
     {
@@ -50,27 +50,44 @@ class OrderResolutionController extends CI_Controller
         $order_id = (int)$order_id;
         $product_id = (int)$product_id;
 
-        // If specific order is requested, verify it is Complete
+        // Fetch customer's REJECTED return/replacement items
+        $rejected_items = $this->OrderResolutionModel->get_customer_rejected_items($customer_id);
+
+        // If specific order is requested, verify it has a merchant-rejected request
+        $matched_item = null;
         if ($order_id > 0) {
-            if (!$this->OrderResolutionModel->is_order_complete($order_id)) {
-                $this->session->set_flashdata('error', $this->lang->line('resolution_complete_only') ?: 'Order Resolution (Refund, Return, Replacement) is only available for orders with status "Complete". This order is not yet Complete.');
+            $matched_item = $this->OrderResolutionModel->is_item_eligible_for_resolution($order_id, $product_id, $customer_id);
+            if (!$matched_item) {
+                // Check if an active ticket already exists for this item
+                $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
+                if ($existing_ticket) {
+                    $this->session->set_flashdata('error', "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.");
+                    redirect('order_resolution/view/' . $existing_ticket->ticket_number);
+                    return;
+                }
+
+                $this->session->set_flashdata('error', $this->lang->line('resolution_rejected_only') ?: 'Order Resolution is only available for items where a Return or Replacement request has been rejected by the Merchant.');
                 redirect('customer/my-orders');
                 return;
             }
+
+            if (!empty($matched_item->product_id)) {
+                $product_id = (int)$matched_item->product_id;
+            }
         }
 
-        // Fetch customer's COMPLETED orders only for dropdown
-        $data['orders'] = $this->OrderResolutionModel->get_customer_completed_orders($customer_id);
-
+        $data['rejected_items']      = $rejected_items;
         $data['selected_order_id']   = $order_id;
         $data['selected_product_id'] = $product_id;
-        $data['products']            = [];
+        $data['matched_item']        = $matched_item;
 
-        if ($order_id > 0) {
-            $data['products'] = $this->CommonModel->get_order_products($order_id);
+        $default_category = 'Refund';
+        if ($matched_item && !empty($matched_item->category)) {
+            $default_category = $matched_item->category;
         }
+        $data['default_category'] = $default_category;
 
-        $data['categories'] = ['Delivery', 'Refund', 'Replacement', 'Others'];
+        $data['categories'] = ['Refund', 'Replacement', 'Delivery', 'Others'];
         $data['PageTitle']  = 'Raise Order Resolution Request';
 
         $this->load->view('order_resolution/create', $data);
@@ -100,7 +117,7 @@ class OrderResolutionController extends CI_Controller
 
         // Validation
         if (empty($order_id)) {
-            $this->session->set_flashdata('error', 'Please select a valid order.');
+            $this->session->set_flashdata('error', 'Please select a valid order item.');
             redirect('order_resolution/create');
             return;
         }
@@ -120,10 +137,26 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
-        // Eligibility check: Order status must be Complete
-        if (!$this->OrderResolutionModel->is_order_complete($order_check)) {
-            $this->session->set_flashdata('error', $this->lang->line('resolution_complete_only') ?: 'Order Resolution (Refund, Return, Replacement) can only be raised for orders with status "Complete".');
+        // Mandatory Prerequisite: Item must have a rejected Return or Replacement request
+        $matched_item = $this->OrderResolutionModel->is_item_eligible_for_resolution($order_id, $product_id, $customer_id);
+        if (!$matched_item) {
+            $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
+            if ($existing_ticket) {
+                $this->session->set_flashdata('error', "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.");
+                redirect('order_resolution/view/' . $existing_ticket->ticket_number);
+                return;
+            }
+
+            $this->session->set_flashdata('error', $this->lang->line('resolution_rejected_only') ?: 'Order Resolution is only available for items where a Return or Replacement request has been rejected by the Merchant.');
             redirect('order_resolution/create');
+            return;
+        }
+
+        // Prevent duplicate active tickets
+        $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
+        if ($existing_ticket) {
+            $this->session->set_flashdata('error', "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.");
+            redirect('order_resolution/view/' . $existing_ticket->ticket_number);
             return;
         }
 

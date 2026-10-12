@@ -55,7 +55,7 @@ class OrderResolutionModel extends CI_Model
     }
 
     /**
-     * Fetch customer orders eligible for resolution (Only completed orders)
+     * Fetch customer orders eligible for resolution (Only completed orders - legacy)
      *
      * @param int $customer_id
      * @return array
@@ -76,6 +76,320 @@ class OrderResolutionModel extends CI_Model
             }
         }
         return $completed_orders;
+    }
+
+    /**
+     * Fetch only items where the merchant has REJECTED a Return or Replacement request.
+     * Order Resolution is strictly gated to rejected return/replacement items.
+     *
+     * @param int $customer_id
+     * @return array
+     */
+    public function get_customer_rejected_items($customer_id)
+    {
+        $customer_id = (int)$customer_id;
+        if ($customer_id <= 0) {
+            return [];
+        }
+
+        // 1. Get all customer's sales orders
+        $orders = $this->db->select('order_id, increment_id, created_at, grand_total')
+            ->from('sales_order')
+            ->where('customer_id', $customer_id)
+            ->order_by('order_id', 'DESC')
+            ->get()
+            ->result();
+
+        if (empty($orders)) {
+            return [];
+        }
+
+        $order_map = [];
+        $order_ids = [];
+        foreach ($orders as $o) {
+            $order_map[$o->order_id] = $o;
+            $order_ids[] = (int)$o->order_id;
+        }
+
+        $eligible_items = [];
+        $seen_keys = [];
+
+        // 2. Check b2b_orders and b2b_order_items for status 20 (Return Rejected) or 21 (Replacement Rejected)
+        $b2b_items = $this->db->select('boi.id as b2b_item_id, boi.order_id as b2b_order_id, boi.product_id, boi.product_name, boi.status as item_status, bo.webshop_order_id, bo.publisher_id, pub.publication_name as merchant_name')
+            ->from('b2b_order_items boi')
+            ->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'inner')
+            ->join('publisher pub', 'pub.id = bo.publisher_id', 'left')
+            ->where_in('bo.webshop_order_id', $order_ids)
+            ->where_in('boi.status', [20, 21])
+            ->get()
+            ->result();
+
+        if (!empty($b2b_items)) {
+            foreach ($b2b_items as $bi) {
+                $key = $bi->webshop_order_id . '_' . $bi->product_id;
+                if (isset($seen_keys[$key])) {
+                    continue;
+                }
+
+                $type = ((int)$bi->item_status === 21) ? 'replacement' : 'return';
+                $category = ((int)$bi->item_status === 21) ? 'Replacement' : 'Refund';
+                $reason = ((int)$bi->item_status === 21) ? 'Replacement Rejected by Merchant' : 'Return / Refund Rejected by Merchant';
+
+                $o = $order_map[$bi->webshop_order_id] ?? null;
+                $seen_keys[$key] = true;
+                $eligible_items[] = (object)[
+                    'order_id'             => (int)$bi->webshop_order_id,
+                    'order_number'         => $o ? ($o->increment_id ?: $o->order_id) : $bi->webshop_order_id,
+                    'product_id'           => (int)$bi->product_id,
+                    'product_name'         => $bi->product_name ?: $this->get_product_name_by_id($bi->product_id),
+                    'merchant_id'          => (int)$bi->publisher_id,
+                    'merchant_name'        => $bi->merchant_name ?: 'Merchant',
+                    'request_type'         => $type,
+                    'category'             => $category,
+                    'rejected_status_text' => $reason,
+                ];
+            }
+        }
+
+        // 3. Check sales_order_return for rejected returns (status in [2, 5, 20] or refund_status = 2)
+        if ($this->db->table_exists('sales_order_return') && $this->db->table_exists('sales_order_return_items')) {
+            $ret_orders = $this->db->select('sor.return_order_id, sor.order_id, sor.status, sor.refund_status, sori.order_item_id')
+                ->from('sales_order_return sor')
+                ->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'inner')
+                ->group_start()
+                    ->where_in('sor.order_id', $order_ids)
+                ->group_end()
+                ->group_start()
+                    ->where_in('sor.status', [2, 5, 20])
+                    ->or_where('sor.refund_status', 2)
+                    ->or_where_in('sori.status', [2, 20])
+                ->group_end()
+                ->get()
+                ->result();
+
+            if (!empty($ret_orders)) {
+                foreach ($ret_orders as $ro) {
+                    $webshop_id = (int)$ro->order_id;
+                    if (!isset($order_map[$webshop_id])) {
+                        $b2b = $this->db->select('webshop_order_id')->where('order_id', $webshop_id)->get('b2b_orders')->row();
+                        if ($b2b && isset($order_map[$b2b->webshop_order_id])) {
+                            $webshop_id = (int)$b2b->webshop_order_id;
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    $prod_id = 0;
+                    if (!empty($ro->order_item_id)) {
+                        $soi = $this->db->select('product_id')->where('item_id', $ro->order_item_id)->get('sales_order_items')->row();
+                        if ($soi) {
+                            $prod_id = (int)$soi->product_id;
+                        } else {
+                            $boi = $this->db->select('product_id')->where('id', $ro->order_item_id)->get('b2b_order_items')->row();
+                            if ($boi) {
+                                $prod_id = (int)$boi->product_id;
+                            }
+                        }
+                    }
+
+                    $key = $webshop_id . '_' . $prod_id;
+                    if (isset($seen_keys[$key])) {
+                        continue;
+                    }
+
+                    $o = $order_map[$webshop_id] ?? null;
+                    $seen_keys[$key] = true;
+                    $eligible_items[] = (object)[
+                        'order_id'             => $webshop_id,
+                        'order_number'         => $o ? ($o->increment_id ?: $o->order_id) : $webshop_id,
+                        'product_id'           => $prod_id,
+                        'product_name'         => $this->get_product_name_by_id($prod_id),
+                        'merchant_id'          => $this->get_merchant_id_for_item($webshop_id, $prod_id),
+                        'merchant_name'        => $this->get_merchant_name_for_item($webshop_id, $prod_id),
+                        'request_type'         => 'return',
+                        'category'             => 'Refund',
+                        'rejected_status_text' => 'Return / Refund Rejected by Merchant',
+                    ];
+                }
+            }
+        }
+
+        // 4. Check sales_order_replacement for rejected replacements (status == 4 or items status == 4)
+        if ($this->db->table_exists('sales_order_replacement') && $this->db->table_exists('sales_order_replacement_items')) {
+            $rep_orders = $this->db->select('sor.replacement_order_id, sor.order_id, sor.status, sori.order_item_id')
+                ->from('sales_order_replacement sor')
+                ->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'inner')
+                ->group_start()
+                    ->where_in('sor.order_id', $order_ids)
+                ->group_end()
+                ->group_start()
+                    ->where('sor.status', 4)
+                    ->or_where('sori.status', 4)
+                ->group_end()
+                ->get()
+                ->result();
+
+            if (!empty($rep_orders)) {
+                foreach ($rep_orders as $rpo) {
+                    $webshop_id = (int)$rpo->order_id;
+                    if (!isset($order_map[$webshop_id])) {
+                        $b2b = $this->db->select('webshop_order_id')->where('order_id', $webshop_id)->get('b2b_orders')->row();
+                        if ($b2b && isset($order_map[$b2b->webshop_order_id])) {
+                            $webshop_id = (int)$b2b->webshop_order_id;
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    $prod_id = 0;
+                    if (!empty($rpo->order_item_id)) {
+                        $soi = $this->db->select('product_id')->where('item_id', $rpo->order_item_id)->get('sales_order_items')->row();
+                        if ($soi) {
+                            $prod_id = (int)$soi->product_id;
+                        } else {
+                            $boi = $this->db->select('product_id')->where('id', $rpo->order_item_id)->get('b2b_order_items')->row();
+                            if ($boi) {
+                                $prod_id = (int)$boi->product_id;
+                            }
+                        }
+                    }
+
+                    $key = $webshop_id . '_' . $prod_id;
+                    if (isset($seen_keys[$key])) {
+                        continue;
+                    }
+
+                    $o = $order_map[$webshop_id] ?? null;
+                    $seen_keys[$key] = true;
+                    $eligible_items[] = (object)[
+                        'order_id'             => $webshop_id,
+                        'order_number'         => $o ? ($o->increment_id ?: $o->order_id) : $webshop_id,
+                        'product_id'           => $prod_id,
+                        'product_name'         => $this->get_product_name_by_id($prod_id),
+                        'merchant_id'          => $this->get_merchant_id_for_item($webshop_id, $prod_id),
+                        'merchant_name'        => $this->get_merchant_name_for_item($webshop_id, $prod_id),
+                        'request_type'         => 'replacement',
+                        'category'             => 'Replacement',
+                        'rejected_status_text' => 'Replacement Rejected by Merchant',
+                    ];
+                }
+            }
+        }
+
+        // 5. Filter out items that already have an active/open Order Resolution ticket
+        $final_eligible = [];
+        foreach ($eligible_items as $item) {
+            $active_ticket = $this->get_active_resolution_for_item($item->order_id, $item->product_id);
+            if (!$active_ticket) {
+                $final_eligible[] = $item;
+            }
+        }
+
+        return $final_eligible;
+    }
+
+    /**
+     * Check if a specific order and product is eligible for resolution (has a rejected request)
+     *
+     * @param int $order_id
+     * @param int $product_id
+     * @param int $customer_id
+     * @return object|false
+     */
+    public function is_item_eligible_for_resolution($order_id, $product_id, $customer_id)
+    {
+        $rejected_items = $this->get_customer_rejected_items($customer_id);
+        foreach ($rejected_items as $item) {
+            if ((int)$item->order_id === (int)$order_id) {
+                if (empty($product_id) || (int)$item->product_id === (int)$product_id) {
+                    return $item;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get active resolution ticket for an order item (Open, Processing, ReOpen, Done)
+     *
+     * @param int $order_id
+     * @param int $product_id
+     * @return object|null
+     */
+    public function get_active_resolution_for_item($order_id, $product_id = 0)
+    {
+        $query = $this->db->select('*')
+            ->from('order_resolutions')
+            ->where('order_id', (int)$order_id)
+            ->where_not_in('status', ['Close', 'Close (Final)']);
+
+        if (!empty($product_id)) {
+            $query->where('product_id', (int)$product_id);
+        }
+
+        return $query->order_by('id', 'DESC')->get()->row();
+    }
+
+    /**
+     * Get the latest resolution ticket for an order item regardless of status
+     *
+     * @param int $order_id
+     * @param int $product_id
+     * @return object|null
+     */
+    public function get_latest_resolution_for_item($order_id, $product_id = 0)
+    {
+        $query = $this->db->select('*')
+            ->from('order_resolutions')
+            ->where('order_id', (int)$order_id);
+
+        if (!empty($product_id)) {
+            $query->where('product_id', (int)$product_id);
+        }
+
+        return $query->order_by('id', 'DESC')->get()->row();
+    }
+
+    /**
+     * Helper to get product name by ID
+     */
+    public function get_product_name_by_id($product_id)
+    {
+        if (empty($product_id)) {
+            return 'General Item';
+        }
+        $p = $this->db->select('name')->where('id', $product_id)->get('products')->row();
+        return $p ? html_entity_decode($p->name, ENT_QUOTES, 'UTF-8') : 'Product #' . $product_id;
+    }
+
+    /**
+     * Helper to get merchant ID for order item
+     */
+    public function get_merchant_id_for_item($order_id, $product_id)
+    {
+        if (!empty($product_id)) {
+            $p = $this->db->select('publisher_id')->where('id', $product_id)->get('products')->row();
+            if ($p && !empty($p->publisher_id)) {
+                return (int)$p->publisher_id;
+            }
+        }
+        $b2b = $this->db->select('publisher_id')->where('webshop_order_id', $order_id)->get('b2b_orders')->row();
+        return $b2b ? (int)$b2b->publisher_id : 0;
+    }
+
+    /**
+     * Helper to get merchant publication name for order item
+     */
+    public function get_merchant_name_for_item($order_id, $product_id)
+    {
+        $m_id = $this->get_merchant_id_for_item($order_id, $product_id);
+        if ($m_id > 0) {
+            $m = $this->db->select('publication_name')->where('id', $m_id)->get('publisher')->row();
+            if ($m && !empty($m->publication_name)) {
+                return $m->publication_name;
+            }
+        }
+        return 'Merchant';
     }
 
     /**
