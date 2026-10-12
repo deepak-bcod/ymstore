@@ -262,7 +262,7 @@ $this->load->view('common/fbc-user/header');
                             <h6 class="mb-0 font-weight-bold">Post Admin Reply</h6>
                         </div>
                         <div class="card-body">
-                            <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
+                            <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
                                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                                 
                                 <div class="form-group mb-2">
@@ -340,7 +340,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="assignAcctModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/assign_to_acct'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/assign_to_acct'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header">
                     <h5 class="modal-title text-warning"><i class="fa fa-user-plus"></i> Assign to Accounting (@Acct)</h5>
@@ -366,7 +366,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="markDoneModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/mark_done'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/mark_done'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header">
                     <h5 class="modal-title text-success"><i class="fa fa-check-circle"></i> Mark Done (Refund Processed from Hold-back)</h5>
@@ -392,7 +392,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="closeTicketModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/close_ticket'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/close_ticket'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header">
                     <h5 class="modal-title text-secondary"><i class="fa fa-lock"></i> Close Ticket (@Help)</h5>
@@ -418,7 +418,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="closeFinalModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/close_final'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/close_final'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header">
                     <h5 class="modal-title text-dark"><i class="fa fa-archive"></i> Close (Final - No Further Options)</h5>
@@ -444,7 +444,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="resApproveModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/resolution_decision'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/resolution_decision'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="decision" value="approved">
                 <div class="modal-header">
@@ -471,7 +471,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="resDeniedModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/resolution_decision'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/resolution_decision'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="decision" value="denied">
                 <div class="modal-header">
@@ -493,5 +493,93 @@ $this->load->view('common/fbc-user/header');
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    function showNotification(type, message) {
+        var alertClass = (type === 'success') ? 'alert-success' : 'alert-danger';
+        var icon = (type === 'success') ? '<i class="fa fa-check-circle"></i> ' : '<i class="fa fa-exclamation-circle"></i> ';
+        var html = '<div class="alert ' + alertClass + ' alert-dismissible fade show resolution-ajax-alert" role="alert" style="position:fixed; top:20px; right:20px; z-index:99999; min-width:320px; max-width:480px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">' +
+                   icon + message +
+                   '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                   '</div>';
+        $('.resolution-ajax-alert').remove();
+        $('body').append(html);
+        setTimeout(function() {
+            $('.resolution-ajax-alert').fadeOut(function() { $(this).remove(); });
+        }, 4000);
+    }
+
+    $(document).on('submit', 'form.ajax-resolution-form', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $btn = $form.find('button[type="submit"]');
+        if ($btn.length === 0) {
+            $btn = $form.find(':submit');
+        }
+
+        // Double-click guard
+        if ($btn.prop('disabled')) {
+            return false;
+        }
+
+        var origHtml = $btn.html();
+        $btn.data('original-html', origHtml);
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
+
+        var formData = new FormData(this);
+        formData.append('is_ajax', '1');
+
+        $.ajax({
+            url: $form.attr('action'),
+            type: $form.attr('method') || 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(res) {
+                if (res && res.status) {
+                    $btn.html('<i class="fa fa-check"></i> Done');
+                    showNotification('success', res.message || 'Action processed successfully.');
+
+                    var $modal = $form.closest('.modal');
+                    if ($modal.length) {
+                        $modal.modal('hide');
+                    }
+
+                    setTimeout(function() {
+                        if (res.redirect) {
+                            window.location.href = res.redirect;
+                        } else {
+                            window.location.reload();
+                        }
+                    }, 800);
+                } else {
+                    $btn.prop('disabled', false).html(origHtml);
+                    var msg = (res && res.message) ? res.message : 'An error occurred while processing your request.';
+                    showNotification('error', msg);
+
+                    if (res && res.requires_reload) {
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    }
+                }
+            },
+            error: function(xhr, status, err) {
+                $btn.prop('disabled', false).html(origHtml);
+                var errMsg = 'Unable to complete action. Please check your connection and try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errMsg = xhr.responseJSON.message;
+                }
+                showNotification('error', errMsg);
+            }
+        });
+    });
+});
+</script>
 
 <?php $this->load->view('common/fbc-user/footer'); ?>

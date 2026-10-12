@@ -110,6 +110,35 @@ class OrderResolutionController extends CI_Controller
     }
 
     /**
+     * Helper to return JSON for AJAX or redirect with flashdata for standard requests
+     */
+    protected function json_response($status, $message, $extra = [], $fallback_redirect = null)
+    {
+        $is_ajax = $this->input->is_ajax_request()
+            || ($this->input->get_request_header('X-Requested-With') === 'XMLHttpRequest')
+            || ($this->input->post('is_ajax') == 1);
+
+        if ($is_ajax) {
+            header('Content-Type: application/json');
+            echo json_encode(array_merge([
+                'status'  => (bool)$status,
+                'message' => $message,
+            ], $extra));
+            exit;
+        }
+
+        if ($status) {
+            $this->session->set_flashdata('success', $message);
+        } else {
+            $this->session->set_flashdata('error', $message);
+        }
+
+        if ($fallback_redirect) {
+            redirect($fallback_redirect);
+        }
+    }
+
+    /**
      * Admin Reply in conversation
      */
     public function reply()
@@ -121,14 +150,17 @@ class OrderResolutionController extends CI_Controller
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
-            $this->session->set_flashdata('error', 'Invalid ticket.');
-            redirect('order_resolution');
+            $this->json_response(false, 'Invalid ticket.', [], 'order_resolution');
+            return;
+        }
+
+        if ($res->status === 'Close (Final)') {
+            $this->json_response(false, 'Ticket is permanently closed (Final). New replies are disabled.', ['requires_reload' => true], 'order_resolution/view/' . $ticket_number);
             return;
         }
 
         if (empty($message)) {
-            $this->session->set_flashdata('error', 'Message cannot be empty.');
-            redirect('order_resolution/view/' . $ticket_number);
+            $this->json_response(false, 'Message cannot be empty.', [], 'order_resolution/view/' . $ticket_number);
             return;
         }
 
@@ -152,10 +184,13 @@ class OrderResolutionController extends CI_Controller
         }
 
         $sender_name = ($role === 'acct') ? 'Accounting Team (@Acct)' : 'Support Team (@Help)';
-        $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address());
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address());
 
-        $this->session->set_flashdata('success', 'Reply posted successfully.');
-        redirect('order_resolution/view/' . $ticket_number . '?as=' . $role);
+        if ($ok) {
+            $this->json_response(true, 'Reply posted successfully.', ['reload' => true], 'order_resolution/view/' . $ticket_number . '?as=' . $role);
+        } else {
+            $this->json_response(false, 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number . '?as=' . $role);
+        }
     }
 
     /**
@@ -170,18 +205,12 @@ class OrderResolutionController extends CI_Controller
         // Guard: Only @Help or Super Admin can assign
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
         if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
-            $this->session->set_flashdata('error', 'Unauthorized: Only Support (@Help) can assign tickets to Accounting.');
-            redirect('order_resolution/view/' . $ticket_number . '?as=acct');
+            $this->json_response(false, 'Unauthorized: Only Support (@Help) can assign tickets to Accounting.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
             return;
         }
 
         $res = $this->OrderResolutionModel->admin_assign_to_acct($ticket_number, $admin_id, $notes);
-        if ($res['status']) {
-            $this->session->set_flashdata('success', $res['message']);
-        } else {
-            $this->session->set_flashdata('error', $res['message']);
-        }
-        redirect('order_resolution/view/' . $ticket_number . '?as=help');
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
     }
 
     /**
@@ -196,18 +225,12 @@ class OrderResolutionController extends CI_Controller
         // Permission Guard: Only Accounting (@Acct) or Super Admin/Administrator can mark done
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
         if (!empty($user_role) && strpos($user_role, 'help') !== false && strpos($user_role, 'admin') === false) {
-            $this->session->set_flashdata('error', 'Unauthorized: Only Accounting (@Acct) can process refunds and mark tickets as Done.');
-            redirect('order_resolution/view/' . $ticket_number . '?as=help');
+            $this->json_response(false, 'Unauthorized: Only Accounting (@Acct) can process refunds and mark tickets as Done.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
             return;
         }
 
         $res = $this->OrderResolutionModel->admin_mark_done($ticket_number, $admin_id, $notes);
-        if ($res['status']) {
-            $this->session->set_flashdata('success', $res['message']);
-        } else {
-            $this->session->set_flashdata('error', $res['message']);
-        }
-        redirect('order_resolution/view/' . $ticket_number . '?as=acct');
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=acct');
     }
 
     /**
@@ -222,18 +245,12 @@ class OrderResolutionController extends CI_Controller
         // Permission Guard: Only Support (@Help) or Super Admin/Administrator can close ticket
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
         if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
-            $this->session->set_flashdata('error', 'Unauthorized: Only Support (@Help) can close tickets.');
-            redirect('order_resolution/view/' . $ticket_number . '?as=acct');
+            $this->json_response(false, 'Unauthorized: Only Support (@Help) can close tickets.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
             return;
         }
 
         $res = $this->OrderResolutionModel->admin_close_ticket($ticket_number, $admin_id, $notes);
-        if ($res['status']) {
-            $this->session->set_flashdata('success', $res['message']);
-        } else {
-            $this->session->set_flashdata('error', $res['message']);
-        }
-        redirect('order_resolution/view/' . $ticket_number . '?as=help');
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
     }
 
     /**
@@ -248,18 +265,12 @@ class OrderResolutionController extends CI_Controller
         // Permission Guard: Only Support (@Help) or Super Admin/Administrator can close ticket (Final)
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
         if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
-            $this->session->set_flashdata('error', 'Unauthorized: Only Support (@Help) can finalize and close Resolution tickets.');
-            redirect('order_resolution/view/' . $ticket_number . '?as=acct');
+            $this->json_response(false, 'Unauthorized: Only Support (@Help) can finalize and close Resolution tickets.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
             return;
         }
 
         $res = $this->OrderResolutionModel->admin_close_final($ticket_number, $admin_id, $notes);
-        if ($res['status']) {
-            $this->session->set_flashdata('success', $res['message']);
-        } else {
-            $this->session->set_flashdata('error', $res['message']);
-        }
-        redirect('order_resolution/view/' . $ticket_number . '?as=help');
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
     }
 
     /**
@@ -273,11 +284,6 @@ class OrderResolutionController extends CI_Controller
         $notes         = trim($this->input->post('notes', true));
 
         $res = $this->OrderResolutionModel->admin_resolution_decision($ticket_number, $decision, $admin_id, $notes);
-        if ($res['status']) {
-            $this->session->set_flashdata('success', $res['message']);
-        } else {
-            $this->session->set_flashdata('error', $res['message']);
-        }
-        redirect('order_resolution/view/' . $ticket_number);
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number);
     }
 }

@@ -197,7 +197,7 @@
                                 <h4 class="panel-title"><?php echo $this->lang->line('post_reply') ?: 'Post a Reply'; ?></h4>
                             </div>
                             <div class="panel-body">
-                                <form action="<?php echo base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
+                                <form action="<?php echo base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
                                     <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
                                     <div class="form-group">
                                         <textarea name="message" rows="4" class="form-control" placeholder="Write your response to the merchant..." required></textarea>
@@ -232,7 +232,7 @@
 <div class="modal fade" id="resolutionRequestModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?php echo base_url('order_resolution/request_resolution'); ?>" method="POST">
+            <form action="<?php echo base_url('order_resolution/request_resolution'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
@@ -253,5 +253,93 @@
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    function showNotification(type, message) {
+        var alertClass = (type === 'success') ? 'alert-success' : 'alert-danger';
+        var icon = (type === 'success') ? '<i class="fa fa-check-circle"></i> ' : '<i class="fa fa-exclamation-circle"></i> ';
+        var html = '<div class="alert ' + alertClass + ' alert-dismissible resolution-ajax-alert" role="alert" style="position:fixed; top:20px; right:20px; z-index:99999; min-width:320px; max-width:480px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">' +
+                   '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                   icon + message +
+                   '</div>';
+        $('.resolution-ajax-alert').remove();
+        $('body').append(html);
+        setTimeout(function() {
+            $('.resolution-ajax-alert').fadeOut(function() { $(this).remove(); });
+        }, 4000);
+    }
+
+    $(document).on('submit', 'form.ajax-resolution-form', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $btn = $form.find('button[type="submit"]');
+        if ($btn.length === 0) {
+            $btn = $form.find(':submit');
+        }
+
+        // Double-click guard
+        if ($btn.prop('disabled')) {
+            return false;
+        }
+
+        var origHtml = $btn.html();
+        $btn.data('original-html', origHtml);
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
+
+        var formData = new FormData(this);
+        formData.append('is_ajax', '1');
+
+        $.ajax({
+            url: $form.attr('action'),
+            type: $form.attr('method') || 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(res) {
+                if (res && res.status) {
+                    $btn.html('<i class="fa fa-check"></i> Done');
+                    showNotification('success', res.message || 'Action processed successfully.');
+
+                    var $modal = $form.closest('.modal');
+                    if ($modal.length) {
+                        $modal.modal('hide');
+                    }
+
+                    setTimeout(function() {
+                        if (res.redirect) {
+                            window.location.href = res.redirect;
+                        } else {
+                            window.location.reload();
+                        }
+                    }, 800);
+                } else {
+                    $btn.prop('disabled', false).html(origHtml);
+                    var msg = (res && res.message) ? res.message : 'An error occurred while processing your request.';
+                    showNotification('error', msg);
+
+                    if (res && res.requires_reload) {
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    }
+                }
+            },
+            error: function(xhr, status, err) {
+                $btn.prop('disabled', false).html(origHtml);
+                var errMsg = 'Unable to complete action. Please check your connection and try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errMsg = xhr.responseJSON.message;
+                }
+                showNotification('error', errMsg);
+            }
+        });
+    });
+});
+</script>
 
 <?php $this->load->view('common/footer'); ?>

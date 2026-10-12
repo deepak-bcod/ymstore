@@ -651,6 +651,10 @@ class OrderResolutionModel extends CI_Model
             return false;
         }
 
+        if ($res->status === 'Close (Final)') {
+            return false;
+        }
+
         $time = time();
         $this->db->insert('order_resolution_messages', [
             'resolution_id' => $res->id,
@@ -899,6 +903,25 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'Invalid ticket or unauthorized merchant.'];
         }
 
+        // Idempotency & State Guard: Cannot perform actions on closed tickets
+        if ($res->status === 'Close (Final)') {
+            return ['status' => false, 'message' => 'This resolution ticket is permanently closed (Final).', 'requires_reload' => true];
+        }
+
+        // Idempotency Guard: Prevent duplicate actions
+        if ($action === 'replacement_completed') {
+            if ($res->merchant_action === 'replacement_completed') {
+                return ['status' => false, 'message' => 'Replacement has already been marked as completed.', 'requires_reload' => true];
+            }
+            if ($res->merchant_action !== 'replacement_approved' || $res->delivery_option === 'none') {
+                return ['status' => false, 'message' => 'Replacement must be approved with a delivery option first.', 'requires_reload' => true];
+            }
+        } else {
+            if (!empty($res->merchant_action) && $res->merchant_action !== 'none') {
+                return ['status' => false, 'message' => 'A decision has already been submitted for this ticket (' . ucwords(str_replace('_', ' ', $res->merchant_action)) . ').', 'requires_reload' => true];
+            }
+        }
+
         $category = strtolower(trim($res->category ?? ''));
         $is_refund_type = in_array($category, ['refund', 'return'], true);
         $is_replacement_type = ($category === 'replacement');
@@ -1016,6 +1039,14 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'Invalid ticket or unauthorized customer.'];
         }
 
+        // State & Idempotency Guard
+        if ($res->status === 'Close (Final)') {
+            return ['status' => false, 'message' => 'This resolution ticket is permanently closed (Final).', 'requires_reload' => true];
+        }
+        if ($res->resolution_status === 'resolution_requested' || $res->status === 'ReOpen') {
+            return ['status' => false, 'message' => 'A resolution escalation request has already been submitted for this ticket.', 'requires_reload' => true];
+        }
+
         $time = time();
         $this->db->where('id', $res->id)->update('order_resolutions', [
             'status'                  => 'ReOpen',
@@ -1060,6 +1091,14 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'Ticket not found.'];
         }
 
+        // State & Idempotency Guard
+        if ($res->status === 'Close (Final)') {
+            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
+        }
+        if ($res->status === 'Processing' && $res->assigned_role === 'Acct') {
+            return ['status' => false, 'message' => 'Ticket is already assigned to Accounting (@Acct).', 'requires_reload' => true];
+        }
+
         $time = time();
         $this->db->where('id', $res->id)->update('order_resolutions', [
             'status'        => 'Processing',
@@ -1098,6 +1137,14 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'Ticket not found.'];
         }
 
+        // State & Idempotency Guard
+        if ($res->status === 'Close (Final)') {
+            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
+        }
+        if ($res->status === 'Done') {
+            return ['status' => false, 'message' => 'Ticket is already marked as Done.', 'requires_reload' => true];
+        }
+
         $time = time();
         $this->db->where('id', $res->id)->update('order_resolutions', [
             'status'     => 'Done',
@@ -1122,6 +1169,14 @@ class OrderResolutionModel extends CI_Model
         $res = $this->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
             return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+
+        // State & Idempotency Guard
+        if ($res->status === 'Close (Final)') {
+            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
+        }
+        if ($res->status === 'Close') {
+            return ['status' => false, 'message' => 'Ticket is already marked as Closed.', 'requires_reload' => true];
         }
 
         $time = time();
@@ -1160,6 +1215,11 @@ class OrderResolutionModel extends CI_Model
         $res = $this->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
             return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+
+        // State & Idempotency Guard
+        if ($res->status === 'Close (Final)') {
+            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
         }
 
         $time = time();
@@ -1207,6 +1267,14 @@ class OrderResolutionModel extends CI_Model
         $res = $this->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
             return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+
+        // State & Idempotency Guard
+        if ($res->status === 'Close (Final)') {
+            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
+        }
+        if (in_array($res->resolution_status, ['resolution_approved', 'resolution_denied'], true)) {
+            return ['status' => false, 'message' => 'A resolution decision has already been recorded for this ticket.', 'requires_reload' => true];
         }
 
         $time = time();

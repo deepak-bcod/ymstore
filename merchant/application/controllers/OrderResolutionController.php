@@ -80,6 +80,35 @@ class OrderResolutionController extends CI_Controller
     }
 
     /**
+     * Helper to return JSON for AJAX or redirect with flashdata for standard requests
+     */
+    protected function json_response($status, $message, $extra = [], $fallback_redirect = null)
+    {
+        $is_ajax = $this->input->is_ajax_request()
+            || ($this->input->get_request_header('X-Requested-With') === 'XMLHttpRequest')
+            || ($this->input->post('is_ajax') == 1);
+
+        if ($is_ajax) {
+            header('Content-Type: application/json');
+            echo json_encode(array_merge([
+                'status'  => (bool)$status,
+                'message' => $message,
+            ], $extra));
+            exit;
+        }
+
+        if ($status) {
+            $this->session->set_flashdata('success', $message);
+        } else {
+            $this->session->set_flashdata('error', $message);
+        }
+
+        if ($fallback_redirect) {
+            redirect($fallback_redirect);
+        }
+    }
+
+    /**
      * Merchant Reply to Shopper
      */
     public function reply()
@@ -90,14 +119,17 @@ class OrderResolutionController extends CI_Controller
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
         if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
-            $this->session->set_flashdata('error', 'Invalid ticket.');
-            redirect('order_resolution');
+            $this->json_response(false, 'Invalid ticket or unauthorized access.', [], 'order_resolution');
+            return;
+        }
+
+        if ($res->status === 'Close (Final)') {
+            $this->json_response(false, 'Ticket is permanently closed (Final). New replies are disabled.', ['requires_reload' => true], 'order_resolution/view/' . $ticket_number);
             return;
         }
 
         if (empty($message)) {
-            $this->session->set_flashdata('error', 'Message cannot be empty.');
-            redirect('order_resolution/view/' . $ticket_number);
+            $this->json_response(false, 'Message cannot be empty.', [], 'order_resolution/view/' . $ticket_number);
             return;
         }
 
@@ -123,10 +155,13 @@ class OrderResolutionController extends CI_Controller
         $pub = $this->db->select('publication_name')->where('id', $merchant_id)->get('publisher')->row();
         $sender_name = $pub ? $pub->publication_name : 'Merchant';
 
-        $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
 
-        $this->session->set_flashdata('success', 'Your reply has been sent to the shopper.');
-        redirect('order_resolution/view/' . $ticket_number);
+        if ($ok) {
+            $this->json_response(true, 'Your reply has been sent to the shopper.', ['reload' => true], 'order_resolution/view/' . $ticket_number);
+        } else {
+            $this->json_response(false, 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);
+        }
     }
 
     /**
@@ -151,13 +186,6 @@ class OrderResolutionController extends CI_Controller
         }
 
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
-
-        if ($result['status']) {
-            $this->session->set_flashdata('success', $result['message']);
-        } else {
-            $this->session->set_flashdata('error', $result['message']);
-        }
-
-        redirect('order_resolution/view/' . $ticket_number);
+        $this->json_response($result['status'], $result['message'], $result, 'order_resolution/view/' . $ticket_number);
     }
 }
