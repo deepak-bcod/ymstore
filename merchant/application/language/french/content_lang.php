@@ -1082,5 +1082,3 @@ $lang['return_rejected_message'] = 'Votre demande de retour pour (%s) - (%s) a �
 
 
 
-$lang['ask_question_title'] = 'Poser une question';
-$lang['merchant_reply_notification'] = 'Vous avez reçu une réponse à votre message « Poser une question .';

@@ -32,6 +32,7 @@
                 <tr style="background: #ffeb3b; color: #000;">
                     <th style="padding: 12px; border: 1px solid #ddd;"><?= $this->lang->line('notification_table_title'); ?></th>
                     <th style="padding: 12px; border: 1px solid #ddd;"><?= $this->lang->line('notification_table_message'); ?></th>
+                    <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;">Type</th>
                     <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;"><?= $this->lang->line('notification_table_date'); ?></th>
                     <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;"><?= $this->lang->line('notification_table_action'); ?></th>
                 </tr>
@@ -41,19 +42,69 @@
                 <?php if (!empty($notifications)): ?>
 
                     <?php foreach ($notifications as $row): ?>
+                        <?php
+    $current_lang = $this->session->userdata('site_lang') ?? 'english';
+    
+    $title = $row->title;
+    $message = $row->message;
+    $type = $row->type;
+
+    if ($current_lang === 'french') {
+        // 1. Product Question / Ask a Question
+        if ($row->title === 'Ask a Question') {
+            $title = 'Poser une question';
+        }
+        if ($row->message === 'You got a reply to your Ask a Question message.') {
+            $message = "Vous avez reçu une réponse à votre message 'Poser une question'.";
+        }
+
+        // 2. Return Request
+        if ($type === 'return' || $row->title === 'Return Request Approved') {
+            $title = 'Demande de retour approuvée';
+            if (strpos($row->message, 'is accepted') !== false) {
+                $message = str_replace(['Your return for', 'is accepted.'], ['Votre retour pour', 'a été accepté.'], $row->message);
+            }
+        }
+
+        // 3. Orders (Delivered, Shipped, Processing)
+        if ($type === 'order') {
+            if ($row->title === 'Order delivered') {
+                $title = 'Commande livrée';
+            } elseif ($row->title === 'Order Shipped') {
+                $title = 'Commande expédiée';
+            } elseif ($row->title === 'Order Processing') {
+                $title = 'Commande en cours de traitement';
+            }
+
+            if (strpos($row->message, 'is delivered') !== false) {
+                $message = str_replace(['Your order no.', 'is delivered.'], ['Votre commande n°', 'a été livrée.'], $row->message);
+            } elseif (strpos($row->message, 'is shipped') !== false) {
+                $message = str_replace(['Your order no.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.'], $row->message);
+            } elseif (strpos($row->message, 'is under process') !== false) {
+                $message = str_replace(['Your order no.', 'is under process.'], ['Votre commande n°', 'est en cours de traitement.'], $row->message);
+            }
+        }
+    }
+?>
 
                         <tr style="<?= ($row->is_read == 0)
                             ? 'background-color: #fffdf0; font-weight: bold;'
                             : ''; ?>">
 
                             <td style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;">
-                                <?= htmlspecialchars($row->title); ?>
+                                <?= htmlspecialchars($title); ?>
                             </td>
 
                             <td style="padding: 12px; border: 1px solid #ddd;" class="message-cell">
                                 <div class="message-text">
-                                    <?= htmlspecialchars($row->message); ?>
+                                    <?= htmlspecialchars($message); ?>
                                 </div>
+                            </td>
+
+                            <td style="padding: 12px; border: 1px solid #ddd; white-space: nowrap; text-align: center;">
+                                <span class="badge badge-secondary" style="background: #6c757d; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
+                                    <?= htmlspecialchars($type); ?>
+                                </span>
                             </td>
 
                             <td style="padding: 12px; border: 1px solid #ddd; white-space: nowrap; text-align: center;">
@@ -87,7 +138,7 @@
                 <?php else: ?>
 
                     <tr>
-                        <td colspan="4"
+                        <td colspan="5"
                             style="text-align: center; padding: 20px; color: #777;">
                             <?= $this->lang->line('no_notifications_found'); ?>
                         </td>
