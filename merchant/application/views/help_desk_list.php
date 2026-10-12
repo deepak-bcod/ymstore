@@ -76,10 +76,15 @@
         8 => lang('technical_issue')
     ];
 
-    // Check 'subject_type' first (or adjust to your actual database column name)
-    $subjectKey = $first_ticket['subject_type'] ?? $first_ticket['priority'] ?? '';
-    
-    echo $subject_types[$subjectKey] ?? ($subjectKey !== '' ? $subjectKey : lang('unknown'));
+    // Check possible column names in your database
+    $subjectKey = $first_ticket['subject_type'] ?? $first_ticket['type'] ?? $first_ticket['category'] ?? $first_ticket['priority'] ?? '';
+
+    // If the database stores the text directly (e.g., "Refund Request"), display it; otherwise look it up in the array
+    if (is_numeric($subjectKey)) {
+        echo $subject_types[$subjectKey] ?? lang('unknown');
+    } else {
+        echo !empty($subjectKey) ? $subjectKey : lang('unknown');
+    }
     ?>
 </td>
             <td>
