@@ -1754,64 +1754,81 @@ class CustomerController extends CI_Controller
         $this->load->view('edit_help_desk', $data);
     }
 
-    public function update_help_desk()
+   public function update_help_desk()
     {
-		// 1. Get the primary key 'id' sent from the form
-		$id = $this->input->post('ticket_id'); // This receives the value of the hidden input
-		$admin_reply = trim($this->input->post('admin_reply'));
+        // 1. Get the primary key 'id' sent from the form
+        $id = $this->input->post('ticket_id'); // This receives the value of the hidden input
+        $admin_reply = trim($this->input->post('admin_reply'));
 
-		if (empty($admin_reply)) {
-			$this->session->set_flashdata('error', "Reply cannot be empty.");
-			redirect($_SERVER['HTTP_REFERER']);
-			return;
-		}
+        if (empty($admin_reply)) {
+            $this->session->set_flashdata('error', "Reply cannot be empty.");
+            redirect($_SERVER['HTTP_REFERER']);
+            return;
+        }
 
-		// 2. QUERY BY THE CORRECT COLUMN ('id')
-		$ticket = $this->db->where('id', $id)->get('help_desk')->row();
+        // 2. QUERY BY THE CORRECT COLUMN ('id')
+        $ticket = $this->db->where('id', $id)->get('help_desk')->row();
 
-		if (!$ticket) {
-			$this->session->set_flashdata('error', "Ticket not found. ID provided: " . $id);
-			redirect($_SERVER['HTTP_REFERER']);
-			return;
-		}
+        if (!$ticket) {
+            $this->session->set_flashdata('error', "Ticket not found. ID provided: " . $id);
+            redirect($_SERVER['HTTP_REFERER']);
+            return;
+        }
 
-		// 3. Prepare data (ensure you use $ticket->order_id for the redirect later)
-		$insertData = [
-			'ticket_id'           => $ticket->ticket_id, 
-			'subject'             => $ticket->subject,
-			'category'            => $ticket->category,
-			'priority'            => $ticket->priority,
-			'customer_id'         => $ticket->customer_id,
-			'merchant_id'         => $ticket->merchant_id,
-			'message'             => '', // Keep empty or store reference if needed
-			'attachment'          => '',
-			'order_id'            => $ticket->order_id,
-			'products'            => $ticket->products,
-			'admin_reply'         => $admin_reply,
-			'status'              => 1,
-			'created_at'          => time(),
-			'updated_at'          => time(),
-			'ip'                  => $_SERVER['REMOTE_ADDR'],
-		];
+        // 3. Prepare data (ensure you use $ticket->order_id for the redirect later)
+        $insertData = [
+            'ticket_id'             => $ticket->ticket_id, 
+            'subject'               => $ticket->subject,
+            'category'              => $ticket->category,
+            'priority'              => $ticket->priority,
+            'customer_id'           => $ticket->customer_id,
+            'merchant_id'           => $ticket->merchant_id,
+            'message'               => '', // Keep empty or store reference if needed
+            'attachment'            => '',
+            'order_id'              => $ticket->order_id,
+            'products'              => $ticket->products,
+            'admin_reply'           => $admin_reply,
+            'status'                => 1,
+            'created_at'            => time(),
+            'updated_at'            => time(),
+            'ip'                    => $_SERVER['REMOTE_ADDR'],
+        ];
 
-		$this->db->insert('help_desk', $insertData);
+        $this->db->insert('help_desk', $insertData);
 
-		$updateData = [
-			'updated_at'  => strtotime(date('Y-m-d H:i:s')),
-			'status'      => 1
-		];
-		$this->db->where('ticket_id', $ticket->ticket_id);
-		$this->db->update('help_desk', $updateData);
-		
+        $updateData = [
+            'updated_at'  => strtotime(date('Y-m-d H:i:s')),
+            'status'      => 1
+        ];
+        $this->db->where('ticket_id', $ticket->ticket_id);
+        $this->db->update('help_desk', $updateData);
+        
+        // 4. Send Notification to Shopper/Customer
+        if (!empty($ticket->customer_id)) {
+            $this->db->insert('notifications', [
+                'type'           => 'helpdesk',
+                'subtype'        => 'ticket_reply',
+                'recipient_type' => 'customer',
+                'recipient_id'   => $ticket->customer_id,
+                'title'          => 'Help Desk Ticket Reply',
+                'message'        => 'Admin has replied to your help desk ticket #' . $ticket->ticket_id . '.',
+                'data'           => json_encode([
+                    'ticket_id'   => $ticket->ticket_id,
+                    'order_id'    => $ticket->order_id,
+                    'product_id'  => $ticket->products,
+                    'merchant_id' => $ticket->merchant_id
+                ]),
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s')
+            ]);
+        }
 
-		// 4. Correct Redirect
-		// Ensure this path matches the one defined in your routes
-		$this->session->set_flashdata('success', "Reply added successfully.");
-		// Change the redirect line in update_help_desk:
-		$redirect_path = 'CustomerController/view/' . $ticket->order_id . '/' . $ticket->ticket_id . '/' . $ticket->products;
-		redirect($redirect_path);
+        // 5. Correct Redirect
+        $this->session->set_flashdata('success', "Reply added successfully.");
+        $redirect_path = 'CustomerController/view/' . $ticket->order_id . '/' . $ticket->ticket_id . '/' . $ticket->products;
+        redirect($redirect_path);
     }
-
     // ==========================================================
     // ADD THESE NEW METHODS FOR YOUR SUBMENUS BELOW
     // ==========================================================
