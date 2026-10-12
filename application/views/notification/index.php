@@ -42,80 +42,93 @@
                 <?php if (!empty($notifications)): ?>
 
                     <?php foreach ($notifications as $row): ?>
-                        <?php
-                            $current_lang = $this->session->userdata('site_lang') ?? 'english';
-                            
-                            $title = $row->title;
-                            $message = $row->message;
-                            $type = $row->type;
+                      <?php
+    $current_lang = $this->session->userdata('site_lang') ?? 'english';
+    
+    $title = $row->title;
+    $message = $row->message;
+    $type = $row->type;
+    $subtype = isset($row->subtype) ? strtolower(trim($row->subtype)) : '';
 
-                            if ($current_lang === 'french') {
-                                // 1. Product Question / Ask a Question
-                                if ($row->title === 'Ask a Question') {
-                                    $title = 'Poser une question';
-                                }
-                                if ($row->message === 'You got a reply to your Ask a Question message.') {
-                                    $message = "Vous avez reçu une réponse à votre message 'Poser une question'.";
-                                }
+    if ($current_lang === 'french') {
+        // 1. Product Question / Ask a Question
+        if ($row->title === 'Ask a Question') {
+            $title = 'Poser une question';
+        }
+        if ($row->message === 'You got a reply to your Ask a Question message.') {
+            $message = "Vous avez reçu une réponse à votre message 'Poser une question'.";
+        }
 
-                                // 2. Return Request
-                                if ($type === 'return' || strpos($row->title, 'Return Request') !== false) {
-                                    $title = 'Demande de retour approuvée';
-                                    if (strpos($row->message, 'is accepted') !== false) {
-                                        $message = str_replace(['Your return for', 'is accepted.'], ['Votre retour pour', 'a été accepté.'], $row->message);
-                                    }
-                                }
+        // 2. Return Request
+        if ($type === 'return' || strpos($row->title, 'Return Request') !== false) {
+            $title = 'Demande de retour approuvée';
+            if (strpos($row->message, 'is accepted') !== false) {
+                $message = str_replace(['Your return for', 'is accepted.'], ['Votre retour pour', 'a été accepté.'], $row->message);
+            }
+        }
 
-                                // 3. Replacement Request
-                                if ($type === 'replacement' || strpos($row->title, 'Replacement Approved') !== false) {
-                                    $title = 'Demande de remplacement approuvée';
-                                    if (strpos($row->message, 'has been approved') !== false) {
-                                        // Translates: "Your replacement request for Order No ES-1302 (...) has been approved."
-                                        $message = str_replace(
-                                            ['Your replacement request for', 'has been approved.'], 
-                                            ['Votre demande de remplacement pour', 'a été approuvée.'], 
-                                            $row->message
-                                        );
-                                    }
-                                }
+        // 3. Replacement Request
+        if ($type === 'replacement' || strpos($row->title, 'Replacement Approved') !== false) {
+            $title = 'Demande de remplacement approuvée';
+            if (strpos($row->message, 'has been approved') !== false) {
+                $message = str_replace(
+                    ['Your replacement request for', 'has been approved.'], 
+                    ['Votre demande de remplacement pour', 'a été approuvée.'], 
+                    $row->message
+                );
+            }
+        }
 
-                                // 4. Orders (Delivered, Shipped, Processing)
-                                if ($type === 'order') {
-                                    if ($row->title === 'Order delivered') {
-                                        $title = 'Commande livrée';
-                                    } elseif ($row->title === 'Order Shipped') {
-                                        $title = 'Commande expédiée';
-                                    } elseif ($row->title === 'Order Processing') {
-                                        $title = 'Commande en cours de traitement';
-                                    }
+        // 4. Orders (Delivered, Shipped, Processing)
+        if ($type === 'order' && $subtype !== 'delivery_failed' && $subtype !== 'new_sales_order') {
+            if ($row->title === 'Order delivered') {
+                $title = 'Commande livrée';
+            } elseif ($row->title === 'Order Shipped') {
+                $title = 'Commande expédiée';
+            } elseif ($row->title === 'Order Processing') {
+                $title = 'Commande en cours de traitement';
+            }
 
-                                    if (strpos($row->message, 'is delivered') !== false) {
-                                        $message = str_replace(['Your order no.', 'is delivered.'], ['Votre commande n°', 'a été livrée.'], $row->message);
-                                    } elseif (strpos($row->message, 'is shipped') !== false) {
-                                        $message = str_replace(['Your order no.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.'], $row->message);
-                                    } elseif (strpos($row->message, 'is under process') !== false) {
-                                        $message = str_replace(['Your order no.', 'is under process.'], ['Votre commande n°', 'est en cours de traitement.'], $row->message);
-                                    }
-                                }
-                                // 5. Order Failed / Delivery Failed
-                                if ($row->title === 'Order Failed' || ($type === 'order' && $subtype === 'delivery_failed')) {
-                                    $title = 'Commande échouée';
-                                    if (strpos($row->message, 'could not be delivered') !== false) {
-                                        $message = str_replace(
-                                            [
-                                                'Your order no.', 
-                                                'could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.'
-                                            ], 
-                                            [
-                                                'Votre commande n°', 
-                                                "n'a pas pu être livrée en raison de 2 tentatives infructueuses. Veuillez contacter l'équipe Yellow Markets pour récupérer votre commande."
-                                            ], 
-                                            $row->message
-                                        );
-                                    }
-                                }
-                            }
-                        ?>
+            if (strpos($row->message, 'is delivered') !== false) {
+                $message = str_replace(['Your order no.', 'is delivered.'], ['Votre commande n°', 'a été livrée.'], $row->message);
+            } elseif (strpos($row->message, 'is shipped') !== false) {
+                $message = str_replace(['Your order no.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.'], $row->message);
+            } elseif (strpos($row->message, 'is under process') !== false) {
+                $message = str_replace(['Your order no.', 'is under process.'], ['Votre commande n°', 'est en cours de traitement.'], $row->message);
+            }
+        }
+
+        // 5. Order Failed / Delivery Failed
+        if ($row->title === 'Order Failed' || ($type === 'order' && $subtype === 'delivery_failed')) {
+            $title = 'Commande échouée';
+            if (strpos($row->message, 'could not be delivered') !== false) {
+                $message = str_replace(
+                    [
+                        'Your order no.', 
+                        'could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.'
+                    ], 
+                    [
+                        'Votre commande n°', 
+                        "n'a pas pu être livrée en raison de 2 tentatives infructueuses. Veuillez contacter l'équipe Yellow Markets pour récupérer votre commande."
+                    ], 
+                    $row->message
+                );
+            }
+        }
+
+        // 6. New Order Placed
+        if ($row->title === 'New order placed' || ($type === 'order' && $subtype === 'new_sales_order')) {
+            $title = 'Nouvelle commande passée';
+            if (strpos($row->message, 'has been successfully placed') !== false) {
+                $message = str_replace(
+                    ['Your order #', 'has been successfully placed.'],
+                    ['Votre commande n°', 'a été passée avec succès.'],
+                    $row->message
+                );
+            }
+        }
+    }
+?>
 
                         <tr style="<?= ($row->is_read == 0)
                             ? 'background-color: #fffdf0; font-weight: bold;'
