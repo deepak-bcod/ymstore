@@ -196,12 +196,7 @@ class OrderResolutionModel extends CI_Model
             'created_at'    => $time,
         ]);
 
-        // Update product / order status in b2b & sales_order
-        if (strtolower($category) === 'replacement') {
-            $this->update_order_item_status($order_id, $product_id, $merchant_id, 15); // Replacement Requested
-        } elseif (in_array(strtolower($category), ['refund', 'return'], true)) {
-            $this->update_order_item_status($order_id, $product_id, $merchant_id, 14); // Return/Refund Requested
-        }
+        // Order Status & Item Status remain completely separate and are never altered by resolution tickets
 
         // Send Email Notifications
         $this->send_creation_emails($resolution_data, $shopper_name);
@@ -220,40 +215,14 @@ class OrderResolutionModel extends CI_Model
     }
 
     /**
-     * Update order and item status in b2b_order_items, b2b_orders, and sales_order_items
+     * Deprecated / No-op: Order status and Order Item status must remain completely separate
+     * from the Order Resolution status lifecycle. This method is retained as a safe no-op
+     * to prevent any accidental mutations of sales_order, b2b_orders, or b2b_order_items.
      */
     public function update_order_item_status($order_id, $product_id, $merchant_id, $target_status)
     {
-        if (empty($order_id) || empty($target_status)) {
-            return;
-        }
-
-        // 1. Update b2b_orders and b2b_order_items
-        $b2b_query = $this->db->select('order_id')->from('b2b_orders')->where('webshop_order_id', $order_id);
-        if (!empty($merchant_id)) {
-            $b2b_query->where('publisher_id', $merchant_id);
-        }
-        $b2b_orders = $b2b_query->get()->result();
-
-        if (!empty($b2b_orders)) {
-            foreach ($b2b_orders as $b2b) {
-                $this->db->where('order_id', $b2b->order_id);
-                if (!empty($product_id)) {
-                    $this->db->where('product_id', $product_id);
-                }
-                $this->db->update('b2b_order_items', ['status' => $target_status]);
-                $this->db->where('order_id', $b2b->order_id)->update('b2b_orders', ['status' => $target_status]);
-            }
-        }
-
-        // 2. Update sales_order_items only if status column exists
-        if ($this->db->field_exists('status', 'sales_order_items')) {
-            $this->db->where('order_id', $order_id);
-            if (!empty($product_id)) {
-                $this->db->where('product_id', $product_id);
-            }
-            $this->db->update('sales_order_items', ['status' => $target_status]);
-        }
+        // Strict separation: Order status and Order Item status are NEVER altered by Resolution status.
+        return false;
     }
 
     /**
@@ -673,9 +642,6 @@ class OrderResolutionModel extends CI_Model
                 $update['delivery_option'] = $delivery_option;
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                // Update order item status to 18 (Replacement Approved)
-                $this->update_order_item_status($res->order_id, $res->product_id, $res->merchant_id, 18);
-
                 $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Approved', 'merchant', $merchant_id, "Selected delivery: {$delivery_option}");
 
                 // Notify @Help of button action
@@ -694,9 +660,6 @@ class OrderResolutionModel extends CI_Model
                 $update['merchant_action'] = 'replacement_denied';
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                // Update order item status to 21 (Replacement Rejected)
-                $this->update_order_item_status($res->order_id, $res->product_id, $res->merchant_id, 21);
-
                 $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Denied', 'merchant', $merchant_id, 'Merchant denied replacement.');
                 $this->send_merchant_action_email_to_help($res, 'Replacement Denied');
                 $this->send_replacement_denied_shopper_email($res);
@@ -709,9 +672,6 @@ class OrderResolutionModel extends CI_Model
                 }
                 $update['merchant_action'] = 'replacement_completed';
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
-
-                // Update order item status to 19 (Replaced)
-                $this->update_order_item_status($res->order_id, $res->product_id, $res->merchant_id, 19);
 
                 $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Completed', 'merchant', $merchant_id, 'Merchant marked replacement completed.');
                 $this->send_merchant_action_email_to_help($res, 'Replacement Completed');
@@ -819,11 +779,6 @@ class OrderResolutionModel extends CI_Model
             'status'     => 'Done',
             'updated_at' => $time,
         ]);
-
-        // Update order status to 17 (Refund Paid) if refund
-        if ($res->merchant_action === 'refund_approved' || strtolower($res->category) === 'refund' || $res->resolution_status === 'resolution_approved') {
-            $this->update_order_item_status($res->order_id, $res->product_id, $res->merchant_id, 17);
-        }
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 15-day hold-back sales.');
 
