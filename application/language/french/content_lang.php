@@ -11,6 +11,7 @@ $lang['daily_deals'] = "Offres du jour";
 $lang['flash_sales'] = "Ventes flash";
 $lang['blog'] = "Blog";
 
+
 $lang['payment_methods'] = "Méthodes de paiement";
 $lang['sign_out'] = "Se déconnecter";
 $lang['shopper_signin'] = "Connexion Acheteur";
@@ -1374,4 +1375,15 @@ $lang['all_items_general'] = '-- Tous les articles / Problème général --';
 $lang['select_order'] = '-- Sélectionner la commande --';
 $lang['post_reply'] = 'Poster une réponse';
 $lang['send_reply'] = 'Envoyer la réponse';
+
+
+$lang['notifications_title'] = 'Notifications';
+$lang['mark_all_read'] = 'Tout marquer comme lu';
+$lang['notification_table_title'] = 'Titre';
+$lang['notification_table_message'] = 'Message';
+$lang['notification_table_date'] = 'Date';
+$lang['notification_table_action'] = 'Action';
+$lang['mark_read'] = 'Marquer comme lu';
+$lang['notification_status_read'] = 'Lu';
+$lang['no_notifications_found'] = 'Aucune notification trouvée.';
 

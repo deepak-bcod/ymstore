@@ -2268,6 +2268,16 @@ $lang['select_order'] = '-- Select Order --';
 $lang['post_reply'] = 'Post a Reply';
 $lang['send_reply'] = 'Send Reply';
 
+$lang['notifications_title'] = 'Notifications';
+$lang['mark_all_read'] = 'Mark All Read';
+$lang['notification_table_title'] = 'Title';
+$lang['notification_table_message'] = 'Message';
+$lang['notification_table_date'] = 'Date';
+$lang['notification_table_action'] = 'Action';
+$lang['mark_read'] = 'Mark Read';
+$lang['notification_status_read'] = 'Read';
+$lang['no_notifications_found'] = 'No notifications found.';
+
 
 
 

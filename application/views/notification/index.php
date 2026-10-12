@@ -15,12 +15,12 @@
 
 <div class="container" style="padding: 40px 0;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>Notifications</h2>
+        <h2><?= $this->lang->line('notifications_title'); ?></h2>
 
         <a href="<?= base_url('notification/mark_all_read'); ?>"
            class="btn btn-dark"
            style="background: #222; color: #fff; padding: 8px 15px; text-decoration: none; border-radius: 4px;">
-            Mark All Read
+            <?= $this->lang->line('mark_all_read'); ?>
         </a>
     </div>
 
@@ -30,10 +30,10 @@
 
             <thead>
                 <tr style="background: #ffeb3b; color: #000;">
-                    <th style="padding: 12px; border: 1px solid #ddd;">Title</th>
-                    <th style="padding: 12px; border: 1px solid #ddd;">Message</th>
-                    <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;">Date</th>
-                    <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;">Action</th>
+                    <th style="padding: 12px; border: 1px solid #ddd;"><?= $this->lang->line('notification_table_title'); ?></th>
+                    <th style="padding: 12px; border: 1px solid #ddd;"><?= $this->lang->line('notification_table_message'); ?></th>
+                    <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;"><?= $this->lang->line('notification_table_date'); ?></th>
+                    <th style="padding: 12px; border: 1px solid #ddd; white-space: nowrap;"><?= $this->lang->line('notification_table_action'); ?></th>
                 </tr>
             </thead>
 
@@ -68,13 +68,13 @@
                                     <a href="<?= base_url('notification/mark_read/' . $row->id); ?>"
                                        class="btn btn-sm btn-primary"
                                        style="background: #007bff; color: #fff; padding: 5px 10px; border-radius: 3px; text-decoration: none; font-size: 12px;">
-                                        Mark Read
+                                        <?= $this->lang->line('mark_read'); ?>
                                     </a>
 
                                 <?php else: ?>
 
                                     <span style="color: #28a745; font-size: 12px;">
-                                        Read
+                                        <?= $this->lang->line('notification_status_read'); ?>
                                     </span>
 
                                 <?php endif; ?>
@@ -89,7 +89,7 @@
                     <tr>
                         <td colspan="4"
                             style="text-align: center; padding: 20px; color: #777;">
-                            No notifications found.
+                            <?= $this->lang->line('no_notifications_found'); ?>
                         </td>
                     </tr>
 
