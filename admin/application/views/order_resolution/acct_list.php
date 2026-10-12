@@ -100,7 +100,7 @@ $this->load->view('common/fbc-user/header');
                                 </td>
                                 <td><?= date('d M Y', $res->created_at); ?></td>
                                 <td>
-                                    <a href="<?= base_url('order_resolution/view/' . $res->ticket_number); ?>" class="btn btn-sm btn-warning">
+                                    <a href="<?= base_url('order_resolution/view/' . $res->ticket_number . '?as=acct'); ?>" class="btn btn-sm btn-warning">
                                         <i class="fa fa-pencil"></i> Process
                                     </a>
                                 </td>

@@ -76,9 +76,27 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
-        $data['resolution'] = $res;
-        $data['messages']   = $this->OrderResolutionModel->get_messages($res->id);
-        $data['audit_logs'] = $this->OrderResolutionModel->get_audit_log($res->id);
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        $is_super_admin = (strpos($user_role, 'super') !== false || strpos($user_role, 'administrator') !== false || $user_role === 'admin' || empty($user_role));
+
+        // Determine current viewing mode: 'acct' vs 'help'
+        $as_param = strtolower(trim((string)$this->input->get('as', true)));
+        if ($as_param === 'acct' || $as_param === 'help') {
+            $current_role = $as_param;
+        } elseif (strpos($user_role, 'account') !== false || strpos($user_role, 'acct') !== false) {
+            $current_role = 'acct';
+        } elseif (strpos($user_role, 'help') !== false || strpos($user_role, 'support') !== false) {
+            $current_role = 'help';
+        } else {
+            // Default for Super Admin / General Admin:
+            $current_role = ($res->status === 'Processing' && $res->assigned_role === 'Acct') ? 'acct' : 'help';
+        }
+
+        $data['resolution']     = $res;
+        $data['current_role']   = $current_role;
+        $data['is_super_admin'] = $is_super_admin;
+        $data['messages']       = $this->OrderResolutionModel->get_messages($res->id);
+        $data['audit_logs']     = $this->OrderResolutionModel->get_audit_log($res->id);
 
         // Fetch Order, Product, Merchant, Customer
         $data['order']    = $this->db->where('order_id', $res->order_id)->get('sales_order')->row();
@@ -86,8 +104,8 @@ class OrderResolutionController extends CI_Controller
         $data['merchant'] = !empty($res->merchant_id) ? $this->db->where('id', $res->merchant_id)->get('publisher')->row() : null;
         $data['customer'] = !empty($res->customer_id) ? $this->db->where('id', $res->customer_id)->get('customers')->row() : null;
 
-        $data['side_menu'] = ($res->assigned_role === 'Acct') ? 'order_resolution_acct' : 'order_resolution';
-        $data['PageTitle'] = 'Order Resolution #' . $res->ticket_number;
+        $data['side_menu'] = ($current_role === 'acct') ? 'order_resolution_acct' : 'order_resolution';
+        $data['PageTitle'] = 'Order Resolution #' . $res->ticket_number . ' (' . ($current_role === 'acct' ? '@Acct' : '@Help') . ')';
         $this->load->view('order_resolution/view', $data);
     }
 
@@ -137,7 +155,7 @@ class OrderResolutionController extends CI_Controller
         $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address());
 
         $this->session->set_flashdata('success', 'Reply posted successfully.');
-        redirect('order_resolution/view/' . $ticket_number);
+        redirect('order_resolution/view/' . $ticket_number . '?as=' . $role);
     }
 
     /**
@@ -149,13 +167,21 @@ class OrderResolutionController extends CI_Controller
         $ticket_number = trim($this->input->post('ticket_number', true));
         $notes         = trim($this->input->post('notes', true));
 
+        // Guard: Only @Help or Super Admin can assign
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
+            $this->session->set_flashdata('error', 'Unauthorized: Only Support (@Help) can assign tickets to Accounting.');
+            redirect('order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
+        }
+
         $res = $this->OrderResolutionModel->admin_assign_to_acct($ticket_number, $admin_id, $notes);
         if ($res['status']) {
             $this->session->set_flashdata('success', $res['message']);
         } else {
             $this->session->set_flashdata('error', $res['message']);
         }
-        redirect('order_resolution/view/' . $ticket_number);
+        redirect('order_resolution/view/' . $ticket_number . '?as=help');
     }
 
     /**
@@ -167,13 +193,21 @@ class OrderResolutionController extends CI_Controller
         $ticket_number = trim($this->input->post('ticket_number', true));
         $notes         = trim($this->input->post('notes', true));
 
+        // Permission Guard: Only Accounting (@Acct) or Super Admin/Administrator can mark done
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        if (!empty($user_role) && strpos($user_role, 'help') !== false && strpos($user_role, 'admin') === false) {
+            $this->session->set_flashdata('error', 'Unauthorized: Only Accounting (@Acct) can process refunds and mark tickets as Done.');
+            redirect('order_resolution/view/' . $ticket_number . '?as=help');
+            return;
+        }
+
         $res = $this->OrderResolutionModel->admin_mark_done($ticket_number, $admin_id, $notes);
         if ($res['status']) {
             $this->session->set_flashdata('success', $res['message']);
         } else {
             $this->session->set_flashdata('error', $res['message']);
         }
-        redirect('order_resolution/view/' . $ticket_number);
+        redirect('order_resolution/view/' . $ticket_number . '?as=acct');
     }
 
     /**
@@ -185,13 +219,21 @@ class OrderResolutionController extends CI_Controller
         $ticket_number = trim($this->input->post('ticket_number', true));
         $notes         = trim($this->input->post('notes', true));
 
+        // Permission Guard: Only Support (@Help) or Super Admin/Administrator can close ticket
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
+            $this->session->set_flashdata('error', 'Unauthorized: Only Support (@Help) can close tickets.');
+            redirect('order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
+        }
+
         $res = $this->OrderResolutionModel->admin_close_ticket($ticket_number, $admin_id, $notes);
         if ($res['status']) {
             $this->session->set_flashdata('success', $res['message']);
         } else {
             $this->session->set_flashdata('error', $res['message']);
         }
-        redirect('order_resolution/view/' . $ticket_number);
+        redirect('order_resolution/view/' . $ticket_number . '?as=help');
     }
 
     /**
@@ -203,13 +245,21 @@ class OrderResolutionController extends CI_Controller
         $ticket_number = trim($this->input->post('ticket_number', true));
         $notes         = trim($this->input->post('notes', true));
 
+        // Permission Guard: Only Support (@Help) or Super Admin/Administrator can close ticket (Final)
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
+            $this->session->set_flashdata('error', 'Unauthorized: Only Support (@Help) can finalize and close Resolution tickets.');
+            redirect('order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
+        }
+
         $res = $this->OrderResolutionModel->admin_close_final($ticket_number, $admin_id, $notes);
         if ($res['status']) {
             $this->session->set_flashdata('success', $res['message']);
         } else {
             $this->session->set_flashdata('error', $res['message']);
         }
-        redirect('order_resolution/view/' . $ticket_number);
+        redirect('order_resolution/view/' . $ticket_number . '?as=help');
     }
 
     /**
