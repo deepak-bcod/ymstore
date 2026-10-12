@@ -82,53 +82,66 @@ class OrderResolutionController extends CI_Controller
     /**
      * Merchant Reply to Shopper
      */
-    public function reply()
-    {
-        $merchant_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
-        $ticket_number = trim($this->input->post('ticket_number', true));
-        $message       = trim($this->input->post('message', true));
+   public function reply()
+{
+    $merchant_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
+    $ticket_number = trim($this->input->post('ticket_number', true));
+    $message       = trim($this->input->post('message', true));
 
-        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
-        if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
-            $this->session->set_flashdata('error', 'Invalid ticket.');
-            redirect('order_resolution');
-            return;
-        }
-
-        if (empty($message)) {
-            $this->session->set_flashdata('error', 'Message cannot be empty.');
-            redirect('order_resolution/view/' . $ticket_number);
-            return;
-        }
-
-        // Handle attachment
-        $attachment = '';
-        if (isset($_FILES['attachment']) && !empty($_FILES['attachment']['name'])) {
-            $upload_path = './uploads/order_resolution/';
-            if (!is_dir($upload_path)) {
-                @mkdir($upload_path, 0777, true);
-            }
-            $config['upload_path']   = $upload_path;
-            $config['allowed_types'] = 'jpg|jpeg|png|pdf|webp';
-            $config['max_size']      = 5120;
-            $config['encrypt_name']  = true;
-            $this->load->library('upload', $config);
-
-            if ($this->upload->do_upload('attachment')) {
-                $fileData = $this->upload->data();
-                $attachment = $fileData['file_name'];
-            }
-        }
-
-        $pub = $this->db->select('publication_name')->where('id', $merchant_id)->get('publisher')->row();
-        $sender_name = $pub ? $pub->publication_name : 'Merchant';
-
-        $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
-
-        $this->session->set_flashdata('success', 'Your reply has been sent to the shopper.');
-        redirect('order_resolution/view/' . $ticket_number);
+    $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+    if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
+        $this->session->set_flashdata('error', 'Invalid ticket.');
+        redirect('order_resolution');
+        return;
     }
 
+    if (empty($message)) {
+        $this->session->set_flashdata('error', 'Message cannot be empty.');
+        redirect('order_resolution/view/' . $ticket_number);
+        return;
+    }
+
+    // Handle attachment
+    $attachment = '';
+    if (isset($_FILES['attachment']) && !empty($_FILES['attachment']['name'])) {
+        $upload_path = './uploads/order_resolution/';
+        if (!is_dir($upload_path)) {
+            @mkdir($upload_path, 0777, true);
+        }
+        $config['upload_path']   = $upload_path;
+        $config['allowed_types'] = 'jpg|jpeg|png|pdf|webp';
+        $config['max_size']      = 5120;
+        $config['encrypt_name']  = true;
+        $this->load->library('upload', $config);
+
+        if ($this->upload->do_upload('attachment')) {
+            $fileData = $this->upload->data();
+            $attachment = $fileData['file_name'];
+        }
+    }
+
+    $pub = $this->db->select('publication_name')->where('id', $merchant_id)->get('publisher')->row();
+    $sender_name = $pub ? $pub->publication_name : 'Merchant';
+
+    // 1. Add reply to thread
+    $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
+
+    // 2. Add Notification for ONLY this shopper
+    $notification_data = [
+        'user_id'      => $res->customer_id, // Targets only this single shopper
+        'user_type'    => 'shopper',
+        'title'        => 'New Reply on Ticket #' . $ticket_number,
+        'message'      => $sender_name . ' replied: "' . mb_strimwidth($message, 0, 80, '...') . '"',
+        'ticket_number'=> $ticket_number,
+        'target_url'   => 'shopper/order_resolution/view/' . $ticket_number,
+        'is_read'      => 0,
+        'created_at'   => time()
+    ];
+    $this->db->insert('notifications', $notification_data);
+
+    $this->session->set_flashdata('success', 'Your reply has been sent to the shopper.');
+    redirect('order_resolution/view/' . $ticket_number);
+}
     /**
      * Merchant Decision Actions:
      * - refund_approved
