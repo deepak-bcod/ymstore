@@ -309,18 +309,22 @@ public function update_messaging()
         'merchant_id' => $publisher_id
     ];
 
-    $notification = [
-        'type'           => 'product_question',
-        'subtype'        => 'merchant_reply',
-        'recipient_type' => 'shopper',
-        'recipient_id'   => $customer_id,
-        'title'          => 'Ask a Question',
-        'message'        => 'You got a reply to your Ask a Question message.',
-        'data'           => json_encode($notification_data),
-        'is_read'        => 0,
-        'created_at'     => $now,
-        'updated_at'     => $now
-    ];
+
+        $notification = [
+            'type'           => 'product_question',
+            'subtype'        => 'merchant_reply',
+            'recipient_type' => 'shopper',
+            'recipient_id'   => $customer_id,
+
+            'title'          => $this->lang->line('ask_question_title'),
+            'message'        => $this->lang->line('merchant_reply_notification'),
+
+            'data'           => json_encode($notification_data),
+            'is_read'        => 0,
+            'created_at'     => $now,
+            'updated_at'     => $now
+        ];
+
 
     $this->db->insert('notifications', $notification);
 

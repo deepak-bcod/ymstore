@@ -1123,3 +1123,9 @@ $lang['return_request_rejected_title'] = 'Return Request Rejected';
 
 $lang['return_approved_message'] = 'Your return for (%s) - (%s) has been approved.';
 $lang['return_rejected_message'] = 'Your return for (%s) - (%s) has been rejected.';
+
+
+
+
+$lang['ask_question_title'] = 'Ask a Question';
+$lang['merchant_reply_notification'] = 'You got a reply to your Ask a Question message.';
