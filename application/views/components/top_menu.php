@@ -1,10 +1,16 @@
-
 <?php 
 $allNavgte = array_column($navCatData, 'slug'); 
 $currNav   = $this->uri->segment(2);
 $currNav1  = $this->uri->segment(3);
 $currNav2  = $this->uri->segment(4);
 $lang      = $this->session->userdata('site_lang');
+
+// Ensure $notification_count is always available globally on every page load
+if (!isset($notification_count) && $this->session->userdata('LoginID')) {
+    $CI =& get_instance();
+    $CI->load->model('Notification_model');
+    $notification_count = $CI->Notification_model->get_unread_count($this->session->userdata('LoginID'));
+}
 ?>
 
 <ul class="bottom-section-menu">
@@ -228,4 +234,3 @@ $lang      = $this->session->userdata('site_lang');
 }
 
 </style>
-
