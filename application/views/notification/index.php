@@ -43,22 +43,49 @@
 
                     <?php foreach ($notifications as $row): ?>
                         <?php
-                            $current_lang = $this->session->userdata('site_lang') ?? 'english';
-                            
-                            $title = $row->title;
-                            $message = $row->message;
-                            $type = $row->type;
+    $current_lang = $this->session->userdata('site_lang') ?? 'english';
+    
+    $title = $row->title;
+    $message = $row->message;
+    $type = $row->type;
 
-                            // Translate only "Ask a Question" notifications for French users
-                            if ($current_lang === 'french') {
-                                if ($row->title === 'Ask a Question') {
-                                    $title = 'Poser une question';
-                                }
-                                if ($row->message === 'You got a reply to your Ask a Question message.') {
-                                    $message = "Vous avez reçu une réponse à votre message 'Poser une question'.";
-                                }
-                            }
-                        ?>
+    if ($current_lang === 'french') {
+        // 1. Product Question / Ask a Question
+        if ($row->title === 'Ask a Question') {
+            $title = 'Poser une question';
+        }
+        if ($row->message === 'You got a reply to your Ask a Question message.') {
+            $message = "Vous avez reçu une réponse à votre message 'Poser une question'.";
+        }
+
+        // 2. Return Request
+        if ($type === 'return' || $row->title === 'Return Request Approved') {
+            $title = 'Demande de retour approuvée';
+            if (strpos($row->message, 'is accepted') !== false) {
+                $message = str_replace(['Your return for', 'is accepted.'], ['Votre retour pour', 'a été accepté.'], $row->message);
+            }
+        }
+
+        // 3. Orders (Delivered, Shipped, Processing)
+        if ($type === 'order') {
+            if ($row->title === 'Order delivered') {
+                $title = 'Commande livrée';
+            } elseif ($row->title === 'Order Shipped') {
+                $title = 'Commande expédiée';
+            } elseif ($row->title === 'Order Processing') {
+                $title = 'Commande en cours de traitement';
+            }
+
+            if (strpos($row->message, 'is delivered') !== false) {
+                $message = str_replace(['Your order no.', 'is delivered.'], ['Votre commande n°', 'a été livrée.'], $row->message);
+            } elseif (strpos($row->message, 'is shipped') !== false) {
+                $message = str_replace(['Your order no.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.'], $row->message);
+            } elseif (strpos($row->message, 'is under process') !== false) {
+                $message = str_replace(['Your order no.', 'is under process.'], ['Votre commande n°', 'est en cours de traitement.'], $row->message);
+            }
+        }
+    }
+?>
 
                         <tr style="<?= ($row->is_read == 0)
                             ? 'background-color: #fffdf0; font-weight: bold;'
