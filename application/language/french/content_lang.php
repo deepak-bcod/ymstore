@@ -10,7 +10,7 @@ $lang['trending_products'] = "Produits en vogue";
 $lang['daily_deals'] = "Offres du jour";
 $lang['flash_sales'] = "Ventes flash";
 $lang['blog'] = "Blog";
-$lang['notifications']      = 'Notifications';
+
 
 $lang['payment_methods'] = "Méthodes de paiement";
 $lang['sign_out'] = "Se déconnecter";

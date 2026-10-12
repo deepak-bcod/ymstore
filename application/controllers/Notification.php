@@ -5,14 +5,24 @@ class Notification extends CI_Controller {
 
     public function __construct() {
         parent::__construct();
+        
         // Ensure user/merchant is logged in before viewing notifications
         if (!$this->session->userdata('LoginID')) {
             redirect('customer/login'); // Or your login path
         }
+        
         $this->load->model('Notification_model');
+        $this->load->library('session');
+
+        // Load the language based on user session (same as Mydocuments)
+        $site_lang = $this->session->userdata('site_lang');
+        if ($site_lang) {
+            $this->lang->load('content', $site_lang);
+        } else {
+            $this->lang->load('content', 'english'); // default
+        }
     }
 
-    // View all notifications (table list page)
     // View all notifications (table list page)
     public function index() {
         $user_id = $this->session->userdata('LoginID');
@@ -27,6 +37,7 @@ class Notification extends CI_Controller {
         $this->load->view('notification/index', $data); // Points to application/views/notification/index.php
         $this->load->view('common/footer'); // Points to application/views/common/footer.php
     }
+
     // Mark single notification as read
     public function mark_read($id) {
         $this->Notification_model->mark_as_read($id);
