@@ -138,46 +138,56 @@ $this->load->view('common/fbc-user/header');
                         <h6 class="font-weight-bold mb-3"><i class="fa fa-gavel"></i> Order Resolution Decision Actions</h6>
                         <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
 
-                            <!-- REFUND DECISION BUTTONS (Merchant Only) -->
-                            <?php if ($resolution->merchant_action === 'none'): ?>
-                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#refundApproveModal" data-bs-toggle="modal" data-bs-target="#refundApproveModal">
-                                    <i class="fa fa-check"></i> Refund Approved
-                                </button>
-                                <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#refundDeniedModal" data-bs-toggle="modal" data-bs-target="#refundDeniedModal">
-                                    <i class="fa fa-times"></i> Refund Denied
-                                </button>
-                            <?php elseif ($resolution->merchant_action === 'refund_denied'): ?>
-                                <span class="badge badge-danger p-2">
-                                    <i class="fa fa-times-circle"></i> Refund Denied
-                                </span>
-                            <?php elseif ($resolution->merchant_action === 'refund_approved'): ?>
-                                <span class="badge badge-success p-2">
-                                    <i class="fa fa-check-circle"></i> Refund Approved (<?= $currency . ' ' . number_format($resolution->refund_amount, 2); ?>)
-                                </span>
+                            <?php 
+                            $category_clean = strtolower(trim($resolution->category ?? ''));
+                            $is_refund_ticket = in_array($category_clean, ['refund', 'return'], true);
+                            $is_replacement_ticket = ($category_clean === 'replacement');
+                            ?>
+
+                            <?php if ($is_refund_ticket): ?>
+                                <!-- REFUND DECISION BUTTONS (Subject Type: Refund) -->
+                                <?php if ($resolution->merchant_action === 'none'): ?>
+                                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#refundApproveModal" data-bs-toggle="modal" data-bs-target="#refundApproveModal">
+                                        <i class="fa fa-check"></i> Refund Approved
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#refundDeniedModal" data-bs-toggle="modal" data-bs-target="#refundDeniedModal">
+                                        <i class="fa fa-times"></i> Refund Denied
+                                    </button>
+                                <?php elseif ($resolution->merchant_action === 'refund_denied'): ?>
+                                    <span class="badge badge-danger p-2">
+                                        <i class="fa fa-times-circle"></i> Refund Denied
+                                    </span>
+                                <?php elseif ($resolution->merchant_action === 'refund_approved'): ?>
+                                    <span class="badge badge-success p-2">
+                                        <i class="fa fa-check-circle"></i> Refund Approved (<?= $currency . ' ' . number_format($resolution->refund_amount, 2); ?>)
+                                    </span>
+                                <?php endif; ?>
                             <?php endif; ?>
 
-                            <!-- REPLACEMENT DECISION BUTTONS (Merchant Only) -->
-                            <?php if ($resolution->merchant_action === 'none' || $resolution->merchant_action === 'replacement_denied'): ?>
-                                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
-                                    <i class="fa fa-refresh"></i> Replacement Approved
-                                </button>
-                                <?php if ($resolution->merchant_action !== 'replacement_denied'): ?>
-                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#replacementDeniedModal" data-bs-toggle="modal" data-bs-target="#replacementDeniedModal">
-                                        <i class="fa fa-ban"></i> Replacement Denied
+                            <?php if ($is_replacement_ticket): ?>
+                                <!-- REPLACEMENT DECISION BUTTONS (Subject Type: Replacement) -->
+                                <?php if ($resolution->merchant_action === 'none' || $resolution->merchant_action === 'replacement_denied'): ?>
+                                    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
+                                        <i class="fa fa-refresh"></i> Replacement Approved
                                     </button>
+                                    <?php if ($resolution->merchant_action !== 'replacement_denied'): ?>
+                                        <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#replacementDeniedModal" data-bs-toggle="modal" data-bs-target="#replacementDeniedModal">
+                                            <i class="fa fa-ban"></i> Replacement Denied
+                                        </button>
+                                    <?php endif; ?>
+                                <?php elseif ($resolution->merchant_action === 'replacement_approved'): ?>
+                                    <span class="badge badge-info p-2">
+                                        <i class="fa fa-check-circle"></i> Replacement Approved (<?= ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?>)
+                                    </span>
+                                    <!-- Replacement Completed: displayed ONLY after Replacement Approved AND delivery option selected -->
+                                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
+                                        <i class="fa fa-check-square-o"></i> Replacement Completed
+                                    </button>
+                                <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
+                                    <span class="badge badge-primary p-2">
+                                        <i class="fa fa-check-circle"></i> Replacement Completed
+                                    </span>
                                 <?php endif; ?>
-                            <?php elseif ($resolution->merchant_action === 'replacement_approved'): ?>
-                                <span class="badge badge-info p-2">
-                                    <i class="fa fa-check-circle"></i> Replacement Approved (<?= ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?>)
-                                </span>
-                                <!-- Replacement Completed: displayed ONLY after Replacement Approved AND delivery option selected -->
-                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
-                                    <i class="fa fa-check-square-o"></i> Replacement Completed
-                                </button>
-                            <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
-                                <span class="badge badge-primary p-2">
-                                    <i class="fa fa-check-circle"></i> Replacement Completed
-                                </span>
                             <?php endif; ?>
 
                         </div>
@@ -246,6 +256,7 @@ $this->load->view('common/fbc-user/header');
     </div>
 </main>
 
+<?php if ($is_refund_ticket): ?>
 <!-- Modal: Refund Approved -->
 <div class="modal fade" id="refundApproveModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -296,7 +307,9 @@ $this->load->view('common/fbc-user/header');
         </div>
     </div>
 </div>
+<?php endif; ?>
 
+<?php if ($is_replacement_ticket): ?>
 <!-- Modal: Replacement Approved with Delivery Options -->
 <div class="modal fade" id="replacementApproveModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -377,6 +390,7 @@ $this->load->view('common/fbc-user/header');
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <script>
 $(document).ready(function() {
