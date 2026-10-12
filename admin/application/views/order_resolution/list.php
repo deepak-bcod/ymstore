@@ -129,7 +129,7 @@
                                 </td>
                                 <td><?= date('d M Y', $res->created_at); ?></td>
                                 <td>
-                                    <a href="<?= base_url('order_resolution/view/' . $res->ticket_number); ?>" class="btn btn-sm btn-info">
+                                    <a href="<?= base_url('order_resolution/view/' . $res->ticket_number . '?as=help'); ?>" class="btn btn-sm btn-info">
                                         <i class="fa fa-eye"></i> Manage
                                     </a>
                                 </td>
