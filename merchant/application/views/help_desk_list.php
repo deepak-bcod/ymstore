@@ -1,22 +1,7 @@
-<?php 
-// DEBUG: Print array keys directly to inspect database column names
-if (!empty($help_desk)) {
-    echo '<div style="background:#fff; color:#000; padding:20px; z-index:99999; position:relative; font-size:16px;">';
-    echo '<h3>Available DB Columns:</h3><pre>';
-    print_r(array_keys(reset($help_desk)));
-    echo '</pre><h3>First Record Data:</h3><pre>';
-    print_r(reset($help_desk));
-    echo '</pre></div>';
-    exit;
-}
-?>
 <?php $this->load->view('common/fbc-user/header'); 
 
 // echo "<pre>";print_r($help_desk);die;
-// echo "<pre>";
-// print_r($help_desk);
-// echo "</pre>";
-// die();
+
 ?> 
 
 
@@ -78,22 +63,24 @@ if (!empty($help_desk)) {
             <td><?= $first_ticket['ticket_id']; ?></td>
             <td><?= (!empty($first_ticket['order_id']) && $first_ticket['order_id'] != 0) ? str_pad($first_ticket['order_id'], 4, '0', STR_PAD_LEFT) : 'N/A'; ?></td>
             <td><?= $first_ticket['subject']; ?></td>
-            <td>
+          <td>
     <?php
-     $subject_types  = [
-            1 => lang('order_issue'),
-            2 => lang('refund_request'),
-            3 => lang('replacement_request'),
-            4 => lang('merchant_delivery'),  
-            5 => lang('ym_delivery'),
-            6 => lang('resolution_request'),
-            7 => lang('general_support'),
-            8 => lang('technical_issue')
-        ];
+    $subject_types = [
+        1 => lang('order_issue'),
+        2 => lang('refund_request'),
+        3 => lang('replacement_request'),
+        4 => lang('merchant_delivery'),  
+        5 => lang('ym_delivery'),
+        6 => lang('resolution_request'),
+        7 => lang('general_support'),
+        8 => lang('technical_issue')
+    ];
 
-    // This checks the DB value (1-6). If not found, it shows the raw value or 'unknown'
-    echo $subject_types[$first_ticket['priority']] ?? $first_ticket['priority'] ?? lang('unknown');
-    ?>
+    // Use only the 'priority' column
+    $subjectKey = $first_ticket['priority'] ?? '';
+    
+    // echo $subject_types[$subjectKey] ?? ($subjectKey !== '' ? $subjectKey : lang('unknown'));
+    // ?>
 </td>
             <td>
     <?php
