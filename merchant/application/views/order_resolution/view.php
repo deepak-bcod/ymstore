@@ -123,21 +123,33 @@ $this->load->view('common/fbc-user/header');
                         </div>
                     <?php endif; ?>
 
+                    <?php if ($resolution->resolution_status === 'resolution_requested'): ?>
+                        <div class="alert alert-warning py-2 mb-3">
+                            <i class="fa fa-exclamation-triangle"></i> <strong>Dispute Under Review:</strong> The shopper has requested resolution assistance from Yellow Markets (@Help). Support is investigating and will communicate via the ticket conversation.
+                        </div>
+                    <?php elseif ($resolution->status === 'Close (Final)'): ?>
+                        <div class="alert alert-secondary py-2 mb-3">
+                            <i class="fa fa-lock"></i> <strong>Closed (Final):</strong> This resolution ticket has been closed (Final) with no further options.
+                        </div>
+                    <?php endif; ?>
+
                     <!-- Action Buttons Section -->
                     <div class="p-3 bg-light border rounded mb-4">
                         <h6 class="font-weight-bold mb-3"><i class="fa fa-gavel"></i> Order Resolution Decision Actions</h6>
                         <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
 
                             <!-- REFUND DECISION BUTTONS (Merchant Only) -->
-                            <?php if ($resolution->merchant_action === 'none' || $resolution->merchant_action === 'refund_denied'): ?>
+                            <?php if ($resolution->merchant_action === 'none'): ?>
                                 <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#refundApproveModal" data-bs-toggle="modal" data-bs-target="#refundApproveModal">
                                     <i class="fa fa-check"></i> Refund Approved
                                 </button>
-                                <?php if ($resolution->merchant_action !== 'refund_denied'): ?>
-                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#refundDeniedModal" data-bs-toggle="modal" data-bs-target="#refundDeniedModal">
-                                        <i class="fa fa-times"></i> Refund Denied
-                                    </button>
-                                <?php endif; ?>
+                                <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#refundDeniedModal" data-bs-toggle="modal" data-bs-target="#refundDeniedModal">
+                                    <i class="fa fa-times"></i> Refund Denied
+                                </button>
+                            <?php elseif ($resolution->merchant_action === 'refund_denied'): ?>
+                                <span class="badge badge-danger p-2">
+                                    <i class="fa fa-times-circle"></i> Refund Denied
+                                </span>
                             <?php elseif ($resolution->merchant_action === 'refund_approved'): ?>
                                 <span class="badge badge-success p-2">
                                     <i class="fa fa-check-circle"></i> Refund Approved (<?= $currency . ' ' . number_format($resolution->refund_amount, 2); ?>)

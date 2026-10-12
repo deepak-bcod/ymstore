@@ -132,46 +132,59 @@ $this->load->view('common/fbc-user/header');
                 <!-- Admin Action Management Controls -->
                 <div class="p-3 bg-light border rounded mb-4">
                     <h6 class="font-weight-bold mb-3"><i class="fa fa-cogs"></i> Resolution Management Controls</h6>
+
+                    <?php if ($resolution->status === 'ReOpen' || $resolution->resolution_status === 'resolution_requested'): ?>
+                        <div class="alert alert-warning py-2 mb-3">
+                            <i class="fa fa-gavel"></i> <strong>Shopper Dispute Active:</strong> The shopper has requested Yellow Markets assistance. Please investigate via the ticket conversation and choose <strong>Resolution Approved</strong> (in favour of Shopper) or <strong>Resolution Denied</strong> (in favour of Merchant).
+                        </div>
+                    <?php elseif ($resolution->status === 'Processing'): ?>
+                        <div class="alert alert-info py-2 mb-3">
+                            <i class="fa fa-money"></i> <strong>Assigned to Accounting (@Acct):</strong> Refund the shopper from the merchant's 15-day hold-back sales, then click <strong>Mark Done</strong>.
+                        </div>
+                    <?php elseif ($resolution->status === 'Done'): ?>
+                        <div class="alert alert-success py-2 mb-3">
+                            <i class="fa fa-check"></i> <strong>Refund Completed:</strong> Accounting has completed the refund from hold-back sales. @Help can now close the ticket as <strong>Close (Final)</strong>.
+                        </div>
+                    <?php elseif ($resolution->status === 'Close (Final)'): ?>
+                        <div class="alert alert-secondary py-2 mb-0">
+                            <i class="fa fa-lock"></i> <strong>Ticket Closed (Final):</strong> Dispute has been resolved and this resolution is finalized. No further actions available.
+                        </div>
+                    <?php endif; ?>
+
                     <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
 
-                        <!-- @Help: Assign to @Acct (Status -> Processing) -->
-                        <?php if ($resolution->assigned_role !== 'Acct' && in_array($resolution->status, ['Open', 'ReOpen'])): ?>
+                        <!-- Step 3: @Help Marks Ticket Close (When Merchant Denied Refund or General Initial Close) -->
+                        <?php if (in_array($resolution->status, ['Open']) && $resolution->status !== 'Close' && $resolution->status !== 'Close (Final)'): ?>
+                            <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
+                                <i class="fa fa-lock"></i> Close Ticket <?= ($resolution->merchant_action === 'refund_denied') ? '(Refund Denied by Merchant)' : ''; ?>
+                            </button>
                             <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
                                 <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
                             </button>
                         <?php endif; ?>
 
-                        <!-- @Acct: Mark Done (Status -> Done) -->
+                        <!-- Dispute Decisions (@Help Only when ticket is ReOpened / Disputed) -->
+                        <?php if ($resolution->status === 'ReOpen' || $resolution->resolution_status === 'resolution_requested'): ?>
+                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#resApproveModal">
+                                <i class="fa fa-thumbs-up"></i> Resolution Approved (In Favour of Shopper)
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#resDeniedModal">
+                                <i class="fa fa-thumbs-down"></i> Resolution Denied (In Favour of Merchant)
+                            </button>
+                        <?php endif; ?>
+
+                        <!-- Scenario 1 - Step 6: @Acct Marks Done (Status -> Done) -->
                         <?php if ($resolution->status === 'Processing'): ?>
                             <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#markDoneModal">
-                                <i class="fa fa-check-circle"></i> Mark Done (Payment/Refund Completed)
+                                <i class="fa fa-check-circle"></i> Mark Done (Refund Processed from Hold-back)
                             </button>
                         <?php endif; ?>
 
-                        <!-- @Help: Close Ticket (Status -> Close) -->
-                        <?php if ($resolution->status !== 'Close' && $resolution->status !== 'Close (Final)'): ?>
-                            <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
-                                <i class="fa fa-lock"></i> Close Ticket (Shopper Has Resolution Option)
-                            </button>
-                        <?php endif; ?>
-
-                        <!-- @Help: Close (Final) (Status -> Close (Final)) -->
-                        <?php if ($resolution->status !== 'Close (Final)'): ?>
+                        <!-- Scenario 1 - Step 7: @Help Changes Resolution Status to Close (Final) -->
+                        <?php if ($resolution->status === 'Done'): ?>
                             <button type="button" class="btn btn-dark btn-sm" data-toggle="modal" data-target="#closeFinalModal">
-                                <i class="fa fa-archive"></i> Close (Final - No Further Options)
+                                <i class="fa fa-archive"></i> Close (Final)
                             </button>
-                        <?php endif; ?>
-
-                        <!-- Resolution Decision (@Help Only) -->
-                        <?php if ($resolution->resolution_status === 'resolution_requested'): ?>
-                            <div class="ml-auto d-flex" style="gap: 8px;">
-                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#resApproveModal">
-                                    <i class="fa fa-thumbs-up"></i> Resolution Approved
-                                </button>
-                                <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#resDeniedModal">
-                                    <i class="fa fa-thumbs-down"></i> Resolution Denied
-                                </button>
-                            </div>
                         <?php endif; ?>
 
                     </div>
