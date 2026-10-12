@@ -40,7 +40,7 @@
                         </div>
                     <?php endif; ?>
 
-                    <form action="<?php echo base_url('order_resolution/store'); ?>" method="POST" enctype="multipart/form-data">
+                    <form action="<?php echo base_url('order_resolution/store'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
                         <div class="row">
                             <!-- Rejected Order Item Selection -->
                             <div class="col-md-12 form-group">
@@ -153,6 +153,87 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sel && sel.value) {
         handleItemSelect(sel);
     }
+});
+
+$(document).ready(function() {
+    function showNotification(type, message) {
+        var alertClass = (type === 'success') ? 'alert-success' : 'alert-danger';
+        var icon = (type === 'success') ? '<i class="fa fa-check-circle"></i> ' : '<i class="fa fa-exclamation-circle"></i> ';
+        var html = '<div class="alert ' + alertClass + ' alert-dismissible resolution-ajax-alert" role="alert" style="position:fixed; top:20px; right:20px; z-index:99999; min-width:320px; max-width:480px; box-shadow:0 4px 12px rgba(0,0,0,0.15);">' +
+                   '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                   icon + message +
+                   '</div>';
+        $('.resolution-ajax-alert').remove();
+        $('body').append(html);
+        setTimeout(function() {
+            $('.resolution-ajax-alert').fadeOut(function() { $(this).remove(); });
+        }, 4000);
+    }
+
+    $(document).on('submit', 'form.ajax-resolution-form', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $btn = $form.find('button[type="submit"]');
+        if ($btn.length === 0) {
+            $btn = $form.find(':submit');
+        }
+
+        // Double-click guard
+        if ($btn.prop('disabled')) {
+            return false;
+        }
+
+        var origHtml = $btn.html();
+        $btn.data('original-html', origHtml);
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Submitting...');
+
+        var formData = new FormData(this);
+        formData.append('is_ajax', '1');
+
+        $.ajax({
+            url: $form.attr('action'),
+            type: $form.attr('method') || 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(res) {
+                if (res && res.status) {
+                    $btn.html('<i class="fa fa-check"></i> Submitted');
+                    showNotification('success', res.message || 'Ticket submitted successfully.');
+
+                    setTimeout(function() {
+                        if (res.redirect) {
+                            window.location.href = res.redirect;
+                        } else {
+                            window.location.reload();
+                        }
+                    }, 800);
+                } else {
+                    $btn.prop('disabled', false).html(origHtml);
+                    var msg = (res && res.message) ? res.message : 'An error occurred while submitting your ticket.';
+                    showNotification('error', msg);
+
+                    if (res && res.requires_reload) {
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    }
+                }
+            },
+            error: function(xhr, status, err) {
+                $btn.prop('disabled', false).html(origHtml);
+                var errMsg = 'Unable to submit request. Please check your connection and try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errMsg = xhr.responseJSON.message;
+                }
+                showNotification('error', errMsg);
+            }
+        });
+    });
 });
 </script>
 

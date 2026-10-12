@@ -752,22 +752,26 @@ class CommonModel extends CI_Model
 		return $result;
 	}
 
-	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '')
+	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '', $custom_subject = '', $custom_content = '')
 	{
 		$from_email = 'noreply@yellowmarkets.com';
 
 		$emailTemplate = $this->getEmailTemplateByIdentifier($identifier);
-		if (!$emailTemplate) {
-			log_message('error', 'sendCommonHTMLEmail: email template not found for: ' . $identifier);
-			return false;
+		if ($emailTemplate) {
+			if (!empty($lang_code) && ($lang_code === 'fr' || $lang_code === 'french')) {
+				$subject = !empty($emailTemplate->subject_fr) ? $emailTemplate->subject_fr : $emailTemplate->subject;
+				$content = !empty($emailTemplate->content_fr) ? $emailTemplate->content_fr : $emailTemplate->content;
+			} else {
+				$subject = $emailTemplate->subject;
+				$content = $emailTemplate->content;
+			}
+		} else {
+			$subject = !empty($custom_subject) ? $custom_subject : ('Yellow Markets Notification: ' . $identifier);
+			$content = !empty($custom_content) ? $custom_content : '<p>This is an automated notification regarding your Order Resolution ticket ##TICKET_NUMBER##.</p>';
 		}
 
-		if (!empty($lang_code) && ($lang_code === 'fr' || $lang_code === 'french')) {
-			$subject = !empty($emailTemplate->subject_fr) ? $emailTemplate->subject_fr : $emailTemplate->subject;
-			$content = !empty($emailTemplate->content_fr) ? $emailTemplate->content_fr : $emailTemplate->content;
-		} else {
-			$subject = $emailTemplate->subject;
-			$content = $emailTemplate->content;
+		if (!empty($custom_subject)) {
+			$subject = $custom_subject;
 		}
 
 		$email_code = !empty($emailTemplate->email_code) ? $emailTemplate->email_code : $identifier;

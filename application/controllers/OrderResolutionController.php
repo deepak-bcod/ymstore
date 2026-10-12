@@ -104,6 +104,35 @@ class OrderResolutionController extends CI_Controller
     }
 
     /**
+     * Helper to return JSON for AJAX or redirect with flashdata for standard requests
+     */
+    protected function json_response($status, $message, $extra = [], $fallback_redirect = null)
+    {
+        $is_ajax = $this->input->is_ajax_request()
+            || ($this->input->get_request_header('X-Requested-With') === 'XMLHttpRequest')
+            || ($this->input->post('is_ajax') == 1);
+
+        if ($is_ajax) {
+            header('Content-Type: application/json');
+            echo json_encode(array_merge([
+                'status'  => (bool)$status,
+                'message' => $message,
+            ], $extra));
+            exit;
+        }
+
+        if ($status) {
+            $this->session->set_flashdata('success', $message);
+        } else {
+            $this->session->set_flashdata('error', $message);
+        }
+
+        if ($fallback_redirect) {
+            redirect($fallback_redirect);
+        }
+    }
+
+    /**
      * Submit Order Resolution ticket
      */
     public function store()
@@ -117,23 +146,21 @@ class OrderResolutionController extends CI_Controller
 
         // Validation
         if (empty($order_id)) {
-            $this->session->set_flashdata('error', 'Please select a valid order item.');
-            redirect('order_resolution/create');
+            $this->json_response(false, 'Please select a valid order item.', [], 'order_resolution/create');
             return;
         }
 
         $valid_priorities = ['High', 'Medium', 'Low'];
         if (empty($priority) || !in_array($priority, $valid_priorities, true)) {
-            $this->session->set_flashdata('error', $this->lang->line('err_priority_required') ?: 'Please select a valid priority (High, Medium, or Low).');
-            redirect("order_resolution/create/{$order_id}/{$product_id}");
+            $errMsg = $this->lang->line('err_priority_required') ?: 'Please select a valid priority (High, Medium, or Low).';
+            $this->json_response(false, $errMsg, [], "order_resolution/create/{$order_id}/{$product_id}");
             return;
         }
 
         // Verify order belongs to customer
         $order_check = $this->db->where('order_id', $order_id)->where('customer_id', $customer_id)->get('sales_order')->row();
         if (!$order_check) {
-            $this->session->set_flashdata('error', 'The selected order does not belong to your account.');
-            redirect('order_resolution/create');
+            $this->json_response(false, 'The selected order does not belong to your account.', [], 'order_resolution/create');
             return;
         }
 
@@ -142,27 +169,26 @@ class OrderResolutionController extends CI_Controller
         if (!$matched_item) {
             $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
             if ($existing_ticket) {
-                $this->session->set_flashdata('error', "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.");
-                redirect('order_resolution/view/' . $existing_ticket->ticket_number);
+                $msg = "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.";
+                $this->json_response(false, $msg, ['redirect' => base_url('order_resolution/view/' . $existing_ticket->ticket_number), 'requires_reload' => true], 'order_resolution/view/' . $existing_ticket->ticket_number);
                 return;
             }
 
-            $this->session->set_flashdata('error', $this->lang->line('resolution_rejected_only') ?: 'Order Resolution is only available for items where a Return or Replacement request has been rejected by the Merchant.');
-            redirect('order_resolution/create');
+            $errMsg = $this->lang->line('resolution_rejected_only') ?: 'Order Resolution is only available for items where a Return or Replacement request has been rejected by the Merchant.';
+            $this->json_response(false, $errMsg, [], 'order_resolution/create');
             return;
         }
 
         // Prevent duplicate active tickets
         $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
         if ($existing_ticket) {
-            $this->session->set_flashdata('error', "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.");
-            redirect('order_resolution/view/' . $existing_ticket->ticket_number);
+            $msg = "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.";
+            $this->json_response(false, $msg, ['redirect' => base_url('order_resolution/view/' . $existing_ticket->ticket_number), 'requires_reload' => true], 'order_resolution/view/' . $existing_ticket->ticket_number);
             return;
         }
 
         if (empty($message)) {
-            $this->session->set_flashdata('error', 'Message cannot be empty.');
-            redirect("order_resolution/create/{$order_id}/{$product_id}");
+            $this->json_response(false, 'Message cannot be empty.', [], "order_resolution/create/{$order_id}/{$product_id}");
             return;
         }
 
@@ -200,11 +226,13 @@ class OrderResolutionController extends CI_Controller
         $resolution = $this->OrderResolutionModel->create_resolution($postData);
 
         if ($resolution) {
-            $this->session->set_flashdata('success', "Order resolution ticket #{$resolution->ticket_number} created successfully.");
-            redirect('order_resolution/view/' . $resolution->ticket_number);
+            $msg = "Order resolution ticket #{$resolution->ticket_number} created successfully.";
+            $this->json_response(true, $msg, [
+                'redirect'      => base_url('order_resolution/view/' . $resolution->ticket_number),
+                'ticket_number' => $resolution->ticket_number
+            ], 'order_resolution/view/' . $resolution->ticket_number);
         } else {
-            $this->session->set_flashdata('error', 'Failed to submit order resolution request. Please try again.');
-            redirect("order_resolution/create/{$order_id}/{$product_id}");
+            $this->json_response(false, 'Failed to submit order resolution request. Please try again.', [], "order_resolution/create/{$order_id}/{$product_id}");
         }
     }
 
@@ -254,14 +282,17 @@ class OrderResolutionController extends CI_Controller
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
         if (!$res || (int)$res->customer_id !== (int)$customer_id) {
-            $this->session->set_flashdata('error', 'Invalid ticket.');
-            redirect('order_resolution');
+            $this->json_response(false, 'Invalid ticket.', [], 'order_resolution');
+            return;
+        }
+
+        if ($res->status === 'Close (Final)') {
+            $this->json_response(false, 'Ticket is permanently closed (Final). New replies are disabled.', ['requires_reload' => true], 'order_resolution/view/' . $ticket_number);
             return;
         }
 
         if (empty($message)) {
-            $this->session->set_flashdata('error', 'Reply message cannot be empty.');
-            redirect('order_resolution/view/' . $ticket_number);
+            $this->json_response(false, 'Reply message cannot be empty.', [], 'order_resolution/view/' . $ticket_number);
             return;
         }
 
@@ -287,10 +318,13 @@ class OrderResolutionController extends CI_Controller
         $c_row = $this->db->select('first_name, last_name')->where('id', $customer_id)->get('customers')->row();
         $shopper_name = $c_row ? trim(($c_row->first_name ?? '') . ' ' . ($c_row->last_name ?? '')) : 'Shopper';
 
-        $this->OrderResolutionModel->add_reply($ticket_number, 'shopper', $customer_id, $shopper_name, $message, $attachment, $this->input->ip_address());
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'shopper', $customer_id, $shopper_name, $message, $attachment, $this->input->ip_address());
 
-        $this->session->set_flashdata('success', 'Your reply has been sent.');
-        redirect('order_resolution/view/' . $ticket_number);
+        if ($ok) {
+            $this->json_response(true, 'Your reply has been sent.', ['reload' => true], 'order_resolution/view/' . $ticket_number);
+        } else {
+            $this->json_response(false, 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);
+        }
     }
 
     /**
@@ -303,11 +337,6 @@ class OrderResolutionController extends CI_Controller
         $message       = trim($this->input->post('message', true));
 
         $res = $this->OrderResolutionModel->shopper_resolution_request($ticket_number, $customer_id, $message);
-        if ($res['status']) {
-            $this->session->set_flashdata('success', 'Resolution escalation requested successfully.');
-        } else {
-            $this->session->set_flashdata('error', $res['message']);
-        }
-        redirect('order_resolution/view/' . $ticket_number);
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number);
     }
 }
