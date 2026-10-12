@@ -1,10 +1,81 @@
 
+<style>
+
+
+.notification-menu {
+    position: relative;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.notification-bell {
+    position: relative;
+    display: inline-block;
+
+    padding: 10px;
+
+    font-size: 20px;
+
+    /* ALWAYS WHITE */
+    color: #fff !important;
+
+    text-decoration: none !important;
+
+    line-height: 1;
+}
+
+
+
+.notification-bell:hover,
+.notification-bell:focus,
+.notification-bell:active {
+    color: #fff !important;
+    text-decoration: none !important;
+}
+
+
+
+.notification-count {
+    position: absolute;
+
+    top: 0;
+    right: 0;
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 2px 5px;
+
+    background: red;
+
+    color: #fff;
+
+    border-radius: 50%;
+
+    font-size: 10px;
+    font-weight: bold;
+
+    line-height: 14px;
+
+    text-align: center;
+
+    z-index: 10;
+}
+
+</style>
 <?php 
 $allNavgte = array_column($navCatData, 'slug'); 
 $currNav   = $this->uri->segment(2);
 $currNav1  = $this->uri->segment(3);
 $currNav2  = $this->uri->segment(4);
 $lang      = $this->session->userdata('site_lang');
+
+// Ensure $notification_count is always available globally on every page load
+if (!isset($notification_count) && $this->session->userdata('LoginID')) {
+    $CI =& get_instance();
+    $CI->load->model('Notification_model');
+    $notification_count = $CI->Notification_model->get_unread_count($this->session->userdata('LoginID'));
+}
 ?>
 
 <ul class="bottom-section-menu">
@@ -115,12 +186,6 @@ $lang      = $this->session->userdata('site_lang');
     </li>
 
 
-    <!-- =========================================
-         NOTIFICATION BELL
-         Bell Click -> Notification Page
-         Count Always Visible
-         ========================================= -->
-
     <?php if ($this->session->userdata('LoginID')): ?>
 
         <li class="menu-item-new notification-menu">
@@ -148,84 +213,4 @@ $lang      = $this->session->userdata('site_lang');
     <?php endif; ?>
 
 </ul>
-
-
-<style>
-
-/* =========================================
-   NOTIFICATION MENU
-   ========================================= */
-
-.notification-menu {
-    position: relative;
-    display: inline-block;
-    margin-left: 10px;
-}
-
-
-/* =========================================
-   BELL ICON
-   ========================================= */
-
-.notification-bell {
-    position: relative;
-    display: inline-block;
-
-    padding: 10px;
-
-    font-size: 20px;
-
-    /* ALWAYS WHITE */
-    color: #fff !important;
-
-    text-decoration: none !important;
-
-    line-height: 1;
-}
-
-
-/* =========================================
-   REMOVE HOVER COLOR
-   ========================================= */
-
-.notification-bell:hover,
-.notification-bell:focus,
-.notification-bell:active {
-    color: #fff !important;
-    text-decoration: none !important;
-}
-
-
-/* =========================================
-   NOTIFICATION COUNT
-   ========================================= */
-
-.notification-count {
-    position: absolute;
-
-    top: 0;
-    right: 0;
-
-    min-width: 18px;
-    height: 18px;
-
-    padding: 2px 5px;
-
-    background: red;
-
-    color: #fff;
-
-    border-radius: 50%;
-
-    font-size: 10px;
-    font-weight: bold;
-
-    line-height: 14px;
-
-    text-align: center;
-
-    z-index: 10;
-}
-
-</style>
 
