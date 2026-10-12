@@ -554,6 +554,7 @@ class MyProfileController extends CI_Controller
             'ticket_id'    => $ticket_id,
             'subject'      => $subject,
             'category'     => $category,
+            'priority'     => $subject_type,
             'message'      => $message,
             'order_id'     => $order_id,
             'products'     => $product_id,
