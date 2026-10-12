@@ -130,7 +130,7 @@ class OrderResolutionController extends CI_Controller
     $notification_data = [
         'recipient_id'   => $res->customer_id, 
         'recipient_type' => 'shopper',
-        'title'          => 'New Reply on Ticket #' . $ticket_number,
+        'title'          => 'Order Resolution Reply on Ticket #' . $ticket_number,
         'message'        => $sender_name . ' replied: "' . mb_strimwidth($message, 0, 80, '...') . '"',
         'is_read'        => 0,
         'created_at'     => date('Y-m-d H:i:s')
