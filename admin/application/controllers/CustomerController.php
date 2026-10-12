@@ -1907,7 +1907,7 @@ class CustomerController extends CI_Controller
             'recipient_type' => 'customer',
             'recipient_id'   => $ticket->customer_id,
             'title'          => 'Helpdesk Response',
-            'message'        => 'Your Help desk Ticket ' . $actual_ticket_no . ' is closed.',
+            'message'        => 'Admin Your Help desk Ticket ' . $actual_ticket_no . ' is closed.',
             'data'           => json_encode([
                 'ticket_id'   => $actual_ticket_no,
                 'order_id'    => $ticket->order_id,
