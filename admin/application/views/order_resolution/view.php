@@ -195,15 +195,23 @@ $this->load->view('common/fbc-user/header');
                             </div>
                         <?php endif; ?>
 
+                        <?php if ($resolution->merchant_action === 'refund_denied' && $resolution->status === 'Open'): ?>
+                            <div class="alert alert-warning py-2 mb-3">
+                                <i class="fa fa-info-circle"></i> <strong>Merchant Denied Refund:</strong> The merchant has rejected the refund request. @Help can review and click <strong>Close Ticket</strong>.
+                            </div>
+                        <?php endif; ?>
+
                         <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
                             <!-- Step 3: @Help Marks Ticket Close (When Merchant Denied Refund or General Initial Close) -->
                             <?php if (in_array($resolution->status, ['Open']) && $resolution->status !== 'Close' && $resolution->status !== 'Close (Final)'): ?>
                                 <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
                                     <i class="fa fa-lock"></i> Close Ticket <?= ($resolution->merchant_action === 'refund_denied') ? '(Refund Denied by Merchant)' : ''; ?>
                                 </button>
-                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
-                                    <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
-                                </button>
+                                <?php if ($resolution->merchant_action !== 'refund_denied'): ?>
+                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
+                                        <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
+                                    </button>
+                                <?php endif; ?>
                             <?php endif; ?>
 
                             <!-- Dispute Decisions (@Help Only when ticket is ReOpened / Disputed) -->

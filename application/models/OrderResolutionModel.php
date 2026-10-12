@@ -1526,7 +1526,8 @@ class OrderResolutionModel extends CI_Model
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##MERCHANT_NAME##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_merchant_name($res), 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-ticket-closed-merchant', $tempVars, $dynamicVars);
+        $custom_subject = "Order Resolution No.: {$res->ticket_number} - Closed";
+        $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-ticket-closed-merchant', $tempVars, $dynamicVars, '', $custom_subject);
     }
 
     private function send_refund_denied_shopper_email($res)
@@ -1536,7 +1537,8 @@ class OrderResolutionModel extends CI_Model
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), base_url('order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-refund-denied-shopper', $tempVars, $dynamicVars);
+        $custom_subject = "Order Resolution No.{$res->ticket_number} - No Refund for Product";
+        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-refund-denied-shopper', $tempVars, $dynamicVars, '', $custom_subject);
     }
 
     private function send_refund_denied_help_email($res)
@@ -1546,7 +1548,8 @@ class OrderResolutionModel extends CI_Model
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##TICKET_URL##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, base_url('admin/order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($help_email, 'order-resolution-refund-denied-help', $tempVars, $dynamicVars);
+        $custom_subject = "Order Resolution No.: {$res->ticket_number} - No Refund for Product";
+        $this->CommonModel->sendCommonHTMLEmail($help_email, 'order-resolution-refund-denied-help', $tempVars, $dynamicVars, '', $custom_subject);
     }
 
     private function send_replacement_denied_shopper_email($res)

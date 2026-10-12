@@ -1228,27 +1228,30 @@ class CommonModel extends CI_Model
     }
 
 
-    public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code ='')
+    public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code ='', $custom_subject = '', $custom_content = '')
     {
 
-        // $GlobalVar = $this->getGlobalVariableByIdentifier('fbc-admin-email');
-        // if (isset($GlobalVar) && $GlobalVar->value != '') {
         $from_email = 'noreply@yellowmarkets.com';
-        // }
         $emailTemplate = $this->getEmailTemplateByIdentifier($identifier);
-        // $subject = (isset($email_subject) && $email_subject != '') ? $email_subject : $emailTemplate->subject;
-        // ✅ Always use template subject
 
-        //echo lang_code;die;
+        if ($emailTemplate) {
+            if(!empty($lang_code) && $lang_code === 'fr'){
+                $subject = !empty($emailTemplate->subject_fr) ? $emailTemplate->subject_fr : $emailTemplate->subject;
+                $title = !empty($emailTemplate->title_fr) ? $emailTemplate->title_fr : $emailTemplate->title;
+                $content = !empty($emailTemplate->content_fr) ? $emailTemplate->content_fr : $emailTemplate->content;
+            }else{
+                $subject = $emailTemplate->subject;
+                $title = $emailTemplate->title;
+                $content = $emailTemplate->content;
+            }
+        } else {
+            $subject = !empty($custom_subject) ? $custom_subject : ('Yellow Markets Notification: ' . $identifier);
+            $title = $subject;
+            $content = !empty($custom_content) ? $custom_content : '<p>This is an automated notification regarding your Order Resolution ticket ##TICKET_NUMBER##.</p>';
+        }
 
-        if(!empty($lang_code) && $lang_code === 'fr'){
-            $subject = $emailTemplate->subject_fr;
-            $title = $emailTemplate->title_fr;
-            $content = $emailTemplate->content_fr;
-        }else{
-            $subject = $emailTemplate->subject;
-            $title = $emailTemplate->title;
-            $content = $emailTemplate->content;
+        if (!empty($custom_subject)) {
+            $subject = $custom_subject;
         }
 
         //echo $content."<hr>";
