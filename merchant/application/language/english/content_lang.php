@@ -1116,4 +1116,16 @@ $lang['product_badge_received_message'] = 'Your product badge for %s has been re
 // Order Resolution
 $lang['order_resolution'] = 'Order Resolution';
 $lang['order_resolutions'] = 'Order Resolutions';
-$lang['resolution_request'] = 'Resolution Request';
+$lang['resolution_request'] = 'Resolution Request';
+
+$lang['return_request_approved_title'] = 'Return Request Approved';
+$lang['return_request_rejected_title'] = 'Return Request Rejected';
+
+$lang['return_approved_message'] = 'Your return for (%s) - (%s) has been approved.';
+$lang['return_rejected_message'] = 'Your return for (%s) - (%s) has been rejected.';
+
+
+
+
+$lang['ask_question_title'] = 'Ask a Question';
+$lang['merchant_reply_notification'] = 'You got a reply to your Ask a Question message.';

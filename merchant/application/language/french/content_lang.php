@@ -1074,3 +1074,13 @@ $lang['order_resolution'] = 'Résolution de commande';
 $lang['order_resolutions'] = 'Résolutions de commandes';
 $lang['resolution_request'] = 'Demande de résolution';
 
+$lang['return_request_approved_title'] = 'Demande de retour approuvée';
+$lang['return_request_rejected_title'] = 'Demande de retour refusée';
+
+$lang['return_approved_message'] = 'Votre demande de retour pour (%s) - (%s) a été approuvée.';
+$lang['return_rejected_message'] = 'Votre demande de retour pour (%s) - (%s) a été refusée.';
+
+
+
+$lang['ask_question_title'] = 'Poser une question';
+$lang['merchant_reply_notification'] = 'Vous avez reçu une réponse à votre message « Poser une question .';
