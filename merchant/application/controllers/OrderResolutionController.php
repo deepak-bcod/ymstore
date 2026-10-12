@@ -128,14 +128,12 @@ class OrderResolutionController extends CI_Controller
 
     // 2. Add Notification for ONLY this shopper
     $notification_data = [
-        'user_id'      => $res->customer_id, // Targets only this single shopper
-        'user_type'    => 'shopper',
-        'title'        => 'New Reply on Ticket #' . $ticket_number,
-        'message'      => $sender_name . ' replied: "' . mb_strimwidth($message, 0, 80, '...') . '"',
-        'ticket_number'=> $ticket_number,
-        'target_url'   => 'shopper/order_resolution/view/' . $ticket_number,
-        'is_read'      => 0,
-        'created_at'   => time()
+        'recipient_id'   => $res->customer_id, 
+        'recipient_type' => 'shopper',
+        'title'          => 'New Reply on Ticket #' . $ticket_number,
+        'message'        => $sender_name . ' replied: "' . mb_strimwidth($message, 0, 80, '...') . '"',
+        'is_read'        => 0,
+        'created_at'     => date('Y-m-d H:i:s')
     ];
     $this->db->insert('notifications', $notification_data);
 
