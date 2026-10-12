@@ -901,6 +901,18 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'Invalid ticket or unauthorized merchant.'];
         }
 
+        $category = strtolower(trim($res->category ?? ''));
+        $is_refund_type = in_array($category, ['refund', 'return'], true);
+        $is_replacement_type = ($category === 'replacement');
+
+        if (in_array($action, ['refund_approved', 'refund_denied'], true) && !$is_refund_type) {
+            return ['status' => false, 'message' => 'Refund actions are not permitted for a ' . htmlspecialchars($res->category) . ' resolution ticket.'];
+        }
+
+        if (in_array($action, ['replacement_approved', 'replacement_denied', 'replacement_completed'], true) && !$is_replacement_type) {
+            return ['status' => false, 'message' => 'Replacement actions are not permitted for a ' . htmlspecialchars($res->category) . ' resolution ticket.'];
+        }
+
         $time = time();
         $update = ['updated_at' => $time];
 
