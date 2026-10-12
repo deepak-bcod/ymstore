@@ -1859,56 +1859,79 @@ class CustomerController extends CI_Controller
     }
 
 	public function close_ticket($order_id = 0, $category = 0, $ticket_id = 0, $product_id = 0)
-	{
-		// Fetch ticket info first to check if notification is needed
-		if (!empty($ticket_id)) {
-			$this->db->where('ticket_id', $ticket_id);
-		} else {
-			if (!empty($order_id)) {
-				$this->db->where('order_id', $order_id);
-			}
-			if (!empty($product_id)) {
-				$this->db->where('products', $product_id);
-			}
-		}
-		if (!empty($category)) {
-			$this->db->where('category', $category);
-		}
-		$ticket = $this->db->get('help_desk')->row();
+{
+    // 1. Fetch ticket info first to check if notification is needed
+    if (!empty($ticket_id)) {
+        $this->db->where('ticket_id', $ticket_id);
+    } else {
+        if (!empty($order_id)) {
+            $this->db->where('order_id', $order_id);
+        }
+        if (!empty($product_id)) {
+            $this->db->where('products', $product_id);
+        }
+    }
+    if (!empty($category)) {
+        $this->db->where('category', $category);
+    }
+    $ticket = $this->db->get('help_desk')->row();
 
-		if (!empty($ticket_id)) {
-			$this->db->where('ticket_id', $ticket_id);
-		} else {
-			if (!empty($order_id)) {
-				$this->db->where('order_id', $order_id);
-			}
-			if (!empty($product_id)) {
-				$this->db->where('products', $product_id);
-			}
-		}
+    // 2. Perform the update to close ticket
+    if (!empty($ticket_id)) {
+        $this->db->where('ticket_id', $ticket_id);
+    } else {
+        if (!empty($order_id)) {
+            $this->db->where('order_id', $order_id);
+        }
+        if (!empty($product_id)) {
+            $this->db->where('products', $product_id);
+        }
+    }
 
-		if (!empty($category)) {
-			$this->db->where('category', $category);
-		}
+    if (!empty($category)) {
+        $this->db->where('category', $category);
+    }
 
-		$this->db->update('help_desk', array(
-			'status'      => 2,
-			'status_code' => 'Close',
-			'closed_at'   => time(),
-			'closed_by'   => 'admin',
-			'updated_at'  => time(),
-		));
+    $this->db->update('help_desk', array(
+        'status'      => 2,
+        'status_code' => 'Close',
+        'closed_at'   => time(),
+        'closed_by'   => 'admin',
+        'updated_at'   => time(),
+    ));
 
-		// Email notifications disabled for Help Desk (handled by separate Order Resolution module)
+    // 3. Send In-App Notification to Shopper/Customer
+    if (!empty($ticket) && !empty($ticket->customer_id)) {
+        $actual_ticket_no = !empty($ticket->ticket_id) ? $ticket->ticket_id : $ticket_id;
 
-		$this->session->set_flashdata('success', 'Ticket closed successfully.');
+        $this->db->insert('notifications', [
+            'type'           => 'helpdesk',
+            'subtype'        => 'ticket_closed',
+            'recipient_type' => 'customer',
+            'recipient_id'   => $ticket->customer_id,
+            'title'          => 'Helpdesk Response',
+            'message'        => 'Admin is Your Help desk Ticket ' . $actual_ticket_no . ' is closed.',
+            'data'           => json_encode([
+                'ticket_id'   => $actual_ticket_no,
+                'order_id'    => $ticket->order_id,
+                'product_id'  => $ticket->products,
+                'merchant_id' => $ticket->merchant_id
+            ]),
+            'is_read'        => 0,
+            'created_at'     => date('Y-m-d H:i:s'),
+            'updated_at'     => date('Y-m-d H:i:s')
+        ]);
+    }
 
-		if ($category > 2) {
-			redirect('help_desk/merchant');
-		} else {
-			redirect('help_desk/shopper');
-		}
-	}
+    // 4. Redirect
+    $this->session->set_flashdata('success', 'Ticket closed successfully.');
+
+    if ($category > 2) {
+        redirect('help_desk/merchant');
+    } else {
+        redirect('help_desk/shopper');
+    }
+}
 
 	/**
 	 * Stage 2: Support (@help) assigns ticket to Accounts (@acct) for refund or YM Delivery processing
