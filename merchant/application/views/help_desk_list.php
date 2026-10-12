@@ -63,28 +63,21 @@
             <td><?= $first_ticket['ticket_id']; ?></td>
             <td><?= (!empty($first_ticket['order_id']) && $first_ticket['order_id'] != 0) ? str_pad($first_ticket['order_id'], 4, '0', STR_PAD_LEFT) : 'N/A'; ?></td>
             <td><?= $first_ticket['subject']; ?></td>
-           <td>
+            <td>
     <?php
-    $subject_types = [
-        1 => lang('order_issue'),
-        2 => lang('refund_request'),
-        3 => lang('replacement_request'),
-        4 => lang('merchant_delivery'),  
-        5 => lang('ym_delivery'),
-        6 => lang('resolution_request'),
-        7 => lang('general_support'),
-        8 => lang('technical_issue')
-    ];
+     $subject_types  = [
+            1 => lang('order_issue'),
+            2 => lang('refund_request'),
+            3 => lang('replacement_request'),
+            4 => lang('merchant_delivery'),  
+            5 => lang('ym_delivery'),
+            6 => lang('resolution_request'),
+            7 => lang('general_support'),
+            8 => lang('technical_issue')
+        ];
 
-    // Check possible column names in your database
-    $subjectKey = $first_ticket['subject_type'] ?? $first_ticket['type'] ?? $first_ticket['category'] ?? $first_ticket['priority'] ?? '';
-
-    // If the database stores the text directly (e.g., "Refund Request"), display it; otherwise look it up in the array
-    if (is_numeric($subjectKey)) {
-        echo $subject_types[$subjectKey] ?? lang('unknown');
-    } else {
-        echo !empty($subjectKey) ? $subjectKey : lang('unknown');
-    }
+    // This checks the DB value (1-6). If not found, it shows the raw value or 'unknown'
+    echo $subject_types[$first_ticket['priority']] ?? $first_ticket['priority'] ?? lang('unknown');
     ?>
 </td>
             <td>
