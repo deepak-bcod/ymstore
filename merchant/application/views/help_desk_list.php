@@ -1,10 +1,22 @@
+<?php 
+// DEBUG: Print array keys directly to inspect database column names
+if (!empty($help_desk)) {
+    echo '<div style="background:#fff; color:#000; padding:20px; z-index:99999; position:relative; font-size:16px;">';
+    echo '<h3>Available DB Columns:</h3><pre>';
+    print_r(array_keys(reset($help_desk)));
+    echo '</pre><h3>First Record Data:</h3><pre>';
+    print_r(reset($help_desk));
+    echo '</pre></div>';
+    exit;
+}
+?>
 <?php $this->load->view('common/fbc-user/header'); 
 
 // echo "<pre>";print_r($help_desk);die;
-echo "<pre>";
-print_r($help_desk);
-echo "</pre>";
-die();
+// echo "<pre>";
+// print_r($help_desk);
+// echo "</pre>";
+// die();
 ?> 
 
 
