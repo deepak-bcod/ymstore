@@ -220,7 +220,7 @@ th.st, td.st {
                                                             8 => lang('technical_issue')
                                                         ];
                                                         
-                                                        echo $subject_types[$first_ticket->priority] ?? lang('unknown'); 
+                                                        echo $subject_types[$first_ticket->priority_id] ?? lang('unknown');
                                                         ?>
                                                     </td>
                                                     <td ><?= !empty($date_of_submission) ? date('d/m/Y', $date_of_submission) : '-'; ?></td>
