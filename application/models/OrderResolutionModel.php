@@ -115,7 +115,7 @@ class OrderResolutionModel extends CI_Model
         $seen_keys = [];
 
         // 2. Check b2b_orders and b2b_order_items for status 20 (Return Rejected) or 21 (Replacement Rejected)
-        $b2b_items = $this->db->select('boi.id as b2b_item_id, boi.order_id as b2b_order_id, boi.product_id, boi.product_name, boi.status as item_status, bo.webshop_order_id, bo.publisher_id, pub.publication_name as merchant_name')
+        $b2b_items = $this->db->select('boi.item_id as b2b_item_id, boi.order_id as b2b_order_id, boi.product_id, boi.product_name, boi.status as item_status, bo.webshop_order_id, bo.publisher_id, pub.publication_name as merchant_name')
             ->from('b2b_order_items boi')
             ->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'inner')
             ->join('publisher pub', 'pub.id = bo.publisher_id', 'left')
@@ -185,7 +185,7 @@ class OrderResolutionModel extends CI_Model
                         if ($soi) {
                             $prod_id = (int)$soi->product_id;
                         } else {
-                            $boi = $this->db->select('product_id')->where('id', $ro->order_item_id)->get('b2b_order_items')->row();
+                            $boi = $this->db->select('product_id')->where('item_id', $ro->order_item_id)->get('b2b_order_items')->row();
                             if ($boi) {
                                 $prod_id = (int)$boi->product_id;
                             }
@@ -247,7 +247,7 @@ class OrderResolutionModel extends CI_Model
                         if ($soi) {
                             $prod_id = (int)$soi->product_id;
                         } else {
-                            $boi = $this->db->select('product_id')->where('id', $rpo->order_item_id)->get('b2b_order_items')->row();
+                            $boi = $this->db->select('product_id')->where('item_id', $rpo->order_item_id)->get('b2b_order_items')->row();
                             if ($boi) {
                                 $prod_id = (int)$boi->product_id;
                             }
