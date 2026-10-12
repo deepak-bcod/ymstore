@@ -59,14 +59,27 @@
         }
 
         // 2. Return Request
-        if ($type === 'return' || $row->title === 'Return Request Approved') {
+        if ($type === 'return' || strpos($row->title, 'Return Request') !== false) {
             $title = 'Demande de retour approuvée';
             if (strpos($row->message, 'is accepted') !== false) {
                 $message = str_replace(['Your return for', 'is accepted.'], ['Votre retour pour', 'a été accepté.'], $row->message);
             }
         }
 
-        // 3. Orders (Delivered, Shipped, Processing)
+        // 3. Replacement Request
+        if ($type === 'replacement' || strpos($row->title, 'Replacement Approved') !== false) {
+            $title = 'Demande de remplacement approuvée';
+            if (strpos($row->message, 'has been approved') !== false) {
+                // Translates: "Your replacement request for Order No ES-1302 (...) has been approved."
+                $message = str_replace(
+                    ['Your replacement request for', 'has been approved.'], 
+                    ['Votre demande de remplacement pour', 'a été approuvée.'], 
+                    $row->message
+                );
+            }
+        }
+
+        // 4. Orders (Delivered, Shipped, Processing)
         if ($type === 'order') {
             if ($row->title === 'Order delivered') {
                 $title = 'Commande livrée';
@@ -82,6 +95,23 @@
                 $message = str_replace(['Your order no.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.'], $row->message);
             } elseif (strpos($row->message, 'is under process') !== false) {
                 $message = str_replace(['Your order no.', 'is under process.'], ['Votre commande n°', 'est en cours de traitement.'], $row->message);
+            }
+        }
+        // 5. Order Failed / Delivery Failed
+        if ($row->title === 'Order Failed' || ($type === 'order' && $subtype === 'delivery_failed')) {
+            $title = 'Commande échouée';
+            if (strpos($row->message, 'could not be delivered') !== false) {
+                $message = str_replace(
+                    [
+                        'Your order no.', 
+                        'could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.'
+                    ], 
+                    [
+                        'Votre commande n°', 
+                        "n'a pas pu être livrée en raison de 2 tentatives infructueuses. Veuillez contacter l'équipe Yellow Markets pour récupérer votre commande."
+                    ], 
+                    $row->message
+                );
             }
         }
     }
