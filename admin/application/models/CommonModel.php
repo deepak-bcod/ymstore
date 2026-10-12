@@ -239,13 +239,29 @@ class CommonModel extends CI_Model
 
 	public function get_custom_variable($name)
 	{
-		$result = $this->db->get_where('custom_variables_master', array('name' => $name))->row();
-		return $result;
+		$this->db->group_start();
+		$this->db->where('identifier', $name);
+		$this->db->or_where('name', $name);
+		$this->db->group_end();
+		$query = $this->db->get('custom_variables');
+		if ($query->num_rows() > 0) {
+			return $query->row()->value;
+		}
+		return false;
+	}
+
+	public function get_custom_variable_row($name)
+	{
+		$this->db->group_start();
+		$this->db->where('identifier', $name);
+		$this->db->or_where('name', $name);
+		$this->db->group_end();
+		return $this->db->get('custom_variables')->row();
 	}
 
 	public function get_custom_variable_by_id($id)
 	{
-		$result = $this->db->get_where('custom_variables_master', array('id' => $id))->row();
+		$result = $this->db->get_where('custom_variables', array('id' => $id))->row();
 		return $result;
 	}
 

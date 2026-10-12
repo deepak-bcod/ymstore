@@ -4110,10 +4110,10 @@ class UserController extends CI_Controller
 
 		// Recipients: @help email
 		$help_var = $this->CommonModel->get_custom_variable('contact_us_email');
-		$help_email = (!empty($help_var) && !empty($help_var->value)) ? $help_var->value : '';
+		$help_email = is_object($help_var) ? ($help_var->value ?? '') : (is_string($help_var) ? $help_var : '');
 		if (empty($help_email)) {
 			$admin_var = $this->CommonModel->get_custom_variable('admin_email');
-			$help_email = (!empty($admin_var) && !empty($admin_var->value)) ? $admin_var->value : 'help@yellowmarkets.com';
+			$help_email = is_object($admin_var) ? ($admin_var->value ?? '') : (is_string($admin_var) ? $admin_var : 'help@yellowmarkets.com');
 		}
 
 		$tempVars = [

@@ -607,8 +607,7 @@ class OrderResolutionModel extends CI_Model
         }
 
         // 2. Email to @Help: order-resolution-help
-        $help_email = $this->CommonModel->get_custom_variable('contact_us_email')
-            ?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+        $help_email = $this->get_help_email();
 
         if (!empty($help_email)) {
             $helpTempVars = [
@@ -812,8 +811,7 @@ class OrderResolutionModel extends CI_Model
      */
     public function send_merchant_action_email_to_help($res, $action_name)
     {
-        $help_email = $this->CommonModel->get_custom_variable('contact_us_email')
-            ?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+        $help_email = $this->get_help_email();
         if (empty($help_email)) {
             return;
         }
@@ -1415,7 +1413,7 @@ class OrderResolutionModel extends CI_Model
 
     private function send_refund_acct_email($res)
     {
-        $acct_email = $this->CommonModel->get_custom_variable('account_email') ?: 'acct@yellowmarkets.com';
+        $acct_email = $this->get_acct_email();
         $admin_url  = base_url('admin/order_resolution/view/' . $res->ticket_number);
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##REFUND_AMOUNT##', '##TICKET_URL##', '##WEBSHOPNAME##'];
@@ -1425,7 +1423,7 @@ class OrderResolutionModel extends CI_Model
 
     private function send_ym_delivery_acct_email($res)
     {
-        $acct_email = $this->CommonModel->get_custom_variable('account_email') ?: 'acct@yellowmarkets.com';
+        $acct_email = $this->get_acct_email();
         $admin_url  = base_url('admin/order_resolution/view/' . $res->ticket_number);
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##TICKET_URL##', '##WEBSHOPNAME##'];
@@ -1639,7 +1637,43 @@ class OrderResolutionModel extends CI_Model
 
     private function get_help_email()
     {
-        return $this->CommonModel->get_custom_variable('contact_us_email')
-            ?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+        $val = $this->CommonModel->get_custom_variable('contact_us_email');
+        if (is_object($val)) {
+            $val = !empty($val->value) ? $val->value : '';
+        }
+        if (!empty($val) && is_string($val)) {
+            return $val;
+        }
+
+        $admin_val = $this->CommonModel->get_custom_variable('admin_email');
+        if (is_object($admin_val)) {
+            $admin_val = !empty($admin_val->value) ? $admin_val->value : '';
+        }
+        if (!empty($admin_val) && is_string($admin_val)) {
+            return $admin_val;
+        }
+
+        return 'help@yellowmarkets.com';
+    }
+
+    private function get_acct_email()
+    {
+        $val = $this->CommonModel->get_custom_variable('account_email');
+        if (is_object($val)) {
+            $val = !empty($val->value) ? $val->value : '';
+        }
+        if (!empty($val) && is_string($val)) {
+            return $val;
+        }
+
+        $admin_val = $this->CommonModel->get_custom_variable('admin_email');
+        if (is_object($admin_val)) {
+            $admin_val = !empty($admin_val->value) ? $admin_val->value : '';
+        }
+        if (!empty($admin_val) && is_string($admin_val)) {
+            return $admin_val;
+        }
+
+        return 'acct@yellowmarkets.com';
     }
 }
