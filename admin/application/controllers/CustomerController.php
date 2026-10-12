@@ -1876,7 +1876,7 @@ class CustomerController extends CI_Controller
     }
     $ticket = $this->db->get('help_desk')->row();
 
-    // 2. Perform the update to close ticket
+    // 2. Perform the update to close ticket (Removed 'status_code' column)
     if (!empty($ticket_id)) {
         $this->db->where('ticket_id', $ticket_id);
     } else {
@@ -1894,10 +1894,9 @@ class CustomerController extends CI_Controller
 
     $this->db->update('help_desk', array(
         'status'      => 2,
-        'status_code' => 'Close',
         'closed_at'   => time(),
         'closed_by'   => 'admin',
-        'updated_at'   => time(),
+        'updated_at'  => time(),
     ));
 
     // 3. Send In-App Notification to Shopper/Customer
@@ -1910,7 +1909,7 @@ class CustomerController extends CI_Controller
             'recipient_type' => 'customer',
             'recipient_id'   => $ticket->customer_id,
             'title'          => 'Helpdesk Response',
-            'message'        => 'Admin is Your Help desk Ticket ' . $actual_ticket_no . ' is closed.',
+            'message'        => 'Admin Your Help desk Ticket ' . $actual_ticket_no . ' is closed.',
             'data'           => json_encode([
                 'ticket_id'   => $actual_ticket_no,
                 'order_id'    => $ticket->order_id,
