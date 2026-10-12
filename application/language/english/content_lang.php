@@ -19,6 +19,7 @@ $lang['daily_deals'] = "Daily Deals";
 $lang['flash_sales'] = "Flash Sales";
 
 $lang['blog'] = "Blog";
+$lang['notifications']      = 'Notifications';
 
 
 

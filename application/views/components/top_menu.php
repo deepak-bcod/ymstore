@@ -123,27 +123,26 @@ $lang      = $this->session->userdata('site_lang');
 
     <?php if ($this->session->userdata('LoginID')): ?>
 
-        <li class="menu-item-new notification-menu">
+      
+<li class="menu-item-new notification-menu">
 
-            <a href="<?= base_url('notification'); ?>"
-               class="notification-bell"
-               title="Notifications">
+    <a href="<?= base_url('notification'); ?>"
+       class="notification-bell"
+       title="<?= html_escape($this->lang->line('notifications')); ?>"
+       aria-label="<?= html_escape($this->lang->line('notifications')); ?>">
 
-                <!-- Bell Icon -->
-                <i class="fa fa-bell" aria-hidden="true"></i>
+        <i class="fa fa-bell" aria-hidden="true"></i>
 
-                <!-- Notification Count -->
-                <?php if (!empty($notification_count) && $notification_count > 0): ?>
+        <?php if (!empty($notification_count) && $notification_count > 0): ?>
+            <span class="notification-count">
+                <?= (int) $notification_count; ?>
+            </span>
+        <?php endif; ?>
 
-                    <span class="notification-count">
-                        <?= $notification_count; ?>
-                    </span>
+    </a>
 
-                <?php endif; ?>
+</li>
 
-            </a>
-
-        </li>
 
     <?php endif; ?>
 
