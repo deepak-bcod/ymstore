@@ -141,14 +141,20 @@
                             <?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested'): ?>
                                 <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
                                     <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#resolutionRequestModal">
-                                        <i class="fa fa-flag"></i> <?php echo $this->lang->line('resolution_request') ?: 'Resolution Request (Escalate to Support)'; ?>
+                                        <i class="fa fa-flag"></i> <?php echo $this->lang->line('resolution_request') ?: 'Resolution Request'; ?>
                                     </button>
-                                    <small class="text-muted" style="margin-left: 10px;">Not satisfied? Click to escalate this request directly to Yellow Markets Support (@Help).</small>
+                                    <small class="text-muted" style="margin-left: 10px;">Disagree with the merchant's decision? Request resolution assistance from Yellow Markets (@Help).</small>
                                 </div>
                             <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
                                 <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
                                     <span class="label label-warning" style="font-size: 13px; padding: 6px 12px;">
                                         <i class="fa fa-hourglass-half"></i> Resolution Request Pending Review with Yellow Markets (@Help)
+                                    </span>
+                                </div>
+                            <?php elseif ($resolution->status === 'Close (Final)'): ?>
+                                <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
+                                    <span class="label label-default" style="font-size: 13px; padding: 6px 12px;">
+                                        <i class="fa fa-lock"></i> Resolution Closed (Final)
                                     </span>
                                 </div>
                             <?php endif; ?>

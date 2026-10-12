@@ -206,6 +206,16 @@ class OrderResolutionModel extends CI_Model
         // Send Email Notifications
         $this->send_creation_emails($resolution_data, $shopper_name);
 
+        // Send In-App Notifications
+        $this->send_inapp_notification('admin', 1, 'new_ticket',
+            'New Order Resolution Ticket',
+            "New Resolution Ticket #{$ticket_number} created for Order #{$order_number} by {$shopper_name}.", $resolution_data);
+        if (!empty($merchant_id)) {
+            $this->send_inapp_notification('merchant', $merchant_id, 'new_ticket',
+                'New Order Resolution Ticket',
+                "New Resolution Ticket #{$ticket_number} raised for Order #{$order_number}.", $resolution_data);
+        }
+
         return $this->get_resolution_by_ticket_number($ticket_number);
     }
 
@@ -559,6 +569,46 @@ class OrderResolutionModel extends CI_Model
     }
 
     /**
+     * Send in-app notification to notifications table
+     */
+    public function send_inapp_notification($recipient_type, $recipient_id, $subtype, $title, $message, $res)
+    {
+        if (empty($recipient_id)) {
+            return false;
+        }
+
+        $ticket_number = is_object($res) ? ($res->ticket_number ?? '') : ($res['ticket_number'] ?? '');
+        $order_number  = is_object($res) ? ($res->order_number ?? '') : ($res['order_number'] ?? '');
+        $order_id      = is_object($res) ? ($res->order_id ?? 0) : ($res['order_id'] ?? 0);
+        $product_id    = is_object($res) ? ($res->product_id ?? 0) : ($res['product_id'] ?? 0);
+        $customer_id   = is_object($res) ? ($res->customer_id ?? 0) : ($res['customer_id'] ?? 0);
+        $merchant_id   = is_object($res) ? ($res->merchant_id ?? 0) : ($res['merchant_id'] ?? 0);
+
+        $time_str = date('Y-m-d H:i:s');
+        $notif_data = [
+            'type'           => 'order_resolution',
+            'subtype'        => $subtype,
+            'recipient_type' => $recipient_type, // 'customer', 'merchant', 'admin'
+            'recipient_id'   => (int)$recipient_id,
+            'title'          => $title,
+            'message'        => $message,
+            'data'           => json_encode([
+                'ticket_number' => $ticket_number,
+                'order_number'  => $order_number,
+                'order_id'      => $order_id,
+                'product_id'    => $product_id,
+                'customer_id'   => $customer_id,
+                'merchant_id'   => $merchant_id,
+            ]),
+            'is_read'        => 0,
+            'created_at'     => $time_str,
+            'updated_at'     => $time_str,
+        ];
+
+        return $this->db->insert('notifications', $notif_data);
+    }
+
+    /**
      * Process Merchant Decision Actions
      */
     public function process_merchant_action($ticket_number, $merchant_id, $action, $extra = [])
@@ -595,10 +645,24 @@ class OrderResolutionModel extends CI_Model
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
                 $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Refund Denied', 'merchant', $merchant_id, 'Merchant denied refund.');
-                $this->send_merchant_action_email_to_help($res, 'Refund Denied');
+                
+                // Notifications / Emails as per specifications:
+                // Shopper receives: Order Resolution No.: [TicketNumber] - No Refund for Product
                 $this->send_refund_denied_shopper_email($res);
+                // @Help receives: Order Resolution No.: [TicketNumber] - No Refund for Product
                 $this->send_refund_denied_help_email($res);
-                return ['status' => true, 'message' => 'Refund denied.'];
+
+                // In-App Notifications
+                if (!empty($res->customer_id)) {
+                    $this->send_inapp_notification('customer', $res->customer_id, 'refund_denied',
+                        'Order Resolution - No Refund for Product',
+                        "Merchant has denied the refund request for Ticket #{$ticket_number} (Order #{$res->order_number}).", $res);
+                }
+                $this->send_inapp_notification('admin', 1, 'refund_denied',
+                    'Order Resolution - Refund Denied',
+                    "Merchant denied refund for Ticket #{$ticket_number} (Order #{$res->order_number}). Please mark ticket as Close.", $res);
+
+                return ['status' => true, 'message' => 'Refund denied. Shopper and @Help have been notified.'];
 
             case 'replacement_approved':
                 $delivery_option = $extra['delivery_option'] ?? '';
@@ -683,11 +747,23 @@ class OrderResolutionModel extends CI_Model
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'ReOpen', 'Resolution Request', 'shopper', $customer_id, 'Shopper requested resolution escalation.');
 
-        // Section 15: Notify @Help and Merchant
+        // Emails to @Help and Merchant
+        // @Help receives: Order Resolution No.: [TicketNumber] - Dispute Refund Decision
         $this->send_dispute_help_email($res, $message);
+        // Merchant receives: Order Resolution No.: [TicketNumber] - Shopper Dispute Decision
         $this->send_dispute_merchant_email($res, $message);
 
-        return ['status' => true, 'message' => 'Resolution request submitted successfully.'];
+        // In-App Notifications
+        $this->send_inapp_notification('admin', 1, 'dispute_refund_decision',
+            'Order Resolution - Dispute Refund Decision',
+            "Shopper has disputed refund denial for Ticket #{$ticket_number} (Order #{$res->order_number}). Investigation required.", $res);
+        if (!empty($res->merchant_id)) {
+            $this->send_inapp_notification('merchant', $res->merchant_id, 'shopper_dispute_decision',
+                'Order Resolution - Shopper Dispute Decision',
+                "Shopper has disputed refund decision for Ticket #{$ticket_number} (Order #{$res->order_number}). Case is under Yellow Markets review.", $res);
+        }
+
+        return ['status' => true, 'message' => 'Resolution request submitted successfully. Case escalated to @Help.'];
     }
 
     /**
@@ -720,6 +796,11 @@ class OrderResolutionModel extends CI_Model
             $this->send_refund_acct_email($res);
         }
 
+        // In-App Notification to @Acct
+        $this->send_inapp_notification('admin', 1, 'refund_request_acct',
+            'Order Resolution - Refund Request (@Acct)',
+            "Resolution Ticket #{$ticket_number} (Order #{$res->order_number}) assigned to @Acct for refund processing.", $res);
+
         return ['status' => true, 'message' => 'Ticket assigned to Accounting successfully.'];
     }
 
@@ -744,16 +825,14 @@ class OrderResolutionModel extends CI_Model
             $this->update_order_item_status($res->order_id, $res->product_id, $res->merchant_id, 17);
         }
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes);
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 15-day hold-back sales.');
 
-        // Email to Shopper: order-resolution-refund-completed-shopper (or YM delivery shopper completed)
-        if ($res->delivery_option === 'ym_delivery') {
-            $this->send_ym_delivery_completed_shopper_email($res);
-        } else {
-            $this->send_refund_completed_shopper_email($res);
-        }
+        // In-App Notification to @Help indicating refund is processed and ready for Close (Final)
+        $this->send_inapp_notification('admin', 1, 'refund_done',
+            'Order Resolution - Refund Processed by @Acct',
+            "Accounting has processed refund for Ticket #{$ticket_number} (Order #{$res->order_number}) from merchant hold-back sales. Ticket status is Done. Ready for Close (Final).", $res);
 
-        return ['status' => true, 'message' => 'Ticket marked as Done.'];
+        return ['status' => true, 'message' => 'Ticket marked as Done. Refund processed from merchant 15-day hold-back sales.'];
     }
 
     /**
@@ -776,15 +855,22 @@ class OrderResolutionModel extends CI_Model
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes);
 
-        // Email to Merchant: order-resolution-ticket-closed-merchant
+        // Merchant receives: Order Resolution No.: [TicketNumber] - Closed
         $this->send_ticket_closed_merchant_email($res);
+
+        // In-App Notification to Merchant
+        if (!empty($res->merchant_id)) {
+            $this->send_inapp_notification('merchant', $res->merchant_id, 'ticket_closed',
+                'Order Resolution Closed',
+                "Order Resolution Ticket #{$ticket_number} has been marked as Close by Yellow Markets Support (@Help).", $res);
+        }
 
         // If replacement was completed, notify shopper
         if ($res->merchant_action === 'replacement_completed') {
             $this->send_replacement_completed_shopper_email($res);
         }
 
-        return ['status' => true, 'message' => 'Ticket closed successfully.'];
+        return ['status' => true, 'message' => 'Ticket closed successfully. Merchant notified.'];
     }
 
     /**
@@ -808,8 +894,28 @@ class OrderResolutionModel extends CI_Model
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Ticket Closed (Final)', 'admin', $admin_id, $notes);
 
-        // Section 16 & 17: Email to Merchant: Closed (Final)
+        // Final Notifications as per specifications:
+        // 1. Merchant receives: Order Resolution No.: [TicketNumber] - Closed (Final)
         $this->send_closed_final_merchant_email($res);
+
+        // 2. Shopper receives: Order Resolution No.: [TicketNumber] - You Are Being Refunded
+        if ($res->resolution_status === 'resolution_approved' || $res->merchant_action === 'refund_approved' || strtolower($res->category) === 'refund') {
+            $this->send_refund_completed_shopper_email($res);
+        } elseif ($res->delivery_option === 'ym_delivery') {
+            $this->send_ym_delivery_completed_shopper_email($res);
+        }
+
+        // In-App Notifications
+        if (!empty($res->merchant_id)) {
+            $this->send_inapp_notification('merchant', $res->merchant_id, 'closed_final',
+                'Order Resolution - Closed (Final)',
+                "Order Resolution Ticket #{$ticket_number} has been closed (Final).", $res);
+        }
+        if (!empty($res->customer_id)) {
+            $this->send_inapp_notification('customer', $res->customer_id, 'refund_completed',
+                'Order Resolution - You Are Being Refunded',
+                "Your refund for Ticket #{$ticket_number} (Order #{$res->order_number}) has been completed and resolution closed (Final).", $res);
+        }
 
         return ['status' => true, 'message' => 'Ticket finally closed with no further options.'];
     }
@@ -827,7 +933,8 @@ class OrderResolutionModel extends CI_Model
         $time = time();
 
         if ($decision === 'approved') {
-            // Section 16: Decision in Favour of Shopper -> Assign to @Acct (Status: Processing)
+            // Scenario 1: Decision in Favour of Shopper
+            // 1. @Help clicks Resolution Approved -> status: Processing, assigned_role: Acct
             $this->db->where('id', $res->id)->update('order_resolutions', [
                 'status'            => 'Processing',
                 'assigned_role'     => 'Acct',
@@ -837,12 +944,18 @@ class OrderResolutionModel extends CI_Model
 
             $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', 'Resolution Approved (In Favour of Shopper)', 'admin', $admin_id, $notes);
 
-            // Email to @Acct: Refund Request
+            // 4. @Acct receives: Order Resolution No.: [TicketNumber] - Refund Request
             $this->send_refund_acct_email($res);
 
-            return ['status' => true, 'message' => 'Resolution decision approved in favour of shopper and assigned to Accounting.'];
+            // In-App Notification to @Acct
+            $this->send_inapp_notification('admin', 1, 'refund_request_acct',
+                'Order Resolution - Refund Request (@Acct)',
+                "Resolution approved in favour of shopper for Ticket #{$ticket_number} (Order #{$res->order_number}). Please refund from merchant 15-day hold-back sales.", $res);
+
+            return ['status' => true, 'message' => 'Resolution decision approved in favour of shopper and assigned to Accounting (@Acct).'];
         } else {
-            // Section 17: Decision in Favour of Merchant -> Status: Close (Final)
+            // Scenario 2: Decision in Favour of Merchant
+            // 1. @Help changes Resolution status to Close (Final)
             $this->db->where('id', $res->id)->update('order_resolutions', [
                 'status'            => 'Close (Final)',
                 'resolution_status' => 'resolution_denied',
@@ -854,11 +967,23 @@ class OrderResolutionModel extends CI_Model
 
             $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Resolution Denied (In Favour of Merchant)', 'admin', $admin_id, $notes);
 
-            // Merchant receives: Order Resolution No.: [TicketNumber] - Closed (Final)
+            // 2. Merchant receives: Order Resolution No.: [TicketNumber] - Closed (Final)
             $this->send_closed_final_merchant_email($res);
 
-            // Shopper receives: Order Resolution No.: [TicketNumber] - Refund Disapproved
+            // 3. Shopper receives: Order Resolution No.: [TicketNumber] - Refund Disapproved
             $this->send_refund_disapproved_shopper_email($res);
+
+            // In-App Notifications
+            if (!empty($res->merchant_id)) {
+                $this->send_inapp_notification('merchant', $res->merchant_id, 'closed_final',
+                    'Order Resolution - Closed (Final)',
+                    "Dispute resolved in your favour for Ticket #{$ticket_number}. Ticket is closed (Final).", $res);
+            }
+            if (!empty($res->customer_id)) {
+                $this->send_inapp_notification('customer', $res->customer_id, 'refund_disapproved',
+                    'Order Resolution - Refund Disapproved',
+                    "After investigation, resolution was decided in favour of merchant for Ticket #{$ticket_number}. Ticket is closed (Final).", $res);
+            }
 
             return ['status' => true, 'message' => 'Resolution decision recorded in favour of merchant and closed (Final).'];
         }
