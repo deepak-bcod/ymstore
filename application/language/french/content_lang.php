@@ -1376,3 +1376,14 @@ $lang['select_order'] = '-- Sélectionner la commande --';
 $lang['post_reply'] = 'Poster une réponse';
 $lang['send_reply'] = 'Envoyer la réponse';
 
+
+$lang['notifications_title'] = 'Notifications';
+$lang['mark_all_read'] = 'Tout marquer comme lu';
+$lang['notification_table_title'] = 'Titre';
+$lang['notification_table_message'] = 'Message';
+$lang['notification_table_date'] = 'Date';
+$lang['notification_table_action'] = 'Action';
+$lang['mark_read'] = 'Marquer comme lu';
+$lang['notification_status_read'] = 'Lu';
+$lang['no_notifications_found'] = 'Aucune notification trouvée.';
+
