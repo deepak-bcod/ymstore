@@ -545,6 +545,33 @@ class DbCheckout
 				];
 
 				$this->dbl->dbl_conn->rawQuery($notif_sql, $notif_params);
+				// ================================
+                // 2. ADD NOTIFICATION FOR SHOPPER
+                // ================================
+                if (!empty($customer_id)) {
+                    $notif_sql_shopper = "INSERT INTO notifications 
+                        (type, subtype, recipient_type, recipient_id, title, message, data, is_read, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                    $notif_params_shopper = [
+                        'order',                    // type
+                        'new_sales_order',          // subtype
+                        'shopper',                  // recipient_type
+                        $customer_id,               // recipient_id (shopper's ID)
+                        'New order placed',         // title
+                        'Your order #' . $increment_id . ' has been successfully placed.', // message
+                        json_encode([
+                            'sales_order_id' => $last_insert_id,
+                            'increment_id'   => $increment_id,
+                            'customer_name'  => $customer_firstname . ' ' . $customer_lastname
+                        ]),
+                        0,                          // is_read
+                        date('Y-m-d H:i:s'),        // created_at
+                        date('Y-m-d H:i:s')         // updated_at
+                    ];
+
+                    $this->dbl->dbl_conn->rawQuery($notif_sql_shopper, $notif_params_shopper);
+                }
 				
 				
 
