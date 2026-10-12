@@ -24,73 +24,72 @@
                 <div class="content-page">
                     <h1><?php echo $this->lang->line('submit_order_resolution_request') ?: 'Submit Order Resolution Request'; ?></h1>
                     <p class="text-muted" style="margin-bottom: 25px;">
-                        <?php echo $this->lang->line('order_resolution_desc') ?: 'Raise a resolution request directly with the merchant for delivery, refunds, replacements, or other order-related issues.'; ?>
+                        <?php echo $this->lang->line('order_resolution_desc') ?: 'Order Resolution is available exclusively for items where your Return or Replacement request has been rejected by the Merchant.'; ?>
                     </p>
 
                     <?php if ($this->session->flashdata('error')): ?>
                         <div class="alert alert-danger"><?php echo $this->session->flashdata('error'); ?></div>
                     <?php endif; ?>
 
-                    <?php if (empty($orders)): ?>
-                        <div class="alert alert-warning" style="margin-bottom: 20px;">
-                            <i class="fa fa-exclamation-triangle"></i>
-                            <strong>No completed orders found.</strong> Order Resolution (Refund, Return, Replacement) is only available for orders with status "Complete". Once an order is completed, you can raise a resolution request here.
+                    <?php if (empty($rejected_items)): ?>
+                        <div class="alert alert-info" style="margin-bottom: 20px;">
+                            <i class="fa fa-info-circle"></i>
+                            <strong>No rejected Return or Replacement requests found.</strong>
+                            Order Resolution is only available after a Merchant rejects a Return or Replacement request.
+                            You can check your existing requests on your <a href="<?php echo base_url('customer/my-orders'); ?>" class="alert-link" style="text-decoration: underline; font-weight: bold;">My Orders</a> page.
                         </div>
                     <?php endif; ?>
 
                     <form action="<?php echo base_url('order_resolution/store'); ?>" method="POST" enctype="multipart/form-data">
                         <div class="row">
+                            <!-- Rejected Order Item Selection -->
+                            <div class="col-md-12 form-group">
+                                <label for="rejected_item_selection"><b><?php echo $this->lang->line('rejected_order_item') ?: 'Rejected Order Item'; ?> <span class="text-danger">*</span></b></label>
+                                <select name="rejected_item_selection" id="rejected_item_selection" class="form-control" required onchange="handleItemSelect(this)" <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
+                                    <option value=""><?php echo $this->lang->line('select_rejected_item') ?: '-- Select Rejected Item --'; ?></option>
+                                    <?php if (!empty($rejected_items)): ?>
+                                        <?php foreach ($rejected_items as $item): 
+                                            $isSelected = ($selected_order_id == $item->order_id && $selected_product_id == $item->product_id);
+                                        ?>
+                                            <option value="<?php echo $item->order_id . ':' . $item->product_id; ?>"
+                                                    data-order-id="<?php echo $item->order_id; ?>"
+                                                    data-product-id="<?php echo $item->product_id; ?>"
+                                                    data-category="<?php echo $item->category; ?>"
+                                                    data-type="<?php echo $item->request_type; ?>"
+                                                    data-order-number="<?php echo htmlspecialchars($item->order_number); ?>"
+                                                    data-product-name="<?php echo htmlspecialchars($item->product_name); ?>"
+                                                    data-merchant-name="<?php echo htmlspecialchars($item->merchant_name); ?>"
+                                                    <?php echo $isSelected ? 'selected' : ''; ?>>
+                                                Order #<?php echo htmlspecialchars($item->order_number); ?> - <?php echo htmlspecialchars($item->product_name); ?> (<?php echo htmlspecialchars($item->rejected_status_text); ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <input type="hidden" name="order_id" id="order_id" value="<?php echo $selected_order_id ?: ''; ?>">
+                                <input type="hidden" name="product_id" id="product_id" value="<?php echo $selected_product_id ?: ''; ?>">
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <!-- Subject Type -->
                             <div class="col-md-6 form-group">
                                 <label for="category"><b><?php echo $this->lang->line('subject_type') ?: 'Subject Type'; ?> <span class="text-danger">*</span></b></label>
-                                <select name="category" id="category" class="form-control" required <?php echo empty($orders) ? 'disabled' : ''; ?>>
-                                    <option value="Refund" <?php echo (!isset($_GET['cat']) || $_GET['cat'] === 'Refund') ? 'selected' : ''; ?>>Refund</option>
-                                    <option value="Delivery" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Delivery') ? 'selected' : ''; ?>>Delivery</option>
-                                    <option value="Replacement" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Replacement') ? 'selected' : ''; ?>>Replacement</option>
-                                    <option value="Others" <?php echo (isset($_GET['cat']) && $_GET['cat'] === 'Others') ? 'selected' : ''; ?>>Others</option>
+                                <select name="category" id="category" class="form-control" required <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
+                                    <option value="Refund" <?php echo ($default_category === 'Refund') ? 'selected' : ''; ?>>Refund</option>
+                                    <option value="Replacement" <?php echo ($default_category === 'Replacement') ? 'selected' : ''; ?>>Replacement</option>
+                                    <option value="Delivery" <?php echo ($default_category === 'Delivery') ? 'selected' : ''; ?>>Delivery</option>
+                                    <option value="Others" <?php echo ($default_category === 'Others') ? 'selected' : ''; ?>>Others</option>
                                 </select>
                             </div>
 
                             <!-- Priority -->
                             <div class="col-md-6 form-group">
                                 <label for="priority"><b><?php echo $this->lang->line('priority') ?: 'Priority'; ?> <span class="text-danger">*</span></b></label>
-                                <select name="priority" id="priority" class="form-control" required <?php echo empty($orders) ? 'disabled' : ''; ?>>
+                                <select name="priority" id="priority" class="form-control" required <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
                                     <option value=""><?php echo $this->lang->line('select_priority') ?: 'Select Priority'; ?></option>
                                     <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
+                                    <option value="Medium" selected>Medium</option>
                                     <option value="Low">Low</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <!-- Order Number -->
-                            <div class="col-md-6 form-group">
-                                <label for="order_id"><b><?php echo $this->lang->line('order_number') ?: 'Order Number'; ?> <span class="text-danger">*</span></b></label>
-                                <select name="order_id" id="order_id" class="form-control" required onchange="loadOrderProducts(this.value)">
-                                    <option value=""><?php echo $this->lang->line('select_order') ?: '-- Select Order --'; ?></option>
-                                    <?php if (!empty($orders)): ?>
-                                        <?php foreach ($orders as $o): ?>
-                                            <option value="<?php echo $o->order_id; ?>" <?php echo ($selected_order_id == $o->order_id) ? 'selected' : ''; ?>>
-                                                Order #<?php echo htmlspecialchars($o->increment_id ?: $o->order_id); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-
-                            <!-- Product -->
-                            <div class="col-md-6 form-group">
-                                <label for="product_id"><b><?php echo $this->lang->line('product_related') ?: 'Product (Related to Order)'; ?></b></label>
-                                <select name="product_id" id="product_id" class="form-control">
-                                    <option value="0"><?php echo $this->lang->line('all_items_general') ?: '-- All Items / General Issue --'; ?></option>
-                                    <?php if (!empty($products)): ?>
-                                        <?php foreach ($products as $p): ?>
-                                            <option value="<?php echo $p->product_id; ?>" <?php echo ($selected_product_id == $p->product_id) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($p->name); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
                                 </select>
                             </div>
                         </div>
@@ -98,13 +97,13 @@
                         <!-- Message -->
                         <div class="form-group">
                             <label for="message"><b><?php echo $this->lang->line('message') ?: 'Message / Description'; ?> <span class="text-danger">*</span></b></label>
-                            <textarea name="message" id="message" rows="5" class="form-control" placeholder="<?php echo $this->lang->line('enter_resolution_details') ?: 'Describe the issue or reason for this request in detail...'; ?>" required></textarea>
+                            <textarea name="message" id="message" rows="5" class="form-control" placeholder="<?php echo $this->lang->line('enter_resolution_details') ?: 'Describe the issue or reason for this request in detail...'; ?>" required <?php echo empty($rejected_items) ? 'disabled' : ''; ?>></textarea>
                         </div>
 
                         <!-- Attachment -->
                         <div class="form-group">
                             <label for="attachment"><b><?php echo $this->lang->line('upload_image_optional') ?: 'Upload Image / Document (Optional)'; ?></b></label>
-                            <input type="file" name="attachment" id="attachment" class="form-control" accept="image/*,.pdf">
+                            <input type="file" name="attachment" id="attachment" class="form-control" accept="image/*,.pdf" <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
                             <small class="text-muted">Allowed formats: JPG, PNG, WEBP, PDF. Max size: 5MB.</small>
                         </div>
 
@@ -112,7 +111,7 @@
                             <a href="<?php echo base_url('order_resolution'); ?>" class="btn btn-default" style="margin-right: 10px;">
                                 <?php echo $this->lang->line('cancel') ?: 'Cancel'; ?>
                             </a>
-                            <button type="submit" class="btn btn-success btn-lg">
+                            <button type="submit" class="btn btn-success btn-lg" <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
                                 <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('submit_resolution_request') ?: 'Submit Resolution Request'; ?>
                             </button>
                         </div>
@@ -124,26 +123,37 @@
 </div>
 
 <script>
-function loadOrderProducts(orderId) {
-    var productSelect = document.getElementById('product_id');
-    productSelect.innerHTML = '<option value="0">-- All Items / General Issue --</option>';
+function handleItemSelect(selectElem) {
+    var selectedOpt = selectElem.options[selectElem.selectedIndex];
+    if (!selectedOpt || !selectedOpt.value) {
+        document.getElementById('order_id').value = '';
+        document.getElementById('product_id').value = '';
+        return;
+    }
+    var orderId = selectedOpt.getAttribute('data-order-id');
+    var productId = selectedOpt.getAttribute('data-product-id');
+    var category = selectedOpt.getAttribute('data-category');
 
-    if (!orderId) return;
+    document.getElementById('order_id').value = orderId;
+    document.getElementById('product_id').value = productId;
 
-    fetch('<?php echo base_url("order_resolution/get_order_products_ajax/"); ?>' + orderId)
-        .then(response => response.json())
-        .then(data => {
-            if (data.status && data.products) {
-                data.products.forEach(function(item) {
-                    var opt = document.createElement('option');
-                    opt.value = item.product_id;
-                    opt.textContent = item.name;
-                    productSelect.appendChild(opt);
-                });
+    if (category) {
+        var catSelect = document.getElementById('category');
+        for (var i = 0; i < catSelect.options.length; i++) {
+            if (catSelect.options[i].value.toLowerCase() === category.toLowerCase()) {
+                catSelect.selectedIndex = i;
+                break;
             }
-        })
-        .catch(err => console.error('Error fetching order products:', err));
+        }
+    }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var sel = document.getElementById('rejected_item_selection');
+    if (sel && sel.value) {
+        handleItemSelect(sel);
+    }
+});
 </script>
 
 <?php $this->load->view('common/footer'); ?>
