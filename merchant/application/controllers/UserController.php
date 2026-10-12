@@ -3064,44 +3064,84 @@ class UserController extends CI_Controller
 	}
 
 	public function close_ticket($order_id = 0, $product_id = 0, $ticket_id = '') {
-		$LogindID = $this->session->userdata('LoginID');
-		if (empty($LogindID)) {
-			$LogindID = isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : '';
-		}
-		if (empty($LogindID)) {
-			redirect('login');
-			return;
-		}
+        $LogindID = $this->session->userdata('LoginID');
+        if (empty($LogindID)) {
+            $LogindID = isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : '';
+        }
+        if (empty($LogindID)) {
+            redirect('login');
+            return;
+        }
 
-		if (!empty($ticket_id)) {
-			$this->db->where('ticket_id', $ticket_id);
-		} else {
-			if (!empty($order_id)) {
-				$this->db->where('order_id', $order_id);
-			}
-			if (!empty($product_id)) {
-				$this->db->where('products', $product_id);
-			}
-		}
+        // 1. Fetch ticket details first before updating so we have customer_id & ticket_id
+        $this->db->from('help_desk');
+        if (!empty($ticket_id)) {
+            $this->db->where('ticket_id', $ticket_id);
+        } else {
+            if (!empty($order_id)) {
+                $this->db->where('order_id', $order_id);
+            }
+            if (!empty($product_id)) {
+                $this->db->where('products', $product_id);
+            }
+        }
+        $this->db->where('category', 1);
+        $this->db->where('merchant_id', $LogindID);
+        $ticket = $this->db->get()->row();
 
-		// Strictly isolate merchant tickets (category = 1) for this merchant only
-		$this->db->where('category', 1);
-		$this->db->where('merchant_id', $LogindID);
-		$this->db->update('help_desk', ['status' => 2]);
+        // 2. Perform the update to close the ticket
+        if (!empty($ticket_id)) {
+            $this->db->where('ticket_id', $ticket_id);
+        } else {
+            if (!empty($order_id)) {
+                $this->db->where('order_id', $order_id);
+            }
+            if (!empty($product_id)) {
+                $this->db->where('products', $product_id);
+            }
+        }
 
-		if (empty($ticket_id) && !empty($order_id)) {
-			$t_lookup = $this->db->where('order_id', $order_id)->where('category', 1)->get('help_desk')->row();
-			if ($t_lookup && !empty($t_lookup->ticket_id)) {
-				$ticket_id = $t_lookup->ticket_id;
-			}
-		}
+        // Strictly isolate merchant tickets (category = 1) for this merchant only
+        $this->db->where('category', 1);
+        $this->db->where('merchant_id', $LogindID);
+        $this->db->update('help_desk', ['status' => 2, 'updated_at' => time()]);
 
-		$this->_send_merchant_action_email_to_help($ticket_id, 'Ticket Closed', $order_id, $product_id);
+        if (empty($ticket_id) && !empty($order_id)) {
+            $t_lookup = $this->db->where('order_id', $order_id)->where('category', 1)->get('help_desk')->row();
+            if ($t_lookup && !empty($t_lookup->ticket_id)) {
+                $ticket_id = $t_lookup->ticket_id;
+            }
+        }
+        
+        $actual_ticket_no = !empty($ticket_id) ? $ticket_id : (!empty($ticket->ticket_id) ? $ticket->ticket_id : $order_id);
 
-		$this->session->set_flashdata('success', $this->lang->line('ticket_closed_successfully') ?: 'Ticket closed successfully.');
+        // 3. Send In-App Notification to Shopper/Customer
+        if (!empty($ticket) && !empty($ticket->customer_id)) {
+            $this->db->insert('notifications', [
+                'type'           => 'helpdesk',
+                'subtype'        => 'ticket_closed',
+                'recipient_type' => 'customer',
+                'recipient_id'   => $ticket->customer_id,
+                'title'          => 'Helpdesk Response',
+                'message'        => 'Merchant Your Help desk Ticket ' . $actual_ticket_no . ' is closed.',
+                'data'           => json_encode([
+                    'ticket_id'   => $actual_ticket_no,
+                    'order_id'    => $ticket->order_id,
+                    'product_id'  => $ticket->products,
+                    'merchant_id' => $ticket->merchant_id
+                ]),
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s'),
+                'updated_at'     => date('Y-m-d H:i:s')
+            ]);
+        }
 
-		redirect('help_desk/shopper', 'refresh'); 
-	}
+        $this->_send_merchant_action_email_to_help($actual_ticket_no, 'Ticket Closed', $order_id, $product_id);
+
+        $this->session->set_flashdata('success', $this->lang->line('ticket_closed_successfully') ?: 'Ticket closed successfully.');
+
+        redirect('help_desk/shopper', 'refresh'); 
+    }
 
 	public function refund_approve_ticket()
 	{
