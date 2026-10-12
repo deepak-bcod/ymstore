@@ -1,6 +1,6 @@
 <?php $this->load->view('common/fbc-user/header'); 
 
-// echo "<pre>";print_r($help_desk);die;
+echo "<pre>";print_r($help_desk);die;
 
 ?> 
 
