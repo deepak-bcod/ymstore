@@ -156,15 +156,27 @@ $this->load->view('common/fbc-user/header');
 
                     <?php if ($current_role === 'acct' && !$is_direct_merchant_replacement): ?>
                         <!-- ================= @Acct (ACCOUNTING ONLY) CONTROLS ================= -->
-                        <?php if ($resolution->status === 'Processing'): ?>
+                        <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
                             <div class="alert alert-info py-2 mb-3">
-                                <i class="fa fa-money"></i> <strong>Assigned to Accounting (@Acct):</strong> Refund the shopper from the merchant's 15-day hold-back sales, then click <strong>Mark Done</strong>.
+                                <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
                             </div>
-                            <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
-                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#markDoneModal">
-                                    <i class="fa fa-check-circle"></i> Mark Done (Refund Processed from Hold-back)
-                                </button>
-                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($resolution->status === 'Processing'): ?>
+                            <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-truck"></i> <strong>Assigned to Accounting (@Acct):</strong> Coordinate with the merchant to purchase the replacement delivery AddOn Service. Once delivery is completed by the merchant, the ticket will be handed back to @Help for closure.
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-money"></i> <strong>Assigned to Accounting (@Acct):</strong> Refund the shopper from the merchant's 15-day hold-back sales, then click <strong>Mark Done</strong>.
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
+                                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#markDoneModal">
+                                        <i class="fa fa-check-circle"></i> Mark Done (Refund Processed from Hold-back)
+                                    </button>
+                                </div>
+                            <?php endif; ?>
                         <?php elseif ($resolution->status === 'Done'): ?>
                             <div class="alert alert-success py-2 mb-0">
                                 <i class="fa fa-check-circle"></i> <strong>Refund Processed:</strong> Accounting has completed the refund from merchant 15-day hold-back sales. Ticket handed back to @Help for final closure.
