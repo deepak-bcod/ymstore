@@ -200,11 +200,34 @@ class OrderResolutionController extends CI_Controller
         }
 
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
-        if ($result['status'] && !empty($this->lang->line('action_processed_success'))) {
-            $message = $this->lang->line('action_processed_success');
+
+        if ($result['status']) {
+            // ONLY add notification for refund_approved action
+            if ($action === 'refund_approved') {
+                $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+                if ($res && !empty($res->customer_id)) {
+                    $refund_amt_display = isset($extra['refund_amount']) ? number_format($extra['refund_amount'], 2) : '';
+                    $notification_data = [
+                        'recipient_id'   => $res->customer_id,
+                        'recipient_type' => 'shopper',
+                        'title'          => 'Order Refund Approved Update',
+                        'message'        => 'Your refund request for Ticket #' . $ticket_number . ' has been approved' . (!empty($refund_amt_display) ? ' (' . $refund_amt_display . ')' : '') . '.',
+                        'is_read'        => 0,
+                        'created_at'     => date('Y-m-d H:i:s')
+                    ];
+                    $this->db->insert('notifications', $notification_data);
+                }
+            }
+
+            if (!empty($this->lang->line('action_processed_success'))) {
+                $message = $this->lang->line('action_processed_success');
+            } else {
+                $message = $result['message'];
+            }
         } else {
             $message = $result['message'];
         }
+
         $this->json_response($result['status'], $message, $result, 'order_resolution/view/' . $ticket_number);
     }
 }
