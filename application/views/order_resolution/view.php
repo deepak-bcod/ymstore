@@ -48,14 +48,15 @@
                             <h2 style="margin: 0;">
                                 <?php echo $this->lang->line('ticket') ?: 'Ticket'; ?> #<?php echo htmlspecialchars($resolution->ticket_number); ?>
                             </h2>
-                            <small class="text-muted">Created on <?php echo date('d M Y, h:i A', $resolution->created_at); ?></small>
+                            <small class="text-muted"><?php echo $this->lang->line('created_on') ?: 'Created on'; ?> <?php echo date('d M Y, h:i A', $resolution->created_at); ?></small>
                         </div>
                         <div class="col-sm-4 col-md-4 text-right">
                             <?php 
                             $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $resolution->status));
+                            $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $resolution->status));
                             ?>
                             <span class="badge-status-<?php echo $status_slug; ?>">
-                                <?php echo htmlspecialchars($resolution->status); ?>
+                                <?php echo htmlspecialchars($this->lang->line($status_key) ?: $resolution->status); ?>
                             </span>
                         </div>
                     </div>
@@ -72,29 +73,32 @@
                         <div class="panel-body" style="background: #fafafa;">
                             <div class="row">
                                 <div class="col-md-3 col-sm-6">
-                                    <p><b>Order Number:</b><br>
+                                    <p><b><?php echo $this->lang->line('order_number') ?: 'Order Number'; ?>:</b><br>
                                         <a href="<?php echo base_url('customer/my-orders'); ?>" target="_blank">
                                             #<?php echo htmlspecialchars($resolution->order_number); ?>
                                         </a>
                                     </p>
                                 </div>
                                 <div class="col-md-3 col-sm-6">
-                                    <p><b>Product:</b><br>
-                                        <?php echo htmlspecialchars($product ? $product->name : 'All Items'); ?>
+                                    <p><b><?php echo $this->lang->line('product') ?: 'Product'; ?>:</b><br>
+                                        <?php echo htmlspecialchars($product ? $product->name : ($this->lang->line('all_items') ?: 'All Items')); ?>
                                     </p>
                                 </div>
                                 <div class="col-md-2 col-sm-4">
-                                    <p><b>Merchant:</b><br>
+                                    <p><b><?php echo $this->lang->line('merchant') ?: 'Merchant'; ?>:</b><br>
                                         <?php echo htmlspecialchars($merchant ? $merchant->publication_name : 'N/A'); ?>
                                     </p>
                                 </div>
                                 <div class="col-md-2 col-sm-4">
-                                    <p><b>Subject Type:</b><br>
-                                        <span class="label label-info"><?php echo htmlspecialchars($resolution->category); ?></span>
+                                    <p><b><?php echo $this->lang->line('subject_type') ?: 'Subject Type'; ?>:</b><br>
+                                        <?php
+                                        $cat_key = 'category_' . strtolower(trim($resolution->category ?? ''));
+                                        ?>
+                                        <span class="label label-info"><?php echo htmlspecialchars($this->lang->line($cat_key) ?: $resolution->category); ?></span>
                                     </p>
                                 </div>
                                 <div class="col-md-2 col-sm-4">
-                                    <p><b>Priority:</b><br>
+                                    <p><b><?php echo $this->lang->line('priority') ?: 'Priority'; ?>:</b><br>
                                         <?php
                                         $p_class = 'label-info';
                                         if ($resolution->priority === 'High') {
@@ -102,8 +106,9 @@
                                         } elseif ($resolution->priority === 'Medium') {
                                             $p_class = 'label-warning';
                                         }
+                                        $pri_key = 'priority_' . strtolower(trim($resolution->priority ?? ''));
                                         ?>
-                                        <span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($resolution->priority ?: 'Medium'); ?></span>
+                                        <span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($this->lang->line($pri_key) ?: ($resolution->priority ?: 'Medium')); ?></span>
                                     </p>
                                 </div>
                             </div>
@@ -113,23 +118,23 @@
                                 <div class="row">
                                     <?php if ($resolution->merchant_action !== 'none'): ?>
                                         <div class="col-md-4">
-                                            <p><b>Merchant Decision:</b><br>
-                                                <span class="text-primary font-weight-bold"><?php echo ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
+                                            <p><b><?php echo $this->lang->line('merchant_decision') ?: 'Merchant Decision'; ?>:</b><br>
+                                                <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?></span>
                                             </p>
                                         </div>
                                     <?php endif; ?>
 
                                     <?php if ($resolution->delivery_option !== 'none'): ?>
                                         <div class="col-md-4">
-                                            <p><b>Delivery Option:</b><br>
-                                                <span class="text-success font-weight-bold"><?php echo ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
+                                            <p><b><?php echo $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</b><br>
+                                                <span class="text-success font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?></span>
                                             </p>
                                         </div>
                                     <?php endif; ?>
 
                                     <?php if ($resolution->refund_amount > 0): ?>
                                         <div class="col-md-4">
-                                            <p><b>Approved Refund Amount:</b><br>
+                                            <p><b><?php echo $this->lang->line('approved_refund_amount') ?: 'Approved Refund Amount'; ?>:</b><br>
                                                 <span class="text-success font-weight-bold"><?php echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?></span>
                                             </p>
                                         </div>
@@ -143,18 +148,18 @@
                                     <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#resolutionRequestModal">
                                         <i class="fa fa-flag"></i> <?php echo $this->lang->line('resolution_request') ?: 'Resolution Request'; ?>
                                     </button>
-                                    <small class="text-muted" style="margin-left: 10px;">Disagree with the merchant's decision? Request resolution assistance from Yellow Markets (@Help).</small>
+                                    <small class="text-muted" style="margin-left: 10px;"><?php echo $this->lang->line('resolution_escalate_prompt') ?: 'Disagree with the merchant\'s decision? Request resolution assistance from Yellow Markets (@Help).'; ?></small>
                                 </div>
                             <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
                                 <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
                                     <span class="label label-warning" style="font-size: 13px; padding: 6px 12px;">
-                                        <i class="fa fa-hourglass-half"></i> Resolution Request Pending Review with Yellow Markets (@Help)
+                                        <i class="fa fa-hourglass-half"></i> <?php echo $this->lang->line('dispute_under_review_badge') ?: 'Resolution Request Pending Review with Yellow Markets (@Help)'; ?>
                                     </span>
                                 </div>
                             <?php elseif ($resolution->status === 'Close (Final)'): ?>
                                 <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
                                     <span class="label label-default" style="font-size: 13px; padding: 6px 12px;">
-                                        <i class="fa fa-lock"></i> Resolution Closed (Final)
+                                        <i class="fa fa-lock"></i> <?php echo $this->lang->line('status_close_final') ?: 'Resolution Closed (Final)'; ?>
                                     </span>
                                 </div>
                             <?php endif; ?>
@@ -167,7 +172,7 @@
                         <?php if (!empty($messages)): ?>
                             <?php foreach ($messages as $msg): 
                                 $role_class = 'chat-' . $msg->sender_role;
-                                $sender_display = ($msg->sender_role === 'shopper') ? 'You' : (($msg->sender_role === 'merchant') ? ($merchant ? $merchant->publication_name : 'Merchant') : 'Yellow Markets Support');
+                                $sender_display = ($msg->sender_role === 'shopper') ? ($this->lang->line('you') ?: 'You') : (($msg->sender_role === 'merchant') ? ($merchant ? $merchant->publication_name : ($this->lang->line('merchant') ?: 'Merchant')) : ($this->lang->line('support_team') ?: 'Yellow Markets Support'));
                             ?>
                                 <div class="chat-message <?php echo $role_class; ?>">
                                     <div class="chat-meta">
@@ -179,14 +184,14 @@
                                     <?php if (!empty($msg->attachment)): ?>
                                         <div class="chat-attachment">
                                             <a href="<?php echo base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-xs btn-default">
-                                                <i class="fa fa-paperclip"></i> View Attachment (<?php echo htmlspecialchars($msg->attachment); ?>)
+                                                <i class="fa fa-paperclip"></i> <?php echo $this->lang->line('view_attachment') ?: 'View Attachment'; ?> (<?php echo htmlspecialchars($msg->attachment); ?>)
                                             </a>
                                         </div>
                                     <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <p class="text-muted text-center" style="padding: 20px;">No messages yet.</p>
+                            <p class="text-muted text-center" style="padding: 20px;"><?php echo $this->lang->line('no_conversation_messages_yet') ?: 'No conversation messages yet.'; ?></p>
                         <?php endif; ?>
                     </div>
 
@@ -200,12 +205,12 @@
                                 <form action="<?php echo base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
                                     <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
                                     <div class="form-group">
-                                        <textarea name="message" rows="4" class="form-control" placeholder="Write your response to the merchant..." required></textarea>
+                                        <textarea name="message" rows="4" class="form-control" placeholder="<?php echo $this->lang->line('enter_response_to_merchant') ?: 'Write your response to the merchant...'; ?>" required></textarea>
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-8 col-md-8">
                                             <input type="file" name="attachment" class="form-control" accept="image/*,.pdf">
-                                            <small class="text-muted">Optional attachment (Max: 5MB)</small>
+                                            <small class="text-muted"><?php echo $this->lang->line('optional_attachment') ?: 'Optional attachment (Max: 5MB)'; ?></small>
                                         </div>
                                         <div class="col-sm-4 col-md-4 text-right">
                                             <button type="submit" class="btn btn-primary btn-block">
@@ -218,7 +223,7 @@
                         </div>
                     <?php else: ?>
                         <div class="alert alert-info text-center">
-                            This Order Resolution ticket has been closed with no further actions.
+                            <?php echo $this->lang->line('closed_final_desc') ?: 'This Order Resolution ticket has been closed with no further actions.'; ?>
                         </div>
                     <?php endif; ?>
 
@@ -236,18 +241,18 @@
                 <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Request Resolution Escalation (@Help)</h4>
+                    <h4 class="modal-title"><?php echo $this->lang->line('request_resolution_escalation') ?: 'Request Resolution Escalation (@Help)'; ?></h4>
                 </div>
                 <div class="modal-body">
-                    <p>If you disagree with the merchant's decision or the issue has not been satisfactorily resolved, submit this request to escalate the ticket directly to Yellow Markets Support (@Help).</p>
+                    <p><?php echo $this->lang->line('escalation_modal_desc') ?: 'If you disagree with the merchant\'s decision or the issue has not been satisfactorily resolved, submit this request to escalate the ticket directly to Yellow Markets Support (@Help).'; ?></p>
                     <div class="form-group">
-                        <label>Reason / Additional Details:</label>
-                        <textarea name="message" class="form-control" rows="4" placeholder="Explain why you are requesting mediation..."></textarea>
+                        <label><?php echo $this->lang->line('message_description') ?: 'Reason / Additional Details:'; ?></label>
+                        <textarea name="message" class="form-control" rows="4" placeholder="<?php echo $this->lang->line('explain_mediation_reason') ?: 'Explain why you are requesting mediation...'; ?>"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning">Confirm Resolution Request</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel') ?: 'Cancel'; ?></button>
+                    <button type="submit" class="btn btn-warning"><?php echo $this->lang->line('confirm_resolution_request') ?: 'Confirm Resolution Request'; ?></button>
                 </div>
             </form>
         </div>
@@ -285,7 +290,7 @@ $(document).ready(function() {
 
         var origHtml = $btn.html();
         $btn.data('original-html', origHtml);
-        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + (<?php echo json_encode($this->lang->line('ajax_processing') ?: 'Processing...'); ?>));
 
         var formData = new FormData(this);
         formData.append('is_ajax', '1');
@@ -302,8 +307,8 @@ $(document).ready(function() {
             },
             success: function(res) {
                 if (res && res.status) {
-                    $btn.html('<i class="fa fa-check"></i> Done');
-                    showNotification('success', res.message || 'Action processed successfully.');
+                    $btn.html('<i class="fa fa-check"></i> ' + (<?php echo json_encode($this->lang->line('ajax_done') ?: 'Done'); ?>));
+                    showNotification('success', res.message || (<?php echo json_encode($this->lang->line('action_processed_success') ?: 'Action processed successfully.'); ?>));
 
                     var $modal = $form.closest('.modal');
                     if ($modal.length) {
@@ -319,7 +324,7 @@ $(document).ready(function() {
                     }, 800);
                 } else {
                     $btn.prop('disabled', false).html(origHtml);
-                    var msg = (res && res.message) ? res.message : 'An error occurred while processing your request.';
+                    var msg = (res && res.message) ? res.message : (<?php echo json_encode($this->lang->line('ajax_error') ?: 'An error occurred while processing your request.'); ?>);
                     showNotification('error', msg);
 
                     if (res && res.requires_reload) {
@@ -331,7 +336,7 @@ $(document).ready(function() {
             },
             error: function(xhr, status, err) {
                 $btn.prop('disabled', false).html(origHtml);
-                var errMsg = 'Unable to complete action. Please check your connection and try again.';
+                var errMsg = <?php echo json_encode($this->lang->line('ajax_error') ?: 'Unable to complete action. Please check your connection and try again.'); ?>;
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errMsg = xhr.responseJSON.message;
                 }

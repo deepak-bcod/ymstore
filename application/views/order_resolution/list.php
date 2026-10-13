@@ -71,13 +71,16 @@
                                 <?php if (!empty($resolutions)): ?>
                                     <?php foreach ($resolutions as $res): 
                                         $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $res->status));
+                                        $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $res->status));
                                         $badge_class = 'badge-status-' . $status_slug;
+                                        $cat_key     = 'category_' . strtolower(trim($res->category ?? ''));
+                                        $pri_key     = 'priority_' . strtolower(trim($res->priority ?? ''));
                                     ?>
                                         <tr>
                                             <td><b><?php echo htmlspecialchars($res->ticket_number); ?></b></td>
                                             <td><?php echo htmlspecialchars($res->order_number); ?></td>
-                                            <td><?php echo htmlspecialchars($res->product_name ?: 'All Items'); ?></td>
-                                            <td><span class="label label-default"><?php echo htmlspecialchars($res->category); ?></span></td>
+                                            <td><?php echo htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?></td>
+                                            <td><span class="label label-default"><?php echo htmlspecialchars($this->lang->line($cat_key) ?: $res->category); ?></span></td>
                                             <td>
                                                 <?php
                                                 $p_class = 'label-info';
@@ -87,23 +90,23 @@
                                                     $p_class = 'label-warning';
                                                 }
                                                 ?>
-                                                <span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($res->priority ?: 'Medium'); ?></span>
+                                                <span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($this->lang->line($pri_key) ?: ($res->priority ?: 'Medium')); ?></span>
                                             </td>
                                             <td>
                                                 <span class="<?php echo $badge_class; ?>">
-                                                    <?php echo htmlspecialchars($res->status); ?>
+                                                    <?php echo htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
                                                 </span>
                                                 <?php if ($res->merchant_action !== 'none'): ?>
                                                     <br>
                                                     <span class="badge-action <?php echo strpos($res->merchant_action, 'approved') !== false ? 'badge-action-approved' : (strpos($res->merchant_action, 'denied') !== false ? 'badge-action-denied' : 'badge-action-completed'); ?>">
-                                                        <?php echo ucwords(str_replace('_', ' ', $res->merchant_action)); ?>
+                                                        <?php echo htmlspecialchars($this->lang->line($res->merchant_action) ?: ucwords(str_replace('_', ' ', $res->merchant_action))); ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </td>
                                             <td><?php echo date('d M Y', $res->created_at); ?></td>
                                             <td style="text-align: center;">
-                                                <a href="<?php echo base_url('order_resolution/view/' . $res->ticket_number); ?>" class="btn btn-sm btn-info" title="View Ticket">
-                                                    <i class="fa fa-eye"></i> View
+                                                <a href="<?php echo base_url('order_resolution/view/' . $res->ticket_number); ?>" class="btn btn-sm btn-info" title="<?php echo $this->lang->line('view') ?: 'View'; ?>">
+                                                    <i class="fa fa-eye"></i> <?php echo $this->lang->line('view') ?: 'View'; ?>
                                                 </a>
                                             </td>
                                         </tr>

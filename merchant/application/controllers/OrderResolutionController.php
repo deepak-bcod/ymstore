@@ -158,9 +158,10 @@ class OrderResolutionController extends CI_Controller
         $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
 
         if ($ok) {
-            $this->json_response(true, 'Your reply has been sent to the shopper.', ['reload' => true], 'order_resolution/view/' . $ticket_number);
+            $msg = $this->lang->line('reply_posted_success') ?: 'Your reply has been sent to the shopper.';
+            $this->json_response(true, $msg, ['reload' => true], 'order_resolution/view/' . $ticket_number);
         } else {
-            $this->json_response(false, 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);
+            $this->json_response(false, $this->lang->line('err_unable_post_reply') ?: 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);
         }
     }
 
@@ -186,6 +187,10 @@ class OrderResolutionController extends CI_Controller
         }
 
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
-        $this->json_response($result['status'], $result['message'], $result, 'order_resolution/view/' . $ticket_number);
+        $message = $result['message'];
+        if ($result['status'] && !empty($this->lang->line('action_processed_success'))) {
+            $message = $this->lang->line('action_processed_success');
+        }
+        $this->json_response($result['status'], $message, $result, 'order_resolution/view/' . $ticket_number);
     }
 }
