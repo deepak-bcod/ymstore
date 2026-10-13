@@ -202,16 +202,24 @@ class OrderResolutionController extends CI_Controller
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
 
         if ($result['status']) {
-            // ONLY add notification for refund_approved action
-            if ($action === 'refund_approved') {
-                $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
-                if ($res && !empty($res->customer_id)) {
+            $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+
+            if ($res && !empty($res->customer_id)) {
+                $notification_title = '';
+                $notification_msg   = '';
+
+                if ($action === 'refund_approved') {
                     $refund_amt_display = isset($extra['refund_amount']) ? number_format($extra['refund_amount'], 2) : '';
+                    $notification_title = 'Order Refund Approved Update';
+                    $notification_msg   = 'Your refund request for Ticket #' . $ticket_number . ' has been approved' . (!empty($refund_amt_display) ? ' (' . $refund_amt_display . ')' : '') . '.';
+                } 
+
+                if (!empty($notification_msg)) {
                     $notification_data = [
                         'recipient_id'   => $res->customer_id,
                         'recipient_type' => 'shopper',
-                        'title'          => 'Order Refund Approved Update',
-                        'message'        => 'Your refund request for Ticket #' . $ticket_number . ' has been approved' . (!empty($refund_amt_display) ? ' (' . $refund_amt_display . ')' : '') . '.',
+                        'title'          => $notification_title,
+                        'message'        => $notification_msg,
                         'is_read'        => 0,
                         'created_at'     => date('Y-m-d H:i:s')
                     ];
