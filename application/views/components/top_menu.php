@@ -6,25 +6,23 @@
     position: relative;
     display: inline-block;
     margin-left: 10px;
+    background: transparent !important; /* Forces transparent background on mobile */
+}
+
+.notification-menu a {
+    background: transparent !important;
 }
 
 .notification-bell {
     position: relative;
     display: inline-block;
-
     padding: 10px;
-
     font-size: 20px;
-
     /* ALWAYS WHITE */
     color: #fff !important;
-
     text-decoration: none !important;
-
     line-height: 1;
 }
-
-
 
 .notification-bell:hover,
 .notification-bell:focus,
@@ -33,32 +31,20 @@
     text-decoration: none !important;
 }
 
-
-
 .notification-count {
     position: absolute;
-
     top: 0;
     right: 0;
-
     min-width: 18px;
     height: 18px;
-
     padding: 2px 5px;
-
     background: red;
-
     color: #fff;
-
     border-radius: 50%;
-
     font-size: 10px;
     font-weight: bold;
-
     line-height: 14px;
-
     text-align: center;
-
     z-index: 10;
 }
 
