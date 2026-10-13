@@ -198,7 +198,7 @@ class OrderResolutionController extends CI_Controller
     /**
      * @Help assigns ticket to @Acct (Status -> Processing)
      */
-    public function assign_to_acct()
+   public function assign_to_acct()
 {
     $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
     $ticket_number = trim($this->input->post('ticket_number', true));
@@ -211,38 +211,43 @@ class OrderResolutionController extends CI_Controller
         return;
     }
 
+    // Execute assignment
     $res = $this->OrderResolutionModel->admin_assign_to_acct($ticket_number, $admin_id, $notes);
 
-    // If assignment is successful, trigger an in-app notification for the shopper safely
+    // --- NOTIFY SHOPPER (CUSTOMER) IF ASSIGNMENT SUCCEEDED ---
     if (!empty($res['status'])) {
-        $resolution = $this->OrderResolutionModel->get_resolution_by_ticket($ticket_number); 
-        
-        // Handle whether $resolution is an object or an array
-        $customer_id = null;
-        if (is_object($resolution) && !empty($resolution->customer_id)) {
-            $customer_id = $resolution->customer_id;
-        } elseif (is_array($resolution) && !empty($resolution['customer_id'])) {
-            $customer_id = $resolution['customer_id'];
-        }
+        // Fetch ticket details using your order_resolutions schema (has customer_id)
+        $ticket = $this->OrderResolutionModel->get_by_ticket_number($ticket_number); // Or your equivalent method
 
-        if (!empty($customer_id)) {
-            $notification_data = [
-                'recipient_id'   => $customer_id,
-                'recipient_type' => 'shopper',
-                'title'          => 'Ticket Processing - #' . $ticket_number,
-                'message'        => 'Your resolution ticket has been assigned to Accounting for processing.',
-                'is_read'        => 0,
-                'created_at'     => date('Y-m-d H:i:s')
-            ];
-            
-            // Safely insert without breaking the AJAX response if columns differ
-            @$this->db->insert('notifications', $notification_data);
+        if (!empty($ticket) && !empty($ticket->customer_id)) {
+            $notification_title   = "Ticket Update: #" . $ticket_number;
+            $notification_message = "Your ticket #" . $ticket_number . " has been assigned to our Accounting team for review.";
+
+            // 1. In-App Notification (Adjust model name/method as needed)
+            $this->NotificationModel->add_notification([
+                'customer_id' => $ticket->customer_id, // maps to customers.id
+                'title'       => $notification_title,
+                'message'     => $notification_message,
+                'link'        => 'order_resolution/view/' . $ticket_number,
+                'created_at'  => time() // matches your int(11) timestamp convention
+            ]);
+
+            // 2. Email Notification (Optional - if you need to fetch email from customers table)
+            /*
+            $customer = $this->CustomerModel->get_by_id($ticket->customer_id);
+            if (!empty($customer->email)) {
+                $this->load->library('email');
+                $this->email->to($customer->email);
+                $this->email->subject($notification_title);
+                $this->email->message($notification_message);
+                $this->email->send();
+            }
+            */
         }
     }
 
     $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
 }
-
     /**
      * @Acct marks refund/payment completed (Status -> Done)
      */
@@ -295,7 +300,7 @@ class OrderResolutionController extends CI_Controller
         // Permission Guard: Only Support (@Help) or Super Admin/Administrator can close ticket (Final)
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
         if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
-            $this->json_response(false, 'Unauthorized: Only Support (@Help) can finalize and close Resolution tickets.', [], 'order_reolution/view/' . $ticket_number . '?as=acct');
+            $this->json_response(false, 'Unauthorized: Only Support (@Help) can finalize and close Resolution tickets.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
             return;
         }
 
