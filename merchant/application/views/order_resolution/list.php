@@ -43,29 +43,32 @@
                 <table class="table table-bordered table-hover text-center">
                     <thead class="thead-light">
                         <tr>
-                            <th>Ticket #</th>
-                            <th>Order #</th>
-                            <th>Product</th>
-                            <th>Shopper</th>
-                            <th>Subject Type</th>
-                            <th>Priority</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                            <th>Action</th>
+                            <th><?= $this->lang->line('ticket_no') ?: 'Ticket #'; ?></th>
+                            <th><?= $this->lang->line('order_number') ?: 'Order #'; ?></th>
+                            <th><?= $this->lang->line('product') ?: 'Product'; ?></th>
+                            <th><?= $this->lang->line('shopper') ?: 'Shopper'; ?></th>
+                            <th><?= $this->lang->line('subject_type') ?: 'Subject Type'; ?></th>
+                            <th><?= $this->lang->line('priority') ?: 'Priority'; ?></th>
+                            <th><?= $this->lang->line('status') ?: 'Status'; ?></th>
+                            <th><?= $this->lang->line('date') ?: 'Date'; ?></th>
+                            <th><?= $this->lang->line('action') ?: 'Action'; ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!empty($resolutions)): ?>
                             <?php foreach ($resolutions as $res): 
                                 $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $res->status));
-                                $shopper_name = trim(($res->first_name ?? '') . ' ' . ($res->last_name ?? '')) ?: ($res->customer_email ?: 'Shopper');
+                                $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $res->status));
+                                $cat_key     = 'category_' . strtolower(trim($res->category ?? ''));
+                                $pri_key     = 'priority_' . strtolower(trim($res->priority ?? ''));
+                                $shopper_name = trim(($res->first_name ?? '') . ' ' . ($res->last_name ?? '')) ?: ($res->customer_email ?: ($this->lang->line('shopper') ?: 'Shopper'));
                             ?>
                                 <tr>
                                     <td><strong><?= htmlspecialchars($res->ticket_number); ?></strong></td>
                                     <td>#<?= htmlspecialchars($res->order_number); ?></td>
-                                    <td><?= htmlspecialchars($res->product_name ?: 'All Items'); ?></td>
+                                    <td><?= htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?></td>
                                     <td><?= htmlspecialchars($shopper_name); ?></td>
-                                    <td><span class="badge badge-secondary"><?= htmlspecialchars($res->category); ?></span></td>
+                                    <td><span class="badge badge-secondary"><?= htmlspecialchars($this->lang->line($cat_key) ?: $res->category); ?></span></td>
                                     <td>
                                         <?php
                                         $p_badge = 'badge-secondary';
@@ -77,23 +80,23 @@
                                             $p_badge = 'badge-info';
                                         }
                                         ?>
-                                        <span class="badge <?= $p_badge; ?>"><?= htmlspecialchars($res->priority ?: 'Medium'); ?></span>
+                                        <span class="badge <?= $p_badge; ?>"><?= htmlspecialchars($this->lang->line($pri_key) ?: ($res->priority ?: 'Medium')); ?></span>
                                     </td>
                                     <td>
                                         <span class="badge-status-<?= $status_slug; ?>">
-                                            <?= htmlspecialchars($res->status); ?>
+                                            <?= htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
                                         </span>
                                         <?php if ($res->merchant_action !== 'none'): ?>
                                             <br>
                                             <span class="badge-action <?= strpos($res->merchant_action, 'approved') !== false ? 'badge-action-approved' : (strpos($res->merchant_action, 'denied') !== false ? 'badge-action-denied' : 'badge-action-completed'); ?>">
-                                                <?= ucwords(str_replace('_', ' ', $res->merchant_action)); ?>
+                                                <?= htmlspecialchars($this->lang->line($res->merchant_action) ?: ucwords(str_replace('_', ' ', $res->merchant_action))); ?>
                                             </span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?= date('d M Y', $res->created_at); ?></td>
                                     <td>
                                         <a href="<?= base_url('order_resolution/view/' . $res->ticket_number); ?>" class="btn btn-sm btn-info">
-                                            <i class="fa fa-eye"></i> View
+                                            <i class="fa fa-eye"></i> <?= $this->lang->line('view') ?: 'View'; ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -101,7 +104,7 @@
                         <?php else: ?>
                             <tr>
                                 <td colspan="9" class="text-center py-4 text-muted">
-                                    No Order Resolution requests found.
+                                    <?= $this->lang->line('no_order_resolution_tickets') ?: 'No Order Resolution requests found.'; ?>
                                 </td>
                             </tr>
                         <?php endif; ?>

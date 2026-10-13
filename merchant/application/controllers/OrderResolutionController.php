@@ -114,9 +114,46 @@ class OrderResolutionController extends CI_Controller
         $config['encrypt_name']  = true;
         $this->load->library('upload', $config);
 
-        if ($this->upload->do_upload('attachment')) {
-            $fileData = $this->upload->data();
-            $attachment = $fileData['file_name'];
+
+        if ($res->status === 'Close (Final)') {
+            $this->json_response(false, 'Ticket is permanently closed (Final). New replies are disabled.', ['requires_reload' => true], 'order_resolution/view/' . $ticket_number);
+            return;
+        }
+
+        if (empty($message)) {
+            $this->json_response(false, 'Message cannot be empty.', [], 'order_resolution/view/' . $ticket_number);
+            return;
+        }
+
+        // Handle attachment
+        $attachment = '';
+        if (isset($_FILES['attachment']) && !empty($_FILES['attachment']['name'])) {
+            $upload_path = './uploads/order_resolution/';
+            if (!is_dir($upload_path)) {
+                @mkdir($upload_path, 0777, true);
+            }
+            $config['upload_path']   = $upload_path;
+            $config['allowed_types'] = 'jpg|jpeg|png|pdf|webp';
+            $config['max_size']      = 5120;
+            $config['encrypt_name']  = true;
+            $this->load->library('upload', $config);
+
+            if ($this->upload->do_upload('attachment')) {
+                $fileData = $this->upload->data();
+                $attachment = $fileData['file_name'];
+            }
+        }
+
+        $pub = $this->db->select('publication_name')->where('id', $merchant_id)->get('publisher')->row();
+        $sender_name = $pub ? $pub->publication_name : 'Merchant';
+
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
+
+        if ($ok) {
+            $msg = $this->lang->line('reply_posted_success') ?: 'Your reply has been sent to the shopper.';
+            $this->json_response(true, $msg, ['reload' => true], 'order_resolution/view/' . $ticket_number);
+        } else {
+            $this->json_response(false, $this->lang->line('err_unable_post_reply') ?: 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);
         }
     }
 
@@ -163,6 +200,13 @@ class OrderResolutionController extends CI_Controller
         }
 
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
+<<<<<<< HEAD
+        $message = $result['message'];
+        if ($result['status'] && !empty($this->lang->line('action_processed_success'))) {
+            $message = $this->lang->line('action_processed_success');
+        }
+        $this->json_response($result['status'], $message, $result, 'order_resolution/view/' . $ticket_number);
+=======
 
         if ($result['status']) {
             $this->session->set_flashdata('success', $result['message']);
@@ -171,5 +215,6 @@ class OrderResolutionController extends CI_Controller
         }
 
         redirect('order_resolution/view/' . $ticket_number);
+>>>>>>> cc205ac1605e17d567a22d8aff2e7242eea0b312
     }
 }

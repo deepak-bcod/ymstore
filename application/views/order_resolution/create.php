@@ -34,9 +34,9 @@
                     <?php if (empty($rejected_items)): ?>
                         <div class="alert alert-info" style="margin-bottom: 20px;">
                             <i class="fa fa-info-circle"></i>
-                            <strong>No rejected Return or Replacement requests found.</strong>
-                            Order Resolution is only available after a Merchant rejects a Return or Replacement request.
-                            You can check your existing requests on your <a href="<?php echo base_url('customer/my-orders'); ?>" class="alert-link" style="text-decoration: underline; font-weight: bold;">My Orders</a> page.
+                            <strong><?php echo $this->lang->line('no_rejected_items_found') ?: 'No rejected Return or Replacement requests found.'; ?></strong>
+                            <?php echo $this->lang->line('order_resolution_gate_info') ?: 'Order Resolution is only available after a Merchant rejects a Return or Replacement request.'; ?>
+                            <?php echo $this->lang->line('check_existing_orders_info') ?: 'You can check your existing requests on your'; ?> <a href="<?php echo base_url('customer/my-orders'); ?>" class="alert-link" style="text-decoration: underline; font-weight: bold;"><?php echo $this->lang->line('my_orders') ?: 'My Orders'; ?></a>.
                         </div>
                     <?php endif; ?>
 
@@ -50,6 +50,9 @@
                                     <?php if (!empty($rejected_items)): ?>
                                         <?php foreach ($rejected_items as $item): 
                                             $isSelected = ($selected_order_id == $item->order_id && $selected_product_id == $item->product_id);
+                                            $reason_label = ($item->request_type === 'replacement')
+                                                ? ($this->lang->line('replacement_rejected_by_merchant') ?: $item->rejected_status_text)
+                                                : ($this->lang->line('return_rejected_by_merchant') ?: $item->rejected_status_text);
                                         ?>
                                             <option value="<?php echo $item->order_id . ':' . $item->product_id; ?>"
                                                     data-order-id="<?php echo $item->order_id; ?>"
@@ -60,7 +63,7 @@
                                                     data-product-name="<?php echo htmlspecialchars($item->product_name); ?>"
                                                     data-merchant-name="<?php echo htmlspecialchars($item->merchant_name); ?>"
                                                     <?php echo $isSelected ? 'selected' : ''; ?>>
-                                                Order #<?php echo htmlspecialchars($item->order_number); ?> - <?php echo htmlspecialchars($item->product_name); ?> (<?php echo htmlspecialchars($item->rejected_status_text); ?>)
+                                                <?php echo ($this->lang->line('order_number') ?: 'Order #'); ?> <?php echo htmlspecialchars($item->order_number); ?> - <?php echo htmlspecialchars($item->product_name); ?> (<?php echo htmlspecialchars($reason_label); ?>)
                                             </option>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -75,10 +78,10 @@
                             <div class="col-md-6 form-group">
                                 <label for="category"><b><?php echo $this->lang->line('subject_type') ?: 'Subject Type'; ?> <span class="text-danger">*</span></b></label>
                                 <select name="category" id="category" class="form-control" required <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
-                                    <option value="Refund" <?php echo ($default_category === 'Refund') ? 'selected' : ''; ?>>Refund</option>
-                                    <option value="Replacement" <?php echo ($default_category === 'Replacement') ? 'selected' : ''; ?>>Replacement</option>
-                                    <option value="Delivery" <?php echo ($default_category === 'Delivery') ? 'selected' : ''; ?>>Delivery</option>
-                                    <option value="Others" <?php echo ($default_category === 'Others') ? 'selected' : ''; ?>>Others</option>
+                                    <option value="Refund" <?php echo ($default_category === 'Refund') ? 'selected' : ''; ?>><?php echo $this->lang->line('category_refund') ?: 'Refund'; ?></option>
+                                    <option value="Replacement" <?php echo ($default_category === 'Replacement') ? 'selected' : ''; ?>><?php echo $this->lang->line('category_replacement') ?: 'Replacement'; ?></option>
+                                    <option value="Delivery" <?php echo ($default_category === 'Delivery') ? 'selected' : ''; ?>><?php echo $this->lang->line('category_delivery') ?: 'Delivery'; ?></option>
+                                    <option value="Others" <?php echo ($default_category === 'Others') ? 'selected' : ''; ?>><?php echo $this->lang->line('category_others') ?: 'Others'; ?></option>
                                 </select>
                             </div>
 
@@ -87,16 +90,16 @@
                                 <label for="priority"><b><?php echo $this->lang->line('priority') ?: 'Priority'; ?> <span class="text-danger">*</span></b></label>
                                 <select name="priority" id="priority" class="form-control" required <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
                                     <option value=""><?php echo $this->lang->line('select_priority') ?: 'Select Priority'; ?></option>
-                                    <option value="High">High</option>
-                                    <option value="Medium" selected>Medium</option>
-                                    <option value="Low">Low</option>
+                                    <option value="High"><?php echo $this->lang->line('priority_high') ?: 'High'; ?></option>
+                                    <option value="Medium" selected><?php echo $this->lang->line('priority_medium') ?: 'Medium'; ?></option>
+                                    <option value="Low"><?php echo $this->lang->line('priority_low') ?: 'Low'; ?></option>
                                 </select>
                             </div>
                         </div>
 
                         <!-- Message -->
                         <div class="form-group">
-                            <label for="message"><b><?php echo $this->lang->line('message') ?: 'Message / Description'; ?> <span class="text-danger">*</span></b></label>
+                            <label for="message"><b><?php echo $this->lang->line('message_description') ?: ($this->lang->line('message') ?: 'Message / Description'); ?> <span class="text-danger">*</span></b></label>
                             <textarea name="message" id="message" rows="5" class="form-control" placeholder="<?php echo $this->lang->line('enter_resolution_details') ?: 'Describe the issue or reason for this request in detail...'; ?>" required <?php echo empty($rejected_items) ? 'disabled' : ''; ?>></textarea>
                         </div>
 
@@ -104,7 +107,7 @@
                         <div class="form-group">
                             <label for="attachment"><b><?php echo $this->lang->line('upload_image_optional') ?: 'Upload Image / Document (Optional)'; ?></b></label>
                             <input type="file" name="attachment" id="attachment" class="form-control" accept="image/*,.pdf" <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
-                            <small class="text-muted">Allowed formats: JPG, PNG, WEBP, PDF. Max size: 5MB.</small>
+                            <small class="text-muted"><?php echo $this->lang->line('allowed_formats_msg') ?: 'Allowed formats: JPG, PNG, WEBP, PDF. Max size: 5MB.'; ?></small>
                         </div>
 
                         <div class="form-group text-right" style="margin-top: 30px;">
@@ -185,7 +188,7 @@ $(document).ready(function() {
 
         var origHtml = $btn.html();
         $btn.data('original-html', origHtml);
-        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Submitting...');
+        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + (<?php echo json_encode($this->lang->line('ajax_submitting') ?: 'Submitting...'); ?>));
 
         var formData = new FormData(this);
         formData.append('is_ajax', '1');
@@ -202,8 +205,8 @@ $(document).ready(function() {
             },
             success: function(res) {
                 if (res && res.status) {
-                    $btn.html('<i class="fa fa-check"></i> Submitted');
-                    showNotification('success', res.message || 'Ticket submitted successfully.');
+                    $btn.html('<i class="fa fa-check"></i> ' + (<?php echo json_encode($this->lang->line('ajax_done') ?: 'Submitted'); ?>));
+                    showNotification('success', res.message || (<?php echo json_encode($this->lang->line('action_processed_success') ?: 'Ticket submitted successfully.'); ?>));
 
                     setTimeout(function() {
                         if (res.redirect) {
@@ -214,7 +217,7 @@ $(document).ready(function() {
                     }, 800);
                 } else {
                     $btn.prop('disabled', false).html(origHtml);
-                    var msg = (res && res.message) ? res.message : 'An error occurred while submitting your ticket.';
+                    var msg = (res && res.message) ? res.message : (<?php echo json_encode($this->lang->line('ajax_error') ?: 'An error occurred while submitting your ticket.'); ?>);
                     showNotification('error', msg);
 
                     if (res && res.requires_reload) {
@@ -226,7 +229,7 @@ $(document).ready(function() {
             },
             error: function(xhr, status, err) {
                 $btn.prop('disabled', false).html(origHtml);
-                var errMsg = 'Unable to submit request. Please check your connection and try again.';
+                var errMsg = <?php echo json_encode($this->lang->line('ajax_error') ?: 'Unable to submit request. Please check your connection and try again.'); ?>;
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errMsg = xhr.responseJSON.message;
                 }

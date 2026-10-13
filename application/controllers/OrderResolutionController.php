@@ -61,12 +61,13 @@ class OrderResolutionController extends CI_Controller
                 // Check if an active ticket already exists for this item
                 $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
                 if ($existing_ticket) {
-                    $this->session->set_flashdata('error', "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.");
+                    $msg = sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
+                    $this->session->set_flashdata('error', $msg);
                     redirect('order_resolution/view/' . $existing_ticket->ticket_number);
                     return;
                 }
 
-                $this->session->set_flashdata('error', $this->lang->line('resolution_rejected_only') ?: 'Order Resolution is only available for items where a Return or Replacement request has been rejected by the Merchant.');
+                $this->session->set_flashdata('error', $this->lang->line('resolution_gate_error') ?: 'Order Resolution is only available for items where a Return or Replacement request has been rejected by the Merchant.');
                 redirect('customer/my-orders');
                 return;
             }
@@ -169,12 +170,12 @@ class OrderResolutionController extends CI_Controller
         if (!$matched_item) {
             $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
             if ($existing_ticket) {
-                $msg = "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.";
+                $msg = sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
                 $this->json_response(false, $msg, ['redirect' => base_url('order_resolution/view/' . $existing_ticket->ticket_number), 'requires_reload' => true], 'order_resolution/view/' . $existing_ticket->ticket_number);
                 return;
             }
 
-            $errMsg = $this->lang->line('resolution_rejected_only') ?: 'Order Resolution is only available for items where a Return or Replacement request has been rejected by the Merchant.';
+            $errMsg = $this->lang->line('resolution_gate_error') ?: 'Order Resolution is only available for items where a Return or Replacement request has been rejected by the Merchant.';
             $this->json_response(false, $errMsg, [], 'order_resolution/create');
             return;
         }
@@ -182,13 +183,13 @@ class OrderResolutionController extends CI_Controller
         // Prevent duplicate active tickets
         $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
         if ($existing_ticket) {
-            $msg = "An active Order Resolution ticket (#{$existing_ticket->ticket_number}) already exists for this item.";
+            $msg = sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
             $this->json_response(false, $msg, ['redirect' => base_url('order_resolution/view/' . $existing_ticket->ticket_number), 'requires_reload' => true], 'order_resolution/view/' . $existing_ticket->ticket_number);
             return;
         }
 
         if (empty($message)) {
-            $this->json_response(false, 'Message cannot be empty.', [], "order_resolution/create/{$order_id}/{$product_id}");
+            $this->json_response(false, $this->lang->line('err_message_empty') ?: 'Message cannot be empty.', [], "order_resolution/create/{$order_id}/{$product_id}");
             return;
         }
 
@@ -321,9 +322,10 @@ class OrderResolutionController extends CI_Controller
         $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'shopper', $customer_id, $shopper_name, $message, $attachment, $this->input->ip_address());
 
         if ($ok) {
-            $this->json_response(true, 'Your reply has been sent.', ['reload' => true], 'order_resolution/view/' . $ticket_number);
+            $msg = $this->lang->line('reply_posted_success') ?: 'Your reply has been sent.';
+            $this->json_response(true, $msg, ['reload' => true], 'order_resolution/view/' . $ticket_number);
         } else {
-            $this->json_response(false, 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);
+            $this->json_response(false, $this->lang->line('err_unable_post_reply') ?: 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);
         }
     }
 
