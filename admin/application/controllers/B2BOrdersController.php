@@ -18733,23 +18733,22 @@ public function markDelivered()
                                 $shopperName = 'Customer';
                             }
 
-                            $TempVars = [
-                                '##CUSTOMERNAME##',
-                                '##ORDERNO##'
-                            ];
+                            // Custom subject and content configuration
+                            $customSubject = "Order (" . $b2bOrderNumber . ") Delivered";
+                            $customContent = "<p>Dear " . $shopperName . ",</p><p>Your Order " . $b2bOrderNumber . " is delivered.</p>";
 
-                            $DynamicVars = [
-                                $shopperName,
-                                $b2bOrderNumber
-                            ];
+                            $TempVars = [];
+                            $DynamicVars = [];
 
-                            // Triggers email template with Subject: "Order (##ORDERNO##) Delivered"
-                            // and Body: "Dear ##CUSTOMERNAME##, Your Order ##ORDERNO## is delivered."
+                            // Sends email using custom parameters directly
                             $this->CommonModel->sendCommonHTMLEmail(
                                 $salesOrder->customer_email,
                                 'order-delivered-successfully',
                                 $TempVars,
-                                $DynamicVars
+                                $DynamicVars,
+                                '',
+                                $customSubject,
+                                $customContent
                             );
                         }
                     }
