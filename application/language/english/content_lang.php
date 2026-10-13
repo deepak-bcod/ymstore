@@ -2253,7 +2253,7 @@ $lang['maximum_cart_weight'] = 'Exceeding Maximum Delivery Weight';
 $lang['maximum_cart_weight_message'] = 'Maximum Yellow Market delivery crate weight is 60 KG ';
 
 $lang['maximum_cart_weight_checkout'] = 'Exceeding Maximum Delivery Weight';
-$lang['maximum_cart_weight_message_checkout'] = 'Maximum Yellow Market delivery crate weight is 60 KG Your cart weight is %s KG. You cannot proceed to checkout.';
+$lang['maximum_cart_weight_message_checkout'] = 'Maximum Yellow Market delivery crate weight is 60 KG. Your cart weight is %s KG. You cannot proceed to checkout.';
 
 // Order Resolution
 $lang['order_resolution'] = 'Order Resolution';

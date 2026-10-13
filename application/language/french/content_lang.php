@@ -1357,10 +1357,10 @@ $lang['no_shops_found'] = 'Aucune boutique trouvée.';
 $lang['invoice_not_uploaded'] = 'La facture n’a pas été téléchargée par le marchand';
 
 $lang['maximum_cart_weight'] = 'Dépassement du poids maximal de livraison';
-$lang['maximum_cart_weight_message'] = 'Le poids maximal dune caisse de livraison Yellow Market est de 60 kg. ';
+$lang['maximum_cart_weight_message'] = 'Le poids maximal dune caisse de livraison Yellow Market est de 60 KG. ';
 
 $lang['maximum_cart_weight_checkout'] = 'Dépassement du poids maximal de livraison';
-$lang['maximum_cart_weight_message_checkout'] = 'Le poids maximal dune caisse de livraison Yellow Market est de 60 kg. Le poids de votre panier est de %s kg. Vous ne pouvez pas procéder au paiement.';
+$lang['maximum_cart_weight_message_checkout'] = 'Le poids maximal dune caisse de livraison Yellow Market est de 60 KG. Le poids de votre panier est de %s kg. Vous ne pouvez pas procéder au paiement.';
 $lang['ok'] = 'OK';
 
 // Order Resolution
