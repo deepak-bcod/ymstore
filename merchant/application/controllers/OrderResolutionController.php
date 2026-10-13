@@ -192,13 +192,6 @@ class OrderResolutionController extends CI_Controller
         $ticket_number = trim($this->input->post('ticket_number', true));
         $action        = trim($this->input->post('action', true));
 
-        // Fetch ticket details first so we have the shopper's customer_id
-        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
-        if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
-            $this->json_response(false, 'Invalid ticket or unauthorized access.', [], 'order_resolution');
-            return;
-        }
-
         $extra = [];
         if ($action === 'refund_approved') {
             $extra['refund_amount'] = (float)$this->input->post('refund_amount', true);
@@ -207,48 +200,11 @@ class OrderResolutionController extends CI_Controller
         }
 
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
-        
-        if ($result['status']) {
-            $message = !empty($this->lang->line('action_processed_success')) ? $this->lang->line('action_processed_success') : $result['message'];
-
-            // ADD NOTIFICATION FOR SHOPPER BASED ON ACTION
-            if (!empty($res->customer_id)) {
-                $notification_msg = '';
-                
-                switch ($action) {
-                    case 'refund_approved':
-                        $notification_msg = 'Your refund request for Ticket #' . $ticket_number . ' has been approved.';
-                        break;
-                    case 'refund_denied':
-                        $notification_msg = 'Your refund request for Ticket #' . $ticket_number . ' has been denied.';
-                        break;
-                    case 'replacement_approved':
-                        $notification_msg = 'Your replacement request for Ticket #' . $ticket_number . ' has been approved.';
-                        break;
-                    case 'replacement_denied':
-                        $notification_msg = 'Your replacement request for Ticket #' . $ticket_number . ' has been denied.';
-                        break;
-                    case 'replacement_completed':
-                        $notification_msg = 'Your replacement for Ticket #' . $ticket_number . ' has been marked as completed.';
-                        break;
-                }
-
-                if (!empty($notification_msg)) {
-                    $notification_data = [
-                        'recipient_id'   => $res->customer_id,
-                        'recipient_type' => 'shopper',
-                        'title'          => 'Order Resolution Update',
-                        'message'        => $notification_msg,
-                        'is_read'        => 0,
-                        'created_at'     => date('Y-m-d H:i:s')
-                    ];
-                    $this->db->insert('notifications', $notification_data);
-                }
-            }
+        if ($result['status'] && !empty($this->lang->line('action_processed_success'))) {
+            $message = $this->lang->line('action_processed_success');
         } else {
             $message = $result['message'];
         }
-
         $this->json_response($result['status'], $message, $result, 'order_resolution/view/' . $ticket_number);
     }
 }
