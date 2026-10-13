@@ -199,59 +199,21 @@ class OrderResolutionController extends CI_Controller
      * @Help assigns ticket to @Acct (Status -> Processing)
      */
     public function assign_to_acct()
-{
-    $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
-    $ticket_number = trim($this->input->post('ticket_number', true));
-    $notes         = trim($this->input->post('notes', true));
+    {
+        $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $notes         = trim($this->input->post('notes', true));
 
-    // Guard: Only @Help or Super Admin can assign
-    $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
-    if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
-        $this->json_response(false, 'Unauthorized: Only Support (@Help) can assign tickets to Accounting.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
-        return;
-    }
-
-    // Execute assignment
-    $res = $this->OrderResolutionModel->admin_assign_to_acct($ticket_number, $admin_id, $notes);
-
-    // --- SAFELY ATTEMPT SHOPPER NOTIFICATION ---
-    if (!empty($res['status'])) {
-        try {
-            // Fetch ticket details to get customer_id
-            $ticket = $this->db->get_where('order_resolutions', ['ticket_number' => $ticket_number])->row();
-
-            if (!empty($ticket) && !empty($ticket->customer_id)) {
-                $notification_title   = "Ticket Update: #" . $ticket_number;
-                $notification_message = "Your ticket #" . $ticket_number . " has been assigned to our Accounting team for review.";
-
-                // Check if NotificationModel exists and has the method, otherwise insert direct
-                if (method_exists($this, 'NotificationModel') || isset($this->NotificationModel)) {
-                    $this->NotificationModel->add_notification([
-                        'customer_id' => $ticket->customer_id,
-                        'title'       => $notification_title,
-                        'message'     => $notification_message,
-                        'link'        => 'order_resolution/view/' . $ticket_number,
-                        'created_at'  => time()
-                    ]);
-                } else {
-                    // Fallback direct insert if model isn't loaded
-                    $this->db->insert('notifications', [
-                        'customer_id' => $ticket->customer_id,
-                        'title'       => $notification_title,
-                        'message'     => $notification_message,
-                        'link'        => 'order_resolution/view/' . $ticket_number,
-                        'created_at'  => time()
-                    ]);
-                }
-            }
-        } catch (Exception $e) {
-            // Log error silently so it doesn't break the UI response
-            log_message('error', 'Shopper notification failed: ' . $e->getMessage());
+        // Guard: Only @Help or Super Admin can assign
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
+            $this->json_response(false, 'Unauthorized: Only Support (@Help) can assign tickets to Accounting.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
         }
-    }
 
-    $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
-}
+        $res = $this->OrderResolutionModel->admin_assign_to_acct($ticket_number, $admin_id, $notes);
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
+    }
 
     /**
      * @Acct marks refund/payment completed (Status -> Done)
