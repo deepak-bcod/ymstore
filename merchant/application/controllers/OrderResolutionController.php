@@ -209,10 +209,9 @@ class OrderResolutionController extends CI_Controller
                 $notification_msg   = '';
 
                 if ($action === 'refund_approved') {
-                    $refund_amt_display = isset($extra['refund_amount']) ? number_format($extra['refund_amount'], 2) : '';
                     $notification_title = 'Order Refund Approved Update';
-                    $notification_msg   = 'Your refund request for Ticket #' . $ticket_number . ' has been approved' . (!empty($refund_amt_display) ? ' (' . $refund_amt_display . ')' : '') . '.';
-                } 
+                    $notification_msg   = 'Your refund request for Ticket #' . $ticket_number . ' has been approved (Order #' . $res->order_number . ').';
+                }
 
                 if (!empty($notification_msg)) {
                     $notification_data = [
