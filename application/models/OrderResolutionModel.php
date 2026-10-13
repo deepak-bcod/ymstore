@@ -1579,7 +1579,8 @@ class OrderResolutionModel extends CI_Model
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), base_url('order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-completed-shopper', $tempVars, $dynamicVars);
+        $custom_subject = "Order Resolution No.: {$res->ticket_number} - Your Product Replacement Completed.";
+        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-completed-shopper', $tempVars, $dynamicVars, '', $custom_subject);
     }
 
     private function send_dispute_help_email($res, $message = '')

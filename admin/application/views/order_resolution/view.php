@@ -130,6 +130,7 @@ $this->load->view('common/fbc-user/header');
                 </div>
 
                 <?php 
+                $is_replacement_completed = ($resolution->merchant_action === 'replacement_completed');
                 $is_direct_merchant_replacement = ($resolution->merchant_action === 'replacement_completed' && in_array($resolution->delivery_option, ['own_delivery', 'self_pickup'], true));
                 ?>
 
@@ -142,7 +143,7 @@ $this->load->view('common/fbc-user/header');
                                 <?= ($current_role === 'acct') ? '@Acct (Accounting Only)' : '@Help (Support Only)'; ?>
                             </span>
                         </h6>
-                        <?php if (!empty($is_super_admin) && !$is_direct_merchant_replacement): ?>
+                        <?php if (!empty($is_super_admin) && !$is_replacement_completed): ?>
                             <div class="btn-group btn-group-sm">
                                 <a href="<?= base_url('order_resolution/view/' . $resolution->ticket_number . '?as=help'); ?>" class="btn <?= ($current_role === 'help') ? 'btn-primary active' : 'btn-outline-secondary'; ?>">
                                     <i class="fa fa-life-ring"></i> @Help View
@@ -154,7 +155,7 @@ $this->load->view('common/fbc-user/header');
                         <?php endif; ?>
                     </div>
 
-                    <?php if ($current_role === 'acct' && !$is_direct_merchant_replacement): ?>
+                    <?php if ($current_role === 'acct' && !$is_replacement_completed): ?>
                         <!-- ================= @Acct (ACCOUNTING ONLY) CONTROLS ================= -->
                         <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
                             <div class="alert alert-info py-2 mb-3">
@@ -215,19 +216,19 @@ $this->load->view('common/fbc-user/header');
                             <div class="alert alert-warning py-2 mb-3">
                                 <i class="fa fa-info-circle"></i> <strong>Merchant Denied Refund:</strong> The merchant has rejected the refund request. @Help can review and click <strong>Close Ticket</strong>.
                             </div>
-                        <?php elseif ($is_direct_merchant_replacement && $resolution->status === 'Open'): ?>
+                        <?php elseif ($is_replacement_completed && in_array($resolution->status, ['Open', 'Processing', 'Done'])): ?>
                             <div class="alert alert-success py-2 mb-3">
-                                <i class="fa fa-check-circle"></i> <strong>Replacement Completed:</strong> The merchant has completed the replacement via <?= htmlspecialchars(ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?>. @Help can now close the ticket.
+                                <i class="fa fa-check-circle"></i> <strong>Replacement Completed:</strong> The merchant has completed the product replacement via <?= htmlspecialchars(ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?>. @Help can now close the ticket.
                             </div>
                         <?php endif; ?>
 
                         <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
                             <!-- Step 3: @Help Marks Ticket Close (When Merchant Denied Refund or General Initial Close) -->
-                            <?php if (in_array($resolution->status, ['Open']) && $resolution->status !== 'Close' && $resolution->status !== 'Close (Final)'): ?>
+                            <?php if (in_array($resolution->status, ['Open', 'Processing', 'Done']) && $resolution->status !== 'Close' && $resolution->status !== 'Close (Final)'): ?>
                                 <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
                                     <i class="fa fa-lock"></i> Close Ticket <?= ($resolution->merchant_action === 'refund_denied') ? '(Refund Denied by Merchant)' : ''; ?>
                                 </button>
-                                <?php if ($resolution->merchant_action !== 'refund_denied' && !$is_direct_merchant_replacement): ?>
+                                <?php if ($resolution->merchant_action !== 'refund_denied' && !$is_replacement_completed): ?>
                                     <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
                                         <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
                                     </button>
