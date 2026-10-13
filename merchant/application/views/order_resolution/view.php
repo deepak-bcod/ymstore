@@ -169,15 +169,17 @@ $this->load->view('common/fbc-user/header');
 
                             <?php if ($is_replacement_ticket): ?>
                                 <!-- REPLACEMENT DECISION BUTTONS (Subject Type: Replacement) -->
-                                <?php if ($resolution->merchant_action === 'none' || $resolution->merchant_action === 'replacement_denied'): ?>
+                                <?php if ($resolution->merchant_action === 'none'): ?>
                                     <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
                                         <i class="fa fa-refresh"></i> <?= $this->lang->line('replacement_approved') ?: 'Replacement Approved'; ?>
                                     </button>
-                                    <?php if ($resolution->merchant_action !== 'replacement_denied'): ?>
-                                        <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#replacementDeniedModal" data-bs-toggle="modal" data-bs-target="#replacementDeniedModal">
-                                            <i class="fa fa-ban"></i> <?= $this->lang->line('replacement_denied') ?: 'Replacement Denied'; ?>
-                                        </button>
-                                    <?php endif; ?>
+                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#replacementDeniedModal" data-bs-toggle="modal" data-bs-target="#replacementDeniedModal">
+                                        <i class="fa fa-ban"></i> <?= $this->lang->line('replacement_denied') ?: 'Replacement Denied'; ?>
+                                    </button>
+                                <?php elseif ($resolution->merchant_action === 'replacement_denied'): ?>
+                                    <span class="badge badge-danger p-2">
+                                        <i class="fa fa-times-circle"></i> <?= $this->lang->line('replacement_denied') ?: 'Replacement Denied'; ?>
+                                    </span>
                                 <?php elseif ($resolution->merchant_action === 'replacement_approved'): ?>
                                     <span class="badge badge-info p-2">
                                         <i class="fa fa-check-circle"></i> <?= $this->lang->line('replacement_approved') ?: 'Replacement Approved'; ?> (<?= htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?>)
@@ -264,7 +266,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="refundApproveModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/action'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/action'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="action" value="refund_approved">
                 <div class="modal-header">
@@ -292,7 +294,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="refundDeniedModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/action'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/action'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="action" value="refund_denied">
                 <div class="modal-header">
@@ -317,7 +319,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="replacementApproveModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/action'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/action'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="action" value="replacement_approved">
                 <div class="modal-header">
@@ -352,7 +354,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="replacementDeniedModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/action'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/action'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="action" value="replacement_denied">
                 <div class="modal-header">
@@ -375,7 +377,7 @@ $this->load->view('common/fbc-user/header');
 <div class="modal fade" id="replacementCompletedModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <form action="<?= base_url('order_resolution/action'); ?>" method="POST">
+            <form action="<?= base_url('order_resolution/action'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="action" value="replacement_completed">
                 <div class="modal-header">

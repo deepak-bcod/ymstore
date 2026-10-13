@@ -1471,4 +1471,5 @@ $lang['notification_table_action'] = 'Action';
 $lang['mark_read'] = 'Marquer comme lu';
 $lang['notification_status_read'] = 'Lu';
 $lang['no_notifications_found'] = 'Aucune notification trouvée.';
-
+$lang['no_replacement_for_product'] = 'Aucun remplacement pour le produit';
+$lang['resolution_status'] = 'Statut de la résolution';

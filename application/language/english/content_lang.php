@@ -2362,7 +2362,5 @@ $lang['notification_table_action'] = 'Action';
 $lang['mark_read'] = 'Mark Read';
 $lang['notification_status_read'] = 'Read';
 $lang['no_notifications_found'] = 'No notifications found.';
-
-
-
-
+$lang['no_replacement_for_product'] = 'No Replacement for Product';
+$lang['resolution_status'] = 'Resolution Status';
