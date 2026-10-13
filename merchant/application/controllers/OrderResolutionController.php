@@ -80,40 +80,48 @@ class OrderResolutionController extends CI_Controller
     }
 
     /**
+     * Helper to return JSON for AJAX or redirect with flashdata for standard requests
+     */
+    protected function json_response($status, $message, $extra = [], $fallback_redirect = null)
+    {
+        $is_ajax = $this->input->is_ajax_request()
+            || ($this->input->get_request_header('X-Requested-With') === 'XMLHttpRequest')
+            || ($this->input->post('is_ajax') == 1);
+
+        if ($is_ajax) {
+            header('Content-Type: application/json');
+            echo json_encode(array_merge([
+                'status'  => (bool)$status,
+                'message' => $message,
+            ], $extra));
+            exit;
+        }
+
+        if ($status) {
+            $this->session->set_flashdata('success', $message);
+        } else {
+            $this->session->set_flashdata('error', $message);
+        }
+
+        if ($fallback_redirect) {
+            redirect($fallback_redirect);
+        }
+    }
+
+    /**
      * Merchant Reply to Shopper
      */
     public function reply()
-{
-    $merchant_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
-    $ticket_number = trim($this->input->post('ticket_number', true));
-    $message       = trim($this->input->post('message', true));
+    {
+        $merchant_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $message       = trim($this->input->post('message', true));
 
-    $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
-    if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
-        $this->session->set_flashdata('error', 'Invalid ticket.');
-        redirect('order_resolution');
-        return;
-    }
-
-    if (empty($message)) {
-        $this->session->set_flashdata('error', 'Message cannot be empty.');
-        redirect('order_resolution/view/' . $ticket_number);
-        return;
-    }
-
-    // Handle attachment
-    $attachment = '';
-    if (isset($_FILES['attachment']) && !empty($_FILES['attachment']['name'])) {
-        $upload_path = './uploads/order_resolution/';
-        if (!is_dir($upload_path)) {
-            @mkdir($upload_path, 0777, true);
+        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
+            $this->json_response(false, 'Invalid ticket or unauthorized access.', [], 'order_resolution');
+            return;
         }
-        $config['upload_path']   = $upload_path;
-        $config['allowed_types'] = 'jpg|jpeg|png|pdf|webp';
-        $config['max_size']      = 5120;
-        $config['encrypt_name']  = true;
-        $this->load->library('upload', $config);
-
 
         if ($res->status === 'Close (Final)') {
             $this->json_response(false, 'Ticket is permanently closed (Final). New replies are disabled.', ['requires_reload' => true], 'order_resolution/view/' . $ticket_number);
@@ -150,33 +158,25 @@ class OrderResolutionController extends CI_Controller
         $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
 
         if ($ok) {
+            // Add notification for shopper
+            if (!empty($res->customer_id)) {
+                $notification_data = [
+                    'recipient_id'   => $res->customer_id,
+                    'recipient_type' => 'shopper',
+                    'title'          => 'Order Resolution Reply on Ticket #' . $ticket_number,
+                    'message'        => $sender_name . ' replied: "' . mb_strimwidth($message, 0, 80, '...') . '"',
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s')
+                ];
+                $this->db->insert('notifications', $notification_data);
+            }
+
             $msg = $this->lang->line('reply_posted_success') ?: 'Your reply has been sent to the shopper.';
             $this->json_response(true, $msg, ['reload' => true], 'order_resolution/view/' . $ticket_number);
         } else {
             $this->json_response(false, $this->lang->line('err_unable_post_reply') ?: 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);
         }
     }
-
-    $pub = $this->db->select('publication_name')->where('id', $merchant_id)->get('publisher')->row();
-    $sender_name = $pub ? $pub->publication_name : 'Merchant';
-
-    // 1. Add reply to thread
-    $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
-
-    // 2. Add Notification for ONLY this shopper
-    $notification_data = [
-        'recipient_id'   => $res->customer_id, 
-        'recipient_type' => 'shopper',
-        'title'          => 'Order Resolution Reply on Ticket #' . $ticket_number,
-        'message'        => $sender_name . ' replied: "' . mb_strimwidth($message, 0, 80, '...') . '"',
-        'is_read'        => 0,
-        'created_at'     => date('Y-m-d H:i:s')
-    ];
-    $this->db->insert('notifications', $notification_data);
-
-    $this->session->set_flashdata('success', 'Your reply has been sent to the shopper.');
-    redirect('order_resolution/view/' . $ticket_number);
-}
 
     /**
      * Merchant Decision Actions:
