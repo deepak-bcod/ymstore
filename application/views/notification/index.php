@@ -42,9 +42,9 @@
                 <?php if (!empty($notifications)): ?>
 
                     <?php foreach ($notifications as $row): ?>
-                   <?php
+                  <?php
                         $current_lang = $this->session->userdata('site_lang') ?? 'english';
-                        
+
                         $title = $row->title;
                         $message = $row->message;
                         $type = $row->type;
@@ -68,15 +68,36 @@
                             }
 
                             // 3. Replacement Request
-                            if ($type === 'replacement' || strpos($row->title, 'Replacement Approved') !== false) {
+                            if ($type === 'replacement' || strpos($row->title, 'Replacement Approved') !== false || strpos($row->title, 'Order Replacement Approved') !== false) {
                                 $title = 'Demande de remplacement approuvée';
-                                if (strpos($row->message, 'has been approved') !== false) {
-                                    $message = str_replace(
-                                        ['Your replacement request for', 'has been approved.'], 
-                                        ['Votre demande de remplacement pour', 'a été approuvée.'], 
-                                        $row->message
-                                    );
-                                }
+                                
+                                $message = str_replace(
+                                    ['Your replacement request for', 'has been approved.'], 
+                                    ['Votre demande de remplacement pour', 'a été approuvée.'], 
+                                    $message
+                                );
+                            }
+
+                            // 3b. Refund Request (NEW)
+                            if ($type === 'refund' || strpos($row->title, 'Refund Approved') !== false || strpos($row->title, 'Order Refund Approved') !== false) {
+                                $title = 'Demande de remboursement approuvée';
+                                
+                                $message = str_replace(
+                                    ['Your refund request for', 'has been approved.'], 
+                                    ['Votre demande de remboursement pour', 'a été approuvée.'], 
+                                    $message
+                                );
+                            }
+
+                            // 3c. Order Resolution Reply (NEW)
+                            if (strpos($row->title, 'Order Resolution Reply') !== false) {
+                                $title = str_replace('Order Resolution Reply on Ticket', 'Réponse à la résolution de la commande sur le ticket', $row->title);
+                                
+                                $message = str_replace(
+                                    ['Merchant reply your Order Resolution', 'Merchant reply on your Order Resolution'],
+                                    ['Réponse du vendeur à votre résolution de commande', 'Réponse du vendeur à votre résolution de commande'],
+                                    $message
+                                );
                             }
 
                             // 4. Orders (Delivered, Shipped, Processing)
@@ -128,7 +149,7 @@
                                 }
                             }
 
-                            // 7. Helpdesk Response & Replies (New)
+                            // 7. Helpdesk Response & Replies
                             if ($type === 'helpdesk') {
                                 if ($row->title === 'Helpdesk Response') {
                                     $title = 'Réponse du service d’assistance';
@@ -136,16 +157,13 @@
                                     $title = 'Réponse au ticket du service d’assistance';
                                 }
 
-                                // Translate closed ticket message
                                 if (strpos($row->message, 'is closed.') !== false) {
                                     $message = str_replace(
                                         ['Your Help desk Ticket', 'is closed.'],
                                         ['Votre ticket du service d’assistance', 'est fermé.'],
                                         $row->message
                                     );
-                                } 
-                                // Translate reply message
-                                elseif (strpos($row->message, 'has replied to your help desk ticket') !== false) {
+                                } elseif (strpos($row->message, 'has replied to your help desk ticket') !== false) {
                                     $message = str_replace(
                                         ['has replied to your help desk ticket', '#'],
                                         ['a répondu à votre ticket du service d’assistance', '#'],
@@ -154,7 +172,7 @@
                                 }
                             }
                         }
-                    ?>
+                        ?>
 
                         <tr style="<?= ($row->is_read == 0)
                             ? 'background-color: #fffdf0; font-weight: bold;'
