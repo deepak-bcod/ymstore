@@ -200,10 +200,10 @@ class OrderResolutionController extends CI_Controller
         }
 
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
-<
-        $message = $result['message'];
         if ($result['status'] && !empty($this->lang->line('action_processed_success'))) {
             $message = $this->lang->line('action_processed_success');
+        } else {
+            $message = $result['message'];
         }
         $this->json_response($result['status'], $message, $result, 'order_resolution/view/' . $ticket_number);
     }
