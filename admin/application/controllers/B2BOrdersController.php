@@ -18630,11 +18630,11 @@ public function markDelivered()
 
 
                 // ==========================================
-                // GET SHOPPER CUSTOMER ID
+                // GET SHOPPER CUSTOMER ID & EMAIL
                 // ==========================================
 
                 $salesOrder = $this->db
-                    ->select('customer_id')
+                    ->select('customer_id, customer_email, customer_firstname, customer_lastname')
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
@@ -18650,7 +18650,7 @@ public function markDelivered()
                     // ==========================================
 
                     $b2bOrder = $this->db
-                        ->select('order_barcode')
+                        ->select('order_barcode, customer_firstname, customer_lastname')
                         ->where('order_id', $order_id)
                         ->get('b2b_orders')
                         ->row();
@@ -18710,6 +18710,48 @@ public function markDelivered()
                             $notif_sql,
                             $notif_params
                         );
+
+
+                        // ==========================================
+                        // SEND EMAIL TO SHOPPER
+                        // ==========================================
+
+                        if (!empty($salesOrder->customer_email)) {
+
+                            // Fallback customer name from sales_order or b2b_orders
+                            $shopperName = trim(
+                                ($salesOrder->customer_firstname ?? '') . ' ' . ($salesOrder->customer_lastname ?? '')
+                            );
+
+                            if (empty($shopperName) && !empty($b2bOrder)) {
+                                $shopperName = trim(
+                                    ($b2bOrder->customer_firstname ?? '') . ' ' . ($b2bOrder->customer_lastname ?? '')
+                                );
+                            }
+
+                            if (empty($shopperName)) {
+                                $shopperName = 'Customer';
+                            }
+
+                            $TempVars = [
+                                '##CUSTOMERNAME##',
+                                '##ORDERNO##'
+                            ];
+
+                            $DynamicVars = [
+                                $shopperName,
+                                $b2bOrderNumber
+                            ];
+
+                            // Triggers email template with Subject: "Order (##ORDERNO##) Delivered"
+                            // and Body: "Dear ##CUSTOMERNAME##, Your Order ##ORDERNO## is delivered."
+                            $this->CommonModel->sendCommonHTMLEmail(
+                                $salesOrder->customer_email,
+                                'order-delivered-successfully',
+                                $TempVars,
+                                $DynamicVars
+                            );
+                        }
                     }
                 }
             }
