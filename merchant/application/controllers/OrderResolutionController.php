@@ -186,6 +186,14 @@ class OrderResolutionController extends CI_Controller
      * - replacement_denied
      * - replacement_completed
      */
+   /**
+     * Merchant Decision Actions:
+     * - refund_approved
+     * - refund_denied
+     * - replacement_approved (requires delivery_option)
+     * - replacement_denied
+     * - replacement_completed
+     */
     public function action()
     {
         $merchant_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
@@ -200,11 +208,70 @@ class OrderResolutionController extends CI_Controller
         }
 
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
-        if ($result['status'] && !empty($this->lang->line('action_processed_success'))) {
-            $message = $this->lang->line('action_processed_success');
+        
+        if ($result['status']) {
+            // Fetch ticket/resolution details to get the customer_id
+            $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+
+            if ($res && !empty($res->customer_id)) {
+                // Format a readable status title and description based on the action
+                $readable_action = ucwords(str_replace('_', ' ', $action));
+                
+                $notification_data = [
+                    'recipient_id'   => $res->customer_id,
+                    'recipient_type' => 'shopper',
+                    'title'          => 'Order Resolution Update (Ticket #' . $ticket_number . ')',
+                    'message'        => 'Your resolution request has been updated: ' . $readable_action,
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s')
+                ];
+                $this->db->insert('notifications', $notification_data);
+            }
+
+            $message = !empty($this->lang->line('action_processed_success')) 
+                       ? $this->lang->line('action_processed_success') 
+                       : $result['message'];
         } else {
             $message = $result['message'];
         }
+
         $this->json_response($result['status'], $message, $result, 'order_resolution/view/' . $ticket_number);
+    }
+
+    /**
+     * Close Final Endpoint (if handled separately from action())
+     */
+    public function close_final()
+    {
+        $merchant_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $notes         = trim($this->input->post('notes', true));
+
+        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
+            $this->json_response(false, 'Invalid ticket or unauthorized access.', [], 'order_resolution');
+            return;
+        }
+
+        // Update resolution status in model/database
+        $ok = $this->OrderResolutionModel->close_final_ticket($ticket_number, $notes);
+
+        if ($ok) {
+            if (!empty($res->customer_id)) {
+                $notification_data = [
+                    'recipient_id'   => $res->customer_id,
+                    'recipient_type' => 'shopper',
+                    'title'          => 'Ticket Closed (Final) #' . $ticket_number,
+                    'message'        => 'Your order resolution ticket #' . $ticket_number . ' has been permanently closed by the merchant.',
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s')
+                ];
+                $this->db->insert('notifications', $notification_data);
+            }
+
+            $this->json_response(true, 'Ticket permanently closed and notification sent to shopper.', ['reload' => true], 'order_resolution/view/' . $ticket_number);
+        } else {
+            $this->json_response(false, 'Unable to close ticket.', [], 'order_resolution/view/' . $ticket_number);
+        }
     }
 }
