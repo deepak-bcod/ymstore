@@ -215,20 +215,19 @@ class OrderResolutionController extends CI_Controller
 
     // If assignment is successful, trigger an in-app notification for the shopper
     if (!empty($res['status'])) {
-        // Fetch resolution/ticket details to get the shopper's user ID
+        // Fetch resolution/ticket details to get the customer ID
         $resolution = $this->OrderResolutionModel->get_resolution_by_ticket($ticket_number); 
         
-        if ($resolution && !empty($resolution->shopper_id)) {
+        if ($resolution && !empty($resolution->customer_id)) {
             $notification_data = [
-                'user_id'    => $resolution->shopper_id,
-                'title'      => 'Ticket Processing',
-                'message'    => 'Your resolution ticket #' . $ticket_number . ' has been assigned to Accounting for processing.',
-                'url'        => 'order_resolution/view/' . $ticket_number, // Update to the shopper's route if different
-                'is_read'    => 0,
-                'created_at' => date('Y-m-d H:i:s')
+                'recipient_id'   => $resolution->customer_id,
+                'recipient_type' => 'shopper',
+                'title'          => 'Ticket Processing - #' . $ticket_number,
+                'message'        => 'Your resolution ticket has been assigned to Accounting for processing.',
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s')
             ];
             
-            // Insert the notification into your database table
             $this->db->insert('notifications', $notification_data);
         }
     }
