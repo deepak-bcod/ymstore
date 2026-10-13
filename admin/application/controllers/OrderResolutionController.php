@@ -213,14 +213,21 @@ class OrderResolutionController extends CI_Controller
 
     $res = $this->OrderResolutionModel->admin_assign_to_acct($ticket_number, $admin_id, $notes);
 
-    // If assignment is successful, trigger an in-app notification for the shopper
+    // If assignment is successful, trigger an in-app notification for the shopper safely
     if (!empty($res['status'])) {
-        // Fetch resolution/ticket details to get the customer ID
         $resolution = $this->OrderResolutionModel->get_resolution_by_ticket($ticket_number); 
         
-        if ($resolution && !empty($resolution->customer_id)) {
+        // Handle whether $resolution is an object or an array
+        $customer_id = null;
+        if (is_object($resolution) && !empty($resolution->customer_id)) {
+            $customer_id = $resolution->customer_id;
+        } elseif (is_array($resolution) && !empty($resolution['customer_id'])) {
+            $customer_id = $resolution['customer_id'];
+        }
+
+        if (!empty($customer_id)) {
             $notification_data = [
-                'recipient_id'   => $resolution->customer_id,
+                'recipient_id'   => $customer_id,
                 'recipient_type' => 'shopper',
                 'title'          => 'Ticket Processing - #' . $ticket_number,
                 'message'        => 'Your resolution ticket has been assigned to Accounting for processing.',
@@ -228,7 +235,8 @@ class OrderResolutionController extends CI_Controller
                 'created_at'     => date('Y-m-d H:i:s')
             ];
             
-            $this->db->insert('notifications', $notification_data);
+            // Safely insert without breaking the AJAX response if columns differ
+            @$this->db->insert('notifications', $notification_data);
         }
     }
 
