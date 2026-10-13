@@ -79,17 +79,19 @@ class OrderResolutionController extends CI_Controller
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
         $is_super_admin = (strpos($user_role, 'super') !== false || strpos($user_role, 'administrator') !== false || $user_role === 'admin' || empty($user_role));
 
+        $hide_acct = in_array($res->merchant_action, ['replacement_completed', 'replacement_denied'], true);
+
         // Determine current viewing mode: 'acct' vs 'help'
         $as_param = strtolower(trim((string)$this->input->get('as', true)));
-        if ($as_param === 'acct' || $as_param === 'help') {
+        if (!$hide_acct && ($as_param === 'acct' || $as_param === 'help')) {
             $current_role = $as_param;
-        } elseif (strpos($user_role, 'account') !== false || strpos($user_role, 'acct') !== false) {
+        } elseif (!$hide_acct && (strpos($user_role, 'account') !== false || strpos($user_role, 'acct') !== false)) {
             $current_role = 'acct';
         } elseif (strpos($user_role, 'help') !== false || strpos($user_role, 'support') !== false) {
             $current_role = 'help';
         } else {
             // Default for Super Admin / General Admin:
-            $current_role = ($res->status === 'Processing' && $res->assigned_role === 'Acct') ? 'acct' : 'help';
+            $current_role = (!$hide_acct && $res->status === 'Processing' && $res->assigned_role === 'Acct') ? 'acct' : 'help';
         }
 
         $data['resolution']     = $res;

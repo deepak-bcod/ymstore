@@ -1011,7 +1011,18 @@ class OrderResolutionModel extends CI_Model
                 $this->send_merchant_action_email_to_help($res, 'Replacement Denied');
                 $this->send_replacement_denied_shopper_email($res);
                 $this->send_replacement_denied_help_email($res);
-                return ['status' => true, 'message' => 'Replacement denied.'];
+
+                // In-App Notifications
+                if (!empty($res->customer_id)) {
+                    $this->send_inapp_notification('customer', $res->customer_id, 'replacement_denied',
+                        'Order Resolution - No Replacement for Product',
+                        "Merchant has denied the replacement request for Ticket #{$ticket_number} (Order #{$res->order_number}).", $res);
+                }
+                $this->send_inapp_notification('admin', 1, 'replacement_denied',
+                    'Order Resolution - Replacement Denied',
+                    "Merchant denied replacement for Ticket #{$ticket_number} (Order #{$res->order_number}). Please mark ticket as Close.", $res);
+
+                return ['status' => true, 'message' => 'Replacement denied. Shopper and @Help have been notified.'];
 
             case 'replacement_completed':
                 if ($res->merchant_action !== 'replacement_approved' || $res->delivery_option === 'none') {
@@ -1097,6 +1108,9 @@ class OrderResolutionModel extends CI_Model
         }
         if ($res->status === 'Processing' && $res->assigned_role === 'Acct') {
             return ['status' => false, 'message' => 'Ticket is already assigned to Accounting (@Acct).', 'requires_reload' => true];
+        }
+        if (in_array($res->merchant_action, ['replacement_completed', 'replacement_denied'], true)) {
+            return ['status' => false, 'message' => 'Accounting assignment is not applicable for this workflow.'];
         }
 
         $time = time();
@@ -1524,10 +1538,15 @@ class OrderResolutionModel extends CI_Model
         $m_email = $this->get_merchant_email($res);
         if (!$m_email) return;
 
+        $site_lang = $this->session->userdata('site_lang') ?: 'english';
+        $lang_code = ($site_lang === 'french') ? 'fr' : 'en';
+
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##MERCHANT_NAME##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_merchant_name($res), 'Yellow Markets'];
-        $custom_subject = "Order Resolution No.: {$res->ticket_number} - Closed";
-        $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-ticket-closed-merchant', $tempVars, $dynamicVars, '', $custom_subject);
+        $custom_subject = ($lang_code === 'fr')
+            ? "Résolution de commande No. : {$res->ticket_number} - Fermé"
+            : "Order Resolution No.: {$res->ticket_number} - Closed";
+        $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-ticket-closed-merchant', $tempVars, $dynamicVars, $lang_code, $custom_subject);
     }
 
     private function send_refund_denied_shopper_email($res)
@@ -1557,9 +1576,15 @@ class OrderResolutionModel extends CI_Model
         $shopper_email = $this->get_shopper_email($res);
         if (!$shopper_email) return;
 
+        $site_lang = $this->session->userdata('site_lang') ?: 'english';
+        $lang_code = ($site_lang === 'french') ? 'fr' : 'en';
+
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), base_url('order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-denied-shopper', $tempVars, $dynamicVars);
+        $custom_subject = ($lang_code === 'fr')
+            ? "Résolution de commande No.{$res->ticket_number} - Aucun remplacement pour le produit"
+            : "Order Resolution No.{$res->ticket_number} - No Replacement for Product";
+        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-denied-shopper', $tempVars, $dynamicVars, $lang_code, $custom_subject);
     }
 
     private function send_replacement_denied_help_email($res)
@@ -1567,9 +1592,15 @@ class OrderResolutionModel extends CI_Model
         $help_email = $this->get_help_email();
         if (!$help_email) return;
 
+        $site_lang = $this->session->userdata('site_lang') ?: 'english';
+        $lang_code = ($site_lang === 'french') ? 'fr' : 'en';
+
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##TICKET_URL##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, base_url('admin/order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($help_email, 'order-resolution-replacement-denied-help', $tempVars, $dynamicVars);
+        $custom_subject = ($lang_code === 'fr')
+            ? "Résolution de commande No. : {$res->ticket_number} - Aucun remplacement pour le produit"
+            : "Order Resolution No.: {$res->ticket_number} - No Replacement for Product";
+        $this->CommonModel->sendCommonHTMLEmail($help_email, 'order-resolution-replacement-denied-help', $tempVars, $dynamicVars, $lang_code, $custom_subject);
     }
 
     private function send_replacement_completed_shopper_email($res)
@@ -1579,7 +1610,8 @@ class OrderResolutionModel extends CI_Model
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), base_url('order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-completed-shopper', $tempVars, $dynamicVars);
+        $custom_subject = "Order Resolution No.: {$res->ticket_number} - Your Product Replacement Completed.";
+        $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-completed-shopper', $tempVars, $dynamicVars, '', $custom_subject);
     }
 
     private function send_dispute_help_email($res, $message = '')
