@@ -211,6 +211,12 @@ class OrderResolutionController extends CI_Controller
                 if ($action === 'refund_approved') {
                     $notification_title = 'Order Refund Approved Update';
                     $notification_msg   = 'Your refund request for Ticket #' . $ticket_number . ' has been approved (Order #' . $res->order_number . ').';
+                }  elseif ($action === 'replacement_approved') {
+                    $notification_title = 'Order Replacement Approved Update';
+                    $notification_msg   = 'Your replacement request for Ticket #' . $ticket_number . ' has been approved (Order #' . $res->order_number . ').';
+                }  elseif ($action === 'replacement_completed') {
+                    $notification_title = 'Order Replacement Completed Update';
+                    $notification_msg   = 'Your replacement for Ticket #' . $ticket_number . ' has been marked as completed (Order #' . $res->order_number . ').';
                 }
 
                 if (!empty($notification_msg)) {
