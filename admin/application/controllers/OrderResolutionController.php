@@ -198,7 +198,7 @@ class OrderResolutionController extends CI_Controller
     /**
      * @Help assigns ticket to @Acct (Status -> Processing)
      */
-   public function assign_to_acct()
+    public function assign_to_acct()
 {
     $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
     $ticket_number = trim($this->input->post('ticket_number', true));
@@ -214,40 +214,45 @@ class OrderResolutionController extends CI_Controller
     // Execute assignment
     $res = $this->OrderResolutionModel->admin_assign_to_acct($ticket_number, $admin_id, $notes);
 
-    // --- NOTIFY SHOPPER (CUSTOMER) IF ASSIGNMENT SUCCEEDED ---
+    // --- SAFELY ATTEMPT SHOPPER NOTIFICATION ---
     if (!empty($res['status'])) {
-        // Fetch ticket details using your order_resolutions schema (has customer_id)
-        $ticket = $this->OrderResolutionModel->get_by_ticket_number($ticket_number); // Or your equivalent method
+        try {
+            // Fetch ticket details to get customer_id
+            $ticket = $this->db->get_where('order_resolutions', ['ticket_number' => $ticket_number])->row();
 
-        if (!empty($ticket) && !empty($ticket->customer_id)) {
-            $notification_title   = "Ticket Update: #" . $ticket_number;
-            $notification_message = "Your ticket #" . $ticket_number . " has been assigned to our Accounting team for review.";
+            if (!empty($ticket) && !empty($ticket->customer_id)) {
+                $notification_title   = "Ticket Update: #" . $ticket_number;
+                $notification_message = "Your ticket #" . $ticket_number . " has been assigned to our Accounting team for review.";
 
-            // 1. In-App Notification (Adjust model name/method as needed)
-            $this->NotificationModel->add_notification([
-                'customer_id' => $ticket->customer_id, // maps to customers.id
-                'title'       => $notification_title,
-                'message'     => $notification_message,
-                'link'        => 'order_resolution/view/' . $ticket_number,
-                'created_at'  => time() // matches your int(11) timestamp convention
-            ]);
-
-            // 2. Email Notification (Optional - if you need to fetch email from customers table)
-            /*
-            $customer = $this->CustomerModel->get_by_id($ticket->customer_id);
-            if (!empty($customer->email)) {
-                $this->load->library('email');
-                $this->email->to($customer->email);
-                $this->email->subject($notification_title);
-                $this->email->message($notification_message);
-                $this->email->send();
+                // Check if NotificationModel exists and has the method, otherwise insert direct
+                if (method_exists($this, 'NotificationModel') || isset($this->NotificationModel)) {
+                    $this->NotificationModel->add_notification([
+                        'customer_id' => $ticket->customer_id,
+                        'title'       => $notification_title,
+                        'message'     => $notification_message,
+                        'link'        => 'order_resolution/view/' . $ticket_number,
+                        'created_at'  => time()
+                    ]);
+                } else {
+                    // Fallback direct insert if model isn't loaded
+                    $this->db->insert('notifications', [
+                        'customer_id' => $ticket->customer_id,
+                        'title'       => $notification_title,
+                        'message'     => $notification_message,
+                        'link'        => 'order_resolution/view/' . $ticket_number,
+                        'created_at'  => time()
+                    ]);
+                }
             }
-            */
+        } catch (Exception $e) {
+            // Log error silently so it doesn't break the UI response
+            log_message('error', 'Shopper notification failed: ' . $e->getMessage());
         }
     }
 
     $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
 }
+
     /**
      * @Acct marks refund/payment completed (Status -> Done)
      */
