@@ -189,6 +189,33 @@ class OrderResolutionController extends CI_Controller
         $ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address());
 
         if ($ok) {
+            // Get the customer ID from the resolution record
+            $customer_id = $res->customer_id ?? null;
+
+            if ($customer_id) {
+                $title        = "Order resolution reply (" . $ticket_number . ")";
+                $message_text = "Yellow Market team has replied to your resolution ticket (" . $ticket_number . ")";
+
+                $notification_data = [
+                    'type'           => 'order_resolution',
+                    'subtype'        => 'reply',
+                    'recipient_type' => 'customer',
+                    'recipient_id'   => $customer_id,
+                    'title'          => $title,
+                    'message'        => $message_text,
+                    'data'           => json_encode(['ticket_number' => $ticket_number]),
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s')
+                ];
+
+                // Safely insert the notification into the database
+                try {
+                    $this->db->insert('notifications', $notification_data);
+                } catch (\Exception $e) {
+                    log_message('error', 'Notification insert failed: ' . $e->getMessage());
+                }
+            }
+
             $this->json_response(true, 'Reply posted successfully.', ['reload' => true], 'order_resolution/view/' . $ticket_number . '?as=' . $role);
         } else {
             $this->json_response(false, 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number . '?as=' . $role);
