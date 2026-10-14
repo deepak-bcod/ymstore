@@ -601,6 +601,9 @@ class OrderResolutionModel extends CI_Model
             return false;
         }
 
+        // Immediately sync payout status (put on hold due to active resolution)
+        $this->update_payout_eligibility_for_resolution((object)$resolution_data);
+
         // Insert initial message into order_resolution_messages
         $shopper_name = 'Shopper';
         if (!empty($customer_id)) {
@@ -1251,6 +1254,8 @@ class OrderResolutionModel extends CI_Model
             'updated_at'              => $time,
         ]);
 
+        $this->update_payout_eligibility_for_resolution($res);
+
         if (!empty($message)) {
             $this->add_reply($ticket_number, 'shopper', $customer_id, 'Shopper', $message, '', '', 'shopper_admin');
         }
@@ -1386,6 +1391,8 @@ class OrderResolutionModel extends CI_Model
             'updated_at' => $time,
         ]);
 
+        $this->update_payout_eligibility_for_resolution($res);
+
         $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
 
         // Merchant receives: Order Resolution No.: [TicketNumber] - Closed
@@ -1429,6 +1436,8 @@ class OrderResolutionModel extends CI_Model
             'closed_by'         => 'admin',
             'updated_at'        => $time,
         ]);
+
+        $this->update_payout_eligibility_for_resolution($res);
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Ticket Closed (Final)', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
 
@@ -1510,6 +1519,8 @@ class OrderResolutionModel extends CI_Model
                 'closed_by'         => 'admin',
                 'updated_at'        => $time,
             ]);
+
+            $this->update_payout_eligibility_for_resolution($res);
 
             $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Resolution Denied (In Favour of Merchant)', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
 
@@ -2188,5 +2199,106 @@ class OrderResolutionModel extends CI_Model
         );
 
         return true;
+    }
+
+    /**
+     * Re-evaluates and updates payout_status for orders associated with a resolution.
+     */
+    public function update_payout_eligibility_for_resolution($res)
+    {
+        if (empty($res)) {
+            return;
+        }
+
+        if (is_numeric($res)) {
+            $res = $this->get_resolution_by_id((int)$res);
+            if (!$res) return;
+        } elseif (is_string($res)) {
+            $res = $this->get_resolution_by_ticket_number($res);
+            if (!$res) return;
+        }
+
+        $order_ids = [];
+        if (!empty($res->b2b_order_id)) {
+            $order_ids[] = (int)$res->b2b_order_id;
+        }
+        if (!empty($res->order_id)) {
+            $order_ids[] = (int)$res->order_id;
+        }
+
+        if (empty($order_ids)) {
+            return;
+        }
+
+        // Find relevant b2b_orders
+        $this->db->select('order_id, webshop_order_id, publisher_id, payout_status, status')
+            ->from('b2b_orders')
+            ->group_start()
+                ->where_in('order_id', $order_ids)
+                ->or_where_in('webshop_order_id', $order_ids)
+            ->group_end();
+
+        if (!empty($res->merchant_id)) {
+            $this->db->where('publisher_id', (int)$res->merchant_id);
+        }
+
+        $b2b_orders = $this->db->get()->result_array();
+        if (empty($b2b_orders)) {
+            return;
+        }
+
+        foreach ($b2b_orders as $order) {
+            $oid = (int)$order['order_id'];
+            $payout_status = isset($order['payout_status']) ? (int)$order['payout_status'] : 1;
+            if ($payout_status === 4) {
+                continue; // Paid orders never revert
+            }
+
+            $pair_ids = array_unique(array_filter([$oid, (int)$order['webshop_order_id']]));
+            $resolutions = $this->db->select('id, status, merchant_action, category, resolution_status, is_active_dispute')
+                ->from('order_resolutions')
+                ->group_start()
+                    ->where_in('order_id', $pair_ids)
+                    ->or_where_in('b2b_order_id', $pair_ids)
+                ->group_end()
+                ->order_by('id', 'DESC')
+                ->get()
+                ->result_array();
+
+            $has_active = false;
+            $has_approved = false;
+
+            foreach ($resolutions as $r) {
+                $r_st = trim($r['status'] ?? '');
+                $r_act = trim($r['merchant_action'] ?? '');
+                $r_cat = trim($r['category'] ?? '');
+                $r_res = trim($r['resolution_status'] ?? '');
+                $is_disp = (int)($r['is_active_dispute'] ?? 0);
+
+                if (in_array($r_st, ['Open', 'Processing', 'ReOpen', 'Done'], true) || $is_disp === 1 || $r_res === 'resolution_requested') {
+                    $has_active = true;
+                    break;
+                }
+
+                $is_refund_app = ($r_st === 'Close (Final)' || $r_st === 'Close') &&
+                    ($r_act === 'refund_approved' || $r_res === 'resolution_approved' || $r_cat === 'Refund');
+                $is_rep_comp = ($r_st === 'Close' || $r_st === 'Close (Final)') &&
+                    (in_array($r_act, ['replacement_completed', 'replacement_approved'], true) || $r_cat === 'Replacement');
+
+                if ($is_refund_app || $is_rep_comp) {
+                    $has_approved = true;
+                }
+            }
+
+            if ($has_active) {
+                if ($payout_status !== 3) {
+                    $this->db->where('order_id', $oid)->update('b2b_orders', ['payout_status' => 3]);
+                }
+            } elseif ($has_approved) {
+                if ($payout_status === 3) {
+                    $this->db->where('order_id', $oid)->update('b2b_orders', ['payout_status' => 1]);
+                }
+            }
+        }
     }
 }

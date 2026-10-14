@@ -72,7 +72,7 @@
 									$status = "On Hold";
 								} elseif($payout_status == 2){
 									$status = "Requested";
-								} elseif($is_allowed && (in_array((int)$order['status'], [2, 8, 9, 17, 19, 21], true) || $daysDiff >= 1)){
+								} elseif($is_allowed && (in_array((int)$order['status'], [2, 8, 9, 17, 19, 20, 21], true) || $daysDiff >= 1 || $payout_status == 1)){
 									$status = "To Pay";
 								} elseif($daysDiff == 0){
 									$status = "Pending";

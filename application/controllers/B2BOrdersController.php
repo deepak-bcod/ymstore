@@ -11510,110 +11510,185 @@ exit;*/
 		$hold_reason = 'On Hold';
 		$is_refund_done = false;
 
-		// 1. Check Return requests in sales_order_return
-		$returns = $this->db->select('return_order_id, status, refund_status')
-			->from('sales_order_return')
-			->where_in('order_id', $order_ids)
-			->get()
-			->result_array();
+		// -------------------------------------------------------------
+		// 1. Check Order Resolutions in order_resolutions
+		// Eligibility Rules based on Resolution Model status:
+		// - Close (Final) – Refund Approved : Open
+		// - Close – Replacement Complete    : Open
+		// - Close – Refund Denied           : Remain unavailable unless another existing rule permits payout
+		// - Escalation In Progress          : Remain unavailable (On Hold)
+		// - Any other pending or incomplete : Remain unavailable (On Hold)
+		// -------------------------------------------------------------
+		$has_approved_resolution = false;
+		$has_active_resolution   = false;
 
-		if (!empty($returns)) {
-			foreach ($returns as $ret) {
-				$ret_st = (int)$ret['status'];
-				$ref_st = isset($ret['refund_status']) && $ret['refund_status'] !== null ? (int)$ret['refund_status'] : -1;
+		if ($this->db->table_exists('order_resolutions')) {
+			$resolutions = $this->db->select('id, ticket_number, order_id, b2b_order_id, status, merchant_action, category, resolution_status, is_active_dispute')
+				->from('order_resolutions')
+				->group_start()
+					->where_in('order_id', $order_ids)
+					->or_where_in('b2b_order_id', $order_ids)
+				->group_end()
+				->order_by('id', 'DESC')
+				->get()
+				->result_array();
 
-				if ($ret_st === 4 || $ref_st === 1) {
-					$is_refund_done = true;
-					continue;
+			if (!empty($resolutions)) {
+				foreach ($resolutions as $res_row) {
+					$r_status = trim($res_row['status'] ?? '');
+					$r_action = trim($res_row['merchant_action'] ?? '');
+					$r_category = trim($res_row['category'] ?? '');
+					$r_res_status = trim($res_row['resolution_status'] ?? '');
+					$is_dispute = (int)($res_row['is_active_dispute'] ?? 0);
+
+					// Pending / Incomplete / Escalation In Progress states
+					if (in_array($r_status, ['Open', 'Processing', 'ReOpen', 'Done'], true) || $is_dispute === 1 || $r_res_status === 'resolution_requested') {
+						$has_active_resolution = true;
+						break;
+					}
+
+					// Approved Final States:
+					// 1. Close (Final) – Refund Approved
+					$is_refund_approved = ($r_status === 'Close (Final)' || $r_status === 'Close') &&
+						($r_action === 'refund_approved' || $r_res_status === 'resolution_approved' || $r_category === 'Refund');
+
+					// 2. Close – Replacement Complete
+					$is_replacement_complete = ($r_status === 'Close' || $r_status === 'Close (Final)') &&
+						(in_array($r_action, ['replacement_completed', 'replacement_approved'], true) || $r_category === 'Replacement');
+
+					if ($is_refund_approved || $is_replacement_complete) {
+						$has_approved_resolution = true;
+					}
 				}
-
-				$is_on_hold = true;
-				$hold_reason = 'On Hold';
-				break;
 			}
 		}
 
-		// 2. Check Replacement requests in sales_order_replacement
-		if (!$is_on_hold) {
-			$replacements = $this->db->select('replacement_order_id, status')
-				->from('sales_order_replacement')
+		if ($has_active_resolution) {
+			$is_on_hold = true;
+			$hold_reason = 'Disputed - Escalation In Progress';
+		} elseif ($has_approved_resolution) {
+			// Approved final state reached: payout becomes open and overrides previous return/replacement holds
+			$is_on_hold = false;
+		} else {
+			// 2. Check Return requests in sales_order_return
+			$returns = $this->db->select('return_order_id, status, refund_status')
+				->from('sales_order_return')
 				->where_in('order_id', $order_ids)
 				->get()
 				->result_array();
 
-			if (!empty($replacements)) {
-				foreach ($replacements as $rep) {
-					$rep_st = (int)$rep['status'];
+			if (!empty($returns)) {
+				foreach ($returns as $ret) {
+					$ret_st = (int)$ret['status'];
+					$ref_st = isset($ret['refund_status']) && $ret['refund_status'] !== null ? (int)$ret['refund_status'] : -1;
 
-					if (in_array($rep_st, [3, 5, 6], true) || $rep_st === 4) {
+					// Refund Done: refund_status == 1 OR status == 4
+					if ($ret_st === 4 || $ref_st === 1) {
+						$is_refund_done = true;
 						continue;
 					}
 
-					if (in_array($rep_st, [0, 1, 2], true)) {
-						$is_on_hold = true;
-						$hold_reason = 'On Hold';
-						break;
-					}
+					$is_on_hold = true;
+					$hold_reason = 'On Hold';
+					break;
+				}
+			}
 
-					$rep_item_pending = $this->db->from('sales_order_replacement_items')
-						->where('replacement_order_id', $rep['replacement_order_id'])
-						->where_in('status', [0, 1, 2])
-						->count_all_results();
-					if ($rep_item_pending > 0) {
-						$is_on_hold = true;
-						$hold_reason = 'On Hold';
-						break;
+			// 3. Check Replacement requests in sales_order_replacement
+			if (!$is_on_hold) {
+				$replacements = $this->db->select('replacement_order_id, status')
+					->from('sales_order_replacement')
+					->where_in('order_id', $order_ids)
+					->get()
+					->result_array();
+
+				if (!empty($replacements)) {
+					foreach ($replacements as $rep) {
+						$rep_st = (int)$rep['status'];
+
+						// Replaced: status in [3, 5, 6] (resolved -> active)
+						// Replacement Rejected: status == 4 (resolved -> active)
+						if (in_array($rep_st, [3, 5, 6], true) || $rep_st === 4) {
+							continue;
+						}
+
+						// Replacement Requested (0) or Replacement Approved (1, 2)
+						if (in_array($rep_st, [0, 1, 2], true)) {
+							$is_on_hold = true;
+							$hold_reason = 'On Hold';
+							break;
+						}
+
+						// Check replacement items
+						$rep_item_pending = $this->db->from('sales_order_replacement_items')
+							->where('replacement_order_id', $rep['replacement_order_id'])
+							->where_in('status', [0, 1, 2])
+							->count_all_results();
+						if ($rep_item_pending > 0) {
+							$is_on_hold = true;
+							$hold_reason = 'On Hold';
+							break;
+						}
 					}
+				}
+			}
+
+			// 4. Check b2b_orders status and b2b_order_items status
+			if (!$is_on_hold) {
+				if (in_array($b2b_status, [14, 15, 16, 18, 20, 22, 31, 32, 33], true)) {
+					$is_on_hold = true;
+					$hold_reason = 'On Hold';
+				}
+			}
+
+			if (!$is_on_hold) {
+				$item_hold_count = $this->db->from('b2b_order_items')
+					->where('order_id', $order_id)
+					->where_in('status', [14, 15, 16, 18, 20, 22, 31, 32, 33])
+					->count_all_results();
+				if ($item_hold_count > 0) {
+					$is_on_hold = true;
+					$hold_reason = 'On Hold';
 				}
 			}
 		}
 
-		// 3. Check b2b_orders status and b2b_order_items status
-		if (!$is_on_hold) {
-			if (in_array($b2b_status, [14, 15, 16, 18, 20, 22, 31, 32, 33], true)) {
-				$is_on_hold = true;
-				$hold_reason = 'On Hold';
-			}
-		}
-
-		if (!$is_on_hold) {
-			$item_hold_count = $this->db->from('b2b_order_items')
-				->where('order_id', $order_id)
-				->where_in('status', [14, 15, 16, 18, 20, 22, 31, 32, 33])
-				->count_all_results();
-			if ($item_hold_count > 0) {
-				$is_on_hold = true;
-				$hold_reason = 'On Hold';
-			}
-		}
-
-		// 4. Update Database payout_status accordingly
+		// -------------------------------------------------------------
+		// 5. Update Database payout_status accordingly
+		// -------------------------------------------------------------
 		if ($is_on_hold) {
+			// Put Merchant payout ON HOLD (status 3) if not already 3 or 4
 			if ($payout_status !== 3 && $payout_status !== 4) {
 				$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 3]);
 				$payout_status = 3;
 			}
-			return ['allowed' => false, 'reason' => $hold_reason, 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
+			return ['allowed' => false, 'reason' => $hold_reason, 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status, 'is_resolution_active' => $has_active_resolution];
 		}
 
+		// All return and replacement resolved or approved resolution reached:
+		// Release held payout back to ACTIVE (1) if it was on hold (3)
 		if ($payout_status === 3) {
 			$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 1]);
 			$payout_status = 1;
 		}
 
-		return ['allowed' => true, 'reason' => '', 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status];
+		return ['allowed' => true, 'reason' => '', 'is_refunded' => $is_refund_done, 'payout_status' => $payout_status, 'is_resolution_active' => false];
 	}
 
-	// public function hold_payout_bulk()
-	// {
-	// 	$order_ids = $this->input->post('order_ids');
-	// 	$this->db->where_in('order_id', $order_ids)->update('b2b_orders', ['payout_status' => 2]);
-	// 	echo "success";
-	// }
+	private function isPayoutAllowed($order_id)
+	{
+		$check = $this->checkPayoutEligibility($order_id);
+		return $check['allowed'];
+	}
 
 	public function request_payout()
 	{
 		$order_id = $this->input->post('order_id');
+		$check = $this->checkPayoutEligibility($order_id);
+		if (!$check['allowed']) {
+			echo "Cannot request payout while a Return/Replacement/Refund request is pending or unresolved (" . $check['reason'] . ").";
+			return;
+		}
 		$this->db->where('order_id', $order_id)->update('b2b_orders', ['payout_status' => 2]);
 		// ================================
 		// ADD NOTIFICATION: PAYOUT REQUEST
@@ -11651,20 +11726,36 @@ exit;*/
 	public function request_payout_bulk()
 	{
 		$order_ids = $this->input->post('order_ids');
+		if (empty($order_ids) || !is_array($order_ids)) {
+			echo "error";
+			return;
+		}
+
+		$allowed_ids = [];
+		foreach ($order_ids as $oid) {
+			if ($this->isPayoutAllowed($oid)) {
+				$allowed_ids[] = $oid;
+			}
+		}
+
+		if (empty($allowed_ids)) {
+			echo "error: no eligible orders for payout request";
+			return;
+		}
 
 		// Update payout status
-		$this->db->where_in('order_id', $order_ids)
+		$this->db->where_in('order_id', $allowed_ids)
 				->update('b2b_orders', ['payout_status' => 2]);
 
 		// ================================
 		// ADD NOTIFICATION: BULK PAYOUT REQUEST
 		// ================================
-		if (!empty($order_ids) && is_array($order_ids)) {
+		if (!empty($allowed_ids) && is_array($allowed_ids)) {
 
 			// Fetch orders for notification data
 			$orders = $this->db
 				->select('order_id, increment_id, publisher_id')
-				->where_in('order_id', $order_ids)
+				->where_in('order_id', $allowed_ids)
 				->get('b2b_orders')
 				->result_array();
 
@@ -11682,7 +11773,7 @@ exit;*/
 					'title'          => 'Bulk payout request received',
 					'message'        => 'Bulk payout request received from merchant(s) for B2B orders: ' . implode(', ', $order_numbers) . '.',
 					'data'           => json_encode([
-						'order_ids'     => $order_ids,
+						'order_ids'     => $allowed_ids,
 						'increment_ids' => $order_numbers,
 						'merchant_ids'  => $merchant_ids
 					]),
