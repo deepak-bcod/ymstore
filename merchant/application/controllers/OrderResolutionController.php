@@ -164,7 +164,7 @@ class OrderResolutionController extends CI_Controller
                     'recipient_id'   => $res->customer_id,
                     'recipient_type' => 'shopper',
                     'title'          => 'Order Resolution Reply on Ticket #' . $ticket_number,
-                    'message'        => $sender_name . ' replied: "' . mb_strimwidth($message, 0, 80, '...') . '"',
+                    'message'        => 'Merchant reply your Order Resolution ',
                     'is_read'        => 0,
                     'created_at'     => date('Y-m-d H:i:s')
                 ];
@@ -200,11 +200,47 @@ class OrderResolutionController extends CI_Controller
         }
 
         $result = $this->OrderResolutionModel->process_merchant_action($ticket_number, $merchant_id, $action, $extra);
-        if ($result['status'] && !empty($this->lang->line('action_processed_success'))) {
-            $message = $this->lang->line('action_processed_success');
+
+        if ($result['status']) {
+            $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+
+            if ($res && !empty($res->customer_id)) {
+                $notification_title = '';
+                $notification_msg   = '';
+
+                if ($action === 'refund_approved') {
+                    $notification_title = 'Order Refund Approved Update';
+                    $notification_msg   = 'Your refund request for Ticket #' . $ticket_number . ' has been approved (Order #' . $res->order_number . ').';
+                }  elseif ($action === 'replacement_approved') {
+                    $notification_title = 'Order Replacement Approved Update';
+                    $notification_msg   = 'Your replacement request for Ticket #' . $ticket_number . ' has been approved (Order #' . $res->order_number . ').';
+                }  elseif ($action === 'replacement_completed') {
+                    $notification_title = 'Order Replacement Completed Update';
+                    $notification_msg   = 'Your replacement for Ticket #' . $ticket_number . ' has been marked as completed (Order #' . $res->order_number . ').';
+                }
+
+                if (!empty($notification_msg)) {
+                    $notification_data = [
+                        'recipient_id'   => $res->customer_id,
+                        'recipient_type' => 'shopper',
+                        'title'          => $notification_title,
+                        'message'        => $notification_msg,
+                        'is_read'        => 0,
+                        'created_at'     => date('Y-m-d H:i:s')
+                    ];
+                    $this->db->insert('notifications', $notification_data);
+                }
+            }
+
+            if (!empty($this->lang->line('action_processed_success'))) {
+                $message = $this->lang->line('action_processed_success');
+            } else {
+                $message = $result['message'];
+            }
         } else {
             $message = $result['message'];
         }
+
         $this->json_response($result['status'], $message, $result, 'order_resolution/view/' . $ticket_number);
     }
 }
