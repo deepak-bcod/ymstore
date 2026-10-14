@@ -8,6 +8,34 @@ class OrderResolutionModel extends CI_Model
     {
         parent::__construct();
         $this->load->model('CommonModel');
+        $this->ensure_schema();
+    }
+
+    /**
+     * Ensure database columns for separate conversion workflows exist
+     */
+    public function ensure_schema()
+    {
+        try {
+            if ($this->db && $this->db->table_exists('order_resolution_messages')) {
+                if (!$this->db->field_exists('conversion_type', 'order_resolution_messages')) {
+                    $this->db->query("ALTER TABLE `order_resolution_messages` ADD COLUMN `conversion_type` enum('shopper_merchant','shopper_admin','merchant_admin') NOT NULL DEFAULT 'shopper_merchant' AFTER `ticket_number`");
+                    $this->db->query("ALTER TABLE `order_resolution_messages` ADD INDEX `idx_msg_conversion` (`ticket_number`, `conversion_type`)");
+                    $this->db->query("UPDATE `order_resolution_messages` SET `conversion_type` = 'shopper_admin' WHERE `sender_role` IN ('help', 'acct')");
+                }
+            }
+            if ($this->db && $this->db->table_exists('order_resolution_audit_log')) {
+                if (!$this->db->field_exists('source_panel', 'order_resolution_audit_log')) {
+                    $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD COLUMN `source_panel` varchar(50) NOT NULL DEFAULT 'admin' AFTER `actor_id`");
+                }
+                if (!$this->db->field_exists('conversion_direction', 'order_resolution_audit_log')) {
+                    $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD COLUMN `conversion_direction` varchar(50) NOT NULL DEFAULT 'shopper_merchant' AFTER `source_panel`");
+                    $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD INDEX `idx_audit_conversion` (`ticket_number`, `conversion_direction`)");
+                }
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Schema check in OrderResolutionModel: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -485,7 +513,7 @@ class OrderResolutionModel extends CI_Model
             }
         }
 
-        $this->db->insert('order_resolution_messages', [
+        $msg_data = [
             'resolution_id' => $resolution_id,
             'ticket_number' => $ticket_number,
             'sender_role'   => 'shopper',
@@ -495,10 +523,14 @@ class OrderResolutionModel extends CI_Model
             'attachment'    => $attachment,
             'created_at'    => $time,
             'ip'            => $ip,
-        ]);
+        ];
+        if ($this->db->field_exists('conversion_type', 'order_resolution_messages')) {
+            $msg_data['conversion_type'] = 'shopper_merchant';
+        }
+        $this->db->insert('order_resolution_messages', $msg_data);
 
         // Audit Log
-        $this->db->insert('order_resolution_audit_log', [
+        $audit_data = [
             'resolution_id' => $resolution_id,
             'ticket_number' => $ticket_number,
             'from_status'   => '',
@@ -508,7 +540,14 @@ class OrderResolutionModel extends CI_Model
             'actor_id'      => $customer_id,
             'notes'         => 'Order resolution request submitted by shopper.',
             'created_at'    => $time,
-        ]);
+        ];
+        if ($this->db->field_exists('source_panel', 'order_resolution_audit_log')) {
+            $audit_data['source_panel'] = 'shopper';
+        }
+        if ($this->db->field_exists('conversion_direction', 'order_resolution_audit_log')) {
+            $audit_data['conversion_direction'] = 'shopper_merchant';
+        }
+        $this->db->insert('order_resolution_audit_log', $audit_data);
 
         // Order Status & Item Status remain completely separate and are never altered by resolution tickets
 
@@ -643,8 +682,9 @@ class OrderResolutionModel extends CI_Model
 
     /**
      * Add conversation reply (shopper, merchant, admin/help, acct)
+     * Supports separate conversion workflows: shopper_merchant, shopper_admin, merchant_admin
      */
-    public function add_reply($ticket_number, $sender_role, $sender_id, $sender_name, $message, $attachment = '', $ip = '')
+    public function add_reply($ticket_number, $sender_role, $sender_id, $sender_name, $message, $attachment = '', $ip = '', $conversion_type = null)
     {
         $res = $this->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
@@ -655,8 +695,21 @@ class OrderResolutionModel extends CI_Model
             return false;
         }
 
+        // Determine default conversion_type if not explicitly passed
+        if (empty($conversion_type)) {
+            if ($sender_role === 'shopper') {
+                $conversion_type = ($res->resolution_status === 'resolution_requested' || $res->status === 'ReOpen') ? 'shopper_admin' : 'shopper_merchant';
+            } elseif ($sender_role === 'merchant') {
+                $conversion_type = 'shopper_merchant';
+            } elseif (in_array($sender_role, ['help', 'acct'], true)) {
+                $conversion_type = 'shopper_admin';
+            } else {
+                $conversion_type = 'shopper_merchant';
+            }
+        }
+
         $time = time();
-        $this->db->insert('order_resolution_messages', [
+        $msg_data = [
             'resolution_id' => $res->id,
             'ticket_number' => $ticket_number,
             'sender_role'   => $sender_role,
@@ -666,15 +719,34 @@ class OrderResolutionModel extends CI_Model
             'attachment'    => $attachment,
             'created_at'    => $time,
             'ip'            => $ip ?: ($_SERVER['REMOTE_ADDR'] ?? ''),
-        ]);
+        ];
 
+        if ($this->db->field_exists('conversion_type', 'order_resolution_messages')) {
+            $msg_data['conversion_type'] = $conversion_type;
+        }
+
+        $this->db->insert('order_resolution_messages', $msg_data);
         $this->db->where('id', $res->id)->update('order_resolutions', ['updated_at' => $time]);
 
-        // Trigger Notifications based on sender
-        if ($sender_role === 'merchant') {
-            $this->send_merchant_reply_notification($res, $message);
-        } elseif ($sender_role === 'shopper') {
-            $this->send_shopper_reply_notification($res, $message);
+        // Trigger Notifications based on conversion channel & sender
+        if ($conversion_type === 'shopper_merchant') {
+            if ($sender_role === 'merchant') {
+                $this->send_merchant_reply_notification($res, $message);
+            } elseif ($sender_role === 'shopper') {
+                $this->send_shopper_reply_notification($res, $message);
+            }
+        } elseif ($conversion_type === 'shopper_admin') {
+            if ($sender_role === 'shopper') {
+                $this->send_inapp_notification('admin', 1, 'shopper_admin_reply',
+                    "Order Resolution - Reply from Shopper (#{$ticket_number})",
+                    "Shopper sent a message in Support dispute channel for Ticket #{$ticket_number}.", $res);
+            }
+        } elseif ($conversion_type === 'merchant_admin') {
+            if ($sender_role === 'merchant') {
+                $this->send_inapp_notification('admin', 1, 'merchant_admin_reply',
+                    "Order Resolution - Message from Merchant (#{$ticket_number})",
+                    "Merchant sent a message in Admin channel for Ticket #{$ticket_number}.", $res);
+            }
         }
 
         return true;
@@ -944,7 +1016,7 @@ class OrderResolutionModel extends CI_Model
                 $update['refund_amount']   = $refund_amount;
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Refund Approved', 'merchant', $merchant_id, "Approved refund of {$refund_amount}");
+                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Refund Approved', 'merchant', $merchant_id, "Approved refund of {$refund_amount}", 'merchant', 'merchant_shopper');
 
                 // 1. Notify @Help of button action
                 $this->send_merchant_action_email_to_help($res, 'Refund Approved');
@@ -960,7 +1032,7 @@ class OrderResolutionModel extends CI_Model
                 $update['merchant_action'] = 'refund_denied';
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Refund Denied', 'merchant', $merchant_id, 'Merchant denied refund.');
+                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Refund Denied', 'merchant', $merchant_id, 'Merchant denied refund.', 'merchant', 'merchant_shopper');
                 
                 // Notifications / Emails as per specifications:
                 // Shopper receives: Order Resolution No.: [TicketNumber] - No Refund for Product
@@ -989,7 +1061,7 @@ class OrderResolutionModel extends CI_Model
                 $update['delivery_option'] = $delivery_option;
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Approved', 'merchant', $merchant_id, "Selected delivery: {$delivery_option}");
+                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Approved', 'merchant', $merchant_id, "Selected delivery: {$delivery_option}", 'merchant', 'merchant_shopper');
 
                 // Notify @Help of button action
                 $this->send_merchant_action_email_to_help($res, 'Replacement Approved');
@@ -1007,7 +1079,7 @@ class OrderResolutionModel extends CI_Model
                 $update['merchant_action'] = 'replacement_denied';
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Denied', 'merchant', $merchant_id, 'Merchant denied replacement.');
+                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Denied', 'merchant', $merchant_id, 'Merchant denied replacement.', 'merchant', 'merchant_shopper');
                 $this->send_merchant_action_email_to_help($res, 'Replacement Denied');
                 $this->send_replacement_denied_shopper_email($res);
                 $this->send_replacement_denied_help_email($res);
@@ -1031,7 +1103,7 @@ class OrderResolutionModel extends CI_Model
                 $update['merchant_action'] = 'replacement_completed';
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Completed', 'merchant', $merchant_id, 'Merchant marked replacement completed.');
+                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Completed', 'merchant', $merchant_id, 'Merchant marked replacement completed.', 'merchant', 'merchant_shopper');
                 $this->send_merchant_action_email_to_help($res, 'Replacement Completed');
                 return ['status' => true, 'message' => 'Replacement marked as completed.'];
 
@@ -1069,10 +1141,10 @@ class OrderResolutionModel extends CI_Model
         ]);
 
         if (!empty($message)) {
-            $this->add_reply($ticket_number, 'shopper', $customer_id, 'Shopper', $message);
+            $this->add_reply($ticket_number, 'shopper', $customer_id, 'Shopper', $message, '', '', 'shopper_admin');
         }
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'ReOpen', 'Escalate to Yellow Market', 'shopper', $customer_id, 'Shopper requested escalation to YellowMarkets support.');
+        $this->audit_log($res->id, $ticket_number, $res->status, 'ReOpen', 'Escalate to Yellow Market', 'shopper', $customer_id, 'Shopper requested escalation to YellowMarkets support.', 'shopper', 'shopper_admin');
 
         // Emails to @Help and Merchant
         // @Help receives: Order Resolution No.: [TicketNumber] - Dispute Refund Decision
@@ -1123,7 +1195,7 @@ class OrderResolutionModel extends CI_Model
             'updated_at'    => $time,
         ]);
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', 'Assigned to @acct', 'admin', $admin_id, $notes);
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', 'Assigned to @acct', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
 
         // 1. Email to Merchant: order-resolution-refund-initiated-merchant
         $this->send_refund_initiated_merchant_email($res);
@@ -1167,7 +1239,7 @@ class OrderResolutionModel extends CI_Model
             'updated_at' => $time,
         ]);
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 15-day hold-back sales.');
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 15-day hold-back sales.', 'admin', 'admin_shopper');
 
         // In-App Notification to @Help indicating refund is processed and ready for Close (Final)
         $this->send_inapp_notification('admin', 1, 'refund_done',
@@ -1203,7 +1275,7 @@ class OrderResolutionModel extends CI_Model
             'updated_at' => $time,
         ]);
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes);
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
 
         // Merchant receives: Order Resolution No.: [TicketNumber] - Closed
         $this->send_ticket_closed_merchant_email($res);
@@ -1247,7 +1319,7 @@ class OrderResolutionModel extends CI_Model
             'updated_at'        => $time,
         ]);
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Ticket Closed (Final)', 'admin', $admin_id, $notes);
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Ticket Closed (Final)', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
 
         // Final Notifications as per specifications:
         // 1. Merchant receives: Order Resolution No.: [TicketNumber] - Closed (Final)
@@ -1305,7 +1377,7 @@ class OrderResolutionModel extends CI_Model
                 'updated_at'        => $time,
             ]);
 
-            $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', 'Resolution Approved (In Favour of Shopper)', 'admin', $admin_id, $notes);
+            $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', 'Resolution Approved (In Favour of Shopper)', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
 
             // 4. @Acct receives: Order Resolution No.: [TicketNumber] - Refund Request
             $this->send_refund_acct_email($res);
@@ -1328,7 +1400,7 @@ class OrderResolutionModel extends CI_Model
                 'updated_at'        => $time,
             ]);
 
-            $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Resolution Denied (In Favour of Merchant)', 'admin', $admin_id, $notes);
+            $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Resolution Denied (In Favour of Merchant)', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
 
             // 2. Merchant receives: Order Resolution No.: [TicketNumber] - Closed (Final)
             $this->send_closed_final_merchant_email($res);
@@ -1666,9 +1738,19 @@ class OrderResolutionModel extends CI_Model
         return $this->db->where('ticket_number', $ticket_number)->get('order_resolutions')->row();
     }
 
-    public function get_messages($resolution_id)
+    public function get_messages($resolution_id, $conversion_type = null)
     {
-        return $this->db->where('resolution_id', $resolution_id)->order_by('created_at', 'ASC')->get('order_resolution_messages')->result();
+        $this->db->where('resolution_id', (int)$resolution_id);
+        if ($conversion_type !== null) {
+            if ($this->db->field_exists('conversion_type', 'order_resolution_messages')) {
+                if (is_array($conversion_type)) {
+                    $this->db->where_in('conversion_type', $conversion_type);
+                } else {
+                    $this->db->where('conversion_type', $conversion_type);
+                }
+            }
+        }
+        return $this->db->order_by('created_at', 'ASC')->get('order_resolution_messages')->result();
     }
 
     public function get_audit_log($resolution_id)
@@ -1680,9 +1762,9 @@ class OrderResolutionModel extends CI_Model
             ->result();
     }
 
-    public function audit_log($resolution_id, $ticket_number, $from_status, $to_status, $action, $actor_role, $actor_id, $notes = '')
+    public function audit_log($resolution_id, $ticket_number, $from_status, $to_status, $action, $actor_role, $actor_id, $notes = '', $source_panel = 'admin', $conversion_direction = 'shopper_merchant')
     {
-        return $this->db->insert('order_resolution_audit_log', [
+        $audit_data = [
             'resolution_id' => $resolution_id,
             'ticket_number' => $ticket_number,
             'from_status'   => $from_status,
@@ -1692,7 +1774,16 @@ class OrderResolutionModel extends CI_Model
             'actor_id'      => $actor_id,
             'notes'         => $notes,
             'created_at'    => time(),
-        ]);
+        ];
+
+        if ($this->db->field_exists('source_panel', 'order_resolution_audit_log')) {
+            $audit_data['source_panel'] = $source_panel;
+        }
+        if ($this->db->field_exists('conversion_direction', 'order_resolution_audit_log')) {
+            $audit_data['conversion_direction'] = $conversion_direction;
+        }
+
+        return $this->db->insert('order_resolution_audit_log', $audit_data);
     }
 
     private function get_shopper_email($res)
@@ -1834,7 +1925,10 @@ class OrderResolutionModel extends CI_Model
         $price = $service ? (float)$service->final_price : 150.00;
 
         $audit_notes = "Requested merchant to purchase AddOn Service: {$service_title} (MUR " . number_format($price, 2) . ")." . ($notes ? ' Note: ' . $notes : '');
-        $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'AddOn Service Purchase Requested', 'acct', $admin_id, trim($audit_notes));
+        $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'AddOn Service Purchase Requested', 'acct', $admin_id, trim($audit_notes), 'admin', 'admin_merchant');
+
+        // Also post notice into Merchant <-> Admin conversion thread
+        $this->add_reply($ticket_number, 'acct', $admin_id, 'Accounting Team (@Acct)', trim($audit_notes), '', '', 'merchant_admin');
 
         // In-app notification to merchant
         if (!empty($res->merchant_id)) {
@@ -1905,7 +1999,9 @@ class OrderResolutionModel extends CI_Model
             'AddOn Service Purchased',
             'merchant',
             $res->merchant_id,
-            "Merchant successfully completed AddOn payment (Purchase ID: {$purchase_id})."
+            "Merchant successfully completed AddOn payment (Purchase ID: {$purchase_id}).",
+            'merchant',
+            'merchant_admin'
         );
 
         // Notify @Acct
