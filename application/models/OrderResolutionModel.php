@@ -1055,7 +1055,8 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'This resolution ticket is permanently closed (Final).', 'requires_reload' => true];
         }
         if ($res->resolution_status === 'resolution_requested' || $res->status === 'ReOpen') {
-            return ['status' => false, 'message' => 'A resolution escalation request has already been submitted for this ticket.', 'requires_reload' => true];
+            $errMsg = $this->lang->line('err_already_escalated') ?: 'This request has already been escalated to YellowMarkets support.';
+            return ['status' => false, 'message' => $errMsg, 'requires_reload' => true];
         }
 
         $time = time();
@@ -1071,7 +1072,7 @@ class OrderResolutionModel extends CI_Model
             $this->add_reply($ticket_number, 'shopper', $customer_id, 'Shopper', $message);
         }
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'ReOpen', 'Resolution Request', 'shopper', $customer_id, 'Shopper requested resolution escalation.');
+        $this->audit_log($res->id, $ticket_number, $res->status, 'ReOpen', 'Escalate to Yellow Market', 'shopper', $customer_id, 'Shopper requested escalation to YellowMarkets support.');
 
         // Emails to @Help and Merchant
         // @Help receives: Order Resolution No.: [TicketNumber] - Dispute Refund Decision
@@ -1089,7 +1090,8 @@ class OrderResolutionModel extends CI_Model
                 "Shopper has disputed refund decision for Ticket #{$ticket_number} (Order #{$res->order_number}). Case is under Yellow Markets review.", $res);
         }
 
-        return ['status' => true, 'message' => 'Resolution request submitted successfully. Case escalated to @Help.'];
+        $successMsg = $this->lang->line('escalation_submitted_confirmation') ?: 'The escalation has been submitted to YellowMarkets support.';
+        return ['status' => true, 'message' => $successMsg];
     }
 
     /**

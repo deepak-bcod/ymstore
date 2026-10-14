@@ -114,7 +114,7 @@
                             <a href="<?php echo base_url('order_resolution'); ?>" class="btn btn-default" style="margin-right: 10px;">
                                 <?php echo $this->lang->line('cancel') ?: 'Cancel'; ?>
                             </a>
-                            <button type="submit" class="btn btn-success btn-lg" <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
+                            <button type="submit" class="btn btn-info btn-lg" <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
                                 <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('submit_resolution_request') ?: 'Submit Resolution Request'; ?>
                             </button>
                         </div>

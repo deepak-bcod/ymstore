@@ -43,7 +43,8 @@
                 <div class="content-page">
 
                     <!-- Header & Status Pill -->
-                    <div class="row" style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                    <!-- Header & Actions -->
+                    <div class="row" style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; align-items: center;">
                         <div class="col-sm-8 col-md-8">
                             <h2 style="margin: 0;">
                                 <?php echo $this->lang->line('ticket') ?: 'Ticket'; ?> #<?php echo htmlspecialchars($resolution->ticket_number); ?>
@@ -51,13 +52,9 @@
                             <small class="text-muted"><?php echo $this->lang->line('created_on') ?: 'Created on'; ?> <?php echo date('d M Y, h:i A', $resolution->created_at); ?></small>
                         </div>
                         <div class="col-sm-4 col-md-4 text-right">
-                            <?php 
-                            $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $resolution->status));
-                            $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $resolution->status));
-                            ?>
-                            <span class="badge-status-<?php echo $status_slug; ?>">
-                                <?php echo htmlspecialchars($this->lang->line($status_key) ?: $resolution->status); ?>
-                            </span>
+                            <a href="<?php echo base_url('order_resolution'); ?>" class="btn btn-sm btn-info">
+                                <i class="fa fa-arrow-left"></i> <?php echo $this->lang->line('back_to_list') ?: 'Back to List'; ?>
+                            </a>
                         </div>
                     </div>
 
@@ -113,56 +110,46 @@
                                 </div>
                             </div>
 
-                            <?php if ($resolution->merchant_action !== 'none' || $resolution->delivery_option !== 'none' || $resolution->refund_amount > 0): ?>
-                                <hr style="margin: 10px 0;">
-                                <div class="row">
-                                    <?php if ($resolution->merchant_action !== 'none'): ?>
-                                        <div class="col-md-4">
-                                            <p><b><?php echo $this->lang->line('merchant_decision') ?: 'Merchant Decision'; ?>:</b><br>
-                                                <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?></span>
-                                            </p>
-                                        </div>
-                                    <?php endif; ?>
+                            <?php 
+                            $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $resolution->status));
+                            $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $resolution->status));
+                            ?>
+                            <hr style="margin: 10px 0;">
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6">
+                                    <p><b><?php echo $this->lang->line('merchant_decision') ?: 'Merchant Decision'; ?>:</b><br>
+                                        <?php if (!empty($resolution->merchant_action) && $resolution->merchant_action !== 'none'): ?>
+                                            <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?></span>
+                                        <?php else: ?>
+                                            <span class="text-muted font-weight-bold">N/A</span>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
 
-                                    <?php if ($resolution->delivery_option !== 'none'): ?>
-                                        <div class="col-md-4">
-                                            <p><b><?php echo $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</b><br>
-                                                <span class="text-success font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?></span>
-                                            </p>
-                                        </div>
-                                    <?php endif; ?>
+                                <div class="col-md-3 col-sm-6">
+                                    <p><b><?php echo $this->lang->line('escalation_status') ?: 'Escalation Status'; ?>:</b><br>
+                                        <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($status_key) ?: $resolution->status); ?></span>
+                                    </p>
+                                </div>
 
-                                    <?php if ($resolution->refund_amount > 0): ?>
-                                        <div class="col-md-4">
-                                            <p><b><?php echo $this->lang->line('approved_refund_amount') ?: 'Approved Refund Amount'; ?>:</b><br>
-                                                <span class="text-success font-weight-bold"><?php echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?></span>
-                                            </p>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endif; ?>
+                                <?php if ($resolution->delivery_option !== 'none'): ?>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p><b><?php echo $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</b><br>
+                                            <span class="text-success font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?></span>
+                                        </p>
+                                    </div>
+                                <?php endif; ?>
 
-                            <!-- Shopper Resolution Escalation Button -->
-                            <?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested'): ?>
-                                <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
-                                    <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#resolutionRequestModal">
-                                        <i class="fa fa-flag"></i> <?php echo $this->lang->line('resolution_request') ?: 'Resolution Request'; ?>
-                                    </button>
-                                    <small class="text-muted" style="margin-left: 10px;"><?php echo $this->lang->line('resolution_escalate_prompt') ?: 'Disagree with the merchant\'s decision? Request resolution assistance from Yellow Markets (@Help).'; ?></small>
-                                </div>
-                            <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
-                                <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
-                                    <span class="label label-warning" style="font-size: 13px; padding: 6px 12px;">
-                                        <i class="fa fa-hourglass-half"></i> <?php echo $this->lang->line('dispute_under_review_badge') ?: 'Resolution Request Pending Review with Yellow Markets (@Help)'; ?>
-                                    </span>
-                                </div>
-                            <?php elseif ($resolution->status === 'Close (Final)'): ?>
-                                <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
-                                    <span class="label label-default" style="font-size: 13px; padding: 6px 12px;">
-                                        <i class="fa fa-lock"></i> <?php echo $this->lang->line('status_close_final') ?: 'Resolution Closed (Final)'; ?>
-                                    </span>
-                                </div>
-                            <?php endif; ?>
+                                <?php if ($resolution->refund_amount > 0): ?>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p><b><?php echo $this->lang->line('approved_refund_amount') ?: 'Approved Refund Amount'; ?>:</b><br>
+                                            <span class="text-success font-weight-bold"><?php echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?></span>
+                                        </p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            
                         </div>
                     </div>
 
@@ -195,6 +182,26 @@
                         <?php endif; ?>
                     </div>
 
+                    <!-- Shopper Resolution Escalation Action (Placed below conversation) -->
+                    <?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested'): ?>
+                        <div class="panel panel-default" style="border-radius: 6px; margin-bottom: 25px; border: 1px solid #bce8f1; background-color: #f4fbfd;">
+                            <div class="panel-body" style="padding: 15px; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-info" data-toggle="modal" data-target="#resolutionRequestModal" style="margin-right: 15px;">
+                                    <i class="fa fa-flag"></i> <?php echo $this->lang->line('escalate_to_yellow_market') ?: 'Escalate to Yellow Market'; ?>
+                                </button>
+                                <span style="color: #d9534f; font-weight: 500; font-size: 13px;">
+                                    <?php echo $this->lang->line('resolution_escalate_prompt') ?: 'Merchant has not replied or resolved? Request Yellow Markets Support to intervene and assist.'; ?>
+                                </span>
+                            </div>
+                        </div>
+                    <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
+                        <div class="alert alert-info" style="margin-bottom: 25px; background-color: #e8f4fd; border-color: #b8daff; color: #004085;">
+                            <i class="fa fa-info-circle"></i>
+                            <strong><?php echo $this->lang->line('escalated_badge') ?: 'Escalated'; ?>:</strong>
+                            <?php echo $this->lang->line('escalation_submitted_confirmation') ?: 'The escalation has been submitted to YellowMarkets support.'; ?>
+                        </div>
+                    <?php endif; ?>
+
                     <!-- Reply Form -->
                     <?php if ($resolution->status !== 'Close (Final)'): ?>
                         <div class="panel panel-default" style="border-radius: 6px;">
@@ -213,7 +220,7 @@
                                             <small class="text-muted"><?php echo $this->lang->line('optional_attachment') ?: 'Optional attachment (Max: 5MB)'; ?></small>
                                         </div>
                                         <div class="col-sm-4 col-md-4 text-right">
-                                            <button type="submit" class="btn btn-primary btn-block">
+                                            <button type="submit" class="btn btn-info btn-block">
                                                 <i class="fa fa-reply"></i> <?php echo $this->lang->line('send_reply') ?: 'Send Reply'; ?>
                                             </button>
                                         </div>
@@ -233,6 +240,7 @@
     </div>
 </div>
 
+<?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested'): ?>
 <!-- Resolution Escalation Modal -->
 <div class="modal fade" id="resolutionRequestModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -241,23 +249,24 @@
                 <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title"><?php echo $this->lang->line('request_resolution_escalation') ?: 'Request Resolution Escalation (@Help)'; ?></h4>
+                    <h4 class="modal-title"><?php echo $this->lang->line('escalate_modal_title') ?: 'Escalate to Yellow Market Support'; ?></h4>
                 </div>
                 <div class="modal-body">
-                    <p><?php echo $this->lang->line('escalation_modal_desc') ?: 'If you disagree with the merchant\'s decision or the issue has not been satisfactorily resolved, submit this request to escalate the ticket directly to Yellow Markets Support (@Help).'; ?></p>
+                    <p><?php echo $this->lang->line('escalate_modal_desc') ?: 'If you disagree with the merchant\'s decision or the issue has not been satisfactorily resolved, submit this request to escalate the ticket directly to Yellow Markets Support.'; ?></p>
                     <div class="form-group">
                         <label><?php echo $this->lang->line('message_description') ?: 'Reason / Additional Details:'; ?></label>
-                        <textarea name="message" class="form-control" rows="4" placeholder="<?php echo $this->lang->line('explain_mediation_reason') ?: 'Explain why you are requesting mediation...'; ?>"></textarea>
+                        <textarea name="message" class="form-control" rows="4" placeholder="<?php echo $this->lang->line('explain_mediation_reason') ?: 'Explain why you are requesting escalation to Yellow Markets Support...'; ?>"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel') ?: 'Cancel'; ?></button>
-                    <button type="submit" class="btn btn-warning"><?php echo $this->lang->line('confirm_resolution_request') ?: 'Confirm Resolution Request'; ?></button>
+                    <button type="submit" class="btn btn-info"><?php echo $this->lang->line('submit_escalation') ?: 'Submit Escalation'; ?></button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <script>
 $(document).ready(function() {

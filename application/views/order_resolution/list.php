@@ -1,17 +1,19 @@
 <?php $this->load->view('common/header'); ?>
 
 <style>
-.badge-status-open { background-color: #007bff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-.badge-status-processing { background-color: #17a2b8; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-.badge-status-done { background-color: #28a745; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-.badge-status-close { background-color: #6c757d; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-.badge-status-reopen { background-color: #fd7e14; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-.badge-status-close-final { background-color: #343a40; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+.badge-status-open { background-color: #007bff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
+.badge-status-processing { background-color: #17a2b8; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
+.badge-status-done { background-color: #28a745; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
+.badge-status-close { background-color: #6c757d; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
+.badge-status-reopen { background-color: #fd7e14; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
+.badge-status-close-final { background-color: #343a40; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
 
-.badge-action { font-size: 11px; padding: 3px 6px; border-radius: 3px; font-weight: 600; display: inline-block; margin-top: 2px; }
+.badge-action { font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600; display: inline-block; vertical-align: middle; margin: 0; }
 .badge-action-approved { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 .badge-action-denied { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 .badge-action-completed { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+
+.table-resolution-list > tbody > tr > td { vertical-align: middle !important; }
 </style>
 
 <div class="breadcrum-section">
@@ -40,7 +42,7 @@
                             <h1 style="margin: 0;"><?php echo $this->lang->line('order_resolution_requests') ?: 'Order Resolution Requests'; ?></h1>
                         </div>
                         <div class="col-sm-4 col-md-4 text-right">
-                            <a href="<?php echo base_url('order_resolution/create'); ?>" class="btn btn-primary">
+                            <a href="<?php echo base_url('order_resolution/create'); ?>" class="btn btn-info">
                                 <i class="fa fa-plus"></i> <?php echo $this->lang->line('raise_resolution_request') ?: 'New Resolution Request'; ?>
                             </a>
                         </div>
@@ -54,7 +56,7 @@
                     <?php endif; ?>
 
                     <div class="table-responsive" style="margin-top: 15px;">
-                        <table class="table table-bordered table-striped">
+                        <table class="table table-bordered table-striped table-resolution-list">
                             <thead>
                                 <tr style="background-color: #f9f9f9;">
                                     <th><?php echo $this->lang->line('ticket_no') ?: 'Ticket #'; ?></th>
@@ -62,7 +64,8 @@
                                     <th><?php echo $this->lang->line('product') ?: 'Product'; ?></th>
                                     <th><?php echo $this->lang->line('category') ?: 'Category'; ?></th>
                                     <th><?php echo $this->lang->line('priority') ?: 'Priority'; ?></th>
-                                    <th><?php echo $this->lang->line('status') ?: 'Status'; ?></th>
+                                    <th><?php echo $this->lang->line('escalation_status') ?: 'Escalation Status'; ?></th>
+                                    <th><?php echo $this->lang->line('merchant_status') ?: 'Merchant Status'; ?></th>
                                     <th><?php echo $this->lang->line('date') ?: 'Date'; ?></th>
                                     <th style="width: 80px; text-align: center;"><?php echo $this->lang->line('action') ?: 'Action'; ?></th>
                                 </tr>
@@ -96,11 +99,14 @@
                                                 <span class="<?php echo $badge_class; ?>">
                                                     <?php echo htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
                                                 </span>
-                                                <?php if ($res->merchant_action !== 'none'): ?>
-                                                    <br>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($res->merchant_action) && $res->merchant_action !== 'none'): ?>
                                                     <span class="badge-action <?php echo strpos($res->merchant_action, 'approved') !== false ? 'badge-action-approved' : (strpos($res->merchant_action, 'denied') !== false ? 'badge-action-denied' : 'badge-action-completed'); ?>">
                                                         <?php echo htmlspecialchars($this->lang->line($res->merchant_action) ?: ucwords(str_replace('_', ' ', $res->merchant_action))); ?>
                                                     </span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">N/A</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td><?php echo date('d M Y', $res->created_at); ?></td>
