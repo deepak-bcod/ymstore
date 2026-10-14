@@ -51,13 +51,6 @@
                             <small class="text-muted"><?php echo $this->lang->line('created_on') ?: 'Created on'; ?> <?php echo date('d M Y, h:i A', $resolution->created_at); ?></small>
                         </div>
                         <div class="col-sm-4 col-md-4 text-right">
-                            <?php 
-                            $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $resolution->status));
-                            $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $resolution->status));
-                            ?>
-                            <span class="badge-status-<?php echo $status_slug; ?>">
-                                <?php echo htmlspecialchars($this->lang->line($status_key) ?: $resolution->status); ?>
-                            </span>
                             <a href="<?php echo base_url('order_resolution'); ?>" class="btn btn-sm btn-info" style="margin-left: 10px;">
                                 <i class="fa fa-arrow-left"></i> <?php echo $this->lang->line('back_to_list') ?: 'Back to List'; ?>
                             </a>
