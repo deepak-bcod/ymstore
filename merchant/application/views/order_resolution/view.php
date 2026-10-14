@@ -625,14 +625,21 @@ $this->load->view('common/fbc-user/header');
 <?php endif; ?>
 
 <script>
-$(document).ready(function() {
-    var operationCompleted = false;
+    var pageReloading = false;
+    function reloadPage(targetUrl) {
+        if (pageReloading) return;
+        pageReloading = true;
+        if (targetUrl) {
+            window.location.href = targetUrl;
+        } else {
+            window.location.reload();
+        }
+    }
 
-    // Refresh current page only after an operation in a modal has successfully completed and modal closed
+    // Refresh current page whenever an operation in a modal has completed and modal closes
     $('.modal').on('hidden.bs.modal', function() {
         if (operationCompleted) {
-            operationCompleted = false;
-            window.location.href = window.location.href;
+            reloadPage();
         }
     });
 
@@ -657,7 +664,6 @@ $(document).ready(function() {
         e.preventDefault();
         $('#replacementCompletedModal').modal('show');
     });
-
 
     $(document).on('submit', 'form.ajax-resolution-form', function(e) {
         e.preventDefault();
@@ -691,22 +697,21 @@ $(document).ready(function() {
             },
             success: function(res) {
                 if (res && res.status) {
+                    operationCompleted = true;
                     $btn.html('<i class="fa fa-check"></i> ' + (<?= json_encode($this->lang->line('ajax_done') ?: 'Done'); ?>));
                     showNotification('success', res.message || (<?= json_encode($this->lang->line('action_processed_success') ?: 'Action processed successfully.'); ?>));
 
                     var $modal = $form.closest('.modal');
                     if ($modal.length) {
-                        operationCompleted = true;
-                        $modal.modal('hide');
-                    } else {
-                        setTimeout(function() {
-                            if (res.redirect) {
-                                window.location.href = res.redirect;
-                            } else {
-                                window.location.href = window.location.href;
-                            }
-                        }, 800);
+                        try {
+                            $modal.modal('hide');
+                        } catch(e) {}
                     }
+
+                    // Always refresh the page after popup or action completes
+                    setTimeout(function() {
+                        reloadPage(res.redirect || null);
+                    }, 500);
                 } else {
                     $btn.prop('disabled', false).html(origHtml);
                     var msg = (res && res.message) ? res.message : (<?= json_encode($this->lang->line('ajax_error') ?: 'An error occurred while processing your request.'); ?>);
@@ -714,8 +719,8 @@ $(document).ready(function() {
 
                     if (res && res.requires_reload) {
                         setTimeout(function() {
-                            window.location.href = window.location.href;
-                        }, 1500);
+                            reloadPage();
+                        }, 1200);
                     }
                 }
             },
