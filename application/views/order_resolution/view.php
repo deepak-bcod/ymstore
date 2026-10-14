@@ -58,6 +58,9 @@
                             <span class="badge-status-<?php echo $status_slug; ?>">
                                 <?php echo htmlspecialchars($this->lang->line($status_key) ?: $resolution->status); ?>
                             </span>
+                            <a href="<?php echo base_url('order_resolution'); ?>" class="btn btn-sm btn-info" style="margin-left: 10px;">
+                                <i class="fa fa-arrow-left"></i> <?php echo $this->lang->line('back_to_list') ?: 'Back to List'; ?>
+                            </a>
                         </div>
                     </div>
 
@@ -150,19 +153,7 @@
                                 </div>
                             <?php endif; ?>
 
-                            <?php if ($resolution->resolution_status === 'resolution_requested'): ?>
-                                <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
-                                    <span class="label label-info" style="font-size: 13px; padding: 6px 12px; display: inline-block;">
-                                        <i class="fa fa-flag"></i> <?php echo $this->lang->line('escalated_badge') ?: 'Escalated'; ?> &bull; <?php echo $this->lang->line('escalation_submitted_confirmation') ?: 'The escalation has been submitted to YellowMarkets support.'; ?>
-                                    </span>
-                                </div>
-                            <?php elseif ($resolution->status === 'Close (Final)'): ?>
-                                <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
-                                    <span class="label label-default" style="font-size: 13px; padding: 6px 12px; display: inline-block;">
-                                        <i class="fa fa-lock"></i> <?php echo $this->lang->line('status_close_final') ?: 'Resolution Closed (Final)'; ?>
-                                    </span>
-                                </div>
-                            <?php endif; ?>
+                            
                         </div>
                     </div>
 

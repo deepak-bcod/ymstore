@@ -1440,6 +1440,7 @@ $lang['escalate_modal_desc'] = 'Si vous êtes en désaccord avec la décision du
 $lang['escalation_submitted_confirmation'] = 'L\'escalade a été soumise au support Yellow Markets.';
 $lang['escalated_badge'] = 'Escaladé';
 $lang['err_already_escalated'] = 'Cette demande a déjà été escaladée auprès du support Yellow Markets.';
+$lang['back_to_list'] = 'Retour à la liste';
 $lang['product_related'] = 'Produit (lié à la commande)';
 $lang['all_items_general'] = '-- Tous les articles / Problème général --';
 $lang['select_order'] = '-- Sélectionner la commande --';

@@ -2332,6 +2332,7 @@ $lang['escalate_modal_desc'] = 'If you disagree with the merchant\'s decision or
 $lang['escalation_submitted_confirmation'] = 'The escalation has been submitted to YellowMarkets support.';
 $lang['escalated_badge'] = 'Escalated';
 $lang['err_already_escalated'] = 'This request has already been escalated to YellowMarkets support.';
+$lang['back_to_list'] = 'Back to List';
 $lang['product_related'] = 'Product (Related to Order)';
 $lang['all_items_general'] = '-- All Items / General Issue --';
 $lang['select_order'] = '-- Select Order --';
