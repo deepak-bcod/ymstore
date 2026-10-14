@@ -74,6 +74,25 @@ class OrderResolutionController extends CI_Controller
             $data['customer'] = $this->db->where('id', $res->customer_id)->get('customers')->row();
         }
 
+        // Fetch AddOn Delivery Service & Purchase details
+        $data['delivery_addon_service'] = $this->OrderResolutionModel->get_delivery_addon_service($res->addon_service_id ?? null);
+        $data['addon_purchase'] = null;
+        $data['addon_transaction'] = null;
+        if (!empty($res->addon_purchase_id)) {
+            $data['addon_purchase'] = $this->db->where('id', $res->addon_purchase_id)->get('merchant_addon_purchases')->row();
+            if ($data['addon_purchase']) {
+                $data['addon_transaction'] = $this->db->where('purchase_id', $res->addon_purchase_id)->order_by('id', 'DESC')->get('merchant_addon_transactions')->row();
+            }
+        }
+
+        $payment_param = $this->input->get('payment');
+        $data['is_addon_paid']      = (!empty($data['addon_purchase']) && $data['addon_purchase']->status === 'paid');
+        $data['is_addon_failed']    = (!empty($data['addon_purchase']) && in_array($data['addon_purchase']->status, ['cancelled', 'failed'], true))
+                                      || (!empty($data['addon_transaction']) && in_array($data['addon_transaction']->status, ['failed', 'cancelled'], true))
+                                      || ($payment_param === 'failed');
+        $data['is_addon_pending']   = (!$data['is_addon_paid'] && !$data['is_addon_failed']);
+        $data['is_addon_initiated'] = false; // Never lock out merchant with disabled processing button
+
         $data['side_menu'] = 'order_resolution';
         $data['PageTitle'] = 'Order Resolution #' . $res->ticket_number;
         $this->load->view('order_resolution/view', $data);
@@ -114,8 +133,12 @@ class OrderResolutionController extends CI_Controller
     public function reply()
     {
         $merchant_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
-        $ticket_number = trim($this->input->post('ticket_number', true));
-        $message       = trim($this->input->post('message', true));
+        $ticket_number   = trim($this->input->post('ticket_number', true));
+        $message         = trim($this->input->post('message', true));
+        $conversion_type = trim($this->input->post('conversion_type', true));
+        if (empty($conversion_type) || !in_array($conversion_type, ['shopper_merchant', 'merchant_admin'], true)) {
+            $conversion_type = 'shopper_merchant';
+        }
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
         if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
@@ -155,23 +178,34 @@ class OrderResolutionController extends CI_Controller
         $pub = $this->db->select('publication_name')->where('id', $merchant_id)->get('publisher')->row();
         $sender_name = $pub ? $pub->publication_name : 'Merchant';
 
-        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address());
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
 
         if ($ok) {
-            // Add notification for shopper
-            if (!empty($res->customer_id)) {
+            if ($conversion_type === 'shopper_merchant') {
+                if (!empty($res->customer_id)) {
+                    $notification_data = [
+                        'recipient_id'   => $res->customer_id,
+                        'recipient_type' => 'shopper',
+                        'title'          => 'Order Resolution Reply on Ticket #' . $ticket_number,
+                        'message'        => 'Merchant replied to your Order Resolution request.',
+                        'is_read'        => 0,
+                        'created_at'     => date('Y-m-d H:i:s')
+                    ];
+                    $this->db->insert('notifications', $notification_data);
+                }
+                $msg = $this->lang->line('reply_posted_success') ?: 'Your reply has been sent to the shopper.';
+            } else {
                 $notification_data = [
-                    'recipient_id'   => $res->customer_id,
-                    'recipient_type' => 'shopper',
-                    'title'          => 'Order Resolution Reply on Ticket #' . $ticket_number,
-                    'message'        => 'Merchant reply your Order Resolution ',
+                    'recipient_id'   => 1,
+                    'recipient_type' => 'admin',
+                    'title'          => 'Merchant Message on Ticket #' . $ticket_number,
+                    'message'        => 'Merchant sent a message to Admin on Ticket #' . $ticket_number . '.',
                     'is_read'        => 0,
                     'created_at'     => date('Y-m-d H:i:s')
                 ];
                 $this->db->insert('notifications', $notification_data);
+                $msg = $this->lang->line('reply_posted_admin_success') ?: 'Your message has been sent to YellowMarkets Admin.';
             }
-
-            $msg = $this->lang->line('reply_posted_success') ?: 'Your reply has been sent to the shopper.';
             $this->json_response(true, $msg, ['reload' => true], 'order_resolution/view/' . $ticket_number);
         } else {
             $this->json_response(false, $this->lang->line('err_unable_post_reply') ?: 'Unable to post reply.', [], 'order_resolution/view/' . $ticket_number);

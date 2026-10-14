@@ -118,7 +118,19 @@ $this->load->view('common/fbc-user/header');
                         </div>
                         <div class="col-md-3">
                             <strong>Refund Amount:</strong> 
-                            <span class="text-success font-weight-bold"><?= ($resolution->refund_amount > 0) ? $currency . ' ' . number_format($resolution->refund_amount, 2) : 'N/A'; ?></span>
+                            <span class="font-weight-bold <?= ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
+                                <?php 
+                                if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
+                                    echo $currency . ' ' . number_format($resolution->refund_amount, 2);
+                                } elseif ($resolution->merchant_action === 'refund_denied' || $resolution->resolution_status === 'resolution_denied') {
+                                    echo 'Denied';
+                                } elseif ($resolution->category === 'Refund' && $resolution->refund_amount > 0) {
+                                    echo $currency . ' ' . number_format($resolution->refund_amount, 2) . ' (Pending)';
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </span>
                         </div>
                         <div class="col-md-3">
                             <strong>Resolution Status:</strong> 
@@ -148,24 +160,25 @@ $this->load->view('common/fbc-user/header');
                                 <?= ($current_role === 'acct') ? '@Acct (Accounting Only)' : '@Help (Support Only)'; ?>
                             </span>
                         </h6>
-                        <?php if (!empty($is_super_admin) && !$hide_acct): ?>
-                            <div class="btn-group btn-group-sm">
-                                <a href="<?= base_url('order_resolution/view/' . $resolution->ticket_number . '?as=help'); ?>" class="btn <?= ($current_role === 'help') ? 'btn-primary active' : 'btn-outline-secondary'; ?>">
-                                    <i class="fa fa-life-ring"></i> @Help View
-                                </a>
-                                <a href="<?= base_url('order_resolution/view/' . $resolution->ticket_number . '?as=acct'); ?>" class="btn <?= ($current_role === 'acct') ? 'btn-warning active' : 'btn-outline-secondary'; ?>">
-                                    <i class="fa fa-calculator"></i> @Acct View
-                                </a>
-                            </div>
-                        <?php endif; ?>
                     </div>
 
                     <?php if ($current_role === 'acct' && !$hide_acct): ?>
                         <!-- ================= @Acct (ACCOUNTING ONLY) CONTROLS ================= -->
                         <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
-                            <div class="alert alert-info py-2 mb-3">
-                                <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
-                            </div>
+                            <?php if (!empty($resolution->addon_purchase_id)): ?>
+                                <div class="alert alert-success py-2 mb-3">
+                                    <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 10px;">
+                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#requestAddonModal">
+                                        <i class="fa fa-paper-plane"></i> Request AddOn Service Purchase
+                                    </button>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
 
                         <?php if ($resolution->status === 'Processing'): ?>
@@ -199,14 +212,37 @@ $this->load->view('common/fbc-user/header');
 
                     <?php else: ?>
                         <!-- ================= @Help (SUPPORT ONLY) CONTROLS ================= -->
+                        <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
+                            <?php if (!empty($resolution->addon_purchase_id)): ?>
+                                <div class="alert alert-success py-2 mb-3">
+                                    <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) / Support must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 10px;">
+                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#requestAddonModal">
+                                        <i class="fa fa-paper-plane"></i> Request AddOn Service Purchase
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
                         <?php if ($resolution->status === 'ReOpen' || $resolution->resolution_status === 'resolution_requested'): ?>
                             <div class="alert alert-warning py-2 mb-3">
                                 <i class="fa fa-gavel"></i> <strong>Shopper Dispute Active:</strong> The shopper has requested Yellow Markets assistance. Please investigate via the ticket conversation and choose <strong>Resolution Approved</strong> (in favour of Shopper) or <strong>Resolution Denied</strong> (in favour of Merchant).
                             </div>
                         <?php elseif ($resolution->status === 'Processing'): ?>
-                            <div class="alert alert-info py-2 mb-0">
-                                <i class="fa fa-hourglass-half"></i> <strong>Assigned to Accounting (@Acct):</strong> Awaiting Accounting to process refund from merchant's 15-day hold-back sales.
-                            </div>
+                            <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-truck"></i> <strong>Assigned to Accounting (@Acct):</strong> Coordinate with the merchant to purchase the replacement delivery AddOn Service. Once delivery is completed by the merchant, the ticket will be handed back to @Help for closure.
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-hourglass-half"></i> <strong>Assigned to Accounting (@Acct):</strong> Awaiting Accounting to process refund from merchant's 15-day hold-back sales.
+                                </div>
+                            <?php endif; ?>
                         <?php elseif ($resolution->status === 'Done'): ?>
                             <div class="alert alert-success py-2 mb-3">
                                 <i class="fa fa-check"></i> <strong>Refund Completed:</strong> Accounting has completed the refund from hold-back sales. @Help can now close the ticket as <strong>Close (Final)</strong>.
@@ -214,6 +250,16 @@ $this->load->view('common/fbc-user/header');
                         <?php elseif ($resolution->status === 'Close (Final)'): ?>
                             <div class="alert alert-secondary py-2 mb-0">
                                 <i class="fa fa-lock"></i> <strong>Ticket Closed (Final):</strong> Dispute has been resolved and this resolution is finalized. No further actions available.
+                            </div>
+                        <?php endif; ?>
+
+                        <?php 
+                        $has_merchant_action = (!empty($resolution->merchant_action) && $resolution->merchant_action !== 'none');
+                        ?>
+
+                        <?php if (!$has_merchant_action && $resolution->status === 'Open'): ?>
+                            <div class="alert alert-light border py-2 mb-3 text-muted">
+                                <i class="fa fa-hourglass-start"></i> <strong>Awaiting Merchant Action:</strong> The merchant has not taken any action on this resolution request yet. Management controls will be activated once the merchant takes an action.
                             </div>
                         <?php endif; ?>
 
@@ -234,10 +280,17 @@ $this->load->view('common/fbc-user/header');
                         <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
                             <!-- Step 3: @Help Marks Ticket Close (When Merchant Denied Refund/Replacement or General Initial Close) -->
                             <?php if (in_array($resolution->status, ['Open', 'Processing', 'Done']) && $resolution->status !== 'Close' && $resolution->status !== 'Close (Final)'): ?>
-                                <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
-                                    <i class="fa fa-lock"></i> Close Ticket <?= ($resolution->merchant_action === 'refund_denied') ? '(Refund Denied by Merchant)' : (($resolution->merchant_action === 'replacement_denied') ? '(Replacement Denied by Merchant)' : ''); ?>
-                                </button>
-                                <?php if ($resolution->merchant_action !== 'refund_denied' && !$hide_acct): ?>
+                                <?php if (!$has_merchant_action): ?>
+                                    <button type="button" class="btn btn-secondary btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;" title="Cannot close ticket: Merchant has not taken any action yet.">
+                                        <i class="fa fa-lock"></i> Close Ticket
+                                    </button>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
+                                        <i class="fa fa-lock"></i> Close Ticket <?= ($resolution->merchant_action === 'refund_denied') ? '(Refund Denied by Merchant)' : (($resolution->merchant_action === 'replacement_denied') ? '(Replacement Denied by Merchant)' : ''); ?>
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if ($resolution->status === 'Open' && $has_merchant_action && $resolution->merchant_action !== 'refund_denied' && !$hide_acct): ?>
                                     <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
                                         <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
                                     </button>
@@ -264,76 +317,180 @@ $this->load->view('common/fbc-user/header');
                     <?php endif; ?>
                 </div>
 
-                <!-- Conversation Stream -->
-                <h5 class="font-weight-bold mb-3"><i class="fa fa-comments"></i> Conversation</h5>
-                <div class="chat-box">
-                    <?php if (!empty($messages)): ?>
-                        <?php foreach ($messages as $msg): 
-                            $role_class = 'chat-msg-' . $msg->sender_role;
-                        ?>
-                            <div class="chat-msg <?= $role_class; ?>">
-                                <div class="chat-msg-meta">
-                                    <strong><?= htmlspecialchars($msg->sender_name ?: ucfirst($msg->sender_role)); ?></strong> 
-                                    (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
-                                </div>
-                                <div class="chat-msg-body">
-                                    <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
-                                </div>
-                                <?php if (!empty($msg->attachment)): ?>
-                                    <div class="mt-2">
-                                        <a href="<?= base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fa fa-paperclip"></i> Attachment (<?= htmlspecialchars($msg->attachment); ?>)
-                                        </a>
-                                    </div>
+                <?php
+                // Separate conversion workflows
+                $shopper_admin_msgs  = [];
+                $merchant_admin_msgs = [];
+                if (!empty($messages)) {
+                    foreach ($messages as $msg) {
+                        $c_type = !empty($msg->conversion_type) ? $msg->conversion_type : '';
+                        if ($c_type === 'merchant_admin') {
+                            $merchant_admin_msgs[] = $msg;
+                        } elseif ($c_type === 'shopper_admin') {
+                            $shopper_admin_msgs[] = $msg;
+                        } else {
+                            if ($msg->sender_role === 'merchant') {
+                                $merchant_admin_msgs[] = $msg;
+                            } else {
+                                $shopper_admin_msgs[] = $msg;
+                            }
+                        }
+                    }
+                }
+                $is_acct_active = ($current_role === 'acct');
+                ?>
+
+                <!-- Conversation Workflows Navigation Tabs -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-white p-0 border-bottom">
+                        <ul class="nav nav-tabs card-header-tabs m-0 border-0" id="adminConvTabs" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link <?= !$is_acct_active ? 'active' : ''; ?> font-weight-bold py-3 px-4" id="tab-admin-shopper" data-toggle="tab" href="#pane-admin-shopper" role="tab" aria-controls="pane-admin-shopper" aria-selected="<?= !$is_acct_active ? 'true' : 'false'; ?>">
+                                    <i class="fa fa-user text-primary mr-1"></i> Shopper Dispute (Admin ↔ Shopper)
+                                    <span class="badge badge-pill badge-primary ml-1"><?= count($shopper_admin_msgs); ?></span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link <?= $is_acct_active ? 'active' : ''; ?> font-weight-bold py-3 px-4" id="tab-admin-merchant" data-toggle="tab" href="#pane-admin-merchant" role="tab" aria-controls="pane-admin-merchant" aria-selected="<?= $is_acct_active ? 'true' : 'false'; ?>">
+                                    <i class="fa fa-shopping-bag text-warning mr-1"></i> Merchant Coordination (Admin ↔ Merchant)
+                                    <span class="badge badge-pill badge-warning ml-1"><?= count($merchant_admin_msgs); ?></span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="tab-content card-body p-3" id="adminConvContent">
+                        <!-- Pane 1: Admin <-> Shopper -->
+                        <div class="tab-pane fade <?= !$is_acct_active ? 'show active' : ''; ?>" id="pane-admin-shopper" role="tabpanel" aria-labelledby="tab-admin-shopper">
+                            <div class="chat-box mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
+                                <?php if (!empty($shopper_admin_msgs)): ?>
+                                    <?php foreach ($shopper_admin_msgs as $msg): 
+                                        $role_class = 'chat-msg-' . $msg->sender_role;
+                                        $is_admin = in_array($msg->sender_role, ['help', 'acct', 'admin'], true);
+                                    ?>
+                                        <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_admin ? '#eef5ff' : '#ffffff'; ?>; border: 1px solid <?= $is_admin ? '#cce2ff' : '#e5e9f0'; ?>;">
+                                            <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
+                                                <strong class="<?= $is_admin ? 'text-primary' : 'text-dark'; ?>"><?= htmlspecialchars($msg->sender_name ?: ucfirst($msg->sender_role)); ?></strong> 
+                                                (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
+                                            </div>
+                                            <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
+                                                <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
+                                            </div>
+                                            <?php if (!empty($msg->attachment)): ?>
+                                                <div class="mt-2">
+                                                    <a href="<?= base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fa fa-paperclip"></i> Attachment (<?= htmlspecialchars($msg->attachment); ?>)
+                                                    </a>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center py-4">No dispute messages between Admin and Shopper yet.</p>
                                 <?php endif; ?>
                             </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <p class="text-muted text-center py-4">No conversation messages yet.</p>
-                    <?php endif; ?>
-                </div>
 
-                <!-- Reply Form -->
-                <?php if ($resolution->status !== 'Close (Final)'): ?>
-                    <div class="card mb-4">
-                        <div class="card-header bg-white">
-                            <h6 class="mb-0 font-weight-bold">Post Admin Reply</h6>
+                            <!-- Reply to Shopper Form -->
+                            <?php if ($resolution->status !== 'Close (Final)'): ?>
+                                <div class="card border">
+                                    <div class="card-header bg-light py-2">
+                                        <strong style="font-size: 13px;"><i class="fa fa-paper-plane text-primary"></i> Post Reply to Shopper</strong>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
+                                            <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                                            <input type="hidden" name="conversion_type" value="shopper_admin">
+                                            <input type="hidden" name="role" value="help">
+                                            <div class="form-group mb-2">
+                                                <label class="font-weight-bold" style="font-size: 12px;">Posting As:</label>
+                                                <span class="badge badge-primary ml-1 py-1 px-2 font-weight-bold">Support Team (@Help)</span>
+                                            </div>
+                                            <div class="form-group mb-2">
+                                                <textarea name="message" rows="3" class="form-control" placeholder="Enter message to shopper..." required></textarea>
+                                            </div>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-8">
+                                                    <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                                                </div>
+                                                <div class="col-md-4 text-right">
+                                                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                                                        <i class="fa fa-paper-plane"></i> Send to Shopper
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                        <div class="card-body">
-                            <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
-                                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
-                                
-                                <div class="form-group mb-2">
-                                    <label class="font-weight-bold">Posting As:</label>
-                                    <div class="form-check form-check-inline ml-2">
-                                        <input class="form-check-input" type="radio" name="role" id="roleHelp" value="help" <?= ($current_role === 'help') ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="roleHelp">Support Team (@Help)</label>
-                                    </div>
-                                    <?php if (!$hide_acct): ?>
-                                    <div class="form-check form-check-inline ml-2">
-                                        <input class="form-check-input" type="radio" name="role" id="roleAcct" value="acct" <?= ($current_role === 'acct') ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="roleAcct">Accounting Team (@Acct)</label>
-                                    </div>
-                                    <?php endif; ?>
-                                </div>
 
-                                <div class="form-group">
-                                    <textarea name="message" rows="3" class="form-control" placeholder="Enter message..." required></textarea>
-                                </div>
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                        <!-- Pane 2: Admin <-> Merchant -->
+                        <div class="tab-pane fade <?= $is_acct_active ? 'show active' : ''; ?>" id="pane-admin-merchant" role="tabpanel" aria-labelledby="tab-admin-merchant">
+                            <div class="chat-box mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
+                                <?php if (!empty($merchant_admin_msgs)): ?>
+                                    <?php foreach ($merchant_admin_msgs as $msg): 
+                                        $role_class = 'chat-msg-' . $msg->sender_role;
+                                        $is_admin = in_array($msg->sender_role, ['help', 'acct', 'admin'], true);
+                                    ?>
+                                        <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_admin ? '#fef8ea' : '#ffffff'; ?>; border: 1px solid <?= $is_admin ? '#faebcc' : '#e5e9f0'; ?>;">
+                                            <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
+                                                <strong class="<?= $is_admin ? 'text-warning' : 'text-dark'; ?>"><?= htmlspecialchars($msg->sender_name ?: ucfirst($msg->sender_role)); ?></strong> 
+                                                (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
+                                            </div>
+                                            <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
+                                                <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
+                                            </div>
+                                            <?php if (!empty($msg->attachment)): ?>
+                                                <div class="mt-2">
+                                                    <a href="<?= base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fa fa-paperclip"></i> Attachment (<?= htmlspecialchars($msg->attachment); ?>)
+                                                    </a>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center py-4">No coordination messages between Admin and Merchant yet.</p>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Message to Merchant Form -->
+                            <?php if ($resolution->status !== 'Close (Final)'): ?>
+                                <div class="card border">
+                                    <div class="card-header bg-light py-2">
+                                        <strong style="font-size: 13px;"><i class="fa fa-envelope text-warning"></i> Send Message to Merchant</strong>
                                     </div>
-                                    <div class="col-md-4 text-right">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fa fa-paper-plane"></i> Post Reply
-                                        </button>
+                                    <div class="card-body p-3">
+                                        <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
+                                            <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                                            <input type="hidden" name="conversion_type" value="merchant_admin">
+                                            <input type="hidden" name="role" value="<?= htmlspecialchars($current_role); ?>">
+                                            <div class="form-group mb-2">
+                                                <label class="font-weight-bold" style="font-size: 12px;">Posting As:</label>
+                                                <span class="badge badge-<?= ($current_role === 'acct') ? 'warning' : 'info'; ?> ml-1 py-1 px-2 font-weight-bold">
+                                                    <?= ($current_role === 'acct') ? 'Accounting Team (@Acct)' : 'Support Team (@Help)'; ?>
+                                                </span>
+                                            </div>
+                                            <div class="form-group mb-2">
+                                                <textarea name="message" rows="3" class="form-control" placeholder="Enter message / coordination note for merchant..." required></textarea>
+                                            </div>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-8">
+                                                    <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                                                </div>
+                                                <div class="col-md-4 text-right">
+                                                    <button type="submit" class="btn btn-warning btn-sm px-3 font-weight-bold">
+                                                        <i class="fa fa-paper-plane"></i> Send to Merchant
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
-                            </form>
+                            <?php endif; ?>
                         </div>
                     </div>
-                <?php endif; ?>
+                </div>
 
                 <!-- Audit Log Table -->
                 <h5 class="font-weight-bold mb-3"><i class="fa fa-history"></i> Audit Trail & State Transitions</h5>
@@ -534,8 +691,68 @@ $this->load->view('common/fbc-user/header');
     </div>
 </div>
 
+<!-- Modal: Request AddOn Service Purchase (@Acct) -->
+<div class="modal fade" id="requestAddonModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="<?= base_url('order_resolution/request_addon_delivery'); ?>" method="POST" class="ajax-resolution-form">
+                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                <div class="modal-header">
+                    <h5 class="modal-title text-warning"><i class="fa fa-paper-plane"></i> Request AddOn Delivery Purchase</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>. An official notification with service specifications and payment instructions will be sent to the merchant.</p>
+                    <table class="table table-sm table-bordered bg-light mb-3">
+                        <tr>
+                            <th style="width: 40%;">Delivery Category:</th>
+                            <td><?= htmlspecialchars($delivery_addon_service->category_name ?? 'YM Delivery Service'); ?></td>
+                        </tr>
+                        <tr>
+                            <th>AddOn Service:</th>
+                            <td><?= htmlspecialchars($delivery_addon_service->title ?? 'YM Delivery'); ?> (ID: <?= (int)($delivery_addon_service->id ?? 61); ?>)</td>
+                        </tr>
+                        <tr>
+                            <th>Service Final Price:</th>
+                            <td class="font-weight-bold text-success">MUR <?= number_format($delivery_addon_service->final_price ?? 1.00, 2); ?></td>
+                        </tr>
+                    </table>
+                    <div class="form-group mb-0">
+                        <label>Additional Notes / Instructions for Merchant (Optional):</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Please proceed with payment so our logistics partner can collect the item..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning btn-sm">Send Purchase Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 $(document).ready(function() {
+    var operationCompleted = false;
+    var pageReloading = false;
+
+    function reloadPage(targetUrl) {
+        if (pageReloading) return;
+        pageReloading = true;
+        if (targetUrl) {
+            window.location.href = targetUrl;
+        } else {
+            window.location.reload();
+        }
+    }
+
+    // Refresh current page only after an operation in a modal has successfully completed and modal closed
+    $('.modal').on('hidden.bs.modal', function() {
+        if (operationCompleted) {
+            reloadPage();
+        }
+    });
+
     function showNotification(type, message) {
         var alertClass = (type === 'success') ? 'alert-success' : 'alert-danger';
         var icon = (type === 'success') ? '<i class="fa fa-check-circle"></i> ' : '<i class="fa fa-exclamation-circle"></i> ';
@@ -582,21 +799,20 @@ $(document).ready(function() {
             },
             success: function(res) {
                 if (res && res.status) {
+                    operationCompleted = true;
                     $btn.html('<i class="fa fa-check"></i> Done');
                     showNotification('success', res.message || 'Action processed successfully.');
 
                     var $modal = $form.closest('.modal');
                     if ($modal.length) {
-                        $modal.modal('hide');
+                        try {
+                            $modal.modal('hide');
+                        } catch(e) {}
                     }
 
                     setTimeout(function() {
-                        if (res.redirect) {
-                            window.location.href = res.redirect;
-                        } else {
-                            window.location.reload();
-                        }
-                    }, 800);
+                        reloadPage(res.redirect || null);
+                    }, 500);
                 } else {
                     $btn.prop('disabled', false).html(origHtml);
                     var msg = (res && res.message) ? res.message : 'An error occurred while processing your request.';
@@ -604,8 +820,8 @@ $(document).ready(function() {
 
                     if (res && res.requires_reload) {
                         setTimeout(function() {
-                            window.location.reload();
-                        }, 1500);
+                            reloadPage();
+                        }, 1200);
                     }
                 }
             },

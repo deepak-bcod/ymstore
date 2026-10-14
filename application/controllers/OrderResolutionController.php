@@ -279,13 +279,18 @@ class OrderResolutionController extends CI_Controller
     public function reply()
     {
         $customer_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
-        $ticket_number = trim($this->input->post('ticket_number', true));
-        $message       = trim($this->input->post('message', true));
+        $ticket_number   = trim($this->input->post('ticket_number', true));
+        $message         = trim($this->input->post('message', true));
+        $conversion_type = trim($this->input->post('conversion_type', true));
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
         if (!$res || (int)$res->customer_id !== (int)$customer_id) {
             $this->json_response(false, 'Invalid ticket.', [], 'order_resolution');
             return;
+        }
+
+        if (empty($conversion_type) || !in_array($conversion_type, ['shopper_merchant', 'shopper_admin'], true)) {
+            $conversion_type = ($res->resolution_status === 'resolution_requested' || $res->status === 'ReOpen') ? 'shopper_admin' : 'shopper_merchant';
         }
 
         if ($res->status === 'Close (Final)') {
@@ -320,7 +325,7 @@ class OrderResolutionController extends CI_Controller
         $c_row = $this->db->select('first_name, last_name')->where('id', $customer_id)->get('customers')->row();
         $shopper_name = $c_row ? trim(($c_row->first_name ?? '') . ' ' . ($c_row->last_name ?? '')) : 'Shopper';
 
-        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'shopper', $customer_id, $shopper_name, $message, $attachment, $this->input->ip_address());
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'shopper', $customer_id, $shopper_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
 
         if ($ok) {
             $msg = $this->lang->line('reply_posted_success') ?: 'Your reply has been sent.';

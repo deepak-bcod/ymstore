@@ -50,13 +50,19 @@ class Orders
                 $this->ci->pagination->initialize($config);
                 $data["links"] = $this->ci->pagination->create_links();
                 if (isset($OrderList) && count($OrderList) > 0) {
+                    $order_ids = [];
                     foreach ($OrderList as $order) {
                         $order_id = $order->order_id;
+                        $order_ids[] = $order_id;
                         if (isset($secret_return) && !empty($secret_return) && $secret_return == 1 && $order->status == 6) {
                             $order->flag = 'able_to_return';
                         }
                         $order->ReturnOrders = $order->return_orders;
                     }
+                    if (!isset($this->ci->OrderResolutionModel)) {
+                        $this->ci->load->model('OrderResolutionModel');
+                    }
+                    $data['escalation_status_map'] = $this->ci->OrderResolutionModel->get_escalation_status_for_order_items($order_ids);
                 }
                 $data['OrderList'] = $OrderList;
             }

@@ -140,99 +140,205 @@
                                     </div>
                                 <?php endif; ?>
 
-                                <?php if ($resolution->refund_amount > 0): ?>
-                                    <div class="col-md-3 col-sm-6">
-                                        <p><b><?php echo $this->lang->line('approved_refund_amount') ?: 'Approved Refund Amount'; ?>:</b><br>
-                                            <span class="text-success font-weight-bold"><?php echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?></span>
-                                        </p>
-                                    </div>
-                                <?php endif; ?>
+                                <div class="col-md-3 col-sm-6">
+                                    <p><b><?php echo $this->lang->line('refund_amount') ?: 'Refund Amount'; ?>:</b><br>
+                                        <span class="font-weight-bold <?php echo ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
+                                            <?php 
+                                            if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
+                                                echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2);
+                                            } elseif ($resolution->merchant_action === 'refund_denied' || $resolution->resolution_status === 'resolution_denied') {
+                                                echo 'Denied';
+                                            } elseif ($resolution->category === 'Refund' && $resolution->refund_amount > 0) {
+                                                echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2) . ' (Pending)';
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                            ?>
+                                        </span>
+                                    </p>
+                                </div>
                             </div>
 
                             
                         </div>
                     </div>
 
-                    <!-- Conversation History Stream -->
-                    <h3 style="margin-top: 25px; margin-bottom: 12px;"><?php echo $this->lang->line('conversation') ?: 'Resolution Conversation'; ?></h3>
-                    <div class="chat-box">
-                        <?php if (!empty($messages)): ?>
-                            <?php foreach ($messages as $msg): 
-                                $role_class = 'chat-' . $msg->sender_role;
-                                $sender_display = ($msg->sender_role === 'shopper') ? ($this->lang->line('you') ?: 'You') : (($msg->sender_role === 'merchant') ? ($merchant ? $merchant->publication_name : ($this->lang->line('merchant') ?: 'Merchant')) : ($this->lang->line('support_team') ?: 'Yellow Markets Support'));
-                            ?>
-                                <div class="chat-message <?php echo $role_class; ?>">
-                                    <div class="chat-meta">
-                                        <b><?php echo htmlspecialchars($sender_display); ?></b> (<?php echo ucfirst($msg->sender_role); ?>) &bull; <?php echo date('d M Y, h:i A', $msg->created_at); ?>
+                    <?php
+                    // Separate conversion workflows
+                    $shopper_merchant_msgs = [];
+                    $shopper_admin_msgs    = [];
+                    if (!empty($messages)) {
+                        foreach ($messages as $msg) {
+                            $c_type = !empty($msg->conversion_type) ? $msg->conversion_type : '';
+                            if ($c_type === 'shopper_admin' || in_array($msg->sender_role, ['acct', 'help'], true)) {
+                                $shopper_admin_msgs[] = $msg;
+                            } else {
+                                $shopper_merchant_msgs[] = $msg;
+                            }
+                        }
+                    }
+                    $is_escalated = ($resolution->resolution_status === 'resolution_requested' || $resolution->status === 'ReOpen');
+                    ?>
+
+                    <!-- Conversation Workflows Navigation Tabs -->
+                    <div style="margin-top: 25px; margin-bottom: 25px;">
+                        <ul class="nav nav-tabs" id="shopperConvTabs" role="tablist" style="border-bottom: 2px solid #ddd;">
+                            <li role="presentation" class="<?php echo !$is_escalated ? 'active' : ''; ?>">
+                                <a href="#shopper_merchant_pane" aria-controls="shopper_merchant_pane" role="tab" data-toggle="tab" style="font-weight: 600; font-size: 14px;">
+                                    <i class="fa fa-shopping-bag" style="color: #31708f;"></i> <?php echo $this->lang->line('conversion_shopper_merchant_tab') ?: 'Merchant (Shopper ↔ Merchant)'; ?>
+                                    <span class="badge" style="background-color: #31708f; margin-left: 5px;"><?php echo count($shopper_merchant_msgs); ?></span>
+                                </a>
+                            </li>
+                            <li role="presentation" class="<?php echo $is_escalated ? 'active' : ''; ?>">
+                                <a href="#shopper_admin_pane" aria-controls="shopper_admin_pane" role="tab" data-toggle="tab" style="font-weight: 600; font-size: 14px;">
+                                    <i class="fa fa-shield" style="color: #f0ad4e;"></i> <?php echo $this->lang->line('conversion_shopper_admin_tab') ?: 'YellowMarkets Support (Shopper ↔ Support)'; ?>
+                                    <span class="badge" style="background-color: #f0ad4e; margin-left: 5px;"><?php echo count($shopper_admin_msgs); ?></span>
+                                </a>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" style="padding-top: 20px;">
+                            <!-- Pane 1: Shopper <-> Merchant -->
+                            <div role="tabpanel" class="tab-pane <?php echo !$is_escalated ? 'active' : ''; ?>" id="shopper_merchant_pane">
+                                <div class="chat-box" style="margin-bottom: 20px;">
+                                    <?php if (!empty($shopper_merchant_msgs)): ?>
+                                        <?php foreach ($shopper_merchant_msgs as $msg): 
+                                            $role_class = 'chat-' . $msg->sender_role;
+                                            $sender_display = ($msg->sender_role === 'shopper') ? ($this->lang->line('you') ?: 'You') : ($merchant ? $merchant->publication_name : ($this->lang->line('merchant') ?: 'Merchant'));
+                                        ?>
+                                            <div class="chat-message <?php echo $role_class; ?>">
+                                                <div class="chat-meta">
+                                                    <b><?php echo htmlspecialchars($sender_display); ?></b> (<?php echo ucfirst($msg->sender_role); ?>) &bull; <?php echo date('d M Y, h:i A', $msg->created_at); ?>
+                                                </div>
+                                                <div class="chat-body">
+                                                    <?php echo nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
+                                                </div>
+                                                <?php if (!empty($msg->attachment)): ?>
+                                                    <div class="chat-attachment">
+                                                        <a href="<?php echo base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-xs btn-default">
+                                                            <i class="fa fa-paperclip"></i> <?php echo $this->lang->line('view_attachment') ?: 'View Attachment'; ?> (<?php echo htmlspecialchars($msg->attachment); ?>)
+                                                        </a>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted text-center" style="padding: 20px;"><?php echo $this->lang->line('no_messages_shopper_merchant') ?: 'No messages with the merchant yet.'; ?></p>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Shopper Resolution Escalation Action -->
+                                <?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested'): ?>
+                                    <div class="panel panel-default" style="border-radius: 6px; margin-bottom: 20px; border: 1px solid #bce8f1; background-color: #f4fbfd;">
+                                        <div class="panel-body" style="padding: 15px; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap;">
+                                            <button type="button" class="btn btn-info" data-toggle="modal" data-target="#resolutionRequestModal" style="margin-right: 15px;">
+                                                <i class="fa fa-flag"></i> <?php echo $this->lang->line('escalate_to_yellow_market') ?: 'Escalate to Yellow Market'; ?>
+                                            </button>
+                                            <span style="color: #d9534f; font-weight: 500; font-size: 13px;">
+                                                <?php echo $this->lang->line('resolution_escalate_prompt') ?: 'Merchant has not replied or resolved? Request Yellow Markets Support to intervene and assist.'; ?>
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="chat-body">
-                                        <?php echo nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
+                                <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
+                                    <div class="alert alert-info" style="margin-bottom: 20px; background-color: #e8f4fd; border-color: #b8daff; color: #004085;">
+                                        <i class="fa fa-info-circle"></i>
+                                        <strong><?php echo $this->lang->line('escalated_badge') ?: 'Escalated'; ?>:</strong>
+                                        <?php echo $this->lang->line('escalation_submitted_confirmation') ?: 'The escalation has been submitted to YellowMarkets support.'; ?>
                                     </div>
-                                    <?php if (!empty($msg->attachment)): ?>
-                                        <div class="chat-attachment">
-                                            <a href="<?php echo base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-xs btn-default">
-                                                <i class="fa fa-paperclip"></i> <?php echo $this->lang->line('view_attachment') ?: 'View Attachment'; ?> (<?php echo htmlspecialchars($msg->attachment); ?>)
-                                            </a>
+                                <?php endif; ?>
+
+                                <!-- Reply to Merchant Form -->
+                                <?php if ($resolution->status !== 'Close (Final)'): ?>
+                                    <div class="panel panel-default" style="border-radius: 6px;">
+                                        <div class="panel-heading" style="background-color: #f8fafc;">
+                                            <h4 class="panel-title" style="font-weight: 600;"><i class="fa fa-reply text-info"></i> <?php echo $this->lang->line('reply_to_merchant') ?: 'Reply to Merchant'; ?></h4>
+                                        </div>
+                                        <div class="panel-body">
+                                            <form action="<?php echo base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
+                                                <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
+                                                <input type="hidden" name="conversion_type" value="shopper_merchant">
+                                                <div class="form-group">
+                                                    <textarea name="message" rows="3" class="form-control" placeholder="<?php echo $this->lang->line('enter_response_to_merchant') ?: 'Write your response to the merchant...'; ?>" required></textarea>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-8 col-md-8">
+                                                        <input type="file" name="attachment" class="form-control" accept="image/*,.pdf">
+                                                        <small class="text-muted"><?php echo $this->lang->line('optional_attachment') ?: 'Optional attachment (Max: 5MB)'; ?></small>
+                                                    </div>
+                                                    <div class="col-sm-4 col-md-4 text-right">
+                                                        <button type="submit" class="btn btn-info btn-block">
+                                                            <i class="fa fa-reply"></i> <?php echo $this->lang->line('send_reply') ?: 'Send Reply'; ?>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Pane 2: Shopper <-> YellowMarkets Support -->
+                            <div role="tabpanel" class="tab-pane <?php echo $is_escalated ? 'active' : ''; ?>" id="shopper_admin_pane">
+                                <div class="chat-box" style="margin-bottom: 20px;">
+                                    <?php if (!empty($shopper_admin_msgs)): ?>
+                                        <?php foreach ($shopper_admin_msgs as $msg): 
+                                            $role_class = 'chat-' . $msg->sender_role;
+                                            $sender_display = ($msg->sender_role === 'shopper') ? ($this->lang->line('you') ?: 'You') : ($this->lang->line('support_team') ?: 'Yellow Markets Support');
+                                        ?>
+                                            <div class="chat-message <?php echo $role_class; ?>" style="<?php echo ($msg->sender_role !== 'shopper') ? 'background-color: #fcf8e3; border-color: #faebcc;' : ''; ?>">
+                                                <div class="chat-meta">
+                                                    <b style="<?php echo ($msg->sender_role !== 'shopper') ? 'color: #8a6d3b;' : ''; ?>"><?php echo htmlspecialchars($sender_display); ?></b> &bull; <?php echo date('d M Y, h:i A', $msg->created_at); ?>
+                                                </div>
+                                                <div class="chat-body">
+                                                    <?php echo nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
+                                                </div>
+                                                <?php if (!empty($msg->attachment)): ?>
+                                                    <div class="chat-attachment">
+                                                        <a href="<?php echo base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-xs btn-default">
+                                                            <i class="fa fa-paperclip"></i> <?php echo $this->lang->line('view_attachment') ?: 'View Attachment'; ?> (<?php echo htmlspecialchars($msg->attachment); ?>)
+                                                        </a>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <div class="alert alert-warning text-center" style="margin: 20px 0;">
+                                            <i class="fa fa-info-circle"></i> <?php echo $this->lang->line('no_messages_support_channel') ?: 'No conversation messages with YellowMarkets Support yet. You can escalate the ticket if you need Support assistance.'; ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <p class="text-muted text-center" style="padding: 20px;"><?php echo $this->lang->line('no_conversation_messages_yet') ?: 'No conversation messages yet.'; ?></p>
-                        <?php endif; ?>
+
+                                <!-- Reply to Support Form -->
+                                <?php if ($resolution->status !== 'Close (Final)'): ?>
+                                    <div class="panel panel-default" style="border-radius: 6px;">
+                                        <div class="panel-heading" style="background-color: #fcf8e3; border-color: #faebcc;">
+                                            <h4 class="panel-title" style="font-weight: 600; color: #8a6d3b;"><i class="fa fa-shield"></i> <?php echo $this->lang->line('message_to_support') ?: 'Message to YellowMarkets Support'; ?></h4>
+                                        </div>
+                                        <div class="panel-body">
+                                            <form action="<?php echo base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
+                                                <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
+                                                <input type="hidden" name="conversion_type" value="shopper_admin">
+                                                <div class="form-group">
+                                                    <textarea name="message" rows="3" class="form-control" placeholder="<?php echo $this->lang->line('enter_response_to_support') ?: 'Write your message to YellowMarkets Support team...'; ?>" required></textarea>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-sm-8 col-md-8">
+                                                        <input type="file" name="attachment" class="form-control" accept="image/*,.pdf">
+                                                        <small class="text-muted"><?php echo $this->lang->line('optional_attachment') ?: 'Optional attachment (Max: 5MB)'; ?></small>
+                                                    </div>
+                                                    <div class="col-sm-4 col-md-4 text-right">
+                                                        <button type="submit" class="btn btn-warning btn-block" style="font-weight: 600;">
+                                                            <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('send_to_support') ?: 'Send to Support'; ?>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </div>
-
-                    <!-- Shopper Resolution Escalation Action (Placed below conversation) -->
-                    <?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested'): ?>
-                        <div class="panel panel-default" style="border-radius: 6px; margin-bottom: 25px; border: 1px solid #bce8f1; background-color: #f4fbfd;">
-                            <div class="panel-body" style="padding: 15px; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap;">
-                                <button type="button" class="btn btn-info" data-toggle="modal" data-target="#resolutionRequestModal" style="margin-right: 15px;">
-                                    <i class="fa fa-flag"></i> <?php echo $this->lang->line('escalate_to_yellow_market') ?: 'Escalate to Yellow Market'; ?>
-                                </button>
-                                <span style="color: #d9534f; font-weight: 500; font-size: 13px;">
-                                    <?php echo $this->lang->line('resolution_escalate_prompt') ?: 'Merchant has not replied or resolved? Request Yellow Markets Support to intervene and assist.'; ?>
-                                </span>
-                            </div>
-                        </div>
-                    <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
-                        <div class="alert alert-info" style="margin-bottom: 25px; background-color: #e8f4fd; border-color: #b8daff; color: #004085;">
-                            <i class="fa fa-info-circle"></i>
-                            <strong><?php echo $this->lang->line('escalated_badge') ?: 'Escalated'; ?>:</strong>
-                            <?php echo $this->lang->line('escalation_submitted_confirmation') ?: 'The escalation has been submitted to YellowMarkets support.'; ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <!-- Reply Form -->
-                    <?php if ($resolution->status !== 'Close (Final)'): ?>
-                        <div class="panel panel-default" style="border-radius: 6px;">
-                            <div class="panel-heading">
-                                <h4 class="panel-title"><?php echo $this->lang->line('post_reply') ?: 'Post a Reply'; ?></h4>
-                            </div>
-                            <div class="panel-body">
-                                <form action="<?php echo base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
-                                    <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
-                                    <div class="form-group">
-                                        <textarea name="message" rows="4" class="form-control" placeholder="<?php echo $this->lang->line('enter_response_to_merchant') ?: 'Write your response to the merchant...'; ?>" required></textarea>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-8 col-md-8">
-                                            <input type="file" name="attachment" class="form-control" accept="image/*,.pdf">
-                                            <small class="text-muted"><?php echo $this->lang->line('optional_attachment') ?: 'Optional attachment (Max: 5MB)'; ?></small>
-                                        </div>
-                                        <div class="col-sm-4 col-md-4 text-right">
-                                            <button type="submit" class="btn btn-info btn-block">
-                                                <i class="fa fa-reply"></i> <?php echo $this->lang->line('send_reply') ?: 'Send Reply'; ?>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="alert alert-info text-center">
-                            <?php echo $this->lang->line('closed_final_desc') ?: 'This Order Resolution ticket has been closed with no further actions.'; ?>
-                        </div>
-                    <?php endif; ?>
 
                 </div>
             </div>
@@ -270,6 +376,16 @@
 
 <script>
 $(document).ready(function() {
+    var operationCompleted = false;
+
+    // Refresh current page only after an operation in a modal has successfully completed and modal closed
+    $('.modal').on('hidden.bs.modal', function() {
+        if (operationCompleted) {
+            operationCompleted = false;
+            window.location.href = window.location.href;
+        }
+    });
+
     function showNotification(type, message) {
         var alertClass = (type === 'success') ? 'alert-success' : 'alert-danger';
         var icon = (type === 'success') ? '<i class="fa fa-check-circle"></i> ' : '<i class="fa fa-exclamation-circle"></i> ';
@@ -321,16 +437,17 @@ $(document).ready(function() {
 
                     var $modal = $form.closest('.modal');
                     if ($modal.length) {
+                        operationCompleted = true;
                         $modal.modal('hide');
+                    } else {
+                        setTimeout(function() {
+                            if (res.redirect) {
+                                window.location.href = res.redirect;
+                            } else {
+                                window.location.href = window.location.href;
+                            }
+                        }, 800);
                     }
-
-                    setTimeout(function() {
-                        if (res.redirect) {
-                            window.location.href = res.redirect;
-                        } else {
-                            window.location.reload();
-                        }
-                    }, 800);
                 } else {
                     $btn.prop('disabled', false).html(origHtml);
                     var msg = (res && res.message) ? res.message : (<?php echo json_encode($this->lang->line('ajax_error') ?: 'An error occurred while processing your request.'); ?>);
@@ -338,7 +455,7 @@ $(document).ready(function() {
 
                     if (res && res.requires_reload) {
                         setTimeout(function() {
-                            window.location.reload();
+                            window.location.href = window.location.href;
                         }, 1500);
                     }
                 }

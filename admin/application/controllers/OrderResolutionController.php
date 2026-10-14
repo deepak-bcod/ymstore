@@ -82,23 +82,35 @@ class OrderResolutionController extends CI_Controller
         $hide_acct = in_array($res->merchant_action, ['replacement_completed', 'replacement_denied'], true);
 
         // Determine current viewing mode: 'acct' vs 'help'
-        $as_param = strtolower(trim((string)$this->input->get('as', true)));
-        if (!$hide_acct && ($as_param === 'acct' || $as_param === 'help')) {
-            $current_role = $as_param;
-        } elseif (!$hide_acct && (strpos($user_role, 'account') !== false || strpos($user_role, 'acct') !== false)) {
+        $is_acct_user = (strpos($user_role, 'account') !== false || strpos($user_role, 'acct') !== false);
+        $is_help_user = (strpos($user_role, 'help') !== false || strpos($user_role, 'support') !== false);
+
+        if ($is_acct_user) {
             $current_role = 'acct';
-        } elseif (strpos($user_role, 'help') !== false || strpos($user_role, 'support') !== false) {
+        } elseif ($is_help_user) {
             $current_role = 'help';
         } else {
-            // Default for Super Admin / General Admin:
-            $current_role = (!$hide_acct && $res->status === 'Processing' && $res->assigned_role === 'Acct') ? 'acct' : 'help';
+            // Super Admin or General Admin default
+            $as_param = strtolower(trim((string)$this->input->get('as', true)));
+            if (!$hide_acct && ($as_param === 'acct' || $as_param === 'help')) {
+                $current_role = $as_param;
+            } else {
+                $current_role = (!$hide_acct && $res->assigned_role === 'Acct') ? 'acct' : 'help';
+            }
         }
 
-        $data['resolution']     = $res;
-        $data['current_role']   = $current_role;
-        $data['is_super_admin'] = $is_super_admin;
-        $data['messages']       = $this->OrderResolutionModel->get_messages($res->id);
-        $data['audit_logs']     = $this->OrderResolutionModel->get_audit_log($res->id);
+        $data['resolution']             = $res;
+        $data['current_role']           = $current_role;
+        $data['is_super_admin']         = $is_super_admin;
+        $data['messages']               = $this->OrderResolutionModel->get_messages($res->id);
+        $data['audit_logs']             = $this->OrderResolutionModel->get_audit_log($res->id);
+        $data['delivery_addon_service'] = $this->OrderResolutionModel->get_delivery_addon_service();
+        $data['addon_purchase']         = !empty($res->addon_purchase_id) 
+            ? $this->db->get_where('merchant_addon_purchases', ['id' => (int)$res->addon_purchase_id])->row() 
+            : null;
+        $data['addon_transaction']      = $data['addon_purchase']
+            ? $this->db->where('purchase_id', $data['addon_purchase']->id)->order_by('id', 'DESC')->get('merchant_addon_transactions')->row()
+            : null;
 
         // Fetch Order, Product, Merchant, Customer
         $data['order']    = $this->db->where('order_id', $res->order_id)->get('sales_order')->row();
@@ -145,10 +157,11 @@ class OrderResolutionController extends CI_Controller
      */
     public function reply()
     {
-        $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
-        $ticket_number = trim($this->input->post('ticket_number', true));
-        $message       = trim($this->input->post('message', true));
-        $role          = trim($this->input->post('role', true)) ?: 'help';
+        $admin_id        = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
+        $ticket_number   = trim($this->input->post('ticket_number', true));
+        $message         = trim($this->input->post('message', true));
+        $role            = trim($this->input->post('role', true)) ?: 'help';
+        $conversion_type = trim($this->input->post('conversion_type', true));
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
@@ -185,30 +198,59 @@ class OrderResolutionController extends CI_Controller
             }
         }
 
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        $is_acct_user = (strpos($user_role, 'account') !== false || strpos($user_role, 'acct') !== false);
+        $is_help_user = (strpos($user_role, 'help') !== false || strpos($user_role, 'support') !== false);
+
+        if ($is_acct_user) {
+            $role = 'acct';
+        } elseif ($is_help_user) {
+            $role = 'help';
+        } else {
+            // Super Admin: respect posted role or ticket assigned role
+            $post_role = trim($this->input->post('role', true));
+            $role = in_array($post_role, ['help', 'acct'], true) ? $post_role : (($res->assigned_role === 'Acct') ? 'acct' : 'help');
+        }
+
+        if (empty($conversion_type) || !in_array($conversion_type, ['shopper_admin', 'merchant_admin'], true)) {
+            $conversion_type = ($role === 'acct') ? 'merchant_admin' : 'shopper_admin';
+        }
+
         $sender_name = ($role === 'acct') ? 'Accounting Team (@Acct)' : 'Support Team (@Help)';
-        $ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address());
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
 
         if ($ok) {
-            // Get the customer ID from the resolution record
-            $customer_id = $res->customer_id ?? null;
-
-            if ($customer_id) {
+            if ($conversion_type === 'shopper_admin' && !empty($res->customer_id)) {
                 $title        = "Order resolution reply (" . $ticket_number . ")";
-                $message_text = "Yellow Market team has replied to your resolution ticket (" . $ticket_number . ")";
-
+                $message_text = "Yellow Markets Support team has replied to your resolution ticket (" . $ticket_number . ")";
                 $notification_data = [
                     'type'           => 'order_resolution',
                     'subtype'        => 'reply',
                     'recipient_type' => 'customer',
-                    'recipient_id'   => $customer_id,
+                    'recipient_id'   => $res->customer_id,
                     'title'          => $title,
                     'message'        => $message_text,
                     'data'           => json_encode(['ticket_number' => $ticket_number]),
                     'is_read'        => 0,
                     'created_at'     => date('Y-m-d H:i:s')
                 ];
-
-                // Safely insert the notification into the database
+                try {
+                    $this->db->insert('notifications', $notification_data);
+                } catch (\Exception $e) {
+                    log_message('error', 'Notification insert failed: ' . $e->getMessage());
+                }
+            } elseif ($conversion_type === 'merchant_admin' && !empty($res->merchant_id)) {
+                $notification_data = [
+                    'type'           => 'order_resolution',
+                    'subtype'        => 'admin_message',
+                    'recipient_type' => 'merchant',
+                    'recipient_id'   => $res->merchant_id,
+                    'title'          => 'Admin Message on Ticket #' . $ticket_number,
+                    'message'        => 'YellowMarkets Admin posted a message on Ticket #' . $ticket_number . '.',
+                    'data'           => json_encode(['ticket_number' => $ticket_number]),
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s')
+                ];
                 try {
                     $this->db->insert('notifications', $notification_data);
                 } catch (\Exception $e) {
@@ -235,6 +277,17 @@ class OrderResolutionController extends CI_Controller
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
         if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
             $this->json_response(false, 'Unauthorized: Only Support (@Help) can assign tickets to Accounting.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
+        }
+
+        $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res_ticket) {
+            $this->json_response(false, 'Ticket not found.');
+            return;
+        }
+
+        if (empty($res_ticket->merchant_action) || $res_ticket->merchant_action === 'none') {
+            $this->json_response(false, 'Cannot assign to Accounting: Merchant has not taken any action on this ticket yet.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
             return;
         }
 
@@ -306,7 +359,7 @@ class OrderResolutionController extends CI_Controller
     /**
      * @Help closes ticket with Shopper Resolution Option (Status -> Close)
      */
-   public function close_ticket()
+    public function close_ticket()
     {
         $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
         $ticket_number = trim($this->input->post('ticket_number', true));
@@ -321,6 +374,15 @@ class OrderResolutionController extends CI_Controller
 
         // Get ticket details to retrieve the customer_id
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            $this->json_response(false, 'Ticket not found.');
+            return;
+        }
+
+        if (empty($res->merchant_action) || $res->merchant_action === 'none') {
+            $this->json_response(false, 'Cannot close ticket: Merchant has not taken any action on this ticket yet.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
+            return;
+        }
 
         $result = $this->OrderResolutionModel->admin_close_ticket($ticket_number, $admin_id, $notes);
 
@@ -402,12 +464,19 @@ class OrderResolutionController extends CI_Controller
     /**
      * Resolution Decision: Resolution Approved / Resolution Denied (@Help only)
      */
-public function resolution_decision()
+    public function resolution_decision()
     {
         $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
         $ticket_number = trim($this->input->post('ticket_number', true));
         $decision      = trim($this->input->post('decision', true)); // 'approved' or 'denied'
         $notes         = trim($this->input->post('notes', true));
+
+        // Permission Guard: Only Support (@Help) or Super Admin/Administrator can record resolution decisions
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
+            $this->json_response(false, 'Unauthorized: Only Support (@Help) can make dispute decisions.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
+        }
 
         // Get ticket details to retrieve customer_id before updating decision
         $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
@@ -446,6 +515,23 @@ public function resolution_decision()
             }
         }
 
-        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number);
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
+    }
+
+    /**
+     * @Acct requests merchant to purchase AddOn Service for replacement delivery
+     */
+    public function request_addon_delivery()
+    {
+        $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $notes         = trim($this->input->post('notes', true));
+
+        // Permission Guard: Support (@Help), Accounting (@Acct), and Admins can request AddOn purchase
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        $as_param  = ($this->input->get('as') === 'help' || strpos($user_role, 'help') !== false) ? 'help' : 'acct';
+
+        $res = $this->OrderResolutionModel->request_addon_delivery($ticket_number, $admin_id, $notes);
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=' . $as_param);
     }
 }

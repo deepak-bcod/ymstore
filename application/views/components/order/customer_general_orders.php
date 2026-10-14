@@ -394,9 +394,40 @@ function getSubOrderStatusText($status) {
                                                         </div>
                                                         <div class="col-sm-8 col-md-8">
                                                             <div class="shpcart">
+                                                                <?php
+                                                                $escalation_suffix = '';
+                                                                if (in_array((int)$final_status, [20, 21])) {
+                                                                    $p_id = isset($sub_item->product_id) ? (int)$sub_item->product_id : 0;
+                                                                    $o_id = isset($order->order_id) ? (int)$order->order_id : 0;
+                                                                    $b2b_id = isset($b2b->order_id) ? (int)$b2b->order_id : 0;
+
+                                                                    $esc_state = null;
+                                                                    if (isset($escalation_status_map) && is_array($escalation_status_map)) {
+                                                                        if ($p_id > 0 && isset($escalation_status_map[$o_id . '_' . $p_id])) {
+                                                                            $esc_state = $escalation_status_map[$o_id . '_' . $p_id];
+                                                                        } elseif ($b2b_id > 0 && isset($escalation_status_map[$o_id . '_sub_' . $b2b_id])) {
+                                                                            $esc_state = $escalation_status_map[$o_id . '_sub_' . $b2b_id];
+                                                                        } elseif (isset($escalation_status_map[(string)$o_id])) {
+                                                                            $esc_state = $escalation_status_map[(string)$o_id];
+                                                                        }
+                                                                    } else {
+                                                                        $CI =& get_instance();
+                                                                        if (!isset($CI->OrderResolutionModel)) {
+                                                                            $CI->load->model('OrderResolutionModel');
+                                                                        }
+                                                                        $esc_state = $CI->OrderResolutionModel->get_item_escalation_status($o_id, $p_id, $b2b_id);
+                                                                    }
+
+                                                                    if ($esc_state === 'in_progress') {
+                                                                        $escalation_suffix = ' (' . ($this->lang->line('escalation_in_progress') ?: 'Escalation In Progress') . ')';
+                                                                    } elseif ($esc_state === 'complete') {
+                                                                        $escalation_suffix = ' (' . ($this->lang->line('escalation_complete') ?: 'Escalation Complete') . ')';
+                                                                    }
+                                                                }
+                                                                ?>
                                                                 <h4><?php echo $this->lang->line('sub_order_id'); ?>: <?php echo (!empty($b2b->increment_id) ? $b2b->increment_id : $b2b->order_id); ?> | 
                                                                     <span class="return-required <?php echo $b2b_status_info['class']; ?>">
-                                                                        <?php echo $b2b_status_info['text']; ?>
+                                                                        <?php echo $b2b_status_info['text'] . $escalation_suffix; ?>
                                                                     </span>
                                                                 </h4>
                                                                 <p><?php echo get_display_product_name($sub_item, $parent_item); ?></p>

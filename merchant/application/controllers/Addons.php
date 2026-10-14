@@ -149,6 +149,76 @@ $transaction = [
     }
 
     /**
+     * Dedicated checkout endpoint for Order Resolution replacement delivery AddOn
+     */
+    public function buy_resolution_delivery($ticket_number = '')
+    {
+        $publisher_id = $this->session->userdata('LoginID');
+        $this->load->model('OrderResolutionModel');
+        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+
+        if (!$res || (int)$res->merchant_id !== (int)$publisher_id) {
+            show_error('Invalid resolution ticket or unauthorized access.');
+            return;
+        }
+
+        // Prevent duplicate charge if AddOn payment is already verified as paid
+        if (!empty($res->addon_purchase_id)) {
+            $existing_purchase = $this->db->get_where('merchant_addon_purchases', ['id' => (int)$res->addon_purchase_id])->row();
+            if ($existing_purchase && $existing_purchase->status === 'paid') {
+                $this->session->set_flashdata('info', 'AddOn Service payment for this replacement has already been confirmed.');
+                redirect('order_resolution/view/' . $res->ticket_number);
+                return;
+            }
+        }
+
+        // Resolve dynamic Admin-configured service (ID 61, YM Delivery, MUR 1.00)
+        $service = $this->OrderResolutionModel->get_delivery_addon_service($res->addon_service_id ?? null);
+        $service_id = $service ? (int)$service->id : 61;
+        $amount = $service ? (float)$service->final_price : 1.00;
+
+        // Save purchase
+        $purchase = [
+            'merchant_id' => $publisher_id,
+            'service_id'  => $service_id,
+            'qty'         => 1,
+            'status'      => 'pending',
+            'created_at'  => date('Y-m-d H:i:s'),
+            'ip'          => $this->input->ip_address()
+        ];
+        $this->db->insert('merchant_addon_purchases', $purchase);
+        $purchase_id = $this->db->insert_id();
+
+        // Immediately link addon_purchase_id and addon_service_id to order resolution ticket
+        $update_res = [
+            'addon_purchase_id' => $purchase_id,
+            'updated_at'        => time()
+        ];
+        if ($this->db->field_exists('addon_service_id', 'order_resolutions')) {
+            $update_res['addon_service_id'] = $service_id;
+        }
+        $this->db->where('id', $res->id)->update('order_resolutions', $update_res);
+
+        $site_lang = $this->session->userdata('site_lang');
+        $payment_lang = ($site_lang === 'french') ? 'french' : 'english';
+
+        $transaction = [
+            'purchase_id' => $purchase_id,
+            'merchant_id' => $publisher_id,
+            'amount'      => $amount,
+            'status'      => 'initiated',
+            'lang'        => $payment_lang,
+            'created_at'  => date('Y-m-d H:i:s')
+        ];
+        $this->db->insert('merchant_addon_transactions', $transaction);
+        $transaction_id = $this->db->insert_id();
+
+        log_message('info', "Addon delivery payment created for Ticket {$ticket_number} | Service ID: {$service_id} | Purchase ID: {$purchase_id} | Txn ID: {$transaction_id}");
+
+        $this->initiate_payment($transaction_id, $amount);
+    }
+
+    /**
      * Initiate secure my.t money payment (RSA + HMAC)
      */
    private function initiate_payment($transaction_id, $amount)
@@ -386,6 +456,13 @@ $transaction = [
 
         if ($status === 'success') {
             log_message('info', "✅ MyT Addon Payment SUCCESS → Txn ID: {$transaction['id']} | merTradeNo: {$merTradeNo}");
+
+            // Link & confirm Order Resolution if applicable
+            $res = $this->db->get_where('order_resolutions', ['addon_purchase_id' => $transaction['purchase_id']])->row();
+            if ($res) {
+                $this->load->model('OrderResolutionModel');
+                $this->OrderResolutionModel->confirm_addon_payment($res->ticket_number, $transaction['purchase_id']);
+            }
         } else {
             log_message('error', "❌ MyT Addon Payment FAILED → Txn ID: {$transaction['id']} | tradeStatus: {$tradeStatus}");
         }   
@@ -587,8 +664,36 @@ public function status($token = null)
 
 
     // ============================================
-    // LOAD STATUS VIEW
+    // LOAD STATUS VIEW OR REDIRECT TO RESOLUTION
     // ============================================
+
+    $res_ticket = $this->db->get_where('order_resolutions', ['addon_purchase_id' => $txn['purchase_id']])->row();
+    if ($res_ticket) {
+        if ($txn['status'] === 'success') {
+            $service = $this->db->where('id', $purchase['service_id'])->get('addon_services')->row();
+            $service_title = $service ? $service->title : 'YM Delivery';
+            $txn_ref = !empty($txn['transaction_ref']) ? $txn['transaction_ref'] : (!empty($txn['mer_trade_no']) ? $txn['mer_trade_no'] : ('Purchase #' . $purchase['id']));
+
+            $this->session->set_flashdata('addon_payment_success', [
+                'order_number'    => $res_ticket->order_number,
+                'ticket_number'   => $res_ticket->ticket_number,
+                'service_name'    => $service_title,
+                'amount'          => $txn['amount'],
+                'transaction_ref' => $txn_ref
+            ]);
+            $this->session->set_flashdata('success', 'Your YM Delivery AddOn Service payment has been confirmed. You can now proceed with completing the replacement.');
+            redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=success');
+            return;
+        } else {
+            // Ensure transaction and purchase are explicitly marked as failed/cancelled so they do not linger as initiated
+            $this->db->where('id', $txn['id'])->update('merchant_addon_transactions', ['status' => 'failed', 'updated_at' => date('Y-m-d H:i:s')]);
+            $this->db->where('id', $txn['purchase_id'])->update('merchant_addon_purchases', ['status' => 'cancelled']);
+
+            $this->session->set_flashdata('error', 'AddOn Service payment was not completed or failed. Please click "Purchase AddOn Service" to try again.');
+            redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=failed');
+            return;
+        }
+    }
 
     $data['transaction']  = $txn;
     $data['purchase']     = $purchase;
