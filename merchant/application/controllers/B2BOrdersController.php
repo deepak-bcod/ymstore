@@ -11609,7 +11609,7 @@ exit;*/
 
 		if ($has_active_resolution) {
 			$is_on_hold = true;
-			$hold_reason = 'Disputed - Escalation In Progress';
+			$hold_reason = 'On Hold';
 		} elseif ($has_approved_resolution) {
 			// Approved final state reached: payout becomes open and overrides previous return/replacement holds
 			$is_on_hold = false;
