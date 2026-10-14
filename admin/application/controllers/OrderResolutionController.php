@@ -189,7 +189,7 @@ class OrderResolutionController extends CI_Controller
         $ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address());
 
         if ($ok) {
-            // Get the customer ID using the correct column 'customer_id' from the resolution record
+            // Get the customer ID from the resolution record
             $customer_id = $res->customer_id ?? null;
 
             if ($customer_id) {
@@ -197,16 +197,23 @@ class OrderResolutionController extends CI_Controller
                 $message_text = "Yellow Market team has replied to your resolution ticket (" . $ticket_number . ")";
 
                 $notification_data = [
-                    'user_id'    => $customer_id, // Mapped to customer_id table field
-                    'title'      => $title,
-                    'message'    => $message_text,
-                    'type'       => 'order_resolution',
-                    'ticket_no'  => $ticket_number,
-                    'created_at' => time() // Use current unix timestamp if your notifications table stores time as int, or date('Y-m-d H:i:s') if varchar/datetime
+                    'type'           => 'order_resolution',
+                    'subtype'        => 'reply',
+                    'recipient_type' => 'customer',
+                    'recipient_id'   => $customer_id,
+                    'title'          => $title,
+                    'message'        => $message_text,
+                    'data'           => json_encode(['ticket_number' => $ticket_number]),
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s')
                 ];
 
-                // Insert the notification into your database table
-                $this->db->insert('notifications', $notification_data);
+                // Safely insert the notification into the database
+                try {
+                    $this->db->insert('notifications', $notification_data);
+                } catch (\Exception $e) {
+                    log_message('error', 'Notification insert failed: ' . $e->getMessage());
+                }
             }
 
             $this->json_response(true, 'Reply posted successfully.', ['reload' => true], 'order_resolution/view/' . $ticket_number . '?as=' . $role);
