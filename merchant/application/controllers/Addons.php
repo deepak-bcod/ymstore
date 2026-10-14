@@ -685,7 +685,11 @@ public function status($token = null)
             redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=success');
             return;
         } else {
-            $this->session->set_flashdata('error', 'AddOn Service payment was not completed or failed. Please retry payment.');
+            // Ensure transaction and purchase are explicitly marked as failed/cancelled so they do not linger as initiated
+            $this->db->where('id', $txn['id'])->update('merchant_addon_transactions', ['status' => 'failed', 'updated_at' => date('Y-m-d H:i:s')]);
+            $this->db->where('id', $txn['purchase_id'])->update('merchant_addon_purchases', ['status' => 'cancelled']);
+
+            $this->session->set_flashdata('error', 'AddOn Service payment was not completed or failed. Please click "Purchase AddOn Service" to try again.');
             redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=failed');
             return;
         }

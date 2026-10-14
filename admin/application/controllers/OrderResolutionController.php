@@ -527,14 +527,11 @@ class OrderResolutionController extends CI_Controller
         $ticket_number = trim($this->input->post('ticket_number', true));
         $notes         = trim($this->input->post('notes', true));
 
-        // Permission Guard: Only Accounting (@Acct) or Super Admin/Administrator can request AddOn purchase
+        // Permission Guard: Support (@Help), Accounting (@Acct), and Admins can request AddOn purchase
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
-        if (!empty($user_role) && strpos($user_role, 'help') !== false && strpos($user_role, 'admin') === false) {
-            $this->json_response(false, 'Unauthorized: Only Accounting (@Acct) can request AddOn delivery service purchase.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
-            return;
-        }
+        $as_param  = ($this->input->get('as') === 'help' || strpos($user_role, 'help') !== false) ? 'help' : 'acct';
 
         $res = $this->OrderResolutionModel->request_addon_delivery($ticket_number, $admin_id, $notes);
-        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=acct');
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=' . $as_param);
     }
 }

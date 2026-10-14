@@ -169,8 +169,6 @@ $this->load->view('common/fbc-user/header');
                                 </h6>
                                 <?php if (!empty($is_addon_paid)): ?>
                                     <span class="badge badge-success p-2"><i class="fa fa-check"></i> <?= $this->lang->line('addon_status_paid') ?: 'AddOn Paid'; ?></span>
-                                <?php elseif (!empty($is_addon_initiated)): ?>
-                                    <span class="badge badge-info p-2"><i class="fa fa-spinner fa-spin"></i> <?= $this->lang->line('payment_initiated') ?: 'Payment Initiated'; ?></span>
                                 <?php elseif (!empty($is_addon_failed)): ?>
                                     <span class="badge badge-danger p-2"><i class="fa fa-times"></i> <?= $this->lang->line('payment_failed') ?: 'Payment Failed'; ?></span>
                                 <?php else: ?>
@@ -211,13 +209,11 @@ $this->load->view('common/fbc-user/header');
                                                 <td class="font-weight-bold text-success"><?= $currency . ' ' . number_format($delivery_addon_service->final_price ?? 1.00, 2); ?></td>
                                                 <td>
                                                     <?php if (!empty($is_addon_paid)): ?>
-                                                        <span class="badge badge-success"><?= $this->lang->line('paid') ?: 'Paid'; ?></span>
-                                                    <?php elseif (!empty($is_addon_initiated)): ?>
-                                                        <span class="badge badge-info"><i class="fa fa-spinner fa-spin"></i> <?= $this->lang->line('initiated') ?: 'Initiated'; ?></span>
+                                                        <span class="badge badge-success"><i class="fa fa-check"></i> <?= $this->lang->line('paid') ?: 'Paid'; ?></span>
                                                     <?php elseif (!empty($is_addon_failed)): ?>
-                                                        <span class="badge badge-danger"><?= $this->lang->line('failed') ?: 'Failed'; ?></span>
+                                                        <span class="badge badge-danger"><i class="fa fa-times"></i> <?= $this->lang->line('failed') ?: 'Failed'; ?></span>
                                                     <?php else: ?>
-                                                        <span class="badge badge-warning"><?= $this->lang->line('pending') ?: 'Pending'; ?></span>
+                                                        <span class="badge badge-warning"><i class="fa fa-clock-o"></i> <?= $this->lang->line('pending') ?: 'Pending'; ?></span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
@@ -228,14 +224,6 @@ $this->load->view('common/fbc-user/header');
                                                         <button class="btn btn-sm btn-success disabled" disabled>
                                                             <i class="fa fa-check"></i> <?= $this->lang->line('addon_service_paid') ?: 'Purchased'; ?>
                                                         </button>
-                                                    <?php elseif (!empty($is_addon_initiated)): ?>
-                                                        <button class="btn btn-sm btn-secondary disabled" disabled title="Payment is being processed by gateway.">
-                                                            <i class="fa fa-spinner fa-spin"></i> <?= $this->lang->line('processing') ?: 'Processing...'; ?>
-                                                        </button>
-                                                    <?php elseif (!empty($is_addon_failed)): ?>
-                                                        <a href="<?= base_url('addons/buy_resolution_delivery/' . $resolution->ticket_number); ?>" class="btn btn-sm btn-warning font-weight-bold">
-                                                            <i class="fa fa-refresh"></i> <?= $this->lang->line('retry_payment') ?: 'Retry Payment'; ?>
-                                                        </a>
                                                     <?php else: ?>
                                                         <a href="<?= base_url('addons/buy_resolution_delivery/' . $resolution->ticket_number); ?>" class="btn btn-sm btn-info font-weight-bold">
                                                             <i class="fa fa-shopping-cart"></i> <?= $this->lang->line('purchase_addon_service') ?: 'Purchase AddOn Service'; ?>

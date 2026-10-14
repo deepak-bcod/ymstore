@@ -212,14 +212,37 @@ $this->load->view('common/fbc-user/header');
 
                     <?php else: ?>
                         <!-- ================= @Help (SUPPORT ONLY) CONTROLS ================= -->
+                        <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
+                            <?php if (!empty($resolution->addon_purchase_id)): ?>
+                                <div class="alert alert-success py-2 mb-3">
+                                    <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) / Support must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 10px;">
+                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#requestAddonModal">
+                                        <i class="fa fa-paper-plane"></i> Request AddOn Service Purchase
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
+
                         <?php if ($resolution->status === 'ReOpen' || $resolution->resolution_status === 'resolution_requested'): ?>
                             <div class="alert alert-warning py-2 mb-3">
                                 <i class="fa fa-gavel"></i> <strong>Shopper Dispute Active:</strong> The shopper has requested Yellow Markets assistance. Please investigate via the ticket conversation and choose <strong>Resolution Approved</strong> (in favour of Shopper) or <strong>Resolution Denied</strong> (in favour of Merchant).
                             </div>
                         <?php elseif ($resolution->status === 'Processing'): ?>
-                            <div class="alert alert-info py-2 mb-0">
-                                <i class="fa fa-hourglass-half"></i> <strong>Assigned to Accounting (@Acct):</strong> Awaiting Accounting to process refund from merchant's 15-day hold-back sales.
-                            </div>
+                            <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-truck"></i> <strong>Assigned to Accounting (@Acct):</strong> Coordinate with the merchant to purchase the replacement delivery AddOn Service. Once delivery is completed by the merchant, the ticket will be handed back to @Help for closure.
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-hourglass-half"></i> <strong>Assigned to Accounting (@Acct):</strong> Awaiting Accounting to process refund from merchant's 15-day hold-back sales.
+                                </div>
+                            <?php endif; ?>
                         <?php elseif ($resolution->status === 'Done'): ?>
                             <div class="alert alert-success py-2 mb-3">
                                 <i class="fa fa-check"></i> <strong>Refund Completed:</strong> Accounting has completed the refund from hold-back sales. @Help can now close the ticket as <strong>Close (Final)</strong>.
@@ -261,20 +284,16 @@ $this->load->view('common/fbc-user/header');
                                     <button type="button" class="btn btn-secondary btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;" title="Cannot close ticket: Merchant has not taken any action yet.">
                                         <i class="fa fa-lock"></i> Close Ticket
                                     </button>
-                                    <?php if (!$hide_acct): ?>
-                                        <button type="button" class="btn btn-warning btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;" title="Cannot assign to @acct: Merchant has not taken any action yet.">
-                                            <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
-                                        </button>
-                                    <?php endif; ?>
                                 <?php else: ?>
                                     <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
                                         <i class="fa fa-lock"></i> Close Ticket <?= ($resolution->merchant_action === 'refund_denied') ? '(Refund Denied by Merchant)' : (($resolution->merchant_action === 'replacement_denied') ? '(Replacement Denied by Merchant)' : ''); ?>
                                     </button>
-                                    <?php if ($resolution->merchant_action !== 'refund_denied' && !$hide_acct): ?>
-                                        <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
-                                            <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
-                                        </button>
-                                    <?php endif; ?>
+                                <?php endif; ?>
+
+                                <?php if ($resolution->status === 'Open' && $has_merchant_action && $resolution->merchant_action !== 'refund_denied' && !$hide_acct): ?>
+                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
+                                        <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
+                                    </button>
                                 <?php endif; ?>
                             <?php endif; ?>
 

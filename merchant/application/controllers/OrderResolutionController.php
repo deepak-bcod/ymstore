@@ -85,10 +85,13 @@ class OrderResolutionController extends CI_Controller
             }
         }
 
+        $payment_param = $this->input->get('payment');
         $data['is_addon_paid']      = (!empty($data['addon_purchase']) && $data['addon_purchase']->status === 'paid');
-        $data['is_addon_pending']   = (!empty($data['addon_purchase']) && $data['addon_purchase']->status === 'pending');
-        $data['is_addon_initiated'] = (!empty($data['addon_transaction']) && $data['addon_transaction']->status === 'initiated');
-        $data['is_addon_failed']    = (!empty($data['addon_purchase']) && $data['addon_purchase']->status === 'cancelled');
+        $data['is_addon_failed']    = (!empty($data['addon_purchase']) && in_array($data['addon_purchase']->status, ['cancelled', 'failed'], true))
+                                      || (!empty($data['addon_transaction']) && in_array($data['addon_transaction']->status, ['failed', 'cancelled'], true))
+                                      || ($payment_param === 'failed');
+        $data['is_addon_pending']   = (!$data['is_addon_paid'] && !$data['is_addon_failed']);
+        $data['is_addon_initiated'] = false; // Never lock out merchant with disabled processing button
 
         $data['side_menu'] = 'order_resolution';
         $data['PageTitle'] = 'Order Resolution #' . $res->ticket_number;
