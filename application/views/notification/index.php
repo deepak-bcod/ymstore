@@ -89,7 +89,7 @@ if ($current_lang === 'french') {
         );
     }
 
-    // 3c. Order Resolution Reply & Denied Requests (NEW & UPDATED)
+    // 3c. Order Resolution Reply & Denied Requests
     if (strpos($row->title, 'Order Resolution Reply') !== false) {
         $title = str_replace('Order Resolution Reply on Ticket', 'Réponse à la résolution de la commande sur le ticket', $row->title);
         
@@ -100,7 +100,7 @@ if ($current_lang === 'french') {
         );
     }
 
-    // 3d. Order Resolution - No Refund / Merchant Denied (NEW)
+    // 3d. Order Resolution - No Refund / Merchant Denied
     if (strpos($row->title, 'Order Resolution - No Refund') !== false) {
         $title = str_replace('Order Resolution - No Refund for Product', 'Résolution de commande - Aucun remboursement pour le produit', $row->title);
         
@@ -110,6 +110,87 @@ if ($current_lang === 'french') {
                 ['Le vendeur a refusé la demande de remboursement pour'],
                 $message
             );
+        }
+    }
+
+    // 3e. Order Resolution Subtypes (mark_done, close, close_final, resolution_approved, resolution_denied) - NEW
+    if ($type === 'order_resolution') {
+        if ($subtype === 'reply') {
+            if (strpos($row->title, 'Order resolution reply') !== false) {
+                $title = str_replace('Order resolution reply', 'Réponse à la résolution de la commande', $row->title);
+            }
+            if (strpos($row->message, 'Yellow Market team has replied to your resolution ticket') !== false) {
+                $message = str_replace(
+                    'Yellow Market team has replied to your resolution ticket',
+                    'L’équipe Yellow Market a répondu à votre ticket de résolution',
+                    $message
+                );
+            }
+        } elseif ($subtype === 'mark_done') {
+            // Title: "Your Resolution for Order is refunded"
+            if (strpos($row->title, 'Your Resolution for Order is refunded') !== false) {
+                $title = 'Votre résolution de commande a été remboursée';
+            }
+            // Message: "Your resolution ({ticket}) for Order item({item}) is refunded by Yellow markets team."
+            if (strpos($row->message, 'is refunded by Yellow markets team') !== false) {
+                $message = preg_replace(
+                    '/Your resolution \((.*?)\) for Order item\((.*?)\) is refunded by Yellow markets team\./',
+                    'Votre résolution ($1) pour l’article de commande ($2) a été remboursée par l’équipe Yellow Markets.',
+                    $row->message
+                );
+            }
+        } elseif ($subtype === 'close') {
+            // Title: "Resolution ticket is closed"
+            if (strpos($row->title, 'Resolution ticket is closed') !== false) {
+                $title = 'Le ticket de résolution est fermé';
+            }
+            // Message: "Your resolution ticket no ({ticket}) is closed. If you wish to escalate..."
+            if (strpos($row->message, 'is closed. If you wish to escalate') !== false) {
+                $message = preg_replace(
+                    '/Your resolution ticket no \((.*?)\) is closed\. If you wish to escalate with Yellow Market team plz go back inside you tick and raise resolution with yellow market team\./',
+                    'Votre ticket de résolution n° ($1) est fermé. Si vous souhaitez faire appel auprès de l’équipe Yellow Market, veuillez retourner dans votre ticket et soumettre une résolution.',
+                    $row->message
+                );
+            }
+        } elseif ($subtype === 'close_final') {
+            // Title: "Resolution ({ticket}) closed"
+            if (strpos($row->title, 'closed') !== false) {
+                $title = preg_replace('/Resolution \((.*?)\) closed/', 'Résolution ($1) fermée', $row->title);
+            }
+            // Message: "Your resolution ticket no ({ticket}) is closed."
+            if (strpos($row->message, 'is closed') !== false) {
+                $message = preg_replace(
+                    '/Your resolution ticket no \((.*?)\) is closed\./',
+                    'Votre ticket de résolution n° ($1) est fermé.',
+                    $row->message
+                );
+            }
+        } elseif ($subtype === 'resolution_approved') {
+            // Title: "Resolution ticket approved"
+            if (strpos($row->title, 'Resolution ticket approved') !== false) {
+                $title = 'Ticket de résolution approuvé';
+            }
+            // Message: "Your resolution ticket no ({ticket}) is approved by The yellow market team, Team is working on it and will update you asap."
+            if (strpos($row->message, 'is approved by The yellow market team') !== false) {
+                $message = preg_replace(
+                    '/Your resolution ticket no \((.*?)\) is approved by The yellow market team, Team is working on it and will update you asap\./',
+                    'Votre ticket de résolution n° ($1) a été approuvé par l’équipe Yellow Market. L’équipe y travaille et vous tiendra informé dans les plus brefs délais.',
+                    $row->message
+                );
+            }
+        } elseif ($subtype === 'resolution_denied') {
+            // Title: "Resolution ticket denied"
+            if (strpos($row->title, 'Resolution ticket denied') !== false) {
+                $title = 'Ticket de résolution refusé';
+            }
+            // Message: "Your resolution ticket no ({ticket}) is denied by The yellow market team."
+            if (strpos($row->message, 'is denied by The yellow market team') !== false) {
+                $message = preg_replace(
+                    '/Your resolution ticket no \((.*?)\) is denied by The yellow market team\./',
+                    'Votre ticket de résolution n° ($1) a été refusé par l’équipe Yellow Market.',
+                    $row->message
+                );
+            }
         }
     }
 
