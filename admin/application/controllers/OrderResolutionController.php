@@ -258,7 +258,48 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
+        // Get ticket details to retrieve customer_id and product/order info before updating
+        $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+
         $res = $this->OrderResolutionModel->admin_mark_done($ticket_number, $admin_id, $notes);
+
+        // If action was successful, send notification to the customer
+        if (isset($res['status']) && $res['status'] && $res_ticket && !empty($res_ticket->customer_id)) {
+            
+            // Fetch product name if product_id exists
+            $product_name = '';
+            if (!empty($res_ticket->product_id)) {
+                $product = $this->db->select('name')->get_where('products', ['id' => $res_ticket->product_id])->row();
+                if ($product && !empty($product->name)) {
+                    $product_name = $product->name;
+                }
+            }
+
+            // Fallback to order_number or order_id if product name isn't found
+            $order_info = !empty($product_name) ? $product_name : (!empty($res_ticket->order_number) ? $res_ticket->order_number : ($res_ticket->order_id ?? ''));
+
+            $title        = "Your Resolution for Order is refunded";
+            $message_text = "Your resolution (" . $ticket_number . ") for Order item(" . $order_info . ") is refunded by Yellow markets team.";
+
+            $notification_data = [
+                'type'           => 'order_resolution',
+                'subtype'        => 'mark_done',
+                'recipient_type' => 'customer',
+                'recipient_id'   => $res_ticket->customer_id,
+                'title'          => $title,
+                'message'        => $message_text,
+                'data'           => json_encode(['ticket_number' => $ticket_number, 'item_info' => $order_info]),
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s')
+            ];
+
+            try {
+                $this->db->insert('notifications', $notification_data);
+            } catch (\Exception $e) {
+                log_message('error', 'Mark done notification insert failed: ' . $e->getMessage());
+            }
+        }
+
         $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=acct');
     }
 
@@ -326,7 +367,35 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
+        // Get ticket details to retrieve customer_id before finalizing
+        $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+
         $res = $this->OrderResolutionModel->admin_close_final($ticket_number, $admin_id, $notes);
+
+        // If action was successful, send notification to the customer
+        if (isset($res['status']) && $res['status'] && $res_ticket && !empty($res_ticket->customer_id)) {
+            $title        = "Resolution (" . $ticket_number . ") closed";
+            $message_text = "Your resolution ticket no (" . $ticket_number . ") is closed.";
+
+            $notification_data = [
+                'type'           => 'order_resolution',
+                'subtype'        => 'close_final',
+                'recipient_type' => 'customer',
+                'recipient_id'   => $res_ticket->customer_id,
+                'title'          => $title,
+                'message'        => $message_text,
+                'data'           => json_encode(['ticket_number' => $ticket_number]),
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s')
+            ];
+
+            try {
+                $this->db->insert('notifications', $notification_data);
+            } catch (\Exception $e) {
+                log_message('error', 'Close final notification insert failed: ' . $e->getMessage());
+            }
+        }
+
         $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
     }
 
