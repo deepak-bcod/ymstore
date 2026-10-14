@@ -401,7 +401,7 @@ function getSubOrderStatusText($status) {
                                                                     $o_id = isset($order->order_id) ? (int)$order->order_id : 0;
                                                                     $b2b_id = isset($b2b->order_id) ? (int)$b2b->order_id : 0;
 
-                                                                    $esc_state = null;
+                                                                    $esc_state = 'init';
                                                                     if (isset($escalation_status_map) && is_array($escalation_status_map)) {
                                                                         if ($p_id > 0 && isset($escalation_status_map[$o_id . '_' . $p_id])) {
                                                                             $esc_state = $escalation_status_map[$o_id . '_' . $p_id];
@@ -418,7 +418,10 @@ function getSubOrderStatusText($status) {
                                                                         $esc_state = $CI->OrderResolutionModel->get_item_escalation_status($o_id, $p_id, $b2b_id);
                                                                     }
 
-                                                                    if ($esc_state === 'in_progress') {
+                                                                    if ($esc_state === 'init') {
+                                                                        $create_url = base_url('order_resolution/create');
+                                                                        $escalation_suffix = ' (<a href="' . $create_url . '" class="escalation-request-link" style="color: inherit; text-decoration: underline;">' . ($this->lang->line('escalation_request') ?: 'Escalation Request') . '</a>)';
+                                                                    } elseif ($esc_state === 'in_progress') {
                                                                         $escalation_suffix = ' (' . ($this->lang->line('escalation_in_progress') ?: 'Escalation In Progress') . ')';
                                                                     } elseif ($esc_state === 'complete') {
                                                                         $escalation_suffix = ' (' . ($this->lang->line('escalation_complete') ?: 'Escalation Complete') . ')';
