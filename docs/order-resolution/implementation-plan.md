@@ -1,181 +1,262 @@
-# YellowMarkets Order Resolution - Implementation Plan
+# YellowMarkets Order Resolution - Comprehensive Implementation Plan
 
-**Module:** Order Resolution (Customer Portal)  
-**Status:** Planning & Analysis (Awaiting User Approval)  
+**Module:** Order Resolution (Customer, Merchant, Admin Portals)  
+**Status:** Planning & Analysis Only (Awaiting User Approval — No Code Changes Authorized)  
 **Date:** 2026-10-14  
 
 ---
 
-## 1. Overview and Objectives
+## 1. Executive Summary & Scope
 
-This document details the exact files, methods, database interactions, visual updates, and localization changes required to refine the YellowMarkets Order Resolution workflow according to user specifications and screenshot feedback.
+This implementation plan incorporates the complete set of new requirements (A through E) into the YellowMarkets Order Resolution architecture. It covers the technical specifications, affected files, database mapping, security controls, and step-by-step implementation tasks across Customer, Merchant, and Admin modules.
 
-### Key Objectives:
-1. **Listing Sorting:** Guarantee newest resolution requests are listed first (descending order by creation timestamp and primary key).
-2. **Unified Blue Button Theme:** Standardize all action buttons (e.g., `+ New Resolution Request`, `Escalate to Yellow Market`, modal submit, and reply actions) to the existing blue button styling (`btn-info` / primary blue), while keeping existing status badges intact.
-3. **Escalation Renaming:**
-   - Change button label from **Resolution Request** to **Escalate to Yellow Market**.
-   - Change modal submit button label to **Submit Escalation**.
-4. **Clean Supporting Text & Remove `@Help`:**
-   - Update text to: `Merchant has not replied or resolved? Request Yellow Markets Support to intervene and assist.`
-   - Apply red styling as instructed in screenshot annotations (`color: #d9534f;` / `text-danger`).
-   - Remove internal `@Help` jargon from customer-facing text and modals.
-5. **Hide Escalation Action After Submission:**
-   - Once escalated (`resolution_status = 'resolution_requested'`), hide the escalation trigger button and form entirely.
-   - Display a clean status confirmation: `The escalation has been submitted to YellowMarkets support.`
-   - Enforce server-side idempotency and state validation to prevent duplicate submissions.
-6. **Full Multilingual Integrity:**
-   - Provide complete English and French translations for all new and updated labels, validation messages, and notifications.
+### Scope of Requirements:
+1. **Requirement A: Popup close and page refresh**
+   - Automatically and reliably refresh the parent page after a modal/popup completes its operation and closes, for both Merchant and Admin portals.
+   - Prevent duplicate form submissions and infinite refresh loops.
+   - Retain current URL parameters (language, ticket context, active tab/role query).
+2. **Requirement B: Refund amount visibility**
+   - Consistently display the refund amount on both Merchant and Admin detail pages.
+   - Use the unified refund calculation and storage from `order_resolutions.refund_amount` without discrepancies.
+   - Cleanly format and display statuses: Pending, Approved (with currency and amount), Denied (or 0.00), and N/A (where not applicable).
+3. **Requirement C: Audit Trail and State Transitions Ordering**
+   - Display newest events and transitions first across all interfaces.
+   - Sort primarily by `created_at DESC` and secondarily by `id DESC`.
+   - Apply identically across Admin, Merchant, and Customer audit views.
+4. **Requirement D: Admin role-specific actions and posting identities**
+   - **Support Team (@Help):** Restrict access strictly to Help-related actions (`assign_to_acct`, `close_ticket`, `close_final`, dispute approvals/denials). Display posting identity as: `Posting As: Support Team (@Help)`.
+   - **Accounting Team (@Acct):** Restrict access strictly to Accounting-related actions (`mark_done`, request AddOn delivery). Display posting identity as: `Posting As: Accounting Team (@Acct)`.
+   - **Interface Cleanup:** Completely remove `@Help View` and `@Acct View` toggle buttons from the controls header. Remove "Posting As" radio buttons from the reply form.
+   - **Server-Side Enforcement:** Strictly validate permissions on all controller endpoints; prevent role spoofing or execution of unauthorized actions via direct requests.
+5. **Requirement E: YM Delivery Replacement — AddOn Service Required**
+   - **Workflow:** When Merchant selects `ym_delivery` for replacement, Accounting (@Acct) reviews the ticket and issues a formal purchase request for the replacement delivery AddOn Service.
+   - **Merchant Purchase Interface:** Display a dedicated AddOn service details table with Order #, Ticket #, Product, Delivery service, AddOn service name, Amount (price + taxes), Payment status, Action button/link to purchase, and next step instructions.
+   - **Payment & Confirmation Flow:** Merchant checks out via the existing YellowMarkets AddOn payment flow (`merchant/application/controllers/Addons.php`). Upon payment confirmation (callback/notify), link `addon_purchase_id` to `order_resolutions`, log confirmation in the audit trail, and notify @Acct to continue replacement dispatch.
 
 ---
 
-## 2. Analysis of Existing Codebase & Affected Components
+## 2. Complete Affected Files & Architecture Map
 
-| Component | File Path | Current State & Methods | Required Modification |
+| Area | File Path | Component Type | Summary of Changes |
 | :--- | :--- | :--- | :--- |
-| **Customer Controller** | `application/controllers/OrderResolutionController.php` | - `index()` queries `order_resolutions` with `order_by('r.id', 'DESC')`.<br>- `request_resolution()` handles escalation submission.<br>- `view($ticket_number)` renders detail page. | - Enforce explicit sort: `r.created_at DESC, r.id DESC`.<br>- Enhance server validation in `request_resolution()` against duplicate escalation and verify ticket eligibility. |
-| **Model** | `application/models/OrderResolutionModel.php` | - `shopper_resolution_request($ticket_number, $customer_id, $message)` sets `resolution_status = 'resolution_requested'`, status = `'ReOpen'`.<br>- Validates duplicate escalation via `if ($res->resolution_status === 'resolution_requested' ...)` | - Refine return message (remove `@Help` mention from user-facing flash message: `"The escalation has been submitted to YellowMarkets support."`).<br>- Maintain audit logging and notification triggers. |
-| **Listing View** | `application/views/order_resolution/list.php` | - Top right button: `<a href="..." class="btn btn-primary">` renders yellow in site theme.<br>- Table action button: `<a class="btn btn-sm btn-info">` renders blue.<br>- Status badges: Closed (`badge-status-close`), Refund Denied (`badge-action-denied`), etc. | - Change top right button class from `btn-primary` to `btn-info` (standardizing to blue theme).<br>- Preserve all status badges (`badge-status-*`, `badge-action-*`). |
-| **Detail View** | `application/views/order_resolution/view.php` | - Line 148: `<button class="btn btn-warning">` with text `Resolution Request`.<br>- Line 151: Text mentions `(@Help)`.<br>- Line 216: Reply button has `btn-primary`.<br>- Line 255: Modal submit has `btn-warning` and `Confirm Resolution Request`.<br>- Escalation block currently placed inside metadata card above conversation. | - Change escalation button to blue (`btn-info`) with label `Escalate to Yellow Market`.<br>- Position escalation block (or place below conversation as requested in screenshot note).<br>- Update supporting text to red styling and remove `@Help`.<br>- Hide button & form when ticket is escalated (`resolution_status === 'resolution_requested'`); display `The escalation has been submitted to YellowMarkets support.`<br>- Update modal title, remove `@Help`, and rename submit button to `Submit Escalation` with blue theme (`btn-info`).<br>- Standardize reply button to blue theme. |
-| **Create View** | `application/views/order_resolution/create.php` | - Submit button: `class="btn btn-success btn-lg"`. | - Standardize submit button to blue theme (`btn-info`). |
-| **Language (EN)** | `application/language/english/content_lang.php` | - Contains existing keys around lines 2258-2367. | - Add/update keys: `escalate_to_yellow_market`, `submit_escalation`, `escalation_supporting_text`, `escalation_submitted_status`, etc. Remove `@Help` mentions. |
-| **Language (FR)** | `application/language/french/content_lang.php` | - Contains existing keys around lines 1400-1476. | - Add corresponding French translations for all updated and new strings. |
+| **Admin Controller** | `admin/application/controllers/OrderResolutionController.php` | Controller | • Remove toggle query spoofing; enforce server session role authentication.<br>• Add server-side RBAC guards to `assign_to_acct`, `close_ticket`, `close_final`, `resolution_decision`, `mark_done`.<br>• Add `request_addon_delivery()` endpoint for `@Acct`.<br>• Remove radio role selection; force server-resolved role in `reply()`. |
+| **Merchant Controller** | `merchant/application/controllers/OrderResolutionController.php` | Controller | • Pass complete AddOn delivery purchase details (service model, purchase record, transaction status, checkout URL) to `view()` data.<br>• Unify refund amount presentation logic. |
+| **Customer Controller** | `application/controllers/OrderResolutionController.php` | Controller | • Maintain descending audit ordering and consistent ticket context. |
+| **Shared Model** | `application/models/OrderResolutionModel.php` | Model | • In `get_audit_log($resolution_id)`: order by `created_at DESC, id DESC`.<br>• Add `request_addon_delivery()` method (state update, audit log, email/in-app notification to merchant).<br>• Add `confirm_addon_payment()` method (state update, audit log, notification to @Acct).<br>• Standardize refund calculation helper `get_formatted_refund_amount()`. |
+| **Merchant AddOn Controller** | `merchant/application/controllers/Addons.php` | Controller | • Add `buy_resolution_delivery($ticket_number)` or link ticket reference to `merchant_addon_purchases`.<br>• In `_handleMytAddonResponse()`, trigger resolution audit log and notifications upon successful payment. |
+| **Admin Detail View** | `admin/application/views/order_resolution/view.php` | View / JS | • Remove `@Help View` and `@Acct View` toggle button group.<br>• Replace "Posting As" radio buttons with static label `Posting As: Support Team (@Help)` or `Posting As: Accounting Team (@Acct)` and hidden input.<br>• Add `@Acct` action button: "Request AddOn Service Purchase" with modal confirmation.<br>• Implement clean modal close handler (`hidden.bs.modal`) to refresh page only after successful operation completion while preserving query params. |
+| **Merchant Detail View** | `merchant/application/views/order_resolution/view.php` | View / JS | • Add AddOn Service Required table with complete 10-field specification.<br>• Unify Refund Amount block in status banner to show across all states (Pending, Approved, Denied, N/A).<br>• Implement clean modal close handler (`hidden.bs.modal`) to refresh page upon operation completion. |
+| **Language (EN)** | `admin/application/language/english/content_lang.php`<br>`merchant/application/language/english/content_lang.php`<br>`application/language/english/content_lang.php` | Language | • Add English translation keys for role posting headers, AddOn request actions, table column headers, and status messages. |
+| **Language (FR)** | `admin/application/language/french/content_lang.php`<br>`merchant/application/language/french/content_lang.php`<br>`application/language/french/content_lang.php` | Language | • Add complete French translations for all new and updated labels, validation text, and email notices. |
+| **Email Templates** | `database/migrations/` | Migration / DB | • Add email template `order-resolution-addon-purchase-request-merchant` for AddOn purchase instructions. |
 
 ---
 
-## 3. Detailed Proposed Changes
+## 3. Deep-Dive Design Specifications
 
-### A. Listing Page (`application/views/order_resolution/list.php` & `OrderResolutionController.php`)
-1. **Query Sorting:**
-   In `OrderResolutionController::index()`:
-   ```php
-   $this->db->order_by('r.created_at', 'DESC');
-   $this->db->order_by('r.id', 'DESC');
+### A. Popup Close & Page Refresh (Requirement A)
+
+#### Current Behavior:
+Modals hide via `$modal.modal('hide')` inside AJAX `success` handlers, followed by an arbitrary `setTimeout` before `window.location.reload()`. If the user closes an unsubmitted modal or an error occurs, behaviors vary.
+
+#### Proposed Architecture:
+1. **Operation State Flag:** In both `merchant/application/views/order_resolution/view.php` and `admin/application/views/order_resolution/view.php`, maintain a scoped state flag `var operationCompleted = false;` per modal interaction.
+2. **AJAX Success Handler:** On successful JSON response (`res.status === true`), set `operationCompleted = true`, trigger modal close via `$modal.modal('hide')`.
+3. **Bootstrap `hidden.bs.modal` Event Listener:**
+   ```javascript
+   $('.modal').on('hidden.bs.modal', function() {
+       if (operationCompleted) {
+           operationCompleted = false;
+           // Retain current path, language, and ticket context
+           window.location.href = window.location.href;
+       }
+   });
    ```
-2. **Button Standardization:**
-   Update "+ New Resolution Request":
-   ```html
-   <a href="<?php echo base_url('order_resolution/create'); ?>" class="btn btn-info">
-       <i class="fa fa-plus"></i> <?php echo $this->lang->line('raise_resolution_request') ?: 'New Resolution Request'; ?>
-   </a>
-   ```
-3. **Preserve Badges:**
-   Ensure status labels (Closed, Refund Denied, Refund Approved, Replacement Denied, etc.) remain untouched.
+4. **Idempotency & Loop Prevention:** If the user opens and cancels a modal without completing an operation, `operationCompleted` remains `false` and no refresh occurs.
 
 ---
 
-### B. Detail Page (`application/views/order_resolution/view.php`)
+### B. Refund Amount Visibility (Requirement B)
 
-#### 1. Escalation Trigger Block
-- **Condition:** Displayed when ticket is in actionable state (`Close`, `Done`, `Processing`) and merchant has rejected (`refund_denied` or `replacement_denied`), AND has **not** been escalated yet (`$resolution->resolution_status !== 'resolution_requested'`).
-- **Placement:** Can be rendered below the resolution conversation or within the decision panel, prominently styled.
-- **Button:**
-  ```html
-  <button type="button" class="btn btn-info" data-toggle="modal" data-target="#resolutionEscalateModal">
-      <i class="fa fa-flag"></i> <?php echo $this->lang->line('escalate_to_yellow_market') ?: 'Escalate to Yellow Market'; ?>
-  </button>
-  ```
-- **Supporting Text (Red):**
-  ```html
-  <span class="text-danger" style="margin-left: 10px; font-weight: 500; color: #d9534f;">
-      <?php echo $this->lang->line('resolution_escalate_prompt') ?: 'Merchant has not replied or resolved? Request Yellow Markets Support to intervene and assist.'; ?>
-  </span>
-  ```
+#### Business Logic:
+The refund amount is stored in `order_resolutions.refund_amount` (decimal 12,2).
+- When a refund is requested/pending: Display calculated order/item refund value or `Pending`.
+- When refund is approved (`merchant_action = 'refund_approved'` or `resolution_status = 'resolution_approved'`): Display `MUR XX.XX` in green bold text.
+- When refund is denied (`merchant_action = 'refund_denied'` or `resolution_status = 'resolution_denied'`): Display `Denied` or `MUR 0.00`.
+- When ticket is Replacement without refund: Display `N/A`.
 
-#### 2. Post-Escalation State (Hidden Button + Confirmation)
-- When `$resolution->resolution_status === 'resolution_requested'`:
-  - The escalation button and modal are **hidden**.
-  - A clean notification box / badge is displayed:
+#### Implementation:
+Both Merchant (`merchant/application/views/order_resolution/view.php`) and Admin (`admin/application/views/order_resolution/view.php`) will render the identical component block:
+```html
+<div class="col-md-3">
+    <strong>Refund Amount:</strong>
+    <span class="font-weight-bold <?= ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
+        <?php 
+        if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
+            echo $currency . ' ' . number_format($resolution->refund_amount, 2);
+        } elseif ($resolution->merchant_action === 'refund_denied' || $resolution->resolution_status === 'resolution_denied') {
+            echo 'Denied';
+        } elseif ($resolution->category === 'Refund' && $resolution->refund_amount > 0) {
+            echo $currency . ' ' . number_format($resolution->refund_amount, 2) . ' (Pending)';
+        } else {
+            echo 'N/A';
+        }
+        ?>
+    </span>
+</div>
+```
+
+---
+
+### C. Audit Trail & State Transitions Chronological Order (Requirement C)
+
+#### Current Code (`application/models/OrderResolutionModel.php` line 1676):
+```php
+public function get_audit_log($resolution_id)
+{
+    return $this->db->where('resolution_id', $resolution_id)->order_by('created_at', 'ASC')->get('order_resolution_audit_log')->result();
+}
+```
+
+#### Proposed Code:
+```php
+public function get_audit_log($resolution_id)
+{
+    return $this->db->where('resolution_id', (int)$resolution_id)
+        ->order_by('created_at', 'DESC')
+        ->order_by('id', 'DESC')
+        ->get('order_resolution_audit_log')
+        ->result();
+}
+```
+Because Customer, Merchant, and Admin controllers all retrieve audit records exclusively via `OrderResolutionModel::get_audit_log()`, this single update immediately and uniformly sorts all audit records descending across all three portals.
+
+---
+
+### D. Admin Role-Specific Actions & Posting Identities (Requirement D)
+
+#### 1. UI Updates in `admin/application/views/order_resolution/view.php`:
+- **Remove Toggle Buttons:** Delete lines 151–160 (the button group containing `@Help View` and `@Acct View`).
+- **Remove Posting As Radio Selection:** Delete lines 306–318 (radio inputs `roleHelp` and `roleAcct`).
+- **Render Static Role Header:**
+  - If `$current_role === 'help'`:
     ```html
-    <div class="alert alert-info" style="margin-top: 15px; background-color: #e8f4fd; border-color: #b8daff; color: #004085;">
-        <i class="fa fa-info-circle"></i>
-        <strong><?php echo $this->lang->line('escalated_badge') ?: 'Escalated'; ?>:</strong>
-        <?php echo $this->lang->line('escalation_submitted_confirmation') ?: 'The escalation has been submitted to YellowMarkets support.'; ?>
+    <div class="form-group mb-2">
+        <label class="font-weight-bold">Posting As:</label>
+        <span class="badge badge-primary ml-2 py-1 px-2">Support Team (@Help)</span>
+        <input type="hidden" name="role" value="help">
+    </div>
+    ```
+  - If `$current_role === 'acct'`:
+    ```html
+    <div class="form-group mb-2">
+        <label class="font-weight-bold">Posting As:</label>
+        <span class="badge badge-warning ml-2 py-1 px-2">Accounting Team (@Acct)</span>
+        <input type="hidden" name="role" value="acct">
     </div>
     ```
 
-#### 3. Modal Form Updates
-- **Modal ID:** `#resolutionEscalateModal`
-- **Modal Title:** `Escalate to Yellow Market Support`
-- **Modal Text:** Remove all mentions of `@Help`.
-- **Submit Button:**
-  ```html
-  <button type="submit" class="btn btn-info">
-      <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('submit_escalation') ?: 'Submit Escalation'; ?>
-  </button>
+#### 2. Server-Side RBAC Enforcement in `admin/application/controllers/OrderResolutionController.php`:
+- Helper check in controller:
+  ```php
+  protected function require_admin_role($required_role)
+  {
+      $session_role = $this->get_authenticated_admin_role(); // 'help' or 'acct'
+      if ($session_role !== $required_role && !$this->is_super_admin()) {
+          $this->json_response(false, 'Unauthorized. This action is restricted to ' . ucfirst($required_role) . ' team.');
+          return false;
+      }
+      return true;
+  }
   ```
+- **Guarded Endpoints:**
+  - `assign_to_acct()`: Requires `help`.
+  - `resolution_decision()`: Requires `help`.
+  - `close_ticket()`: Requires `help`.
+  - `close_final()`: Requires `help`.
+  - `mark_done()`: Requires `acct`.
+  - `request_addon_delivery()`: Requires `acct`.
+  - `reply()`: Ignores client-supplied `role` parameter; overrides strictly with server-authenticated role (`help` or `acct`).
 
 ---
 
-### C. Server-Side Guard & Backend (`OrderResolutionModel.php` & `OrderResolutionController.php`)
-1. **Idempotency & Duplicate Prevention:**
-   ```php
-   if ($res->resolution_status === 'resolution_requested' || $res->status === 'ReOpen') {
-       return [
-           'status' => false,
-           'message' => 'This request has already been escalated to YellowMarkets support.',
-           'requires_reload' => true
-       ];
-   }
-   ```
-2. **Success Feedback:**
-   Updated message: `"The escalation has been submitted to YellowMarkets support."`
+### E. YM Delivery Replacement — AddOn Service Integration (Requirement E)
 
----
-
-### D. Multilingual Updates
-
-#### English (`application/language/english/content_lang.php`):
-```php
-$lang['escalate_to_yellow_market']           = 'Escalate to Yellow Market';
-$lang['resolution_escalate_prompt']          = 'Merchant has not replied or resolved? Request Yellow Markets Support to intervene and assist.';
-$lang['submit_escalation']                   = 'Submit Escalation';
-$lang['escalate_modal_title']                = 'Escalate to Yellow Market Support';
-$lang['escalate_modal_desc']                 = 'If you disagree with the merchant\'s decision or the issue has not been satisfactorily resolved, submit this request to escalate the ticket directly to Yellow Markets Support.';
-$lang['escalation_submitted_confirmation']   = 'The escalation has been submitted to YellowMarkets support.';
-$lang['escalated_badge']                     = 'Escalated';
+#### 1. Workflow Sequence:
+```
+[Merchant: Replacement Approved (YM Delivery)]
+                     │
+                     ▼
+[@Acct Admin: Reviews ticket, clicks "Request AddOn Service Purchase"]
+                     │
+                     ▼ (Generates purchase request, audit log, email & in-app notification)
+[Merchant Portal: Dedicated AddOn Service Card with Full Breakdown]
+                     │
+                     ▼ (Merchant clicks "Purchase Delivery AddOn Service")
+[Addon Payment Gateway (MyT Money / Checkout)]
+                     │
+                     ▼ (Payment Confirmed via mytNotify / mytCallback)
+[System: merchant_addon_purchases status = 'paid']
+[System: order_resolutions.addon_purchase_id linked]
+[System: Audit log 'AddOn Purchase Confirmed' + Notify @Acct]
+                     │
+                     ▼
+[@Acct & @Help: Can proceed to delivery completion and closure]
 ```
 
-#### French (`application/language/french/content_lang.php`):
+#### 2. Required AddOn Service Detail Card in Merchant View:
+When `delivery_option === 'ym_delivery'` and `merchant_action === 'replacement_approved'`:
+Display a dedicated, styled card containing the exact 10 required fields:
+
+| Field | Value Source | Description |
+| :--- | :--- | :--- |
+| **Order number** | `$resolution->order_number` | Original order increment ID |
+| **Resolution ticket** | `$resolution->ticket_number` | Active ticket reference |
+| **Product** | `$product->name` | Product item to replace |
+| **Delivery service** | YellowMarkets Delivery | Selected delivery channel |
+| **AddOn Service** | `$addon_service->title` (e.g., Replacement Delivery Service) | Catalog service title |
+| **Amount** | `$addon_service->final_price` (+ applicable VAT/tax) | Actual catalog price formatted with currency |
+| **Payment status** | `$addon_purchase->status ?: 'Pending Purchase'` | Badge: `Pending` (warning), `Paid` (success), `Failed` (danger) |
+| **Purchase action** | Button linking to `addons/buy_resolution_delivery/{ticket_number}` | Active button if pending/failed; disabled if paid |
+| **Instructions** | Clear guidance text | "Please complete payment for the replacement delivery service so our logistics team can dispatch the item." |
+| **Confirmation** | `$addon_transaction->transaction_ref ?: 'Awaiting confirmation'` | Official transaction / receipt reference |
+
+#### 3. Payment Confirmation Hook in `merchant/application/controllers/Addons.php`:
+In `_handleMytAddonResponse()`:
+When payment is marked `success` and `merchant_addon_purchases` is set to `paid`:
 ```php
-$lang['escalate_to_yellow_market']           = 'Escalader vers Yellow Market';
-$lang['resolution_escalate_prompt']          = 'Le marchand n\'a pas répondu ou résolu ? Demandez au Support Yellow Markets d\'intervenir et de vous assister.';
-$lang['submit_escalation']                   = 'Soumettre l\'escalade';
-$lang['escalate_modal_title']                = 'Escalader au Support Yellow Market';
-$lang['escalate_modal_desc']                 = 'Si vous êtes en désaccord avec la décision du marchand ou si le problème n\'a pas été résolu de manière satisfaisante, transmettez ce ticket directement au Support Yellow Markets.';
-$lang['escalation_submitted_confirmation']   = 'L\'escalade a été soumise au support Yellow Markets.';
-$lang['escalated_badge']                     = 'Escaladé';
+// Check if purchase is associated with an order resolution
+$res = $this->db->get_where('order_resolutions', ['addon_purchase_id' => $purchase_id])->row();
+if ($res) {
+    $this->OrderResolutionModel->audit_log(
+        $res->id,
+        $res->ticket_number,
+        $res->status,
+        $res->status,
+        'AddOn Delivery Purchased',
+        'merchant',
+        $res->merchant_id,
+        "Merchant completed AddOn purchase #{$purchase_id} for replacement delivery."
+    );
+    // Notify Accounting and Help
+    $this->OrderResolutionModel->send_inapp_notification('admin', 1, 'addon_purchased',
+        'Order Resolution - AddOn Delivery Purchased',
+        "Merchant has paid for YM Delivery AddOn Service for Ticket #{$res->ticket_number}.", $res);
+}
 ```
 
 ---
 
-## 4. Business Rules Preserved
+## 4. Acceptance Criteria & Validation Strategy
 
-1. **Order Resolution Pre-requisite:** Remains strictly gated to order items where merchant rejected Return or Replacement.
-2. **Separation of Concerns:** Order status, order-item status, and resolution ticket status remain completely decoupled.
-3. **Database Schema Integrity:** No schema migrations or new enum values needed; uses existing `resolution_status = 'resolution_requested'`, `status = 'ReOpen'`, and timestamps.
-4. **Notifications Integrity:** Existing email dispatcher (`send_dispute_help_email`, `send_dispute_merchant_email`) and in-app notification routing preserved.
-5. **Duplicate Protection:** Client-side form hiding + button double-click disabling + server-side validation.
-
----
-
-## 5. Implementation Status
-
-- **Status:** **Completed & Verified**
-- **Date Completed:** 2026-10-14
-- **Modified Files:**
-  1. [`OrderResolutionController.php`](file:///d:/php-8-2-1/htdocs/ymstore/application/controllers/OrderResolutionController.php): Explicit sorting by `r.created_at DESC, r.id DESC`.
-  2. [`OrderResolutionModel.php`](file:///d:/php-8-2-1/htdocs/ymstore/application/models/OrderResolutionModel.php): Updated escalation return message to remove `@Help` and return translated confirmation; enforced duplicate escalation server-side guard.
-  3. [`list.php`](file:///d:/php-8-2-1/htdocs/ymstore/application/views/order_resolution/list.php): Standardized "+ New Resolution Request" button to blue theme (`btn-info`), matching the View button.
-  4. [`view.php`](file:///d:/php-8-2-1/htdocs/ymstore/application/views/order_resolution/view.php):
-     - Renamed trigger button to "Escalate to Yellow Market" and styled blue (`btn-info`).
-     - Supporting text updated to: *"Merchant has not replied or resolved? Request Yellow Markets Support to intervene and assist."* styled in red (`#d9534f`).
-     - Removed all customer-facing `@Help` text.
-     - Renamed modal submit button to "Submit Escalation" and styled blue (`btn-info`).
-     - Escalation action section moved below conversation stream as requested.
-     - Post-escalation state hides button and form, displaying confirmation banner and "Escalated" badge.
-     - Reply submit button standardized to blue theme (`btn-info`).
-  5. [`create.php`](file:///d:/php-8-2-1/htdocs/ymstore/application/views/order_resolution/create.php): Standardized submit button to blue theme (`btn-info`).
-  6. [`application/language/english/content_lang.php`](file:///d:/php-8-2-1/htdocs/ymstore/application/language/english/content_lang.php): English strings updated and added for escalation lifecycle.
-  7. [`application/language/french/content_lang.php`](file:///d:/php-8-2-1/htdocs/ymstore/application/language/french/content_lang.php): French translations updated and added for full bilingual support.
-- **Syntax Check:** All modified PHP files verified with `php -l` (0 errors).
+1. **Ordering Check:** Inspect audit log tables in Customer, Merchant, and Admin views to verify `created_at DESC, id DESC` ordering.
+2. **Modal Close & Refresh:** Open action modals in Merchant and Admin; submit valid action -> confirm modal closes, page refreshes seamlessly, retaining language and ticket context without double submission. Open modal and click "Cancel" -> confirm no unnecessary refresh.
+3. **Refund Amount Consistency:** Compare Merchant and Admin views across pending, approved, denied, and replacement tickets; confirm identical figures, labels, and formatting.
+4. **RBAC Isolation:** 
+   - Verify `@Help View` and `@Acct View` toggle buttons are gone.
+   - Verify reply form renders static `Posting As:` text without radio buttons.
+   - Attempt direct POST request from `@Acct` to `close_ticket` -> confirm server responds with 403 / unauthorized error.
+5. **AddOn Workflow:**
+   - On ticket with YM Delivery replacement, verify `@Acct` sees "Request AddOn Service Purchase" control.
+   - Verify Merchant portal renders the AddOn details card with all 10 required fields.
+   - Verify payment flow links `addon_purchase_id` and records audit entry upon completion.

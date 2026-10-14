@@ -105,23 +105,113 @@ $this->load->view('common/fbc-user/header');
                         </div>
                     </div>
 
-                    <!-- Current Resolution Decision Info Banner -->
-                    <?php if ($resolution->merchant_action !== 'none' || $resolution->delivery_option !== 'none' || $resolution->refund_amount > 0): ?>
-                        <div class="alert alert-info py-2 mb-3">
-                            <div class="row align-items-center">
-                                <div class="col-md-4">
-                                    <strong><?= $this->lang->line('merchant_action') ?: 'Merchant Action'; ?>:</strong> <?= htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?>
+                    <!-- Status & Decision Details Banner -->
+                    <div class="alert alert-secondary py-2 mb-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                <strong><?= $this->lang->line('merchant_action') ?: 'Merchant Action'; ?>:</strong> 
+                                <span class="text-primary font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong><?= $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</strong> 
+                                <span class="text-success font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong><?= $this->lang->line('refund_amount') ?: 'Refund Amount'; ?>:</strong> 
+                                <span class="font-weight-bold <?= ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
+                                    <?php 
+                                    if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
+                                        echo $currency . ' ' . number_format($resolution->refund_amount, 2);
+                                    } elseif ($resolution->merchant_action === 'refund_denied' || $resolution->resolution_status === 'resolution_denied') {
+                                        echo 'Denied';
+                                    } elseif ($resolution->category === 'Refund' && $resolution->refund_amount > 0) {
+                                        echo $currency . ' ' . number_format($resolution->refund_amount, 2) . ' (Pending)';
+                                    } else {
+                                        echo 'N/A';
+                                    }
+                                    ?>
+                                </span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong><?= $this->lang->line('resolution_status') ?: 'Resolution Status'; ?>:</strong> 
+                                <span class="badge badge-<?= ($resolution->resolution_status === 'resolution_approved') ? 'success' : (($resolution->resolution_status === 'resolution_denied') ? 'danger' : 'warning'); ?>">
+                                    <?= ucwords(str_replace('_', ' ', $resolution->resolution_status)); ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- YM Delivery Replacement: AddOn Service Card -->
+                    <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
+                        <div class="card mb-4 border-info">
+                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 font-weight-bold">
+                                    <i class="fa fa-truck"></i> <?= $this->lang->line('ym_delivery_addon_required_title') ?: 'YM Delivery Replacement — AddOn Service Required'; ?>
+                                </h6>
+                                <?php if (!empty($addon_purchase) && $addon_purchase->status === 'paid'): ?>
+                                    <span class="badge badge-success p-2"><i class="fa fa-check"></i> <?= $this->lang->line('addon_status_paid') ?: 'AddOn Paid'; ?></span>
+                                <?php else: ?>
+                                    <span class="badge badge-warning p-2"><i class="fa fa-clock-o"></i> <?= $this->lang->line('addon_status_pending') ?: 'Payment Required'; ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">
+                                    <?= $this->lang->line('ym_delivery_addon_desc') ?: 'You selected Yellow Markets delivery for this replacement. Accounting (@Acct) has requested you to purchase the replacement delivery service as an AddOn Service so logistics can collect and deliver the replacement product.'; ?>
+                                </p>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm mb-3">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th><?= $this->lang->line('order_number') ?: 'Order Number'; ?></th>
+                                                <th><?= $this->lang->line('resolution_ticket') ?: 'Resolution Ticket'; ?></th>
+                                                <th><?= $this->lang->line('product') ?: 'Product'; ?></th>
+                                                <th><?= $this->lang->line('delivery_service') ?: 'Delivery Service'; ?></th>
+                                                <th><?= $this->lang->line('addon_service') ?: 'AddOn Service'; ?></th>
+                                                <th><?= $this->lang->line('amount') ?: 'Amount'; ?></th>
+                                                <th><?= $this->lang->line('payment_status') ?: 'Payment Status'; ?></th>
+                                                <th><?= $this->lang->line('confirmation') ?: 'Confirmation'; ?></th>
+                                                <th><?= $this->lang->line('purchase_action') ?: 'Purchase Action'; ?></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>#<?= htmlspecialchars($resolution->order_number); ?></strong></td>
+                                                <td><span class="badge badge-secondary"><?= htmlspecialchars($resolution->ticket_number); ?></span></td>
+                                                <td><?= htmlspecialchars($product ? $product->name : 'N/A'); ?></td>
+                                                <td><span class="text-info font-weight-bold">YellowMarkets Delivery</span></td>
+                                                <td><?= htmlspecialchars($delivery_addon_service->title ?? 'Replacement Delivery Service'); ?></td>
+                                                <td class="font-weight-bold text-success"><?= $currency . ' ' . number_format($delivery_addon_service->final_price ?? 150.00, 2); ?></td>
+                                                <td>
+                                                    <?php if (!empty($addon_purchase) && $addon_purchase->status === 'paid'): ?>
+                                                        <span class="badge badge-success"><?= $this->lang->line('paid') ?: 'Paid'; ?></span>
+                                                    <?php elseif (!empty($addon_purchase) && $addon_purchase->status === 'cancelled'): ?>
+                                                        <span class="badge badge-danger"><?= $this->lang->line('failed') ?: 'Failed'; ?></span>
+                                                    <?php else: ?>
+                                                        <span class="badge badge-warning"><?= $this->lang->line('pending') ?: 'Pending'; ?></span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?= !empty($addon_transaction->transaction_ref) ? htmlspecialchars($addon_transaction->transaction_ref) : (!empty($addon_purchase) ? 'Purchase #' . $addon_purchase->id : 'Awaiting Payment'); ?>
+                                                </td>
+                                                <td>
+                                                    <?php if (!empty($addon_purchase) && $addon_purchase->status === 'paid'): ?>
+                                                        <button class="btn btn-sm btn-success disabled" disabled>
+                                                            <i class="fa fa-check"></i> <?= $this->lang->line('addon_service_paid') ?: 'Purchased'; ?>
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <a href="<?= base_url('addons/buy_resolution_delivery/' . $resolution->ticket_number); ?>" class="btn btn-sm btn-info font-weight-bold">
+                                                            <i class="fa fa-shopping-cart"></i> <?= $this->lang->line('purchase_addon_service') ?: 'Purchase AddOn Service'; ?>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <?php if ($resolution->delivery_option !== 'none'): ?>
-                                    <div class="col-md-4">
-                                        <strong><?= $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</strong> <?= htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if ($resolution->refund_amount > 0): ?>
-                                    <div class="col-md-4">
-                                        <strong><?= $this->lang->line('approved_refund') ?: 'Approved Refund'; ?>:</strong> <?= $currency . ' ' . number_format($resolution->refund_amount, 2); ?>
-                                    </div>
-                                <?php endif; ?>
+                                <div class="alert alert-light border py-2 mb-0">
+                                    <strong><i class="fa fa-info-circle"></i> <?= $this->lang->line('instructions') ?: 'Instructions'; ?>:</strong>
+                                    <?= $this->lang->line('addon_merchant_instruction') ?: 'Click "Purchase AddOn Service" to complete the payment. Once confirmed, YellowMarkets delivery will be scheduled, and our logistics partner will collect and deliver the replacement product.'; ?>
+                                </div>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -399,6 +489,16 @@ $this->load->view('common/fbc-user/header');
 
 <script>
 $(document).ready(function() {
+    var operationCompleted = false;
+
+    // Refresh current page only after an operation in a modal has successfully completed and modal closed
+    $('.modal').on('hidden.bs.modal', function() {
+        if (operationCompleted) {
+            operationCompleted = false;
+            window.location.href = window.location.href;
+        }
+    });
+
     // Explicit click handlers for decision action modal buttons
     $('[data-target="#refundApproveModal"], [data-bs-target="#refundApproveModal"]').on('click', function(e) {
         e.preventDefault();
@@ -459,16 +559,17 @@ $(document).ready(function() {
 
                     var $modal = $form.closest('.modal');
                     if ($modal.length) {
+                        operationCompleted = true;
                         $modal.modal('hide');
+                    } else {
+                        setTimeout(function() {
+                            if (res.redirect) {
+                                window.location.href = res.redirect;
+                            } else {
+                                window.location.href = window.location.href;
+                            }
+                        }, 800);
                     }
-
-                    setTimeout(function() {
-                        if (res.redirect) {
-                            window.location.href = res.redirect;
-                        } else {
-                            window.location.reload();
-                        }
-                    }, 800);
                 } else {
                     $btn.prop('disabled', false).html(origHtml);
                     var msg = (res && res.message) ? res.message : (<?= json_encode($this->lang->line('ajax_error') ?: 'An error occurred while processing your request.'); ?>);
@@ -476,7 +577,7 @@ $(document).ready(function() {
 
                     if (res && res.requires_reload) {
                         setTimeout(function() {
-                            window.location.reload();
+                            window.location.href = window.location.href;
                         }, 1500);
                     }
                 }

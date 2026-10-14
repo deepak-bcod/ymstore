@@ -1673,7 +1673,11 @@ class OrderResolutionModel extends CI_Model
 
     public function get_audit_log($resolution_id)
     {
-        return $this->db->where('resolution_id', $resolution_id)->order_by('created_at', 'ASC')->get('order_resolution_audit_log')->result();
+        return $this->db->where('resolution_id', (int)$resolution_id)
+            ->order_by('created_at', 'DESC')
+            ->order_by('id', 'DESC')
+            ->get('order_resolution_audit_log')
+            ->result();
     }
 
     public function audit_log($resolution_id, $ticket_number, $from_status, $to_status, $action, $actor_role, $actor_id, $notes = '')
@@ -1780,5 +1784,140 @@ class OrderResolutionModel extends CI_Model
         }
 
         return 'acct@yellowmarkets.com';
+    }
+
+    /**
+     * Get or resolve delivery AddOn Service
+     */
+    public function get_delivery_addon_service($service_id = null)
+    {
+        if ($service_id) {
+            $service = $this->db->where('id', (int)$service_id)->get('addon_services')->row();
+            if ($service) return $service;
+        }
+
+        // Search for replacement delivery service or any delivery service
+        $service = $this->db->like('title', 'Delivery')->where('status', 1)->get('addon_services')->row();
+        if ($service) return $service;
+
+        $service = $this->db->where('status', 1)->get('addon_services')->row();
+        if ($service) return $service;
+
+        // Fallback standard object if table is empty
+        return (object)[
+            'id'          => 1,
+            'title'       => 'YellowMarkets Replacement Delivery Service',
+            'title_fr'    => 'Service de livraison de remplacement YellowMarkets',
+            'description' => 'Delivery service for product replacement via YellowMarkets logistics.',
+            'final_price' => 150.00,
+            'price'       => 150.00,
+            'status'      => 1
+        ];
+    }
+
+    /**
+     * @Acct requests merchant to purchase AddOn Service for YM Delivery Replacement
+     */
+    public function request_addon_delivery($ticket_number, $admin_id, $notes = '', $service_id = null)
+    {
+        $res = $this->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+
+        if ($res->delivery_option !== 'ym_delivery' || $res->merchant_action !== 'replacement_approved') {
+            return ['status' => false, 'message' => 'AddOn Delivery Service request is only applicable for YM Delivery replacements.'];
+        }
+
+        $service = $this->get_delivery_addon_service($service_id);
+        $service_title = $service ? $service->title : 'YellowMarkets Replacement Delivery';
+        $price = $service ? (float)$service->final_price : 150.00;
+
+        $audit_notes = "Requested merchant to purchase AddOn Service: {$service_title} (MUR " . number_format($price, 2) . ")." . ($notes ? ' Note: ' . $notes : '');
+        $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'AddOn Service Purchase Requested', 'acct', $admin_id, trim($audit_notes));
+
+        // In-app notification to merchant
+        if (!empty($res->merchant_id)) {
+            $this->send_inapp_notification(
+                'merchant',
+                $res->merchant_id,
+                'addon_purchase_requested',
+                'Action Required: Purchase Replacement Delivery AddOn Service',
+                "Accounting (@Acct) has requested you to purchase the replacement delivery AddOn Service for Ticket #{$ticket_number} (Order #{$res->order_number}).",
+                $res
+            );
+        }
+
+        // Email to merchant
+        $this->send_addon_purchase_request_email($res, $service);
+
+        return ['status' => true, 'message' => 'AddOn Service purchase request sent to merchant successfully.'];
+    }
+
+    /**
+     * Send email to merchant requesting AddOn Service purchase
+     */
+    public function send_addon_purchase_request_email($res, $service)
+    {
+        $merchant = !empty($res->merchant_id) ? $this->db->where('id', $res->merchant_id)->get('publisher')->row() : null;
+        if (!$merchant || empty($merchant->email)) return false;
+
+        $product = !empty($res->product_id) ? $this->db->where('id', $res->product_id)->get('products')->row() : null;
+        $product_name = $product ? $product->name : 'Product';
+
+        $subject = "Action Required: Replacement Delivery AddOn Service Purchase - Ticket #{$res->ticket_number}";
+        $ticket_url = base_url('merchant/order_resolution/view/' . $res->ticket_number);
+
+        $body = "<h3>Dear " . htmlspecialchars($merchant->publication_name ?: 'Merchant') . ",</h3>"
+              . "<p>Accounting (@Acct) has reviewed your replacement approval for <strong>Ticket #{$res->ticket_number}</strong> (Order #{$res->order_number}) with YellowMarkets delivery.</p>"
+              . "<p>Please purchase the replacement delivery service as an AddOn Service so logistics can be arranged:</p>"
+              . "<ul>"
+              . "<li><strong>Order Number:</strong> " . htmlspecialchars($res->order_number) . "</li>"
+              . "<li><strong>Resolution Ticket:</strong> " . htmlspecialchars($res->ticket_number) . "</li>"
+              . "<li><strong>Product:</strong> " . htmlspecialchars($product_name) . "</li>"
+              . "<li><strong>Service:</strong> " . htmlspecialchars($service->title) . "</li>"
+              . "<li><strong>Amount:</strong> MUR " . number_format($service->final_price, 2) . "</li>"
+              . "</ul>"
+              . "<p><a href=\"{$ticket_url}\" style=\"background:#1E7EC8;color:#fff;padding:10px 18px;text-decoration:none;border-radius:4px;display:inline-block;font-weight:bold;\">View Ticket & Purchase AddOn</a></p>"
+              . "<p>Kind Regards,<br/>Yellow Markets Support & Accounting Team</p>";
+
+        return $this->CommonModel->send_email($merchant->email, $subject, $body);
+    }
+
+    /**
+     * Confirm AddOn Payment and update resolution
+     */
+    public function confirm_addon_payment($ticket_number, $purchase_id)
+    {
+        $res = $this->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) return false;
+
+        $this->db->where('id', $res->id)->update('order_resolutions', [
+            'addon_purchase_id' => (int)$purchase_id,
+            'updated_at'        => time(),
+        ]);
+
+        $this->audit_log(
+            $res->id,
+            $ticket_number,
+            $res->status,
+            $res->status,
+            'AddOn Service Purchased',
+            'merchant',
+            $res->merchant_id,
+            "Merchant successfully completed AddOn payment (Purchase ID: {$purchase_id})."
+        );
+
+        // Notify @Acct
+        $this->send_inapp_notification(
+            'admin',
+            1,
+            'addon_payment_confirmed',
+            'AddOn Delivery Payment Confirmed',
+            "Merchant has successfully purchased replacement delivery AddOn Service for Ticket #{$ticket_number} (Order #{$res->order_number}).",
+            $res
+        );
+
+        return true;
     }
 }

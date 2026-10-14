@@ -1154,5 +1154,26 @@ $lang['return_request_rejected_title'] = 'Demande de retour refusée';
 $lang['return_approved_message'] = 'Votre demande de retour pour (%s) - (%s) a été approuvée.';
 $lang['return_rejected_message'] = 'Votre demande de retour pour (%s) - (%s) a été refusée.';
 
+// Order Resolution - AddOn Service & Decision Banner (French)
+$lang['ym_delivery_addon_required_title'] = 'Remplacement par livraison YM — Service AddOn requis';
+$lang['ym_delivery_addon_desc'] = 'Vous avez sélectionné la livraison Yellow Markets pour ce remplacement. La comptabilité (@Acct) vous a demandé d\'acheter le service de livraison en tant que Service AddOn afin que la logistique puisse récupérer et livrer l\'article de remplacement.';
+$lang['addon_status_paid'] = 'AddOn payé';
+$lang['addon_status_pending'] = 'Paiement requis';
+$lang['order_number'] = 'Numéro de commande';
+$lang['resolution_ticket'] = 'Ticket de résolution';
+$lang['product'] = 'Produit';
+$lang['delivery_service'] = 'Service de livraison';
+$lang['addon_service'] = 'Service AddOn';
+$lang['amount'] = 'Montant';
+$lang['payment_status'] = 'Statut du paiement';
+$lang['confirmation'] = 'Confirmation';
+$lang['purchase_action'] = 'Action d\'achat';
+$lang['purchase_addon_service'] = 'Acheter le service AddOn';
+$lang['addon_service_paid'] = 'Acheté';
+$lang['instructions'] = 'Instructions';
+$lang['addon_merchant_instruction'] = 'Cliquez sur "Acheter le service AddOn" pour effectuer le paiement. Une fois confirmé, la livraison YellowMarkets sera planifiée et notre partenaire logistique récupérera et livrera le produit de remplacement.';
+$lang['refund_amount'] = 'Montant du remboursement';
+$lang['resolution_status'] = 'Statut de la résolution';
+
 
 

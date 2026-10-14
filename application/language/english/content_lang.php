@@ -2371,3 +2371,4 @@ $lang['notification_status_read'] = 'Read';
 $lang['no_notifications_found'] = 'No notifications found.';
 $lang['no_replacement_for_product'] = 'No Replacement for Product';
 $lang['resolution_status'] = 'Resolution Status';
+$lang['refund_amount'] = 'Refund Amount';

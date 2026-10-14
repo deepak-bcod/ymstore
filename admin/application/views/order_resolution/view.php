@@ -118,7 +118,19 @@ $this->load->view('common/fbc-user/header');
                         </div>
                         <div class="col-md-3">
                             <strong>Refund Amount:</strong> 
-                            <span class="text-success font-weight-bold"><?= ($resolution->refund_amount > 0) ? $currency . ' ' . number_format($resolution->refund_amount, 2) : 'N/A'; ?></span>
+                            <span class="font-weight-bold <?= ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
+                                <?php 
+                                if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
+                                    echo $currency . ' ' . number_format($resolution->refund_amount, 2);
+                                } elseif ($resolution->merchant_action === 'refund_denied' || $resolution->resolution_status === 'resolution_denied') {
+                                    echo 'Denied';
+                                } elseif ($resolution->category === 'Refund' && $resolution->refund_amount > 0) {
+                                    echo $currency . ' ' . number_format($resolution->refund_amount, 2) . ' (Pending)';
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </span>
                         </div>
                         <div class="col-md-3">
                             <strong>Resolution Status:</strong> 
@@ -148,24 +160,25 @@ $this->load->view('common/fbc-user/header');
                                 <?= ($current_role === 'acct') ? '@Acct (Accounting Only)' : '@Help (Support Only)'; ?>
                             </span>
                         </h6>
-                        <?php if (!empty($is_super_admin) && !$hide_acct): ?>
-                            <div class="btn-group btn-group-sm">
-                                <a href="<?= base_url('order_resolution/view/' . $resolution->ticket_number . '?as=help'); ?>" class="btn <?= ($current_role === 'help') ? 'btn-primary active' : 'btn-outline-secondary'; ?>">
-                                    <i class="fa fa-life-ring"></i> @Help View
-                                </a>
-                                <a href="<?= base_url('order_resolution/view/' . $resolution->ticket_number . '?as=acct'); ?>" class="btn <?= ($current_role === 'acct') ? 'btn-warning active' : 'btn-outline-secondary'; ?>">
-                                    <i class="fa fa-calculator"></i> @Acct View
-                                </a>
-                            </div>
-                        <?php endif; ?>
                     </div>
 
                     <?php if ($current_role === 'acct' && !$hide_acct): ?>
                         <!-- ================= @Acct (ACCOUNTING ONLY) CONTROLS ================= -->
                         <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
-                            <div class="alert alert-info py-2 mb-3">
-                                <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
-                            </div>
+                            <?php if (!empty($resolution->addon_purchase_id)): ?>
+                                <div class="alert alert-success py-2 mb-3">
+                                    <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-info py-2 mb-3">
+                                    <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 10px;">
+                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#requestAddonModal">
+                                        <i class="fa fa-paper-plane"></i> Request AddOn Service Purchase
+                                    </button>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
 
                         <?php if ($resolution->status === 'Processing'): ?>
@@ -305,16 +318,10 @@ $this->load->view('common/fbc-user/header');
                                 
                                 <div class="form-group mb-2">
                                     <label class="font-weight-bold">Posting As:</label>
-                                    <div class="form-check form-check-inline ml-2">
-                                        <input class="form-check-input" type="radio" name="role" id="roleHelp" value="help" <?= ($current_role === 'help') ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="roleHelp">Support Team (@Help)</label>
-                                    </div>
-                                    <?php if (!$hide_acct): ?>
-                                    <div class="form-check form-check-inline ml-2">
-                                        <input class="form-check-input" type="radio" name="role" id="roleAcct" value="acct" <?= ($current_role === 'acct') ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="roleAcct">Accounting Team (@Acct)</label>
-                                    </div>
-                                    <?php endif; ?>
+                                    <span class="badge badge-<?= ($current_role === 'acct') ? 'warning' : 'primary'; ?> ml-2 py-1 px-2 font-weight-bold" style="font-size: 13px;">
+                                        <?= ($current_role === 'acct') ? 'Accounting Team (@Acct)' : 'Support Team (@Help)'; ?>
+                                    </span>
+                                    <input type="hidden" name="role" value="<?= htmlspecialchars($current_role); ?>">
                                 </div>
 
                                 <div class="form-group">
@@ -534,8 +541,58 @@ $this->load->view('common/fbc-user/header');
     </div>
 </div>
 
+<!-- Modal: Request AddOn Service Purchase (@Acct) -->
+<div class="modal fade" id="requestAddonModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="<?= base_url('order_resolution/request_addon_delivery'); ?>" method="POST" class="ajax-resolution-form">
+                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                <div class="modal-header">
+                    <h5 class="modal-title text-warning"><i class="fa fa-paper-plane"></i> Request AddOn Delivery Purchase</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>. An official notification with service specifications and payment instructions will be sent to the merchant.</p>
+                    <table class="table table-sm table-bordered bg-light mb-3">
+                        <tr>
+                            <th style="width: 40%;">Delivery Service:</th>
+                            <td>YellowMarkets Delivery</td>
+                        </tr>
+                        <tr>
+                            <th>AddOn Service:</th>
+                            <td><?= htmlspecialchars($delivery_addon_service->title ?? 'YellowMarkets Replacement Delivery Service'); ?></td>
+                        </tr>
+                        <tr>
+                            <th>Estimated Amount:</th>
+                            <td class="font-weight-bold text-success">MUR <?= number_format($delivery_addon_service->final_price ?? 150.00, 2); ?></td>
+                        </tr>
+                    </table>
+                    <div class="form-group mb-0">
+                        <label>Additional Notes / Instructions for Merchant (Optional):</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Please proceed with payment so our logistics partner can collect the item..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning btn-sm">Send Purchase Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 $(document).ready(function() {
+    var operationCompleted = false;
+
+    // Refresh current page only after an operation in a modal has successfully completed and modal closed
+    $('.modal').on('hidden.bs.modal', function() {
+        if (operationCompleted) {
+            operationCompleted = false;
+            window.location.href = window.location.href;
+        }
+    });
+
     function showNotification(type, message) {
         var alertClass = (type === 'success') ? 'alert-success' : 'alert-danger';
         var icon = (type === 'success') ? '<i class="fa fa-check-circle"></i> ' : '<i class="fa fa-exclamation-circle"></i> ';
@@ -587,16 +644,17 @@ $(document).ready(function() {
 
                     var $modal = $form.closest('.modal');
                     if ($modal.length) {
+                        operationCompleted = true;
                         $modal.modal('hide');
+                    } else {
+                        setTimeout(function() {
+                            if (res.redirect) {
+                                window.location.href = res.redirect;
+                            } else {
+                                window.location.href = window.location.href;
+                            }
+                        }, 800);
                     }
-
-                    setTimeout(function() {
-                        if (res.redirect) {
-                            window.location.href = res.redirect;
-                        } else {
-                            window.location.reload();
-                        }
-                    }, 800);
                 } else {
                     $btn.prop('disabled', false).html(origHtml);
                     var msg = (res && res.message) ? res.message : 'An error occurred while processing your request.';
@@ -604,7 +662,7 @@ $(document).ready(function() {
 
                     if (res && res.requires_reload) {
                         setTimeout(function() {
-                            window.location.reload();
+                            window.location.href = window.location.href;
                         }, 1500);
                     }
                 }

@@ -74,6 +74,17 @@ class OrderResolutionController extends CI_Controller
             $data['customer'] = $this->db->where('id', $res->customer_id)->get('customers')->row();
         }
 
+        // Fetch AddOn Delivery Service & Purchase details
+        $data['delivery_addon_service'] = $this->OrderResolutionModel->get_delivery_addon_service();
+        $data['addon_purchase'] = null;
+        $data['addon_transaction'] = null;
+        if (!empty($res->addon_purchase_id)) {
+            $data['addon_purchase'] = $this->db->where('id', $res->addon_purchase_id)->get('merchant_addon_purchases')->row();
+            if ($data['addon_purchase']) {
+                $data['addon_transaction'] = $this->db->where('purchase_id', $res->addon_purchase_id)->order_by('id', 'DESC')->get('merchant_addon_transactions')->row();
+            }
+        }
+
         $data['side_menu'] = 'order_resolution';
         $data['PageTitle'] = 'Order Resolution #' . $res->ticket_number;
         $this->load->view('order_resolution/view', $data);

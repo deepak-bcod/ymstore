@@ -140,13 +140,23 @@
                                     </div>
                                 <?php endif; ?>
 
-                                <?php if ($resolution->refund_amount > 0): ?>
-                                    <div class="col-md-3 col-sm-6">
-                                        <p><b><?php echo $this->lang->line('approved_refund_amount') ?: 'Approved Refund Amount'; ?>:</b><br>
-                                            <span class="text-success font-weight-bold"><?php echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?></span>
-                                        </p>
-                                    </div>
-                                <?php endif; ?>
+                                <div class="col-md-3 col-sm-6">
+                                    <p><b><?php echo $this->lang->line('refund_amount') ?: 'Refund Amount'; ?>:</b><br>
+                                        <span class="font-weight-bold <?php echo ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
+                                            <?php 
+                                            if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
+                                                echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2);
+                                            } elseif ($resolution->merchant_action === 'refund_denied' || $resolution->resolution_status === 'resolution_denied') {
+                                                echo 'Denied';
+                                            } elseif ($resolution->category === 'Refund' && $resolution->refund_amount > 0) {
+                                                echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2) . ' (Pending)';
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                            ?>
+                                        </span>
+                                    </p>
+                                </div>
                             </div>
 
                             
@@ -270,6 +280,16 @@
 
 <script>
 $(document).ready(function() {
+    var operationCompleted = false;
+
+    // Refresh current page only after an operation in a modal has successfully completed and modal closed
+    $('.modal').on('hidden.bs.modal', function() {
+        if (operationCompleted) {
+            operationCompleted = false;
+            window.location.href = window.location.href;
+        }
+    });
+
     function showNotification(type, message) {
         var alertClass = (type === 'success') ? 'alert-success' : 'alert-danger';
         var icon = (type === 'success') ? '<i class="fa fa-check-circle"></i> ' : '<i class="fa fa-exclamation-circle"></i> ';
@@ -321,16 +341,17 @@ $(document).ready(function() {
 
                     var $modal = $form.closest('.modal');
                     if ($modal.length) {
+                        operationCompleted = true;
                         $modal.modal('hide');
+                    } else {
+                        setTimeout(function() {
+                            if (res.redirect) {
+                                window.location.href = res.redirect;
+                            } else {
+                                window.location.href = window.location.href;
+                            }
+                        }, 800);
                     }
-
-                    setTimeout(function() {
-                        if (res.redirect) {
-                            window.location.href = res.redirect;
-                        } else {
-                            window.location.reload();
-                        }
-                    }, 800);
                 } else {
                     $btn.prop('disabled', false).html(origHtml);
                     var msg = (res && res.message) ? res.message : (<?php echo json_encode($this->lang->line('ajax_error') ?: 'An error occurred while processing your request.'); ?>);
@@ -338,7 +359,7 @@ $(document).ready(function() {
 
                     if (res && res.requires_reload) {
                         setTimeout(function() {
-                            window.location.reload();
+                            window.location.href = window.location.href;
                         }, 1500);
                     }
                 }

@@ -1480,3 +1480,4 @@ $lang['notification_status_read'] = 'Lu';
 $lang['no_notifications_found'] = 'Aucune notification trouvée.';
 $lang['no_replacement_for_product'] = 'Aucun remplacement pour le produit';
 $lang['resolution_status'] = 'Statut de la résolution';
+$lang['refund_amount'] = 'Montant du remboursement';

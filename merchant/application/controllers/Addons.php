@@ -149,6 +149,61 @@ $transaction = [
     }
 
     /**
+     * Dedicated checkout endpoint for Order Resolution replacement delivery AddOn
+     */
+    public function buy_resolution_delivery($ticket_number = '')
+    {
+        $publisher_id = $this->session->userdata('LoginID');
+        $this->load->model('OrderResolutionModel');
+        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+
+        if (!$res || (int)$res->merchant_id !== (int)$publisher_id) {
+            show_error('Invalid resolution ticket or unauthorized access.');
+            return;
+        }
+
+        $service = $this->OrderResolutionModel->get_delivery_addon_service();
+        $service_id = $service ? $service->id : 1;
+        $amount = $service ? (float)$service->final_price : 150.00;
+
+        // Save purchase
+        $purchase = [
+            'merchant_id' => $publisher_id,
+            'service_id'  => $service_id,
+            'qty'         => 1,
+            'status'      => 'pending',
+            'created_at'  => date('Y-m-d H:i:s'),
+            'ip'          => $this->input->ip_address()
+        ];
+        $this->db->insert('merchant_addon_purchases', $purchase);
+        $purchase_id = $this->db->insert_id();
+
+        // Immediately link addon_purchase_id to order resolution ticket
+        $this->db->where('id', $res->id)->update('order_resolutions', [
+            'addon_purchase_id' => $purchase_id,
+            'updated_at'        => time()
+        ]);
+
+        $site_lang = $this->session->userdata('site_lang');
+        $payment_lang = ($site_lang === 'french') ? 'french' : 'english';
+
+        $transaction = [
+            'purchase_id' => $purchase_id,
+            'merchant_id' => $publisher_id,
+            'amount'      => $amount,
+            'status'      => 'initiated',
+            'lang'        => $payment_lang,
+            'created_at'  => date('Y-m-d H:i:s')
+        ];
+        $this->db->insert('merchant_addon_transactions', $transaction);
+        $transaction_id = $this->db->insert_id();
+
+        log_message('info', "Addon delivery payment created for Ticket {$ticket_number} | Purchase ID: {$purchase_id} | Txn ID: {$transaction_id}");
+
+        $this->initiate_payment($transaction_id, $amount);
+    }
+
+    /**
      * Initiate secure my.t money payment (RSA + HMAC)
      */
    private function initiate_payment($transaction_id, $amount)
@@ -386,6 +441,13 @@ $transaction = [
 
         if ($status === 'success') {
             log_message('info', "✅ MyT Addon Payment SUCCESS → Txn ID: {$transaction['id']} | merTradeNo: {$merTradeNo}");
+
+            // Link & confirm Order Resolution if applicable
+            $res = $this->db->get_where('order_resolutions', ['addon_purchase_id' => $transaction['purchase_id']])->row();
+            if ($res) {
+                $this->load->model('OrderResolutionModel');
+                $this->OrderResolutionModel->confirm_addon_payment($res->ticket_number, $transaction['purchase_id']);
+            }
         } else {
             log_message('error', "❌ MyT Addon Payment FAILED → Txn ID: {$transaction['id']} | tradeStatus: {$tradeStatus}");
         }   
