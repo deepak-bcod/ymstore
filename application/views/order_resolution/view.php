@@ -43,7 +43,8 @@
                 <div class="content-page">
 
                     <!-- Header & Status Pill -->
-                    <div class="row" style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                    <!-- Header & Actions -->
+                    <div class="row" style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; align-items: center;">
                         <div class="col-sm-8 col-md-8">
                             <h2 style="margin: 0;">
                                 <?php echo $this->lang->line('ticket') ?: 'Ticket'; ?> #<?php echo htmlspecialchars($resolution->ticket_number); ?>
@@ -51,7 +52,7 @@
                             <small class="text-muted"><?php echo $this->lang->line('created_on') ?: 'Created on'; ?> <?php echo date('d M Y, h:i A', $resolution->created_at); ?></small>
                         </div>
                         <div class="col-sm-4 col-md-4 text-right">
-                            <a href="<?php echo base_url('order_resolution'); ?>" class="btn btn-sm btn-info" style="margin-left: 10px;">
+                            <a href="<?php echo base_url('order_resolution'); ?>" class="btn btn-sm btn-info">
                                 <i class="fa fa-arrow-left"></i> <?php echo $this->lang->line('back_to_list') ?: 'Back to List'; ?>
                             </a>
                         </div>
@@ -109,42 +110,44 @@
                                 </div>
                             </div>
 
-                            <?php if ($resolution->merchant_action !== 'none' || $resolution->delivery_option !== 'none' || $resolution->refund_amount > 0): ?>
-                                <hr style="margin: 10px 0;">
-                                <div class="row">
-                                    <?php if ($resolution->merchant_action !== 'none'): ?>
-                                        <div class="col-md-4">
-                                            <p><b><?php echo $this->lang->line('merchant_decision') ?: 'Merchant Decision'; ?>:</b><br>
-                                                <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?></span>
-                                            </p>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <?php if ($resolution->status !== 'none'): ?>
-                                        <div class="col-md-4">
-                                            <p><b><?php echo $this->lang->line('escalation_status') ?: 'Escalation Status'; ?>:</b><br>
-                                                <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($status_key) ?: $resolution->status); ?></span>
-                                            </p>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <?php if ($resolution->delivery_option !== 'none'): ?>
-                                        <div class="col-md-4">
-                                            <p><b><?php echo $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</b><br>
-                                                <span class="text-success font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?></span>
-                                            </p>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <?php if ($resolution->refund_amount > 0): ?>
-                                        <div class="col-md-4">
-                                            <p><b><?php echo $this->lang->line('approved_refund_amount') ?: 'Approved Refund Amount'; ?>:</b><br>
-                                                <span class="text-success font-weight-bold"><?php echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?></span>
-                                            </p>
-                                        </div>
-                                    <?php endif; ?>
+                            <?php 
+                            $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $resolution->status));
+                            $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $resolution->status));
+                            ?>
+                            <hr style="margin: 10px 0;">
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6">
+                                    <p><b><?php echo $this->lang->line('merchant_decision') ?: 'Merchant Decision'; ?>:</b><br>
+                                        <?php if (!empty($resolution->merchant_action) && $resolution->merchant_action !== 'none'): ?>
+                                            <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?></span>
+                                        <?php else: ?>
+                                            <span class="text-muted font-weight-bold">N/A</span>
+                                        <?php endif; ?>
+                                    </p>
                                 </div>
-                            <?php endif; ?>
+
+                                <div class="col-md-3 col-sm-6">
+                                    <p><b><?php echo $this->lang->line('escalation_status') ?: 'Escalation Status'; ?>:</b><br>
+                                        <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($status_key) ?: $resolution->status); ?></span>
+                                    </p>
+                                </div>
+
+                                <?php if ($resolution->delivery_option !== 'none'): ?>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p><b><?php echo $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</b><br>
+                                            <span class="text-success font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?></span>
+                                        </p>
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if ($resolution->refund_amount > 0): ?>
+                                    <div class="col-md-3 col-sm-6">
+                                        <p><b><?php echo $this->lang->line('approved_refund_amount') ?: 'Approved Refund Amount'; ?>:</b><br>
+                                            <span class="text-success font-weight-bold"><?php echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2); ?></span>
+                                        </p>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
 
                             
                         </div>
