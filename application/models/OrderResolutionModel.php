@@ -24,6 +24,11 @@ class OrderResolutionModel extends CI_Model
                     $this->db->query("UPDATE `order_resolution_messages` SET `conversion_type` = 'shopper_admin' WHERE `sender_role` IN ('help', 'acct')");
                 }
             }
+            if ($this->db && $this->db->table_exists('order_resolutions')) {
+                if (!$this->db->field_exists('addon_service_id', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `addon_service_id` int(11) DEFAULT NULL AFTER `addon_purchase_id`");
+                }
+            }
             if ($this->db && $this->db->table_exists('order_resolution_audit_log')) {
                 if (!$this->db->field_exists('source_panel', 'order_resolution_audit_log')) {
                     $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD COLUMN `source_panel` varchar(50) NOT NULL DEFAULT 'admin' AFTER `actor_id`");
@@ -1100,6 +1105,20 @@ class OrderResolutionModel extends CI_Model
                 if ($res->merchant_action !== 'replacement_approved' || $res->delivery_option === 'none') {
                     return ['status' => false, 'message' => 'Replacement must be approved with a delivery option first.'];
                 }
+
+                // Strict Server Check for YM Delivery: AddOn Service must be paid and verified
+                if ($res->delivery_option === 'ym_delivery') {
+                    $addon_purchase = !empty($res->addon_purchase_id) 
+                        ? $this->db->get_where('merchant_addon_purchases', ['id' => (int)$res->addon_purchase_id])->row() 
+                        : null;
+                    if (!$addon_purchase || $addon_purchase->status !== 'paid') {
+                        return [
+                            'status'  => false,
+                            'message' => 'Replacement cannot be completed. The YellowMarkets Delivery AddOn Service must be purchased and payment verified first.'
+                        ];
+                    }
+                }
+
                 $update['merchant_action'] = 'replacement_completed';
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
@@ -1879,30 +1898,63 @@ class OrderResolutionModel extends CI_Model
 
     /**
      * Get or resolve delivery AddOn Service
+     * Fetches dynamic Admin-configured service details (Category, Title, Final Price, Status)
      */
     public function get_delivery_addon_service($service_id = null)
     {
-        if ($service_id) {
-            $service = $this->db->where('id', (int)$service_id)->get('addon_services')->row();
+        // 1. If explicit service_id provided
+        if (!empty($service_id)) {
+            $service = $this->db->select('s.*, c.name as category_name, c.name_fr as category_name_fr')
+                ->from('addon_services s')
+                ->join('addon_categories c', 's.category_id = c.id', 'left')
+                ->where('s.id', (int)$service_id)
+                ->get()->row();
             if ($service) return $service;
         }
 
-        // Search for replacement delivery service or any delivery service
-        $service = $this->db->like('title', 'Delivery')->where('status', 1)->get('addon_services')->row();
+        // 2. Direct search for ID 61 (Admin-configured YM Delivery)
+        $service = $this->db->select('s.*, c.name as category_name, c.name_fr as category_name_fr')
+            ->from('addon_services s')
+            ->join('addon_categories c', 's.category_id = c.id', 'left')
+            ->where('s.id', 61)
+            ->where('s.status', 1)
+            ->get()->row();
         if ($service) return $service;
 
-        $service = $this->db->where('status', 1)->get('addon_services')->row();
+        // 3. Search for active service where title or category matches 'YM Delivery'
+        $service = $this->db->select('s.*, c.name as category_name, c.name_fr as category_name_fr')
+            ->from('addon_services s')
+            ->join('addon_categories c', 's.category_id = c.id', 'left')
+            ->group_start()
+                ->like('s.title', 'YM Delivery')
+                ->or_like('c.name', 'YM Delivery')
+            ->group_end()
+            ->where('s.status', 1)
+            ->order_by('s.id', 'DESC')
+            ->get()->row();
         if ($service) return $service;
 
-        // Fallback standard object if table is empty
+        // 4. Fallback search for any active delivery service
+        $service = $this->db->select('s.*, c.name as category_name, c.name_fr as category_name_fr')
+            ->from('addon_services s')
+            ->join('addon_categories c', 's.category_id = c.id', 'left')
+            ->like('s.title', 'Delivery')
+            ->where('s.status', 1)
+            ->get()->row();
+        if ($service) return $service;
+
+        // 5. Fallback standard object populated with configured service 61 defaults
         return (object)[
-            'id'          => 1,
-            'title'       => 'YellowMarkets Replacement Delivery Service',
-            'title_fr'    => 'Service de livraison de remplacement YellowMarkets',
-            'description' => 'Delivery service for product replacement via YellowMarkets logistics.',
-            'final_price' => 150.00,
-            'price'       => 150.00,
-            'status'      => 1
+            'id'               => 61,
+            'category_id'      => 1,
+            'category_name'    => 'YM Delivery Service',
+            'category_name_fr' => 'Service de livraison YM',
+            'title'            => 'YM Delivery',
+            'title_fr'         => 'Livraison YM',
+            'description'      => 'Delivery service for product replacement via YellowMarkets logistics.',
+            'final_price'      => 1.00,
+            'price'            => 1.00,
+            'status'           => 1
         ];
     }
 
@@ -1921,8 +1973,15 @@ class OrderResolutionModel extends CI_Model
         }
 
         $service = $this->get_delivery_addon_service($service_id);
-        $service_title = $service ? $service->title : 'YellowMarkets Replacement Delivery';
-        $price = $service ? (float)$service->final_price : 150.00;
+        $service_id = $service ? (int)$service->id : 61;
+        $service_title = $service ? $service->title : 'YM Delivery';
+        $price = $service ? (float)$service->final_price : 1.00;
+
+        $update_data = ['updated_at' => time()];
+        if ($this->db->field_exists('addon_service_id', 'order_resolutions')) {
+            $update_data['addon_service_id'] = $service_id;
+        }
+        $this->db->where('id', $res->id)->update('order_resolutions', $update_data);
 
         $audit_notes = "Requested merchant to purchase AddOn Service: {$service_title} (MUR " . number_format($price, 2) . ")." . ($notes ? ' Note: ' . $notes : '');
         $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'AddOn Service Purchase Requested', 'acct', $admin_id, trim($audit_notes), 'admin', 'admin_merchant');
@@ -1986,11 +2045,28 @@ class OrderResolutionModel extends CI_Model
         $res = $this->get_resolution_by_ticket_number($ticket_number);
         if (!$res) return false;
 
+        $purchase = $this->db->get_where('merchant_addon_purchases', ['id' => (int)$purchase_id])->row();
+        $txn = $purchase ? $this->db->where('purchase_id', $purchase->id)->order_by('id', 'DESC')->get('merchant_addon_transactions')->row() : null;
+        $service = $purchase ? $this->get_delivery_addon_service($purchase->service_id) : $this->get_delivery_addon_service($res->addon_service_id ?? null);
+        $service_title = $service ? $service->title : 'YM Delivery';
+        $amount_val = $txn ? (float)$txn->amount : ($service ? (float)$service->final_price : 1.00);
+        $amount_str = 'MUR ' . number_format($amount_val, 2);
+        $txn_ref = !empty($txn->transaction_ref) ? $txn->transaction_ref : (!empty($txn->mer_trade_no) ? $txn->mer_trade_no : ('Purchase #' . $purchase_id));
+
+        $merchant_name = 'Merchant';
+        if (!empty($res->merchant_id)) {
+            $m_row = $this->db->select('publication_name')->where('id', $res->merchant_id)->get('publisher')->row();
+            if ($m_row && !empty($m_row->publication_name)) {
+                $merchant_name = $m_row->publication_name;
+            }
+        }
+
         $this->db->where('id', $res->id)->update('order_resolutions', [
             'addon_purchase_id' => (int)$purchase_id,
             'updated_at'        => time(),
         ]);
 
+        $audit_msg = "AddOn Service Purchased: {$service_title} ({$amount_str}) by {$merchant_name}. Ref: {$txn_ref}.";
         $this->audit_log(
             $res->id,
             $ticket_number,
@@ -1999,18 +2075,23 @@ class OrderResolutionModel extends CI_Model
             'AddOn Service Purchased',
             'merchant',
             $res->merchant_id,
-            "Merchant successfully completed AddOn payment (Purchase ID: {$purchase_id}).",
+            $audit_msg,
             'merchant',
             'merchant_admin'
         );
 
-        // Notify @Acct
+        // Post confirmation message into Merchant <-> Admin conversion thread
+        $this->add_reply($ticket_number, 'merchant', $res->merchant_id, $merchant_name . ' (Merchant)', "Confirmed AddOn Payment: Purchased {$service_title} for {$amount_str}. Payment Ref: {$txn_ref}. Ready to proceed with replacement.", '', '', 'merchant_admin');
+
+        // Detailed Notification to Admin (@Acct & @Help)
+        $admin_title = "AddOn Service Purchased - Ticket #{$ticket_number}";
+        $admin_msg = "Merchant ({$merchant_name}) has successfully purchased the AddOn Service: {$service_title} ({$amount_str}) for Ticket #{$ticket_number} (Order #{$res->order_number}). Payment Ref: {$txn_ref}.";
         $this->send_inapp_notification(
             'admin',
             1,
             'addon_payment_confirmed',
-            'AddOn Delivery Payment Confirmed',
-            "Merchant has successfully purchased replacement delivery AddOn Service for Ticket #{$ticket_number} (Order #{$res->order_number}).",
+            $admin_title,
+            $admin_msg,
             $res
         );
 

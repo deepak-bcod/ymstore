@@ -298,70 +298,180 @@ $this->load->view('common/fbc-user/header');
                     <?php endif; ?>
                 </div>
 
-                <!-- Conversation Stream -->
-                <h5 class="font-weight-bold mb-3"><i class="fa fa-comments"></i> Conversation</h5>
-                <div class="chat-box">
-                    <?php if (!empty($messages)): ?>
-                        <?php foreach ($messages as $msg): 
-                            $role_class = 'chat-msg-' . $msg->sender_role;
-                        ?>
-                            <div class="chat-msg <?= $role_class; ?>">
-                                <div class="chat-msg-meta">
-                                    <strong><?= htmlspecialchars($msg->sender_name ?: ucfirst($msg->sender_role)); ?></strong> 
-                                    (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
-                                </div>
-                                <div class="chat-msg-body">
-                                    <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
-                                </div>
-                                <?php if (!empty($msg->attachment)): ?>
-                                    <div class="mt-2">
-                                        <a href="<?= base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                            <i class="fa fa-paperclip"></i> Attachment (<?= htmlspecialchars($msg->attachment); ?>)
-                                        </a>
-                                    </div>
+                <?php
+                // Separate conversion workflows
+                $shopper_admin_msgs  = [];
+                $merchant_admin_msgs = [];
+                if (!empty($messages)) {
+                    foreach ($messages as $msg) {
+                        $c_type = !empty($msg->conversion_type) ? $msg->conversion_type : '';
+                        if ($c_type === 'merchant_admin') {
+                            $merchant_admin_msgs[] = $msg;
+                        } elseif ($c_type === 'shopper_admin') {
+                            $shopper_admin_msgs[] = $msg;
+                        } else {
+                            if ($msg->sender_role === 'merchant') {
+                                $merchant_admin_msgs[] = $msg;
+                            } else {
+                                $shopper_admin_msgs[] = $msg;
+                            }
+                        }
+                    }
+                }
+                $is_acct_active = ($current_role === 'acct');
+                ?>
+
+                <!-- Conversation Workflows Navigation Tabs -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-white p-0 border-bottom">
+                        <ul class="nav nav-tabs card-header-tabs m-0 border-0" id="adminConvTabs" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link <?= !$is_acct_active ? 'active' : ''; ?> font-weight-bold py-3 px-4" id="tab-admin-shopper" data-toggle="tab" href="#pane-admin-shopper" role="tab" aria-controls="pane-admin-shopper" aria-selected="<?= !$is_acct_active ? 'true' : 'false'; ?>">
+                                    <i class="fa fa-user text-primary mr-1"></i> Shopper Dispute (Admin ↔ Shopper)
+                                    <span class="badge badge-pill badge-primary ml-1"><?= count($shopper_admin_msgs); ?></span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link <?= $is_acct_active ? 'active' : ''; ?> font-weight-bold py-3 px-4" id="tab-admin-merchant" data-toggle="tab" href="#pane-admin-merchant" role="tab" aria-controls="pane-admin-merchant" aria-selected="<?= $is_acct_active ? 'true' : 'false'; ?>">
+                                    <i class="fa fa-shopping-bag text-warning mr-1"></i> Merchant Coordination (Admin ↔ Merchant)
+                                    <span class="badge badge-pill badge-warning ml-1"><?= count($merchant_admin_msgs); ?></span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="tab-content card-body p-3" id="adminConvContent">
+                        <!-- Pane 1: Admin <-> Shopper -->
+                        <div class="tab-pane fade <?= !$is_acct_active ? 'show active' : ''; ?>" id="pane-admin-shopper" role="tabpanel" aria-labelledby="tab-admin-shopper">
+                            <div class="chat-box mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
+                                <?php if (!empty($shopper_admin_msgs)): ?>
+                                    <?php foreach ($shopper_admin_msgs as $msg): 
+                                        $role_class = 'chat-msg-' . $msg->sender_role;
+                                        $is_admin = in_array($msg->sender_role, ['help', 'acct', 'admin'], true);
+                                    ?>
+                                        <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_admin ? '#eef5ff' : '#ffffff'; ?>; border: 1px solid <?= $is_admin ? '#cce2ff' : '#e5e9f0'; ?>;">
+                                            <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
+                                                <strong class="<?= $is_admin ? 'text-primary' : 'text-dark'; ?>"><?= htmlspecialchars($msg->sender_name ?: ucfirst($msg->sender_role)); ?></strong> 
+                                                (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
+                                            </div>
+                                            <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
+                                                <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
+                                            </div>
+                                            <?php if (!empty($msg->attachment)): ?>
+                                                <div class="mt-2">
+                                                    <a href="<?= base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fa fa-paperclip"></i> Attachment (<?= htmlspecialchars($msg->attachment); ?>)
+                                                    </a>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center py-4">No dispute messages between Admin and Shopper yet.</p>
                                 <?php endif; ?>
                             </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <p class="text-muted text-center py-4">No conversation messages yet.</p>
-                    <?php endif; ?>
-                </div>
 
-                <!-- Reply Form -->
-                <?php if ($resolution->status !== 'Close (Final)'): ?>
-                    <div class="card mb-4">
-                        <div class="card-header bg-white">
-                            <h6 class="mb-0 font-weight-bold">Post Admin Reply</h6>
+                            <!-- Reply to Shopper Form -->
+                            <?php if ($resolution->status !== 'Close (Final)'): ?>
+                                <div class="card border">
+                                    <div class="card-header bg-light py-2">
+                                        <strong style="font-size: 13px;"><i class="fa fa-paper-plane text-primary"></i> Post Reply to Shopper</strong>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
+                                            <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                                            <input type="hidden" name="conversion_type" value="shopper_admin">
+                                            <input type="hidden" name="role" value="help">
+                                            <div class="form-group mb-2">
+                                                <label class="font-weight-bold" style="font-size: 12px;">Posting As:</label>
+                                                <span class="badge badge-primary ml-1 py-1 px-2 font-weight-bold">Support Team (@Help)</span>
+                                            </div>
+                                            <div class="form-group mb-2">
+                                                <textarea name="message" rows="3" class="form-control" placeholder="Enter message to shopper..." required></textarea>
+                                            </div>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-8">
+                                                    <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                                                </div>
+                                                <div class="col-md-4 text-right">
+                                                    <button type="submit" class="btn btn-primary btn-sm px-3">
+                                                        <i class="fa fa-paper-plane"></i> Send to Shopper
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                        <div class="card-body">
-                            <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
-                                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
-                                
-                                <div class="form-group mb-2">
-                                    <label class="font-weight-bold">Posting As:</label>
-                                    <span class="badge badge-<?= ($current_role === 'acct') ? 'warning' : 'primary'; ?> ml-2 py-1 px-2 font-weight-bold" style="font-size: 13px;">
-                                        <?= ($current_role === 'acct') ? 'Accounting Team (@Acct)' : 'Support Team (@Help)'; ?>
-                                    </span>
-                                    <input type="hidden" name="role" value="<?= htmlspecialchars($current_role); ?>">
-                                </div>
 
-                                <div class="form-group">
-                                    <textarea name="message" rows="3" class="form-control" placeholder="Enter message..." required></textarea>
-                                </div>
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                        <!-- Pane 2: Admin <-> Merchant -->
+                        <div class="tab-pane fade <?= $is_acct_active ? 'show active' : ''; ?>" id="pane-admin-merchant" role="tabpanel" aria-labelledby="tab-admin-merchant">
+                            <div class="chat-box mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
+                                <?php if (!empty($merchant_admin_msgs)): ?>
+                                    <?php foreach ($merchant_admin_msgs as $msg): 
+                                        $role_class = 'chat-msg-' . $msg->sender_role;
+                                        $is_admin = in_array($msg->sender_role, ['help', 'acct', 'admin'], true);
+                                    ?>
+                                        <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_admin ? '#fef8ea' : '#ffffff'; ?>; border: 1px solid <?= $is_admin ? '#faebcc' : '#e5e9f0'; ?>;">
+                                            <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
+                                                <strong class="<?= $is_admin ? 'text-warning' : 'text-dark'; ?>"><?= htmlspecialchars($msg->sender_name ?: ucfirst($msg->sender_role)); ?></strong> 
+                                                (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
+                                            </div>
+                                            <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
+                                                <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
+                                            </div>
+                                            <?php if (!empty($msg->attachment)): ?>
+                                                <div class="mt-2">
+                                                    <a href="<?= base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fa fa-paperclip"></i> Attachment (<?= htmlspecialchars($msg->attachment); ?>)
+                                                    </a>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center py-4">No coordination messages between Admin and Merchant yet.</p>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Message to Merchant Form -->
+                            <?php if ($resolution->status !== 'Close (Final)'): ?>
+                                <div class="card border">
+                                    <div class="card-header bg-light py-2">
+                                        <strong style="font-size: 13px;"><i class="fa fa-envelope text-warning"></i> Send Message to Merchant</strong>
                                     </div>
-                                    <div class="col-md-4 text-right">
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fa fa-paper-plane"></i> Post Reply
-                                        </button>
+                                    <div class="card-body p-3">
+                                        <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
+                                            <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                                            <input type="hidden" name="conversion_type" value="merchant_admin">
+                                            <input type="hidden" name="role" value="<?= htmlspecialchars($current_role); ?>">
+                                            <div class="form-group mb-2">
+                                                <label class="font-weight-bold" style="font-size: 12px;">Posting As:</label>
+                                                <span class="badge badge-<?= ($current_role === 'acct') ? 'warning' : 'info'; ?> ml-1 py-1 px-2 font-weight-bold">
+                                                    <?= ($current_role === 'acct') ? 'Accounting Team (@Acct)' : 'Support Team (@Help)'; ?>
+                                                </span>
+                                            </div>
+                                            <div class="form-group mb-2">
+                                                <textarea name="message" rows="3" class="form-control" placeholder="Enter message / coordination note for merchant..." required></textarea>
+                                            </div>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-8">
+                                                    <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                                                </div>
+                                                <div class="col-md-4 text-right">
+                                                    <button type="submit" class="btn btn-warning btn-sm px-3 font-weight-bold">
+                                                        <i class="fa fa-paper-plane"></i> Send to Merchant
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
-                            </form>
+                            <?php endif; ?>
                         </div>
                     </div>
-                <?php endif; ?>
+                </div>
 
                 <!-- Audit Log Table -->
                 <h5 class="font-weight-bold mb-3"><i class="fa fa-history"></i> Audit Trail & State Transitions</h5>
@@ -576,16 +686,16 @@ $this->load->view('common/fbc-user/header');
                     <p>Request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>. An official notification with service specifications and payment instructions will be sent to the merchant.</p>
                     <table class="table table-sm table-bordered bg-light mb-3">
                         <tr>
-                            <th style="width: 40%;">Delivery Service:</th>
-                            <td>YellowMarkets Delivery</td>
+                            <th style="width: 40%;">Delivery Category:</th>
+                            <td><?= htmlspecialchars($delivery_addon_service->category_name ?? 'YM Delivery Service'); ?></td>
                         </tr>
                         <tr>
                             <th>AddOn Service:</th>
-                            <td><?= htmlspecialchars($delivery_addon_service->title ?? 'YellowMarkets Replacement Delivery Service'); ?></td>
+                            <td><?= htmlspecialchars($delivery_addon_service->title ?? 'YM Delivery'); ?> (ID: <?= (int)($delivery_addon_service->id ?? 61); ?>)</td>
                         </tr>
                         <tr>
-                            <th>Estimated Amount:</th>
-                            <td class="font-weight-bold text-success">MUR <?= number_format($delivery_addon_service->final_price ?? 150.00, 2); ?></td>
+                            <th>Service Final Price:</th>
+                            <td class="font-weight-bold text-success">MUR <?= number_format($delivery_addon_service->final_price ?? 1.00, 2); ?></td>
                         </tr>
                     </table>
                     <div class="form-group mb-0">

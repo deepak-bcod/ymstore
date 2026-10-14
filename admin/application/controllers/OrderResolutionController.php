@@ -105,6 +105,12 @@ class OrderResolutionController extends CI_Controller
         $data['messages']               = $this->OrderResolutionModel->get_messages($res->id);
         $data['audit_logs']             = $this->OrderResolutionModel->get_audit_log($res->id);
         $data['delivery_addon_service'] = $this->OrderResolutionModel->get_delivery_addon_service();
+        $data['addon_purchase']         = !empty($res->addon_purchase_id) 
+            ? $this->db->get_where('merchant_addon_purchases', ['id' => (int)$res->addon_purchase_id])->row() 
+            : null;
+        $data['addon_transaction']      = $data['addon_purchase']
+            ? $this->db->where('purchase_id', $data['addon_purchase']->id)->order_by('id', 'DESC')->get('merchant_addon_transactions')->row()
+            : null;
 
         // Fetch Order, Product, Merchant, Customer
         $data['order']    = $this->db->where('order_id', $res->order_id)->get('sales_order')->row();
@@ -151,10 +157,11 @@ class OrderResolutionController extends CI_Controller
      */
     public function reply()
     {
-        $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
-        $ticket_number = trim($this->input->post('ticket_number', true));
-        $message       = trim($this->input->post('message', true));
-        $role          = trim($this->input->post('role', true)) ?: 'help';
+        $admin_id        = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
+        $ticket_number   = trim($this->input->post('ticket_number', true));
+        $message         = trim($this->input->post('message', true));
+        $role            = trim($this->input->post('role', true)) ?: 'help';
+        $conversion_type = trim($this->input->post('conversion_type', true));
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
@@ -205,30 +212,45 @@ class OrderResolutionController extends CI_Controller
             $role = in_array($post_role, ['help', 'acct'], true) ? $post_role : (($res->assigned_role === 'Acct') ? 'acct' : 'help');
         }
 
+        if (empty($conversion_type) || !in_array($conversion_type, ['shopper_admin', 'merchant_admin'], true)) {
+            $conversion_type = ($role === 'acct') ? 'merchant_admin' : 'shopper_admin';
+        }
+
         $sender_name = ($role === 'acct') ? 'Accounting Team (@Acct)' : 'Support Team (@Help)';
-        $ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address());
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
 
         if ($ok) {
-            // Get the customer ID from the resolution record
-            $customer_id = $res->customer_id ?? null;
-
-            if ($customer_id) {
+            if ($conversion_type === 'shopper_admin' && !empty($res->customer_id)) {
                 $title        = "Order resolution reply (" . $ticket_number . ")";
-                $message_text = "Yellow Market team has replied to your resolution ticket (" . $ticket_number . ")";
-
+                $message_text = "Yellow Markets Support team has replied to your resolution ticket (" . $ticket_number . ")";
                 $notification_data = [
                     'type'           => 'order_resolution',
                     'subtype'        => 'reply',
                     'recipient_type' => 'customer',
-                    'recipient_id'   => $customer_id,
+                    'recipient_id'   => $res->customer_id,
                     'title'          => $title,
                     'message'        => $message_text,
                     'data'           => json_encode(['ticket_number' => $ticket_number]),
                     'is_read'        => 0,
                     'created_at'     => date('Y-m-d H:i:s')
                 ];
-
-                // Safely insert the notification into the database
+                try {
+                    $this->db->insert('notifications', $notification_data);
+                } catch (\Exception $e) {
+                    log_message('error', 'Notification insert failed: ' . $e->getMessage());
+                }
+            } elseif ($conversion_type === 'merchant_admin' && !empty($res->merchant_id)) {
+                $notification_data = [
+                    'type'           => 'order_resolution',
+                    'subtype'        => 'admin_message',
+                    'recipient_type' => 'merchant',
+                    'recipient_id'   => $res->merchant_id,
+                    'title'          => 'Admin Message on Ticket #' . $ticket_number,
+                    'message'        => 'YellowMarkets Admin posted a message on Ticket #' . $ticket_number . '.',
+                    'data'           => json_encode(['ticket_number' => $ticket_number]),
+                    'is_read'        => 0,
+                    'created_at'     => date('Y-m-d H:i:s')
+                ];
                 try {
                     $this->db->insert('notifications', $notification_data);
                 } catch (\Exception $e) {
