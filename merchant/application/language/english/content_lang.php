@@ -1140,6 +1140,7 @@ $lang['date'] = 'Date';
 $lang['action'] = 'Action';
 $lang['back_to_list'] = 'Back to List';
 $lang['merchant_action'] = 'Merchant Action';
+$lang['merchant_status'] = 'Merchant Status';
 $lang['delivery_option'] = 'Delivery Option';
 $lang['approved_refund'] = 'Approved Refund';
 $lang['resolution_decision_actions'] = 'Order Resolution Decision Actions';
