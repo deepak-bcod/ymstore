@@ -265,7 +265,7 @@ class OrderResolutionController extends CI_Controller
     /**
      * @Help closes ticket with Shopper Resolution Option (Status -> Close)
      */
-    public function close_ticket()
+   public function close_ticket()
     {
         $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
         $ticket_number = trim($this->input->post('ticket_number', true));
@@ -278,8 +278,36 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
-        $res = $this->OrderResolutionModel->admin_close_ticket($ticket_number, $admin_id, $notes);
-        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
+        // Get ticket details to retrieve the customer_id
+        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+
+        $result = $this->OrderResolutionModel->admin_close_ticket($ticket_number, $admin_id, $notes);
+
+        if ($result['status'] && $res && !empty($res->customer_id)) {
+            $title        = "Resolution ticket is closed";
+            $message_text = "Your resolution ticket no (" . $ticket_number . ") is closed. If you wish to escalate with Yellow Market team plz go back inside you tick and raise resolution with yellow market team.";
+
+            $notification_data = [
+                'type'           => 'order_resolution',
+                'subtype'        => 'close',
+                'recipient_type' => 'customer',
+                'recipient_id'   => $res->customer_id,
+                'title'          => $title,
+                'message'        => $message_text,
+                'data'           => json_encode(['ticket_number' => $ticket_number]),
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s')
+            ];
+
+            // Safely insert the notification into the database
+            try {
+                $this->db->insert('notifications', $notification_data);
+            } catch (\Exception $e) {
+                log_message('error', 'Close ticket notification insert failed: ' . $e->getMessage());
+            }
+        }
+
+        $this->json_response($result['status'], $result['message'], $result, 'order_resolution/view/' . $ticket_number . '?as=help');
     }
 
     /**
