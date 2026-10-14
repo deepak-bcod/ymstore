@@ -40,7 +40,7 @@
                             <h1 style="margin: 0;"><?php echo $this->lang->line('order_resolution_requests') ?: 'Order Resolution Requests'; ?></h1>
                         </div>
                         <div class="col-sm-4 col-md-4 text-right">
-                            <a href="<?php echo base_url('order_resolution/create'); ?>" class="btn btn-primary">
+                            <a href="<?php echo base_url('order_resolution/create'); ?>" class="btn btn-info">
                                 <i class="fa fa-plus"></i> <?php echo $this->lang->line('raise_resolution_request') ?: 'New Resolution Request'; ?>
                             </a>
                         </div>
@@ -62,7 +62,8 @@
                                     <th><?php echo $this->lang->line('product') ?: 'Product'; ?></th>
                                     <th><?php echo $this->lang->line('category') ?: 'Category'; ?></th>
                                     <th><?php echo $this->lang->line('priority') ?: 'Priority'; ?></th>
-                                    <th><?php echo $this->lang->line('status') ?: 'Status'; ?></th>
+                                    <th><?php echo $this->lang->line('escalation_status') ?: 'Escalation Status'; ?></th>
+                                    <th><?php echo $this->lang->line('merchant_status') ?: 'Merchant Status'; ?></th>
                                     <th><?php echo $this->lang->line('date') ?: 'Date'; ?></th>
                                     <th style="width: 80px; text-align: center;"><?php echo $this->lang->line('action') ?: 'Action'; ?></th>
                                 </tr>
@@ -96,6 +97,8 @@
                                                 <span class="<?php echo $badge_class; ?>">
                                                     <?php echo htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
                                                 </span>
+                                            </td>
+                                            <td>
                                                 <?php if ($res->merchant_action !== 'none'): ?>
                                                     <br>
                                                     <span class="badge-action <?php echo strpos($res->merchant_action, 'approved') !== false ? 'badge-action-approved' : (strpos($res->merchant_action, 'denied') !== false ? 'badge-action-denied' : 'badge-action-completed'); ?>">

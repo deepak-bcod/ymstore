@@ -31,6 +31,7 @@ class OrderResolutionController extends CI_Controller
         $this->db->join('products p', 'p.id = r.product_id', 'left');
         $this->db->join('publisher pub', 'pub.id = r.merchant_id', 'left');
         $this->db->where('r.customer_id', $customer_id);
+        $this->db->order_by('r.created_at', 'DESC');
         $this->db->order_by('r.id', 'DESC');
         $data['resolutions'] = $this->db->get()->result();
 
