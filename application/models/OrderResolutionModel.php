@@ -384,6 +384,98 @@ class OrderResolutionModel extends CI_Model
     }
 
     /**
+     * Batch retrieve escalation statuses ('in_progress' | 'complete' | null) for a list of order IDs.
+     * Maps each order_id_product_id and order_id_b2b_order_id to its latest escalation state.
+     *
+     * @param array $order_ids
+     * @return array
+     */
+    public function get_escalation_status_for_order_items(array $order_ids)
+    {
+        if (empty($order_ids)) {
+            return [];
+        }
+
+        $order_ids = array_unique(array_filter(array_map('intval', $order_ids)));
+        if (empty($order_ids)) {
+            return [];
+        }
+
+        $rows = $this->db->select('id, order_id, product_id, b2b_order_id, status, resolution_status')
+            ->from('order_resolutions')
+            ->where_in('order_id', $order_ids)
+            ->order_by('id', 'DESC')
+            ->get()
+            ->result();
+
+        $map = [];
+        if (!empty($rows)) {
+            foreach ($rows as $r) {
+                $status = trim($r->status);
+                $is_closed = in_array($status, ['Close', 'Close (Final)'], true);
+                $state = $is_closed ? 'complete' : 'in_progress';
+
+                // Map by order_id and product_id
+                if (!empty($r->product_id)) {
+                    $key_prod = $r->order_id . '_' . $r->product_id;
+                    if (!isset($map[$key_prod])) {
+                        $map[$key_prod] = $state;
+                    }
+                }
+
+                // Map by order_id and b2b_order_id
+                if (!empty($r->b2b_order_id)) {
+                    $key_b2b = $r->order_id . '_sub_' . $r->b2b_order_id;
+                    if (!isset($map[$key_b2b])) {
+                        $map[$key_b2b] = $state;
+                    }
+                }
+
+                // General order fallback
+                $key_order = (string)$r->order_id;
+                if (!isset($map[$key_order])) {
+                    $map[$key_order] = $state;
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Get escalation status for a specific item ('in_progress' | 'complete' | null)
+     *
+     * @param int $order_id
+     * @param int $product_id
+     * @param int $b2b_order_id
+     * @return string|null
+     */
+    public function get_item_escalation_status($order_id, $product_id = 0, $b2b_order_id = 0)
+    {
+        $res = $this->get_latest_resolution_for_item($order_id, $product_id);
+        if (!$res && !empty($b2b_order_id)) {
+            $res = $this->db->select('*')
+                ->from('order_resolutions')
+                ->where('order_id', (int)$order_id)
+                ->where('b2b_order_id', (int)$b2b_order_id)
+                ->order_by('id', 'DESC')
+                ->get()
+                ->row();
+        }
+
+        if (!$res) {
+            return null;
+        }
+
+        $status = trim($res->status);
+        if (in_array($status, ['Close', 'Close (Final)'], true)) {
+            return 'complete';
+        }
+
+        return 'in_progress';
+    }
+
+    /**
      * Helper to get product name by ID
      */
     public function get_product_name_by_id($product_id)
