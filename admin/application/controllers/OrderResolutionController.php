@@ -258,6 +258,17 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
+        $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res_ticket) {
+            $this->json_response(false, 'Ticket not found.');
+            return;
+        }
+
+        if (empty($res_ticket->merchant_action) || $res_ticket->merchant_action === 'none') {
+            $this->json_response(false, 'Cannot assign to Accounting: Merchant has not taken any action on this ticket yet.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
+            return;
+        }
+
         $res = $this->OrderResolutionModel->admin_assign_to_acct($ticket_number, $admin_id, $notes);
         $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
     }
@@ -326,7 +337,7 @@ class OrderResolutionController extends CI_Controller
     /**
      * @Help closes ticket with Shopper Resolution Option (Status -> Close)
      */
-   public function close_ticket()
+    public function close_ticket()
     {
         $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
         $ticket_number = trim($this->input->post('ticket_number', true));
@@ -341,6 +352,15 @@ class OrderResolutionController extends CI_Controller
 
         // Get ticket details to retrieve the customer_id
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            $this->json_response(false, 'Ticket not found.');
+            return;
+        }
+
+        if (empty($res->merchant_action) || $res->merchant_action === 'none') {
+            $this->json_response(false, 'Cannot close ticket: Merchant has not taken any action on this ticket yet.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
+            return;
+        }
 
         $result = $this->OrderResolutionModel->admin_close_ticket($ticket_number, $admin_id, $notes);
 
@@ -436,29 +456,6 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
-        $res = $this->OrderResolutionModel->admin_resolution_decision($ticket_number, $decision, $admin_id, $notes);
-        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
-    }
-
-    /**
-     * @Acct requests merchant to purchase AddOn Service for replacement delivery
-     */
-    public function request_addon_delivery()
-    {
-        $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
-        $ticket_number = trim($this->input->post('ticket_number', true));
-        $notes         = trim($this->input->post('notes', true));
-
-        // Permission Guard: Only Accounting (@Acct) or Super Admin/Administrator can request AddOn purchase
-        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
-        if (!empty($user_role) && strpos($user_role, 'help') !== false && strpos($user_role, 'admin') === false) {
-            $this->json_response(false, 'Unauthorized: Only Accounting (@Acct) can request AddOn delivery service purchase.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
-            return;
-        }
-
-        $res = $this->OrderResolutionModel->request_addon_delivery($ticket_number, $admin_id, $notes);
-        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=acct');
-
         // Get ticket details to retrieve customer_id before updating decision
         $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
 
@@ -496,6 +493,26 @@ class OrderResolutionController extends CI_Controller
             }
         }
 
-        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number);
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
+    }
+
+    /**
+     * @Acct requests merchant to purchase AddOn Service for replacement delivery
+     */
+    public function request_addon_delivery()
+    {
+        $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $notes         = trim($this->input->post('notes', true));
+
+        // Permission Guard: Only Accounting (@Acct) or Super Admin/Administrator can request AddOn purchase
+        $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
+        if (!empty($user_role) && strpos($user_role, 'help') !== false && strpos($user_role, 'admin') === false) {
+            $this->json_response(false, 'Unauthorized: Only Accounting (@Acct) can request AddOn delivery service purchase.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
+            return;
+        }
+
+        $res = $this->OrderResolutionModel->request_addon_delivery($ticket_number, $admin_id, $notes);
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=acct');
     }
 }

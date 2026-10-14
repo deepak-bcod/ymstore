@@ -230,6 +230,16 @@ $this->load->view('common/fbc-user/header');
                             </div>
                         <?php endif; ?>
 
+                        <?php 
+                        $has_merchant_action = (!empty($resolution->merchant_action) && $resolution->merchant_action !== 'none');
+                        ?>
+
+                        <?php if (!$has_merchant_action && $resolution->status === 'Open'): ?>
+                            <div class="alert alert-light border py-2 mb-3 text-muted">
+                                <i class="fa fa-hourglass-start"></i> <strong>Awaiting Merchant Action:</strong> The merchant has not taken any action on this resolution request yet. Management controls will be activated once the merchant takes an action.
+                            </div>
+                        <?php endif; ?>
+
                         <?php if ($resolution->merchant_action === 'refund_denied' && $resolution->status === 'Open'): ?>
                             <div class="alert alert-warning py-2 mb-3">
                                 <i class="fa fa-info-circle"></i> <strong>Merchant Denied Refund:</strong> The merchant has rejected the refund request. @Help can review and click <strong>Close Ticket</strong>.
@@ -247,13 +257,24 @@ $this->load->view('common/fbc-user/header');
                         <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
                             <!-- Step 3: @Help Marks Ticket Close (When Merchant Denied Refund/Replacement or General Initial Close) -->
                             <?php if (in_array($resolution->status, ['Open', 'Processing', 'Done']) && $resolution->status !== 'Close' && $resolution->status !== 'Close (Final)'): ?>
-                                <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
-                                    <i class="fa fa-lock"></i> Close Ticket <?= ($resolution->merchant_action === 'refund_denied') ? '(Refund Denied by Merchant)' : (($resolution->merchant_action === 'replacement_denied') ? '(Replacement Denied by Merchant)' : ''); ?>
-                                </button>
-                                <?php if ($resolution->merchant_action !== 'refund_denied' && !$hide_acct): ?>
-                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
-                                        <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
+                                <?php if (!$has_merchant_action): ?>
+                                    <button type="button" class="btn btn-secondary btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;" title="Cannot close ticket: Merchant has not taken any action yet.">
+                                        <i class="fa fa-lock"></i> Close Ticket
                                     </button>
+                                    <?php if (!$hide_acct): ?>
+                                        <button type="button" class="btn btn-warning btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;" title="Cannot assign to @acct: Merchant has not taken any action yet.">
+                                            <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
+                                        </button>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#closeTicketModal">
+                                        <i class="fa fa-lock"></i> Close Ticket <?= ($resolution->merchant_action === 'refund_denied') ? '(Refund Denied by Merchant)' : (($resolution->merchant_action === 'replacement_denied') ? '(Replacement Denied by Merchant)' : ''); ?>
+                                    </button>
+                                    <?php if ($resolution->merchant_action !== 'refund_denied' && !$hide_acct): ?>
+                                        <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
+                                            <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
+                                        </button>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             <?php endif; ?>
 
