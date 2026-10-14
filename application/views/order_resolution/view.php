@@ -124,6 +124,14 @@
                                         </div>
                                     <?php endif; ?>
 
+                                    <?php if ($resolution->status !== 'none'): ?>
+                                        <div class="col-md-4">
+                                            <p><b><?php echo $this->lang->line('escalation_status') ?: 'Escalation Status'; ?>:</b><br>
+                                                <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($status_key) ?: $resolution->status); ?></span>
+                                            </p>
+                                        </div>
+                                    <?php endif; ?>
+
                                     <?php if ($resolution->delivery_option !== 'none'): ?>
                                         <div class="col-md-4">
                                             <p><b><?php echo $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</b><br>
