@@ -1096,6 +1096,7 @@ $lang['date'] = 'Date';
 $lang['action'] = 'Action';
 $lang['back_to_list'] = 'Retour à la liste';
 $lang['merchant_action'] = 'Action du marchand';
+$lang['merchant_status'] = 'Statut marchand';
 $lang['delivery_option'] = 'Option de livraison';
 $lang['approved_refund'] = 'Remboursement approuvé';
 $lang['resolution_decision_actions'] = 'Actions de décision de résolution';
