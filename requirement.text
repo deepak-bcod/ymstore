@@ -30,3 +30,177 @@ This has been issue so to fix this discount configuration (special pricing) must
 When a product is displayed as a part of search or category filtering or within a category of trending products or new products the daily deal and flash sale is not recognised.
 
 4)this is a vital part of promoting and sale of merchant products as one is time sensitive and other is stock sensitive.
+
+
+prnjvyghqnkptwzf
+
+
+YellowMarkets – Daily Deals & Flash Sales Enhancement Plan & Affected Files
+We have inspected the database schema, Admin and Merchant controllers and views, shared pricing presenters, and storefront product card rendering components. Below is the comprehensive identification of affected files, architectural analysis, and step-by-step implementation plan for your review and approval before making any code changes.
+
+1. Summary of Architectural Findings
+Current Decoupled Workflow:
+
+In Admin and Merchant panels, special pricing is handled independently under WebshopController (webshop/discount/*) which writes to the products_special_prices table.
+Products table contains promotion columns (daily_deals, daily_deal_ends_at, flash_sale, flash_sale_ends_at, special_price, special_price_from, special_price_to), but the Edit Product form (edit_product.php) and Add Product form (add_product.php) lack a unified promotional configuration interface.
+products currently lacks daily_deal_starts_at and flash_sale_starts_at columns to support scheduled activation based on calendar start times.
+Scheduling & Automatic Activation/Expiry:
+
+Currently, promotions only check end times via cron or runtime filters, without validating calendar start times (starts_at).
+By storing start and end timestamps (daily_deal_starts_at, daily_deal_ends_at, flash_sale_starts_at, flash_sale_ends_at) and centralizing eligibility checks, promotions will automatically transition through Scheduled $\rightarrow$ Active $\rightarrow$ Expired $\rightarrow$ Disabled without manual product updates.
+Storefront Card Consistency (Grid & Normal Layouts):
+
+Storefront product cards across Trending Products, New Arrivals, category pages, search results, and deal pages route through ProductList.php $\rightarrow$ components/product_listing_page_item.php.
+The current card does not feature the exact badges, discount percentage overlays, or live JavaScript countdown timers depicted in your two reference screenshots.
+2. Affected Files List
+A. Database & Schema Updates
+Database Migration / Schema Helper:
+Ensure daily_deal_starts_at (INT(11) NULL) exists on table products.
+Ensure flash_sale_starts_at (INT(11) NULL) exists on table products.
+Ensure offer_type (VARCHAR(50) DEFAULT 'special_price') exists on table products_special_prices.
+B. Admin & Merchant Promotion Configuration (Edit & Add Product)
+
+
+admin/application/views/seller/products/edit_product.php
+:
+Add the dedicated Promotions & Special Pricing UI section:
+Enable promotional offer toggle / checkbox.
+Radio selection for Promotion Type (Daily Deal vs Flash Sale).
+Read-only Regular Price preview (MUR) mapped to EShop Price.
+Special Price (MUR) input field with validation.
+Start Date & Time calendar picker (from_date).
+End Date & Time calendar picker (to_date).
+Real-time Discount Preview: Percentage badge (e.g., 23.27% off) and price transition (MUR 1,290.30 → MUR 990.00).
+
+
+admin/application/views/seller/products/add_product.php
+:
+Add the same promotional configuration block to support creating promotions directly during new product creation.
+
+
+admin/application/controllers/Sellerproduct.php
+:
+Update editproduct() and add() to parse promotional fields from $_POST.
+Validate that special price is positive and less than webshop price, and that end date is strictly greater than start date.
+Save promotion parameters to products (daily_deals, daily_deal_starts_at, daily_deal_ends_at, flash_sale, flash_sale_starts_at, flash_sale_ends_at, special_price, special_price_from, special_price_to).
+Synchronize with products_special_prices for backward compatibility with existing reporting/discount queries.
+
+
+merchant/application/views/seller/products/edit_product.php
+:
+Add the identical Promotions & Special Pricing section for merchant edit.
+
+
+merchant/application/views/seller/products/add_product.php
+:
+Add the identical promotional section for merchant product creation.
+
+
+merchant/application/controllers/Sellerproduct.php
+:
+Update editproduct() and add() to process and validate promotional data for merchants.
+C. Shared Promotion & Pricing Logic
+
+
+application/presenters/ProductPresenter.php
+:
+Centralize promotion evaluation methods:
+get_active_promotion(): Determines whether product has an active daily_deal or flash_sale based on current server time, start date, and end date.
+Computes discount percentage: round((($regular - $special) / $regular) * 100).
+Returns badge configuration (★ DAILY DEAL / ⚡ FLASH SALE), countdown target timestamp (ends_at), and stock alert state (📦 LIMITED STOCK / ⚠️ Only X left).
+
+
+application/presenters/DisplayPricePresenter.php
+:
+Standardize display of original strikethrough price and orange promotional price according to active promotion rules.
+
+
+application/models/Product_model.php
+:
+Update get_daily_deals(), get_flash_sales(), and auto_expire_deals() to respect both starts_at <= current_time and ends_at > current_time.
+Ensure scheduled deals are not prematurely exposed, and expired deals automatically revert.
+
+
+admin/application/controllers/CronController.php
+:
+Ensure background expiry handles both daily_deals and flash_sale cleanly.
+D. Storefront Presentation (Grid & Normal Layouts Matching Screenshots)
+
+
+application/views/components/product_listing_page_item.php
+:
+Grid Layout (following your second screenshot):
+Top-left badge over image: ★ DAILY DEAL (yellow pill), ⚡ FLASH SALE (red pill), or 📦 LIMITED STOCK (green pill).
+Top-right badge over image: Red discount pill (e.g., -18%, -28%, -10%).
+Product name link.
+Strikethrough original price (e.g., <del>MUR 1,290.00</del>).
+Promotional price in bold orange (e.g., <span class="promo-price-orange">MUR 990.00</span>).
+Countdown timer (e.g., 🕒 Ends in 02:15:30) with clock icon.
+View Details blue action button.
+Normal Layout (following your first screenshot):
+Left side: Product thumbnail.
+Right side: Title, strikethrough original price, bold orange special price, offer badge (⚡ FLASH SALE / ★ DAILY DEAL / ⚠️ Only X left), live countdown timer, and View Details button.
+
+
+application/ViewComponents/ProductList.php
+:
+Supply active promotion details, remaining countdown seconds, discount percentage, and stock badge to the template.
+
+
+application/views/components/featured_products.php
+ & 
+
+application/views/components/trending_products.php
+:
+Ensure Trending Products display promotional badges, prices, and countdowns consistently.
+
+
+application/views/daily_deals.php
+ & 
+
+application/views/flash_sale.php
+:
+Unify card rendering to reuse the standardized card design.
+
+
+application/views/product/product_details.php
+:
+Ensure product detail page reflects active promotional badge, discount percentage, original price, special price, and countdown timer.
+Frontend Assets (CSS & JS):
+JavaScript Countdown Engine: A lightweight, performant script that ticks every second for all visible countdown timers using data-ends-at timestamps.
+Promotional CSS: Yellow ★ DAILY DEAL pill, Red ⚡ FLASH SALE pill, Green 📦 LIMITED STOCK pill, Red discount percentage pill, strikethrough styling, and orange price typography.
+3. Implementation Steps
+mermaid
+flowchart TD
+    A[Step 1: Database Schema Verification] --> B[Step 2: Edit & Add Product UI in Admin & Merchant]
+    B --> C[Step 3: Controller Save & Validation Logic]
+    C --> D[Step 4: Centralized Promotion Presenter & Pricing Engine]
+    D --> E[Step 5: Storefront Card Refactoring - Grid & Normal Layouts]
+    E --> F[Step 6: Real-time JS Countdown & CSS Styling]
+    F --> G[Step 7: Verification Across All Storefront Surfaces]
+Step 1: Verify and apply column additions (daily_deal_starts_at, flash_sale_starts_at in products).
+Step 2: Implement the dedicated "Promotions & Special Pricing" UI section in edit_product.php and add_product.php (both Admin and Merchant). Include live discount calculation (X% off, MUR A → MUR B).
+Step 3: Update Sellerproduct controllers to save promotional fields and synchronize products_special_prices.
+Step 4: Implement ProductPresenter promotion helper to handle Scheduled, Active, Expired, and Disabled states based on calendar dates.
+Step 5: Refactor product_listing_page_item.php and ProductList.php to output the exact Grid and Normal visual layouts shown in your screenshots.
+Step 6: Add live countdown timer JavaScript and CSS styling matching the badges (★ DAILY DEAL, ⚡ FLASH SALE, 📦 LIMITED STOCK, -18%, Orange price).
+Step 7: Test across Trending Products, New Arrivals, category pages, search results, dedicated deal pages, and product details.
+Please let us know if this implementation plan meets your requirements so we can proceed with executing the changes.
+
+Check Promo Schema
+Get Products Table
+Get Promo Tables
+11:38 AM
+
+
+Fix 
+A Database Error Occurred
+Error Number: 1054
+
+Unknown column 'refund_amount' in 'field list'
+
+SELECT `refund_amount` FROM `sales_order_return` WHERE `order_id` = '167'
+
+Filename: /var/www/ymstore/application/models/OrderResolutionModel.php
+
+Line Number: 1985 Please replace refund_amount by order_grandtotal_approved
