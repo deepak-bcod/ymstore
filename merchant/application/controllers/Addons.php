@@ -723,11 +723,14 @@ public function status($token = null)
         $data['service'] = $service;
         $this->load->view('addons/service_details', $data);
     }
-    public function manage() {
+  public function manage() {
     $data['side_menu'] = 'manage_addons';
     
-    // Fetch your addon records from the database if needed
-    // $data['manage_addons'] = $this->Addons_model->get_merchant_addons(); 
+    // Load the model (ensure the file name matches Addon_model.php)
+    $this->load->model('Addon_model');
+    
+    // Fetch addon records from the database
+    $data['manage_addons'] = $this->Addon_model->get_addons_with_services(); 
 
     // Load views using the correct relative path under views/
     $this->load->view('common/fbc-user/header', $data); 
