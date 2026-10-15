@@ -147,16 +147,29 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
                <?= $this->lang->line('sidebar_return_replace') ?>
             </a>
          </li>
-
-         <li class="nav-item">
-            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='addons')) ? 'has-submenu show' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
-               <?= $this->lang->line('sidebar_addons_services') ?>
-            </a>
-         </li>
-         <li class="nav-item">
-    <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='addons')) ? 'has-submenu show' : ''; ?>" href="<?php echo base_url('addons/new-addon'); ?>">
-        New Add-On Report
+<li class="nav-item has-treeview <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'menu-open' : ''; ?>">
+    <a href="#" class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>">
+        <p>
+            <?= $this->lang->line('sidebar_addons_services') ?>
+            <i class="right fa fa-angle-down"></i>
+        </p>
     </a>
+    <ul class="nav nav-treeview" style="display: <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'block' : 'none'; ?>;">
+        <!-- Sub-item 1: Original Addons Services page -->
+        <li class="nav-item">
+            <a href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>" class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'services') ? 'active' : ''; ?>">
+                <i class="fa fa-circle-o nav-icon"></i>
+                <p>Services</p>
+            </a>
+        </li>
+        <!-- Sub-item 2: New Add-on Report Page with SR NO, Merchant Name, Status, Date, Amount -->
+        <li class="nav-item">
+            <a href="<?php echo !$profile_incomplete ? base_url('addons/new-addon') : 'javascript:void(0);'; ?>" class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'new_addon') ? 'active' : ''; ?>">
+                <i class="fa fa-circle-o nav-icon"></i>
+                <p>New Add-On Report</p>
+            </a>
+        </li>
+    </ul>
 </li>
 
          <li class="nav-item">
