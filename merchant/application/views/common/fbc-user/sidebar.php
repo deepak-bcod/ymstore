@@ -147,30 +147,39 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
                <?= $this->lang->line('sidebar_return_replace') ?>
             </a>
          </li>
-<li class="nav-item has-treeview <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'menu-open' : ''; ?>">
-    <a href="#" class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>">
-        <p>
-            <?= $this->lang->line('sidebar_addons_services') ?>
-            <i class="right fa fa-angle-down"></i>
-        </p>
+
+         <li class="nav-item">
+    <!-- Parent Menu with Dropdown Toggle -->
+    <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'has-submenu show active' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" 
+       data-toggle="collapse" 
+       href="#addonsSubmenu" 
+       role="button" 
+       aria-expanded="<?php echo (isset($side_menu) && $side_menu == 'addons') ? 'true' : 'false'; ?>" 
+       aria-controls="addonsSubmenu"
+       style="display: flex; justify-content: space-between; align-items: center;">
+        <span><?= $this->lang->line('sidebar_addons_services') ?></span>
+        <i class="fa fa-angle-down"></i>
     </a>
-    <ul class="nav nav-treeview" style="display: <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'block' : 'none'; ?>;">
-        <!-- Sub-item 1: Original Addons Services page -->
-        <li class="nav-item">
-            <a href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>" class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'services') ? 'active' : ''; ?>">
-                <i class="fa fa-circle-o nav-icon"></i>
-                <p>Services</p>
-            </a>
-        </li>
-        <!-- Sub-item 2: New Add-on Report Page with SR NO, Merchant Name, Status, Date, Amount -->
-        <li class="nav-item">
-            <a href="<?php echo !$profile_incomplete ? base_url('addons/new-addon') : 'javascript:void(0);'; ?>" class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'new_addon') ? 'active' : ''; ?>">
-                <i class="fa fa-circle-o nav-icon"></i>
-                <p>New Add-On Report</p>
-            </a>
-        </li>
-    </ul>
+
+    <!-- Submenu Items Container (Automatically stays open if $side_menu is active) -->
+    <div class="collapse <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'show' : ''; ?>" id="addonsSubmenu">
+        <ul class="nav flex-column" style="list-style: none; padding-left: 15px; margin-top: 5px;">
+            <li class="nav-item">
+                <a class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'services') ? 'active font-weight-bold' : ''; ?>" 
+                   href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
+                    Services
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'new_addon') ? 'active font-weight-bold' : ''; ?>" 
+                   href="<?php echo !$profile_incomplete ? base_url('addons/new-addon') : 'javascript:void(0);'; ?>">
+                    New Add-On Report
+                </a>
+            </li>
+        </ul>
+    </div>
 </li>
+         
 
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='mydocuments')) ? 'has-submenu show' : ''; ?>
