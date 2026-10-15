@@ -12,7 +12,6 @@
                                 <th>MERCHANT NAME</th>
                                 <th>Addon Service</th>
                                 <th>STATUS</th>
-                                <th>Order</th>
                                 <th>DATE</th>
                                 <th>AMOUNT</th>
                             </tr>
@@ -26,14 +25,13 @@
                                         <td><?php echo html_escape($row->merchant_name); ?></td>
                                         <td><?php echo html_escape($row->addon_service_name); ?></td>
                                         <td><?php echo html_escape($row->status); ?></td>
-                                        <td><?php echo html_escape($row->order_id); ?></td>
                                         <td><?php echo html_escape($row->date); ?></td>
                                         <td><?php echo number_format((float)$row->amount, 2); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="7" class="text-center">
+                                    <td colspan="6" class="text-center">
                                         No records found
                                     </td>
                                 </tr>
