@@ -723,18 +723,18 @@ public function status($token = null)
         $data['service'] = $service;
         $this->load->view('addons/service_details', $data);
     }
-  public function manage() {
+ public function manage() {
     $data['side_menu'] = 'manage_addons';
     
-    // Load the model properly (note: singular 'Addon_model' based on your class definition)
+    // Load the model
     $this->load->model('Addon_model');
     
     // Fetch addon records from the database
     $data['manage_addons'] = $this->Addon_model->get_addons_with_services(); 
 
-    // Load views using the correct relative path under views/
+    // Load views with the correct folder path
     $this->load->view('common/fbc-user/header', $data); 
-    $this->load->view('manage_addons_view', $data); 
+    $this->load->view('addons/manage_addons_view', $data); // Updated path here
     $this->load->view('common/fbc-user/footer');
 }
 }
