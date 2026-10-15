@@ -433,7 +433,9 @@ function getSubOrderStatusText($status) {
                                                                         <?php echo $b2b_status_info['text']; ?>
                                                                     </span>
                                                                 </h4>
-                                                                <p><?php echo $this->lang->line('escalation_status'); ?> : <?php echo $escalation_suffix; ?></p>
+                                                                <?php if($escalation_suffix !="") { ?>
+                                                                    <p style="color: #777; font-size: 12px; margin: 5px 0;"><?php echo $this->lang->line('escalation_status'); ?> : <?php echo $escalation_suffix; ?></p>
+                                                                <?php } ?>
                                                                 <p><?php echo get_display_product_name($sub_item, $parent_item); ?></p>
                                                                 <?php 
                                                                 // Display product variants - prioritize sub_item variants first, then parent_item

@@ -2394,3 +2394,4 @@ $lang['you_merchant'] = 'You (Merchant)';
 $lang['escalation_in_progress'] = 'Escalation In Progress';
 $lang['escalation_complete'] = 'Escalation Complete';
 $lang['escalation_request'] = 'Escalation Request';
+$lang['escalation_status'] = 'Escalation Status';
