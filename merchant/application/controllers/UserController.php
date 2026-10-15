@@ -3473,7 +3473,7 @@ class UserController extends CI_Controller
 
 		// 2. Send Email to @help (order-resolution-refund-approved-help)
 		$help_email = $this->CommonModel->get_custom_variable('contact_us_email')
-			?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+			?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'noreply@yellowmarkets.com');
 
 		if (!empty($help_email)) {
 			$helpDynamicVars = [
@@ -3820,7 +3820,7 @@ class UserController extends CI_Controller
 			$admin_ticket_url = $admin_base . "CustomerController/view/" . $order_id_val . "/" . $ticket_id . ($prod_id_val ? '/' . $prod_id_val : '');
 
 			$help_email = $this->CommonModel->get_custom_variable('contact_us_email')
-				?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+				?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'noreply@yellowmarkets.com');
 
 			if (!empty($help_email)) {
 				$helpDynamicVars = [
@@ -4051,7 +4051,7 @@ class UserController extends CI_Controller
 
 		// Send email to @help (order-resolution-replacement-completed-help)
 		$help_email = $this->CommonModel->get_custom_variable('contact_us_email')
-			?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'help@yellowmarkets.com');
+			?: ($this->CommonModel->get_custom_variable('admin_email') ?: 'noreply@yellowmarkets.com');
 
 		if (!empty($help_email)) {
 			$helpDynamicVars = [
@@ -4153,7 +4153,7 @@ class UserController extends CI_Controller
 		$help_email = is_object($help_var) ? ($help_var->value ?? '') : (is_string($help_var) ? $help_var : '');
 		if (empty($help_email)) {
 			$admin_var = $this->CommonModel->get_custom_variable('admin_email');
-			$help_email = is_object($admin_var) ? ($admin_var->value ?? '') : (is_string($admin_var) ? $admin_var : 'help@yellowmarkets.com');
+			$help_email = is_object($admin_var) ? ($admin_var->value ?? '') : (is_string($admin_var) ? $admin_var : 'noreply@yellowmarkets.com');
 		}
 
 		$tempVars = [
