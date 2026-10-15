@@ -736,7 +736,6 @@ class Sellerproduct extends CI_Controller
 						'gift_id' => $sel_gift,
 						'ip' => $_SERVER['REMOTE_ADDR']
 					);
-
 					$product_id = $this->SellerProductModel->insertData('products', $insertdata);
 					if ($product_id) {
 						if (isset($product_type) && $product_type == 'bundle') {
@@ -3217,6 +3216,7 @@ class Sellerproduct extends CI_Controller
 							'sub_issues' => $sub_issue,
 							'ip' => $_SERVER['REMOTE_ADDR']
 						);
+
 
 						// Special Pricing processing
 						$special_price_in = isset($_POST['special_price']) ? $_POST['special_price'] : (isset($_POST['promo_special_price']) ? $_POST['promo_special_price'] : '');

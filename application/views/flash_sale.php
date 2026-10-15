@@ -410,13 +410,216 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                             <?php foreach ($products as $p): ?>
 
+
                                 <div class="col-md-4 col-sm-6 mb-4">
-                                    <?php 
-                                    $p_presenter = ProductPresenter::from($p);
-                                    $p_image = $p_presenter->product_image('thumb');
-                                    (new ProductList())->productListData($p_presenter, $p_image, 'FlashSaleListing', '', '');
-                                    ?>
+
+
+                                    <div class="product-item border p-2 h-100">
+
+
+                                        <div class="product-image text-center mb-2">
+
+
+                                            <?php
+
+                                            $imgPath =
+                                                FCPATH .
+                                                'uploads/products/thumb/' .
+                                                $p->base_image;
+
+                                            ?>
+
+
+                                            <?php if (
+                                                !empty($p->base_image) &&
+                                                file_exists($imgPath)
+                                            ): ?>
+
+
+                                                <img
+                                                    class="product-image-photo img-fluid"
+                                                    src="<?php
+                                                    echo base_url(
+                                                        'uploads/products/thumb/' .
+                                                        $p->base_image
+                                                    );
+                                                    ?>"
+                                                    alt="<?php
+                                                    echo htmlspecialchars(
+                                                        $p->name,
+                                                        ENT_QUOTES,
+                                                        'UTF-8'
+                                                    );
+                                                    ?>"
+                                                >
+
+
+                                            <?php else: ?>
+
+
+                                                <img
+                                                    class="product-image-photo img-fluid"
+                                                    src="https://via.placeholder.com/300x300?text=No+Image"
+                                                    alt="No Image"
+                                                >
+
+
+                                            <?php endif; ?>
+
+
+                                            <a
+                                                href="javascript:void(0);"
+                                                class="quick-view-btn"
+                                                onclick="QuickViewProdDetails(
+                                                    '<?php
+                                                    echo htmlspecialchars(
+                                                        $p->url_key,
+                                                        ENT_QUOTES,
+                                                        'UTF-8'
+                                                    );
+                                                    ?>',
+                                                    '<?php
+                                                    echo site_url(
+                                                        'product-detail/' .
+                                                        $p->url_key
+                                                    );
+                                                    ?>'
+                                                );"
+                                            >
+
+                                                <?php
+                                                echo $this->lang->line(
+                                                    'view_label'
+                                                );
+                                                ?>
+
+                                            </a>
+
+
+                                        </div>
+
+                                        <div class="product-details text-center">
+
+
+                                            <!-- PRODUCT NAME -->
+
+                                            <h3 class="product-name">
+
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    $p->name,
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                );
+                                                ?>
+
+                                            </h3>
+
+                                            <div class="price-box mb-2">
+
+
+                                                <?php if (
+                                                    !empty($p->special_price)
+                                                ): ?>
+
+
+                                                    <!-- SPECIAL PRICE -->
+
+                                                    <span class="special-price">
+
+                                                        MUR
+
+                                                        <?php
+                                                        echo number_format(
+                                                            $p->special_price,
+                                                            2
+                                                        );
+                                                        ?>
+
+                                                    </span>
+
+
+                                                    <!-- OLD PRICE -->
+
+                                                    <span class="old-price text-muted">
+
+                                                        <s>
+
+                                                            MUR
+
+                                                            <?php
+                                                            echo number_format(
+                                                                $p->webshop_price,
+                                                                2
+                                                            );
+                                                            ?>
+
+                                                        </s>
+
+                                                    </span>
+
+
+                                                <?php else: ?>
+
+
+                                                    <!-- REGULAR PRICE -->
+
+                                                    <span class="regular-price">
+
+                                                        MUR
+
+                                                        <?php
+                                                        echo number_format(
+                                                            $p->webshop_price,
+                                                            2
+                                                        );
+                                                        ?>
+
+                                                    </span>
+
+
+                                                <?php endif; ?>
+
+
+                                            </div>
+
+
+                                            <p class="deal-ends mb-2">
+
+                                                <?= lang('sale_ends'); ?>:
+
+                                                <?php
+
+                                                echo date(
+                                                    "d M Y, H:i",
+                                                    $p->flash_sale_ends_at
+                                                );
+
+                                                ?>
+
+                                            </p>
+
+
+                                             <div class="view-product-wrapper">
+                                                <a
+                                                    href="<?php echo BASE_URL . 'product-detail/' . $p->url_key; ?>"
+                                                    class="view-product-btn"
+                                                >
+                                                    <?php
+                                                    echo $this->lang->line('view_details');
+                                                    ?>
+                                                </a>
+                                            </div>
+
+
+                                        </div>
+
+
+                                    </div>
+
+
                                 </div>
+
 
                             <?php endforeach; ?>
 

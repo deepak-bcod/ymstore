@@ -10953,6 +10953,7 @@ class Sellerproduct extends CI_Controller {
 
 						$this->SellerProductModel->updateData('products', $where_arr, $updatedata);
 
+
 						// Synchronize products_special_prices
 						$existing_sp = $this->SellerProductModel->getSingleDataByID('products_special_prices', array('product_id' => $product_id), '*');
 						if ($promo_special_price > 0) {
