@@ -1,10 +1,26 @@
+<style>
+    /* Ensure the main content area respects the fixed sidebar width */
+    .main-content {
+        margin-left: 250px; /* Matches your sidebar width */
+        width: calc(100% - 250px);
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    
+    /* Make sure the table takes up full width cleanly and scrolls horizontally if needed */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+    }
+</style>
+
 <div class="main-content">
     <div class="container-fluid">
         <h3>Manage Addon</h3>
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
+                    <table class="table table-bordered table-striped" style="width: 100%;">
                         <thead>
                             <tr>
                                 <th style="width: 60px;">SR NO.</th>
