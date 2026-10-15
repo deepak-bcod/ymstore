@@ -723,22 +723,4 @@ public function status($token = null)
         $data['service'] = $service;
         $this->load->view('addons/service_details', $data);
     }
-    public function new_addon() 
-    {
-        // Use the consistent session check matching your constructor and other methods
-        if (!$this->session->userdata('LoginID')) {
-            redirect('auth/login');
-        }
-
-        $data['side_menu'] = 'addons';
-        $data['sub_menu']  = 'new_addon'; // For highlighting the sub-item in your dropdown
-        
-        // Fixed model name from Addons_model to Addon_model
-        $data['addons_list'] = $this->Addon_model->get_new_addons_data();
-
-        // Load your view file with the merchant layout header and footer
-        $this->load->view('merchant/header', $data); 
-        $this->load->view('addons/new_addon_view', $data);
-        $this->load->view('merchant/footer');
-    }
 }

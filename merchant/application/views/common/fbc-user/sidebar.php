@@ -149,32 +149,10 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
          </li>
 
          <li class="nav-item">
-    <!-- Parent Menu with Dropdown Toggle -->
-    <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'has-submenu show active' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" 
-       data-toggle="collapse" 
-       href="#addonsSubmenu" 
-       role="button" 
-       aria-expanded="<?php echo (isset($side_menu) && $side_menu == 'addons') ? 'true' : 'false'; ?>" 
-       aria-controls="addonsSubmenu"
-       style="display: flex; justify-content: space-between; align-items: center;">
-        <span><?= $this->lang->line('sidebar_addons_services') ?></span>
-        <i class="fa fa-angle-down"></i>
-    </a>
-
-    <!-- Submenu Items Container (Automatically stays open if $side_menu is active) -->
-    <div class="collapse <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'show' : ''; ?>" id="addonsSubmenu">
-        <ul class="nav flex-column" style="list-style: none; padding-left: 15px; margin-top: 5px;">
-            
-            <li class="nav-item">
-                <a class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'new_addon') ? 'active font-weight-bold' : ''; ?>" 
-                   href="<?php echo !$profile_incomplete ? base_url('addons/new-addon') : 'javascript:void(0);'; ?>">
-                    New Add-On Report
-                </a>
-            </li>
-        </ul>
-    </div>
-</li>
-         
+            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='addons')) ? 'has-submenu show' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
+               <?= $this->lang->line('sidebar_addons_services') ?>
+            </a>
+         </li>
 
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='mydocuments')) ? 'has-submenu show' : ''; ?>
