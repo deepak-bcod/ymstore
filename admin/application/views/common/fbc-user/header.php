@@ -323,7 +323,7 @@
 
 
   <!-- Custom styles for this template -->
-  <link href="<?php echo SKIN_CSS; ?>style.css?v2=<?php echo CSSJS_VERSION; ?>" rel="stylesheet">
+  <link href="<?php echo SKIN_CSS; ?>style.css?v3=<?php echo CSSJS_VERSION; ?>" rel="stylesheet">
   <link href="<?php echo SKIN_CSS; ?>dashboard.css?v=<?php echo CSSJS_VERSION; ?>" rel="stylesheet">
   <link href="<?php echo SKIN_CSS; ?>all.css?v=<?php echo CSSJS_VERSION; ?>" rel="stylesheet">
 

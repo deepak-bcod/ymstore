@@ -736,8 +736,56 @@ class Sellerproduct extends CI_Controller
 						'gift_id' => $sel_gift,
 						'ip' => $_SERVER['REMOTE_ADDR']
 					);
+
+					// Promotions & Special Pricing processing
+					$enable_promo = !empty($_POST['enable_promotional_offer']) ? 1 : 0;
+					$promo_special_price = 0.00;
+					$promo_start_ts = null;
+					$promo_end_ts = null;
+					$promo_type = 'daily_deal';
+
+					if ($enable_promo) {
+						$promo_type = (isset($_POST['promo_type']) && $_POST['promo_type'] === 'flash_sale') ? 'flash_sale' : 'daily_deal';
+						$promo_special_price = (isset($_POST['promo_special_price']) && is_numeric($_POST['promo_special_price'])) ? floatval($_POST['promo_special_price']) : 0.00;
+						$promo_start_ts = !empty($_POST['promo_start_date']) ? strtotime($_POST['promo_start_date']) : time();
+						$promo_end_ts = !empty($_POST['promo_end_date']) ? strtotime($_POST['promo_end_date']) : null;
+
+						if ($promo_type === 'flash_sale') {
+							$insertdata['flash_sale'] = 1;
+							$insertdata['flash_sale_starts_at'] = $promo_start_ts;
+							$insertdata['flash_sale_ends_at'] = $promo_end_ts;
+							$insertdata['daily_deals'] = 0;
+							$insertdata['daily_deal_starts_at'] = null;
+							$insertdata['daily_deal_ends_at'] = null;
+						} else {
+							$insertdata['daily_deals'] = 1;
+							$insertdata['daily_deal_starts_at'] = $promo_start_ts;
+							$insertdata['daily_deal_ends_at'] = $promo_end_ts;
+							$insertdata['flash_sale'] = 0;
+							$insertdata['flash_sale_starts_at'] = null;
+							$insertdata['flash_sale_ends_at'] = null;
+						}
+						$insertdata['special_price'] = ($promo_special_price > 0) ? $promo_special_price : null;
+						$insertdata['special_price_from'] = $promo_start_ts;
+						$insertdata['special_price_to'] = $promo_end_ts;
+					}
+
 					$product_id = $this->SellerProductModel->insertData('products', $insertdata);
 					if ($product_id) {
+						if ($enable_promo && $promo_special_price > 0) {
+							$sp_data = array(
+								'product_id' => $product_id,
+								'special_price' => $promo_special_price,
+								'special_price_from' => $promo_start_ts,
+								'special_price_to' => $promo_end_ts,
+								'display_original' => 1,
+								'offer_type' => $promo_type,
+								'created_by' => $this->session->userdata('LoginID'),
+								'created_at' => time(),
+								'ip' => $_SERVER['REMOTE_ADDR']
+							);
+							$this->SellerProductModel->insertData('products_special_prices', $sp_data);
+						}
 						if (isset($product_type) && $product_type == 'bundle') {
 							/*-------------------Insert products_bundles :start--------------------------------------*/
 							if (isset($_POST['bundle_product_id']) && count($_POST['bundle_product_id']) > 0) {
@@ -3214,8 +3262,70 @@ class Sellerproduct extends CI_Controller
 							'ip' => $_SERVER['REMOTE_ADDR']
 						);
 
+						// Promotions & Special Pricing processing
+						$enable_promo = !empty($_POST['enable_promotional_offer']) ? 1 : 0;
+						if ($enable_promo) {
+							$promo_type = (isset($_POST['promo_type']) && $_POST['promo_type'] === 'flash_sale') ? 'flash_sale' : 'daily_deal';
+							$promo_special_price = (isset($_POST['promo_special_price']) && is_numeric($_POST['promo_special_price'])) ? floatval($_POST['promo_special_price']) : 0.00;
+							$promo_start_ts = !empty($_POST['promo_start_date']) ? strtotime($_POST['promo_start_date']) : time();
+							$promo_end_ts = !empty($_POST['promo_end_date']) ? strtotime($_POST['promo_end_date']) : null;
+
+							if ($promo_type === 'flash_sale') {
+								$updatedata['flash_sale'] = 1;
+								$updatedata['flash_sale_starts_at'] = $promo_start_ts;
+								$updatedata['flash_sale_ends_at'] = $promo_end_ts;
+								$updatedata['daily_deals'] = 0;
+								$updatedata['daily_deal_starts_at'] = null;
+								$updatedata['daily_deal_ends_at'] = null;
+							} else {
+								$updatedata['daily_deals'] = 1;
+								$updatedata['daily_deal_starts_at'] = $promo_start_ts;
+								$updatedata['daily_deal_ends_at'] = $promo_end_ts;
+								$updatedata['flash_sale'] = 0;
+								$updatedata['flash_sale_starts_at'] = null;
+								$updatedata['flash_sale_ends_at'] = null;
+							}
+							$updatedata['special_price'] = ($promo_special_price > 0) ? $promo_special_price : null;
+							$updatedata['special_price_from'] = $promo_start_ts;
+							$updatedata['special_price_to'] = $promo_end_ts;
+						} else {
+							$updatedata['daily_deals'] = 0;
+							$updatedata['daily_deal_starts_at'] = null;
+							$updatedata['daily_deal_ends_at'] = null;
+							$updatedata['flash_sale'] = 0;
+							$updatedata['flash_sale_starts_at'] = null;
+							$updatedata['flash_sale_ends_at'] = null;
+							$updatedata['special_price'] = null;
+							$updatedata['special_price_from'] = null;
+							$updatedata['special_price_to'] = null;
+						}
+
 						$where_arr = array('id' => $product_id);
 						$this->SellerProductModel->updateData('products', $where_arr, $updatedata);
+
+						// Synchronize products_special_prices
+						$existing_sp = $this->SellerProductModel->getSingleDataByID('products_special_prices', array('product_id' => $product_id), '*');
+						if ($enable_promo && $promo_special_price > 0) {
+							$sp_data = array(
+								'product_id' => $product_id,
+								'special_price' => $promo_special_price,
+								'special_price_from' => $promo_start_ts,
+								'special_price_to' => $promo_end_ts,
+								'display_original' => 1,
+								'offer_type' => $promo_type,
+								'updated_at' => time(),
+								'ip' => $_SERVER['REMOTE_ADDR']
+							);
+							if (!empty($existing_sp)) {
+								$this->SellerProductModel->updateData('products_special_prices', array('id' => $existing_sp->id), $sp_data);
+							} else {
+								$sp_data['created_by'] = $this->session->userdata('LoginID');
+								$sp_data['created_at'] = time();
+								$this->SellerProductModel->insertData('products_special_prices', $sp_data);
+							}
+						} elseif (!empty($existing_sp)) {
+							$this->SellerProductModel->deleteData('products_special_prices', array('product_id' => $product_id));
+						}
 
 						// ── Merchant Approval Notification (same as updateStatuses) ──
 						// Only fire when approval_status actually changed

@@ -10383,12 +10383,18 @@ main.main-box.col-md-9.ml-sm-auto.col-lg-10.px-md-4.dashboard-page.faq-section a
 .form-group.question-setion textarea {
     width: 50%;
 }
-div#deliveryPopupModal .modal-dialog.modal-lg {
+div#deliveryPopupModal .modal-dialog.modal-lg, div#order-action-modal .modal-dialog.modal-lg {
     max-width: 910px;
 }
-div#deliveryPopupModal .modal-dialog.modal-lg div#deliveryPopupContent {
+div#deliveryPopupModal .modal-dialog.modal-lg div#deliveryPopupContent, div#order-action-modal .modal-dialog.modal-lg div#order-action-modal-body {
     overflow: auto;
     width: 100%;
+}
+div#order-action-modal .modal-dialog.modal-lg table th:last-child, div#order-action-modal .modal-dialog.modal-lg table tr td:last-child {
+    white-space: nowrap;
+}
+div#order-action-modal .modal-dialog.modal-lg table tr td:last-child button.btn.btn-success.btn-sm.admin-complete-ym,div#order-action-modal .modal-dialog.modal-lg table tr td:last-child button.btn.btn-danger.btn-sm.admin-reject-ym {
+    font-size: 12px;
 }
 
 @media (max-width:768px) {

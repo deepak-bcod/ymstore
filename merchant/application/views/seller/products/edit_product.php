@@ -1400,7 +1400,7 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 
 		 // product check ?>
 
-
+		<?php include('promotions_section.php'); ?>
 
 		 <input type="hidden" class="" id="product_type" name="product_type"  value="<?php echo $ProductData->product_type; ?>">
 

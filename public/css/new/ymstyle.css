@@ -3038,6 +3038,11 @@ td.tictet-section a:hover {
 .daily-deals-page .link-customer-action a { line-height: 1.25 !important;}
 .daily-deals-page .header-navigation ul.bottom-section-menu {padding-top: 1px;}
 
+.notification-menu {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+}
 
 @media (min-width:768px) and (max-width:1199px){
 	.header-bottom .vertical-megamenu.search-wrapper.form.minisearch {left: 8%;position:relative;}
@@ -3053,6 +3058,17 @@ td.tictet-section a:hover {
 }
 
 @media (max-width:768px) {
+	ul.bottom-section-menu.show {padding-top: 10px;}
+	li.menu-item-new.notification-menu {
+    position: absolute;
+    top: 5px;
+    right: 3px;
+    bottom: inherit;
+	height: 30px;
+}
+li.menu-item-new.notification-menu a.notification-bell {
+    color: #000 !important;
+}
 	.vendor_list_page h2.product.name.product-item-name.product-name {text-align: center; font-size: 12px;}
 	.message-list-table table {white-space: nowrap !important;}
 	.message-list-table table td:nth-child(4), .message-list-table table th:nth-child(4) {
