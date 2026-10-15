@@ -1,6 +1,11 @@
 <style>
     /* Fixes content overlapping under the fixed sidebar and makes it full-width */
-    
+    .manage-addons-wrapper {
+        margin-left: 260px; /* Adjust to match your sidebar width */
+        padding: 20px 30px;
+        width: calc(100% - 260px);
+        box-sizing: border-box;
+    }
     .table thead th {
         background-color: #ffc107; 
         color: #000;
