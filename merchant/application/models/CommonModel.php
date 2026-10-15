@@ -18,8 +18,7 @@ use App\Services\Trackers\ShipmentStatusEnum;
 
 class CommonModel extends CI_Model
 {
-
-
+	public $last_smtp_error = null;
 
 	public function __construct() {}
 
@@ -958,31 +957,27 @@ class CommonModel extends CI_Model
 		if ($webshop_smtp_host != '' && $webshop_smtp_port != '' && $webshop_smtp_username != '' && $webshop_smtp_password != '' && $webshop_smtp_secure != '') {
 
 			$config = array(
-
-				'protocol'  => 'smtp',
-
-				'smtp_host' => $webshop_smtp_host,
-
-				'smtp_port' => $webshop_smtp_port,
-
-				'smtp_user' => $webshop_smtp_username,
-
-				'smtp_pass' => $webshop_smtp_password,
-
-				'mailtype'  => 'html',
-
-				'charset'   => 'utf-8',
-
+				'protocol'    => 'smtp',
+				'smtp_host'   => $webshop_smtp_host,
+				'smtp_port'   => $webshop_smtp_port,
+				'smtp_user'   => $webshop_smtp_username,
+				'smtp_pass'   => $webshop_smtp_password,
+				'mailtype'    => 'html',
+				'charset'     => 'utf-8',
 				'smtp_crypto' => $webshop_smtp_secure,
-
+				'newline'     => "\r\n",
+				'crlf'        => "\r\n",
+				'smtp_timeout'=> 30
 			);
 
 			$this->email->initialize($config);
 		}
 
+		$this->email->set_crlf("\r\n");
 		$this->email->set_newline("\r\n");
 
-		$this->email->from($from_email); // change it to yours
+		$from_email = !empty($from_email) ? $from_email : $webshop_smtp_username;
+		$this->email->from($from_email, 'Yellow Markets');
 
 		$this->email->to($to); // change it to yours
 		if (!empty($ccEmail)) {
@@ -1010,7 +1005,8 @@ class CommonModel extends CI_Model
 		if ($this->email->send()) {
 			return true;
 		} else {
-			log_message('error', 'sendHTMLMailSMTP failed: ' . $this->email->print_debugger(['headers']));
+			$this->last_smtp_error = strip_tags($this->email->print_debugger(['headers']));
+			log_message('error', 'sendHTMLMailSMTP failed: ' . $this->last_smtp_error);
 			return false;
 		}
 	}
