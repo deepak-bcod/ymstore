@@ -2122,7 +2122,7 @@ class OrderResolutionModel extends CI_Model
             return $admin_val;
         }
 
-        return 'help@yellowmarkets.com';
+        return 'noreply@yellowmarkets.com';
     }
 
     private function get_acct_email()
@@ -2143,7 +2143,7 @@ class OrderResolutionModel extends CI_Model
             return $admin_val;
         }
 
-        return 'acct@yellowmarkets.com';
+        return 'noreply@yellowmarkets.com';
     }
 
     /**

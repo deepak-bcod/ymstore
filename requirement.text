@@ -1,0 +1,32 @@
+
+Add multilegual
+Escalation status align below the order status in my orders
+Added refund amount
+Payout enable in case resloution complete
+Page has to be refresh after popup model action complete
+My orders add escalation status
+Admin and Merchant list changes (Order , Separate Status & Merchant)
+Addon Purchase Flow Integration
+Conversions has been separate out
+Some button not activated till merchant not taken any action
+Admin and Merchnat view chnages
+Front end changes
+
+---------------------------------------------------------------------------------------------------------------------
+1)The scheduling and configuration of Daily Deals and Flash Sales currently require updates from two different locations
+
+First, the discount must be configured, and then the product must be edited separately to apply the respective daily deal or flash sales offer within the respective product.
+
+This has been issue so to fix this discount configuration (special pricing) must be part of edit product only.The process should be streamlined to have better UI/UX eg.  allow users to configure and schedule the discount and apply it to the product more efficiently.
+
+
+2)Offers cannot be scheduled, the Calendar start date should be acting as the scheduling date.
+
+
+
+
+3)Flash Sale / Daily Deals - Product to be recognised
+
+When a product is displayed as a part of search or category filtering or within a category of trending products or new products the daily deal and flash sale is not recognised.
+
+4)this is a vital part of promoting and sale of merchant products as one is time sensitive and other is stock sensitive.
