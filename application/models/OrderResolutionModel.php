@@ -28,6 +28,9 @@ class OrderResolutionModel extends CI_Model
                 if (!$this->db->field_exists('addon_service_id', 'order_resolutions')) {
                     $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `addon_service_id` int(11) DEFAULT NULL AFTER `addon_purchase_id`");
                 }
+                if (!$this->db->field_exists('refund_amount', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `refund_amount` decimal(12,2) NOT NULL DEFAULT '0.00' AFTER `resolution_status`");
+                }
             }
             if ($this->db && $this->db->table_exists('order_resolution_audit_log')) {
                 if (!$this->db->field_exists('source_panel', 'order_resolution_audit_log')) {
@@ -569,6 +572,44 @@ class OrderResolutionModel extends CI_Model
             }
         }
 
+        // Calculate refund amount for resolution
+        $refund_amount = 0.00;
+        if (!empty($order_item_id)) {
+            $soi = $this->db->select('price, total_price, qty_ordered')->where('item_id', $order_item_id)->get('sales_order_items')->row();
+            if ($soi) {
+                $refund_amount = (float)($soi->total_price ?: ($soi->price * (int)($soi->qty_ordered ?: 1)));
+            } else {
+                $boi = $this->db->select('price, total_price, qty_ordered')->where('item_id', $order_item_id)->get('b2b_order_items')->row();
+                if ($boi) {
+                    $refund_amount = (float)($boi->total_price ?: ($boi->price * (int)($boi->qty_ordered ?: 1)));
+                }
+            }
+        }
+        if ($refund_amount <= 0 && !empty($order_id) && !empty($product_id)) {
+            $soi = $this->db->select('price, total_price, qty_ordered')->where('order_id', $order_id)->where('product_id', $product_id)->get('sales_order_items')->row();
+            if ($soi) {
+                $refund_amount = (float)($soi->total_price ?: ($soi->price * (int)($soi->qty_ordered ?: 1)));
+            }
+        }
+        if ($refund_amount <= 0 && !empty($b2b_order_id) && !empty($product_id)) {
+            $boi = $this->db->select('price, total_price, qty_ordered')->where('order_id', $b2b_order_id)->where('product_id', $product_id)->get('b2b_order_items')->row();
+            if ($boi) {
+                $refund_amount = (float)($boi->total_price ?: ($boi->price * (int)($boi->qty_ordered ?: 1)));
+            }
+        }
+        if ($refund_amount <= 0 && !empty($product_id)) {
+            $prod = $this->db->select('price, special_price')->where('id', $product_id)->get('products')->row();
+            if ($prod) {
+                $refund_amount = (float)(($prod->special_price > 0) ? $prod->special_price : $prod->price);
+            }
+        }
+        if ($refund_amount <= 0 && !empty($order_id)) {
+            $so = $this->db->select('subtotal, grand_total')->where('order_id', $order_id)->get('sales_order')->row();
+            if ($so) {
+                $refund_amount = (float)($so->subtotal ?: $so->grand_total);
+            }
+        }
+
         $resolution_data = [
             'ticket_number'    => $ticket_number,
             'order_id'         => $order_id,
@@ -584,6 +625,7 @@ class OrderResolutionModel extends CI_Model
             'merchant_action'  => 'none',
             'delivery_option'  => 'none',
             'resolution_status'=> 'none',
+            'refund_amount'    => $refund_amount,
             'assigned_role'    => 'Help',
             'subject'          => $data['subject'] ?? ($category . ' - ' . $order_number),
             'message'          => $message,
@@ -1857,7 +1899,112 @@ class OrderResolutionModel extends CI_Model
 
     public function get_resolution_by_ticket_number($ticket_number)
     {
-        return $this->db->where('ticket_number', $ticket_number)->get('order_resolutions')->row();
+        $res = $this->db->where('ticket_number', $ticket_number)->get('order_resolutions')->row();
+        if ($res) {
+            $this->enrich_resolution($res);
+        }
+        return $res;
+    }
+
+    public function get_resolution_by_id($id)
+    {
+        $res = $this->db->where('id', (int)$id)->get('order_resolutions')->row();
+        if ($res) {
+            $this->enrich_resolution($res);
+        }
+        return $res;
+    }
+
+    /**
+     * Compute and enrich resolution with accurate refund amount
+     */
+    public function enrich_resolution(&$res)
+    {
+        if (empty($res)) {
+            return;
+        }
+
+        if (empty($res->refund_amount) || (float)$res->refund_amount <= 0) {
+            $res->refund_amount = $this->get_refund_amount_for_resolution($res);
+            if ($res->refund_amount > 0 && $this->db->field_exists('refund_amount', 'order_resolutions')) {
+                $this->db->where('id', $res->id)->update('order_resolutions', ['refund_amount' => $res->refund_amount]);
+            }
+        }
+    }
+
+    /**
+     * Helper to compute refund amount from items, orders or products
+     */
+    public function get_refund_amount_for_resolution($res)
+    {
+        if (empty($res)) {
+            return 0.00;
+        }
+
+        $amount = 0.00;
+
+        // 1. By order_item_id
+        if (!empty($res->order_item_id)) {
+            $soi = $this->db->select('price, total_price, qty_ordered')->where('item_id', $res->order_item_id)->get('sales_order_items')->row();
+            if ($soi) {
+                $amount = (float)($soi->total_price ?: ($soi->price * (int)($soi->qty_ordered ?: 1)));
+            } else {
+                $boi = $this->db->select('price, total_price, qty_ordered')->where('item_id', $res->order_item_id)->get('b2b_order_items')->row();
+                if ($boi) {
+                    $amount = (float)($boi->total_price ?: ($boi->price * (int)($boi->qty_ordered ?: 1)));
+                }
+            }
+        }
+
+        // 2. By order_id & product_id in sales_order_items
+        if ($amount <= 0 && !empty($res->order_id) && !empty($res->product_id)) {
+            $soi = $this->db->select('price, total_price, qty_ordered')
+                ->where('order_id', $res->order_id)
+                ->where('product_id', $res->product_id)
+                ->get('sales_order_items')
+                ->row();
+            if ($soi) {
+                $amount = (float)($soi->total_price ?: ($soi->price * (int)($soi->qty_ordered ?: 1)));
+            }
+        }
+
+        // 3. By b2b_order_id & product_id in b2b_order_items
+        if ($amount <= 0 && !empty($res->b2b_order_id) && !empty($res->product_id)) {
+            $boi = $this->db->select('price, total_price, qty_ordered')
+                ->where('order_id', $res->b2b_order_id)
+                ->where('product_id', $res->product_id)
+                ->get('b2b_order_items')
+                ->row();
+            if ($boi) {
+                $amount = (float)($boi->total_price ?: ($boi->price * (int)($boi->qty_ordered ?: 1)));
+            }
+        }
+
+        // 4. By sales_order_return table
+        if ($amount <= 0 && !empty($res->order_id) && $this->db->table_exists('sales_order_return')) {
+            $sor = $this->db->select('refund_amount')->where('order_id', $res->order_id)->get('sales_order_return')->row();
+            if ($sor && !empty($sor->refund_amount)) {
+                $amount = (float)$sor->refund_amount;
+            }
+        }
+
+        // 5. By products table price
+        if ($amount <= 0 && !empty($res->product_id)) {
+            $prod = $this->db->select('price, special_price')->where('id', $res->product_id)->get('products')->row();
+            if ($prod) {
+                $amount = (float)(($prod->special_price > 0) ? $prod->special_price : $prod->price);
+            }
+        }
+
+        // 6. By sales_order grand total or subtotal
+        if ($amount <= 0 && !empty($res->order_id)) {
+            $so = $this->db->select('subtotal, grand_total')->where('order_id', $res->order_id)->get('sales_order')->row();
+            if ($so) {
+                $amount = (float)($so->subtotal ?: $so->grand_total);
+            }
+        }
+
+        return $amount;
     }
 
     public function get_messages($resolution_id, $conversion_type = null)

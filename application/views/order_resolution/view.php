@@ -144,12 +144,20 @@
                                     <p><b><?php echo $this->lang->line('refund_amount') ?: 'Refund Amount'; ?>:</b><br>
                                         <span class="font-weight-bold <?php echo ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
                                             <?php 
+                                            $disp_refund = (float)($resolution->refund_amount ?? 0);
+                                            if ($disp_refund <= 0) {
+                                                if (!empty($product) && !empty($product->price)) {
+                                                    $disp_refund = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
+                                                } elseif (!empty($order)) {
+                                                    $disp_refund = (float)($order->grand_total ?: $order->subtotal);
+                                                }
+                                            }
                                             if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
-                                                echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2);
-                                            } elseif ($resolution->merchant_action === 'refund_denied' || $resolution->resolution_status === 'resolution_denied') {
+                                                echo CURRENCY_TYPE . ' ' . number_format($disp_refund, 2);
+                                            } elseif ($resolution->merchant_action === 'refund_denied' && $resolution->resolution_status !== 'resolution_approved') {
                                                 echo 'Denied';
-                                            } elseif ($resolution->category === 'Refund' && $resolution->refund_amount > 0) {
-                                                echo CURRENCY_TYPE . ' ' . number_format($resolution->refund_amount, 2) . ' (Pending)';
+                                            } elseif ($resolution->category === 'Refund' && $disp_refund > 0) {
+                                                echo CURRENCY_TYPE . ' ' . number_format($disp_refund, 2) . ' (Pending)';
                                             } else {
                                                 echo 'N/A';
                                             }

@@ -108,34 +108,28 @@ $this->load->view('common/fbc-user/header');
                 <!-- Status & Decision Details Banner -->
                 <div class="alert alert-secondary py-2 mb-4">
                     <div class="row align-items-center">
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-sm-6">
                             <strong>Merchant Action:</strong> 
                             <span class="text-primary font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-sm-6">
                             <strong>Delivery Option:</strong> 
                             <span class="text-success font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-sm-6">
                             <strong>Refund Amount:</strong> 
-                            <span class="font-weight-bold <?= ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
-                                <?php 
-                                if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
-                                    echo $currency . ' ' . number_format($resolution->refund_amount, 2);
-                                } elseif ($resolution->merchant_action === 'refund_denied' || $resolution->resolution_status === 'resolution_denied') {
-                                    echo 'Denied';
-                                } elseif ($resolution->category === 'Refund' && $resolution->refund_amount > 0) {
-                                    echo $currency . ' ' . number_format($resolution->refund_amount, 2) . ' (Pending)';
-                                } else {
-                                    echo 'N/A';
+                            <?php 
+                            $disp_refund = (float)($resolution->refund_amount ?? 0);
+                            if ($disp_refund <= 0) {
+                                if (!empty($product) && !empty($product->price)) {
+                                    $disp_refund = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
+                                } elseif (!empty($order)) {
+                                    $disp_refund = (float)($order->grand_total ?: $order->subtotal);
                                 }
-                                ?>
-                            </span>
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Resolution Status:</strong> 
-                            <span class="badge badge-<?= ($resolution->resolution_status === 'resolution_approved') ? 'success' : (($resolution->resolution_status === 'resolution_denied') ? 'danger' : 'warning'); ?>">
-                                <?= ucwords(str_replace('_', ' ', $resolution->resolution_status)); ?>
+                            }
+                            ?>
+                            <span class="font-weight-bold <?= ($disp_refund > 0) ? 'text-success' : 'text-muted'; ?>">
+                                <?= 'MUR ' . number_format($disp_refund, 2); ?>
                             </span>
                         </div>
                     </div>
