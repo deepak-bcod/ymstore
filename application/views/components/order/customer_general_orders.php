@@ -434,7 +434,7 @@ function getSubOrderStatusText($status) {
                                                                     </span>
                                                                 </h4>
                                                                 <?php if($escalation_suffix !="") { ?>
-                                                                    <p style="color: #777; font-size: 12px; margin: 5px 0;"><?php echo $this->lang->line('escalation_status'); ?> : <?php echo $escalation_suffix; ?></p>
+                                                                    <p class="blue-text approved"><?php echo $this->lang->line('escalation_status'); ?> : <?php echo $escalation_suffix; ?></p>
                                                                 <?php } ?>
                                                                 <p><?php echo get_display_product_name($sub_item, $parent_item); ?></p>
                                                                 <?php 
