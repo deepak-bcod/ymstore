@@ -18,16 +18,12 @@ class Addon_model extends CI_Model {
         return $query->result(); // Changed from result_array() to result()
     }
 
-  public function get_merchant_addons() {
-    $this->db->select('o.order_id, o.date, o.amount, o.status, m.merchant_name, s.title as addon_service_name');
-    $this->db->from('addon_orders o'); // Replace with your actual orders table
-    $this->db->join('merchants m', 'm.id = o.merchant_id', 'left');
-    $this->db->join('addon_services s', 's.id = o.service_id', 'left');
-    
-    // If you want to filter by the currently logged-in merchant, uncomment below:
-    // $this->db->where('o.merchant_id', $this->session->userdata('merchant_id'));
-    
-    $query = $this->db->get();
-    return $query->result(); // Returns objects for $row-> property syntax
-}
+    public function get_service_by_id($service_id) {
+        $this->db->select('s.*, c.name as category_name');
+        $this->db->from('addon_services s');
+        $this->db->join('addon_categories c', 's.category_id = c.id', 'left');
+        $this->db->where('s.id', $service_id);
+        $query = $this->db->get();
+        return $query->row_array();
+    }
 }
