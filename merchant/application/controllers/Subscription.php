@@ -1,30 +1,33 @@
 <?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
-class Subscription extends CI_Controller {
+class Subscription extends CI_Controller
+{
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         $this->load->model('Subscription_model');
         $this->load->library('session'); // publisher login stored in session
-        	if(!isset($_SESSION['LoginID']) || $_SESSION['LoginID'] ==''){
-			redirect(BASE_URL);
-		}
+        if (!isset($_SESSION['LoginID']) || $_SESSION['LoginID'] == '') {
+            redirect(BASE_URL);
+        }
 
         $site_lang = $this->session->userdata('site_lang');
 
-		if ($site_lang) {
-			$this->lang->load('content', $site_lang);
-		} else {
-			$this->lang->load('content', 'english'); // default
-		}
+        if ($site_lang) {
+            $this->lang->load('content', $site_lang);
+        } else {
+            $this->lang->load('content', 'english'); // default
+        }
     }
 
     // Show plans and active plan
-    public function index() {
+    public function index()
+    {
         log_message('info', 'Subscription session data: ' . json_encode($this->session->userdata()));
 
         $publisher_id = $this->session->userdata('LoginID'); // corrected
@@ -33,7 +36,7 @@ class Subscription extends CI_Controller {
         $data['features'] = $this->Subscription_model->get_features();
         $data['plan_features'] = $this->Subscription_model->get_plan_features();
         $data['active_plan'] = $this->Subscription_model->get_active_plan($publisher_id);
-     
+
         // Check and send subscription renewal reminders if near expiry and not renewed
         try {
             $this->Subscription_model->check_and_send_expiry_reminders($publisher_id);
@@ -52,11 +55,12 @@ class Subscription extends CI_Controller {
     }
 
     // Handle subscription request
-    public function subscribe() {
+    public function subscribe()
+    {
         $publisher_id = $this->session->userdata('LoginID');
         $plan_id = $this->input->post('plan_id') ?: $this->input->get('plan_id');
 
-        if(!$publisher_id || !$plan_id) {
+        if (!$publisher_id || !$plan_id) {
             $this->session->set_flashdata('error', 'Invalid request.');
             redirect('subscription');
         }
@@ -80,7 +84,7 @@ class Subscription extends CI_Controller {
         $order_id = $this->db->insert_id();
 
         // Redirect to payment controller
-        redirect('paymentGateway/mytMoney/'.$order_id);
+        redirect('paymentGateway/mytMoney/' . $order_id);
     }
 
     public function manage_subscription()
@@ -125,7 +129,8 @@ class Subscription extends CI_Controller {
     /**
      * Test or manually trigger invoice generation and confirmation email
      */
-    public function test_invoice_email($order_id = null) {
+    public function test_invoice_email($order_id = null)
+    {
         $publisher_id = $this->session->userdata('LoginID');
         if (!$publisher_id) {
             $this->output->set_content_type('application/json')->set_output(json_encode([
@@ -169,7 +174,8 @@ class Subscription extends CI_Controller {
     /**
      * Test or manually trigger expiry reminders for current merchant
      */
-    public function check_expiry_reminders() {
+    public function check_expiry_reminders()
+    {
         $publisher_id = $this->session->userdata('LoginID');
         if (!$publisher_id) {
             $this->output->set_content_type('application/json')->set_output(json_encode([
@@ -185,9 +191,9 @@ class Subscription extends CI_Controller {
         $this->output->set_content_type('application/json')->set_output(json_encode([
             'status'       => 'success',
             'email_sent'   => $result,
+            'reason'       => $this->Subscription_model->last_expiry_error,
             'publisher_id' => $publisher_id,
             'active_sub'   => $active_sub
         ]));
     }
-
 }
