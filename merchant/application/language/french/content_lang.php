@@ -1200,4 +1200,3 @@ $lang['escalation_status'] = 'Statut d\'escalade';
 
 
 
-$lang['sidebar_manage_addons'] = 'Gérer le module complémentaire';
