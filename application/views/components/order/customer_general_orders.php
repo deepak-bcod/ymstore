@@ -430,9 +430,12 @@ function getSubOrderStatusText($status) {
                                                                 ?>
                                                                 <h4><?php echo $this->lang->line('sub_order_id'); ?>: <?php echo (!empty($b2b->increment_id) ? $b2b->increment_id : $b2b->order_id); ?> | 
                                                                     <span class="return-required <?php echo $b2b_status_info['class']; ?>">
-                                                                        <?php echo $b2b_status_info['text'] . $escalation_suffix; ?>
+                                                                        <?php echo $b2b_status_info['text']; ?>
                                                                     </span>
                                                                 </h4>
+                                                                <?php if($escalation_suffix !="") { ?>
+                                                                    <p class="blue-text approved"><?php echo $this->lang->line('escalation_status'); ?> : <?php echo $escalation_suffix; ?></p>
+                                                                <?php } ?>
                                                                 <p><?php echo get_display_product_name($sub_item, $parent_item); ?></p>
                                                                 <?php 
                                                                 // Display product variants - prioritize sub_item variants first, then parent_item

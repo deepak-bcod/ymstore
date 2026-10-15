@@ -15,3 +15,7 @@ $lang['reply_to_shopper'] = 'Répondre à l\'acheteur';
 $lang['reply_to_merchant'] = 'Répondre au marchand';
 $lang['no_messages_shopper_admin'] = 'Aucun message de coordination entre l\'Admin et l\'acheteur pour le moment.';
 $lang['no_messages_merchant_admin'] = 'Aucun message de coordination entre l\'Admin et le marchand pour le moment.';
+$lang['escalation_in_progress'] = 'Escalade en cours';
+$lang['escalation_complete'] = 'Escalade terminée';
+$lang['escalation_request'] = 'Demande d\'escalade';
+$lang['escalation_status'] = 'Statut d\'escalade';

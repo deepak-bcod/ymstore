@@ -15,3 +15,7 @@ $lang['reply_to_shopper'] = 'Reply to Shopper';
 $lang['reply_to_merchant'] = 'Reply to Merchant';
 $lang['no_messages_shopper_admin'] = 'No coordination messages between Admin and Shopper yet.';
 $lang['no_messages_merchant_admin'] = 'No coordination messages between Admin and Merchant yet.';
+$lang['escalation_in_progress'] = 'Escalation In Progress';
+$lang['escalation_complete'] = 'Escalation Complete';
+$lang['escalation_request'] = 'Escalation Request';
+$lang['escalation_status'] = 'Escalation Status';

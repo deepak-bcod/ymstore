@@ -1193,6 +1193,10 @@ $lang['send_to_support'] = 'Envoyer au Support';
 $lang['send_message'] = 'Envoyer le message';
 $lang['accounting_team'] = 'Équipe comptabilité (@Acct)';
 $lang['you_merchant'] = 'Vous (Marchand)';
+$lang['escalation_in_progress'] = 'Escalade en cours';
+$lang['escalation_complete'] = 'Escalade terminée';
+$lang['escalation_request'] = 'Demande d\'escalade';
+$lang['escalation_status'] = 'Statut d\'escalade';
 
 
 
