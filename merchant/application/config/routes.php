@@ -844,7 +844,7 @@ $route['addons/mytNotify'] = 'addons/mytNotify';
 $route['addons/mytCallback'] = 'addons/mytCallback';
 $route['addons/status/(:any)'] = 'addons/status/$1';
 
-$route['manage_addons'] = 'addons/manage_addons';
+
 
 
 $route['webshop/return-orders'] = 'WebshopOrdersController/returnOrders';
