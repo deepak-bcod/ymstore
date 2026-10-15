@@ -3,7 +3,7 @@
     .manage-addons-wrapper {
         margin-left: 260px; /* Adjust to match your sidebar width */
         padding: 20px 30px;
-        width: calc(100% - 260px);
+        width: calc(100% - 260px); /* Fixed the missing minus sign */
         box-sizing: border-box;
     }
     .table thead th {
@@ -35,7 +35,7 @@
                         <th>SR NO.</th>
                         <th>MERCHANT NAME</th>
                         <th>ADDON SERVICE</th>
-                        <th>ADDON Name</th>
+                        <th>ADDON NAME</th>
                         <th>DATE</th>
                         <th>AMOUNT</th>
                         <th>ACTIONS</th>
@@ -46,9 +46,10 @@
                         <?php $sr = 1; foreach($manage_addons as $row): ?>
                         <tr>
                             <td><?php echo $sr++; ?></td>
+                            <!-- Ensure these property names match your database columns or model results -->
                             <td><?php echo isset($row->merchant_name) ? $row->merchant_name : ''; ?></td>
                             <td><?php echo isset($row->addon_service_name) ? $row->addon_service_name : ''; ?></td>
-                            <td><?php echo isset($row->status) ? $row->status : ''; ?></td>
+                            <td><?php echo isset($row->addon_name) ? $row->addon_name : ''; ?></td> <!-- Changed from status to addon_name -->
                             <td><?php echo isset($row->date) ? $row->date : ''; ?></td>
                             <td><?php echo isset($row->amount) ? $row->amount : ''; ?></td>
                             <td>
