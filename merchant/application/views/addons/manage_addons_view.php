@@ -25,9 +25,10 @@
                                     <th>MERCHANT NAME</th>
                                     <th>Addon Service</th>
                                     <th>STATUS</th>
-                                    <th>Order</th>
+                                    
                                     <th>DATE</th>
                                     <th>AMOUNT</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
