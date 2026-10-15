@@ -27,6 +27,9 @@ class ProductList {
        
         $this->type = $type;
 		$this->viewmode = $viewmode ??'';
+        if (!($prodData instanceof ProductPresenter) && is_object($prodData)) {
+            $prodData = ProductPresenter::from($prodData);
+        }
         $this->list_array = array('prod_image'=>$prod_image,'prod'=>$prodData,'type' => $this->type,'viewmode' => $this->viewmode,'page_name'=>$page_name);
         if(empty($this->list_array)) {
            return;
@@ -37,6 +40,8 @@ class ProductList {
 		$this->list_array['product_badge'] = $this->getProductBadge();
         $this->list_array['product_url'] = $this->getProductUrl();
         $this->list_array['check'] = $section_view;
+        $this->list_array['active_promotion'] = is_object($prodData) && method_exists($prodData, 'get_active_promotion') ? $prodData->get_active_promotion() : null;
+        $this->list_array['stock_badge'] = is_object($prodData) && method_exists($prodData, 'get_stock_badge') ? $prodData->get_stock_badge() : null;
 		if($page_name != ''){
 			$this->ci->template->load('components/product_listing_other_template', $this->list_array);
         }

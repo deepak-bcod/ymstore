@@ -9,12 +9,53 @@ class Product_model extends CI_Model {
 
 
     public function __construct() {
-
         parent::__construct();
-
+        $this->load->database();
+        $this->ensure_offer_schema();
     }
 
-
+    public function ensure_offer_schema() {
+        if (!isset($this->db) || empty($this->db)) {
+            $this->load->database();
+        }
+        if ($this->db && $this->db->table_exists('products')) {
+            if (!$this->db->field_exists('daily_deal_starts_at', 'products')) {
+                $this->load->dbforge();
+                $this->dbforge->add_column('products', [
+                    'daily_deal_starts_at' => [
+                        'type' => 'INT',
+                        'constraint' => 11,
+                        'null' => TRUE,
+                        'default' => NULL
+                    ]
+                ]);
+            }
+            if (!$this->db->field_exists('flash_sale_starts_at', 'products')) {
+                $this->load->dbforge();
+                $this->dbforge->add_column('products', [
+                    'flash_sale_starts_at' => [
+                        'type' => 'INT',
+                        'constraint' => 11,
+                        'null' => TRUE,
+                        'default' => NULL
+                    ]
+                ]);
+            }
+        }
+        if ($this->db && $this->db->table_exists('products_special_prices')) {
+            if (!$this->db->field_exists('offer_type', 'products_special_prices')) {
+                $this->load->dbforge();
+                $this->dbforge->add_column('products_special_prices', [
+                    'offer_type' => [
+                        'type' => 'VARCHAR',
+                        'constraint' => 50,
+                        'null' => FALSE,
+                        'default' => 'special_price'
+                    ]
+                ]);
+            }
+        }
+    }
 
     /* ==========================
 
@@ -67,8 +108,12 @@ class Product_model extends CI_Model {
             $this->db->where('pc.category_ids', $category_id);
         }
 
-        // Daily deal active check - strictly active (> current_time)
+        // Daily deal active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.daily_deals', 1);
+        $this->db->group_start();
+        $this->db->where('p.daily_deal_starts_at IS NULL', null, false);
+        $this->db->or_where('p.daily_deal_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.daily_deal_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -91,8 +136,12 @@ class Product_model extends CI_Model {
             $this->db->where('pc.category_ids', $category_id);
         }
 
-        // Daily deal active check - strictly active (> current_time)
+        // Daily deal active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.daily_deals', 1);
+        $this->db->group_start();
+        $this->db->where('p.daily_deal_starts_at IS NULL', null, false);
+        $this->db->or_where('p.daily_deal_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.daily_deal_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -111,8 +160,12 @@ class Product_model extends CI_Model {
         $this->db->join('products_category pc', 'pc.category_ids = c.id', 'inner');
         $this->db->join('products p', 'p.id = pc.product_id', 'inner');
 
-        // Daily deal active check - strictly active (> current_time)
+        // Daily deal active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.daily_deals', 1);
+        $this->db->group_start();
+        $this->db->where('p.daily_deal_starts_at IS NULL', null, false);
+        $this->db->or_where('p.daily_deal_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.daily_deal_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -157,8 +210,12 @@ class Product_model extends CI_Model {
             $this->db->where('pc.category_ids', $category_id);
         }
 
-        // Flash sale active check - strictly active (> current_time)
+        // Flash sale active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.flash_sale', 1);
+        $this->db->group_start();
+        $this->db->where('p.flash_sale_starts_at IS NULL', null, false);
+        $this->db->or_where('p.flash_sale_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.flash_sale_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -181,8 +238,12 @@ class Product_model extends CI_Model {
             $this->db->where('pc.category_ids', $category_id);
         }
 
-        // Flash sale active check - strictly active (> current_time)
+        // Flash sale active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.flash_sale', 1);
+        $this->db->group_start();
+        $this->db->where('p.flash_sale_starts_at IS NULL', null, false);
+        $this->db->or_where('p.flash_sale_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.flash_sale_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -201,8 +262,12 @@ class Product_model extends CI_Model {
         $this->db->join('products_category pc', 'pc.category_ids = c.id', 'inner');
         $this->db->join('products p', 'p.id = pc.product_id', 'inner');
 
-        // Flash sale active check - strictly active (> current_time)
+        // Flash sale active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.flash_sale', 1);
+        $this->db->group_start();
+        $this->db->where('p.flash_sale_starts_at IS NULL', null, false);
+        $this->db->or_where('p.flash_sale_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.flash_sale_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
