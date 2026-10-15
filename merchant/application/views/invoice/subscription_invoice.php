@@ -219,7 +219,7 @@
 															style="font-weight:600; display: inline-block; width: 80px;">Status</span> : <?php echo ucfirst($order['status']); ?> </p>
 
                                                             <?php if($order['status'] == 'paid') { 
-                                                                $expiry_date = date('d-M-Y', strtotime($order['created_at'] . ' +1 year'));
+                                                                $expiry_date = !empty($order['expiry_date']) ? $order['expiry_date'] : date('d-M-Y', strtotime($order['created_at'] . ' +1 year'));
                                                             ?>
                                                             <p style="margin:0;"> <span
 															style="font-weight:600; display: inline-block; width: 80px;">Expiry Date</span> : <?php echo $expiry_date; ?> </p>

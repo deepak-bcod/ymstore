@@ -280,6 +280,13 @@ class PaymentGateway extends CI_Controller {
             if (!$alreadyPaid) {
                 $this->Subscription_model->subscribe_plan($order['publisher_id'], $order['plan_id'], $this->input->ip_address());
                 log_message('info', "MyT Payment SUCCESS → Activated Plan for Order ID: {$order['id']} | Publisher: {$order['publisher_id']} | merTradeNo: {$merTradeNo}");
+
+                // Generate invoice PDF & send confirmation email to merchant (CC: admin)
+                try {
+                    $this->Subscription_model->generate_and_send_subscription_invoice($order['id']);
+                } catch (\Throwable $e) {
+                    log_message('error', "Error generating/sending subscription invoice for Order ID {$order['id']}: " . $e->getMessage());
+                }
             } else {
                 log_message('info', "MyT Payment already marked paid for Order ID: {$order['id']}. Skipping duplicate activation.");
             }

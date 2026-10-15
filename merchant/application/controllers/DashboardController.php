@@ -122,6 +122,13 @@ class DashboardController extends CI_Controller
 		$data['active_plan'] = $this->Subscription_model->get_merchant_plan($LogindID);
 		$data['can_use_flash_sales'] = $this->Subscription_model->can_use_flash_sales($LogindID);
 
+		// Check and send subscription renewal reminders if near expiry and not renewed
+		try {
+			$this->Subscription_model->check_and_send_expiry_reminders($LogindID);
+		} catch (Exception $e) {
+			log_message('error', 'Subscription expiry check error on dashboard: ' . $e->getMessage());
+		}
+
 		$flash_sale_limit = $this->UserModel->get_flash_sale_limit($LogindID);
 
 		$current_active_flash_count = $this->UserModel->get_active_flash_sale_count($LogindID);

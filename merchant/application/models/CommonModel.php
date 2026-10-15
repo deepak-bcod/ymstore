@@ -752,7 +752,7 @@ class CommonModel extends CI_Model
 		return $result;
 	}
 
-	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '', $custom_subject = '', $custom_content = '')
+	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '', $custom_subject = '', $custom_content = '', $attachment = '', $custom_cc = '')
 	{
 		$from_email = 'noreply@yellowmarkets.com';
 
@@ -776,9 +776,11 @@ class CommonModel extends CI_Model
 
 		$email_code = !empty($emailTemplate->email_code) ? $emailTemplate->email_code : $identifier;
 
-		// FIXED: Correct comparison
+		// CC Email handling
 		$ccEmail = "";
-		if ($email_code == "admin-notification-new-merchant-register-fr" ||
+		if (!empty($custom_cc)) {
+			$ccEmail = $custom_cc;
+		} elseif ($email_code == "admin-notification-new-merchant-register-fr" ||
 			$email_code == "admin-notification-new-merchant-register") 
 		{
 			$ccEmail = "info@yellowmarkets.com";
@@ -817,8 +819,7 @@ class CommonModel extends CI_Model
 		$contentView = $this->load->view('email_template/email_content', $data, TRUE);
 		$contentView = str_replace(['```html', '```'], '', $contentView);
 
-		// FIXED: Pass actual variable
-		if ($this->sendHTMLMailSMTP($EmailTo, $subject, $contentView, $from_email, $attachment = "", $ccEmail)) {
+		if ($this->sendHTMLMailSMTP($EmailTo, $subject, $contentView, $from_email, $attachment, $ccEmail)) {
 			return true;
 		} else {
 			return false;
@@ -952,6 +953,7 @@ class CommonModel extends CI_Model
 		$webshop_smtp_password = 'fkyvohootmnwylkg'; //$this->getCustomVariableByIdentifier('smtp_password') ?? 
 		$webshop_smtp_secure = 'ssl';
 		$this->load->library('email');
+		$this->email->clear(TRUE);
 		// print_r($webshop_smtp_host);die;
 		if ($webshop_smtp_host != '' && $webshop_smtp_port != '' && $webshop_smtp_username != '' && $webshop_smtp_password != '' && $webshop_smtp_secure != '') {
 
@@ -987,6 +989,18 @@ class CommonModel extends CI_Model
 			$this->email->cc($ccEmail);
 		}
 
+		if (!empty($attachment)) {
+			if (is_array($attachment)) {
+				foreach ($attachment as $file) {
+					if (!empty($file) && file_exists($file)) {
+						$this->email->attach($file);
+					}
+				}
+			} elseif (file_exists($attachment)) {
+				$this->email->attach($attachment);
+			}
+		}
+
 		$this->email->subject($subject);
 
 		$this->email->message($content);
@@ -994,10 +1008,9 @@ class CommonModel extends CI_Model
 		$this->email->set_mailtype("html");
 
 		if ($this->email->send()) {
-
 			return true;
 		} else {
-
+			log_message('error', 'sendHTMLMailSMTP failed: ' . $this->email->print_debugger(['headers']));
 			return false;
 		}
 	}

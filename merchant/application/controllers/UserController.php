@@ -795,6 +795,13 @@ class UserController extends CI_Controller
 
 		]);
 
+		// Check and send subscription renewal reminders if near expiry and not renewed
+		try {
+			$this->Subscription_model->check_and_send_expiry_reminders($LoginID);
+		} catch (Exception $e) {
+			log_message('error', 'Subscription expiry check error on login: ' . $e->getMessage());
+		}
+
 
 		/*echo "<pre>";
 		print_r($UserDetails);
@@ -2453,6 +2460,13 @@ class UserController extends CI_Controller
 			$this->db->where('fbc_user_id',$LoginID);
 
 			$this->db->update('fbc_users',$data);
+
+			// Check and send subscription renewal reminders if near expiry and not renewed
+			try {
+				$this->Subscription_model->check_and_send_expiry_reminders($UserDetails->fbc_user_id);
+			} catch (Exception $e) {
+				log_message('error', 'Subscription expiry check error on autologin: ' . $e->getMessage());
+			}
 
 			$data['user_details1'] = $this->CommonModel->GetUserByUserId($_SESSION['LoginID']);
 
