@@ -562,7 +562,7 @@ class Subscription_model extends CI_Model
         }
 
         $expiry_date_formatted = date('d M Y', $end_timestamp);
-        $renewal_url = base_url('subscription');
+        $renewal_url = 'https://pay.mytmoney.mu/Mt/web/payments';
 
         $tempVars = [
             '##MERCHANT_NAME##',
