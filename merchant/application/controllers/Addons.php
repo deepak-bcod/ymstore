@@ -723,4 +723,17 @@ public function status($token = null)
         $data['service'] = $service;
         $this->load->view('addons/service_details', $data);
     }
+    public function manage() {
+    // Check if profile is complete or user is logged in according to your project standards
+    
+    $data['side_menu'] = 'manage_addons';
+    
+    // Fetch your addon purchase/order records from the database here
+    // $data['manage_addons'] = $this->Addons_model->get_merchant_addons(); 
+
+    // Load the view file for managing addons
+    $this->load->view('merchant/header', $data);
+    $this->load->view('merchant/manage_addons_view', $data); // Create this view file
+    $this->load->view('merchant/footer');
+}
 }
