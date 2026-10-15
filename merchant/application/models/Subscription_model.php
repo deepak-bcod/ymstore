@@ -437,19 +437,6 @@ class Subscription_model extends CI_Model
             return true;
         }
 
-        // 3. Check if there is a paid renewal order in subscription_orders in the last 7 days
-        $paid_order = $this->db
-            ->where('publisher_id', $publisher_id)
-            ->where('status', 'paid')
-            ->where('created_at >=', date('Y-m-d H:i:s', strtotime('-7 days')))
-            ->order_by('id', 'DESC')
-            ->get('subscription_orders')
-            ->row_array();
-        if ($paid_order) {
-            $this->last_expiry_error = "Renewal check: paid order exists in subscription_orders within last 7 days (Order ID: {$paid_order['id']}, created_at: {$paid_order['created_at']})";
-            return true;
-        }
-
         return false;
     }
 
@@ -541,9 +528,16 @@ class Subscription_model extends CI_Model
         }
 
         // Fetch merchant details from publisher table
-        $merchant = $this->db->get_where('publisher', ['id' => $publisher_id, 'remove_flag' => 0])->row_array();
+        $merchant = $this->db
+            ->where('id', $publisher_id)
+            ->where('(remove_flag = 0 OR remove_flag IS NULL)', null, false)
+            ->get('publisher')
+            ->row_array();
         if (!$merchant) {
-            $this->last_expiry_error = "Merchant ID {$publisher_id} not found in publisher table with remove_flag = 0";
+            $merchant = $this->db->get_where('publisher', ['id' => $publisher_id])->row_array();
+        }
+        if (!$merchant) {
+            $this->last_expiry_error = "Merchant ID {$publisher_id} not found in publisher table";
             log_message('error', "Subscription reminder failed: Merchant ID {$publisher_id} not found in publisher table.");
             return false;
         }
