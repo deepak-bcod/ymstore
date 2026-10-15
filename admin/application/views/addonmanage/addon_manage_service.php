@@ -8,7 +8,7 @@
             
 
             <div class="box-body">
-                <table id="addonManageTable" class="table table-bordered table-striped">
+                <tale id="addonManageTable" class="table table-bordered table-striped">
                     <thead>
                         <tr>
                             <th>SR NO.</th>

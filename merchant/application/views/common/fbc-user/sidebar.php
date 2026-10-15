@@ -148,11 +148,33 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
             </a>
          </li>
 
-         <li class="nav-item">
-            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='addons')) ? 'has-submenu show' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
-               <?= $this->lang->line('sidebar_addons_services') ?>
-            </a>
-         </li>
+       <li class="nav-item <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'active' : ''; ?>">
+    <a class="nav-link <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'has-submenu' : 'collapsed'; ?> 
+       <?php echo $profile_incomplete ? 'link-disabled' : ''; ?>"
+       href="#SubMenuAddons"
+       data-toggle="collapse"
+       data-parent="#SubMenuAddons">
+
+       <?= isset($this->lang) ? $this->lang->line('sidebar_addons_services') : 'Add-On Services'; ?>
+       <i class="fas fa-angle-down"></i>
+    </a>
+
+    <div class="submenu <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'collapse show' : 'collapse'; ?>" id="SubMenuAddons">
+
+       <!-- Add-On Services Link -->
+       <a class="list-submenu <?php echo $profile_incomplete ? 'link-disabled' : ''; ?>"
+          href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
+          <?= isset($this->lang) ? $this->lang->line('sidebar_addons_services') : 'Add-On Services'; ?>
+       </a>
+
+       <!-- Manage Add-Ons Link -->
+       <a class="list-submenu <?php echo $profile_incomplete ? 'link-disabled' : ''; ?>"
+          href="<?php echo !$profile_incomplete ? base_url('manage_addons') : 'javascript:void(0);'; ?>">
+          <?= isset($this->lang) ? $this->lang->line('sidebar_manage_addons') : 'Manage Add-Ons'; ?>
+       </a>
+
+    </div>
+</li>
 
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='mydocuments')) ? 'has-submenu show' : ''; ?>

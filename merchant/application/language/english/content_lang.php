@@ -1243,3 +1243,7 @@ $lang['send_to_support'] = 'Send to Support';
 $lang['send_message'] = 'Send Message';
 $lang['accounting_team'] = 'Accounting Team (@Acct)';
 $lang['you_merchant'] = 'You (Merchant)';
+
+
+
+$lang['sidebar_manage_addons'] = 'Manage Add-Ons';
