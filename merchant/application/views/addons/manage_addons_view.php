@@ -7,13 +7,13 @@
                     <table class="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th>SR NO.</th>
-                                <th>IMAGE</th>
+                                <th style="width: 60px;">SR NO.</th>
+                                <th style="width: 80px;">IMAGE</th>
                                 <th>CATEGORY NAME</th>
                                 <th>Addon Service</th>
-                                <th>STATUS</th>
-                                <th>SERVICE ID</th>
-                                <th>PRICE</th>
+                                <th style="width: 100px;">STATUS</th>
+                                <th style="width: 90px;">SERVICE ID</th>
+                                <th style="width: 100px;">PRICE</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -21,11 +21,11 @@
                                 <?php $sr = 1; foreach($manage_addons as $row): ?>
                                 <tr>
                                     <td><?php echo $sr++; ?></td>
-                                    <td>
+                                    <td class="text-center">
                                         <?php if(!empty($row->image)): ?>
-                                            <img src="<?php echo base_url('uploads/addons/' . $row->image); ?>" alt="Service Image" width="50" height="50" style="object-fit: cover; border-radius: 4px;">
+                                            <img src="<?php echo base_url('uploads/addons/' . $row->image); ?>" alt="Service" style="width: 45px; height: 45px; object-fit: cover; border-radius: 4px;">
                                         <?php else: ?>
-                                            <span>No Image</span>
+                                            <span class="text-muted small">No Image</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo $row->category_name; ?></td>
