@@ -782,8 +782,6 @@
 
 						<?php if (!isset($_GET['type']) || $_GET['type'] !== 'bundle') { ?>
 
-							<?php include('promotions_section.php'); ?>
-
 							<input type="hidden" class="" id="product_type" name="product_type" value="simple">
 
 						<?php } ?>
