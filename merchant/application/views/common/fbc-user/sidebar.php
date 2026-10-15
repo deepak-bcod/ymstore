@@ -164,12 +164,7 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
     <!-- Submenu Items Container (Automatically stays open if $side_menu is active) -->
     <div class="collapse <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'show' : ''; ?>" id="addonsSubmenu">
         <ul class="nav flex-column" style="list-style: none; padding-left: 15px; margin-top: 5px;">
-            <li class="nav-item">
-                <a class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'services') ? 'active font-weight-bold' : ''; ?>" 
-                   href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
-                    Services
-                </a>
-            </li>
+            
             <li class="nav-item">
                 <a class="nav-link <?php echo (isset($sub_menu) && $sub_menu == 'new_addon') ? 'active font-weight-bold' : ''; ?>" 
                    href="<?php echo !$profile_incomplete ? base_url('addons/new-addon') : 'javascript:void(0);'; ?>">

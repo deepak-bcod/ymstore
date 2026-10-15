@@ -44,13 +44,17 @@ class Addon_model extends CI_Model {
         return $query->row_array();
 
     }
-    public function get_new_addons_data() {
-    $this->select('addons_table.*, merchants.merchant_name');
-    $this->from('addons_table'); // Replace with your actual table name
-    $this->join('merchants', 'merchants.id = addons_table.merchant_id', 'left'); // Adjust foreign keys as per your DB
-    $query = $this->db->get();
-    return $query->result();
-}
+   public function get_new_addons_data() {
+        $this->db->select('p.id as purchase_id, p.created_at as date, p.status, t.amount, pub.email as merchant_name, s.title as service_title');
+        $this->db->from('merchant_addon_purchases p');
+        $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
+        $this->db->join('merchant_addon_transactions t', 't.purchase_id = p.id', 'left');
+        $this->db->join('addon_services s', 's.id = p.service_id', 'left');
+        $this->db->order_by('p.id', 'DESC');
+        
+        $query = $this->db->get();
+        return $query->result();
+    }
 
 }
 
