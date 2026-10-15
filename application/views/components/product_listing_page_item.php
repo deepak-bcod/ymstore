@@ -49,9 +49,9 @@ $card_class = $is_normal_layout ? 'product-item product-item-normal' : 'product-
 <div class="<?php echo $card_class; ?>" title="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $prod->name, ENT_QUOTES, 'UTF-8'); ?>">
 
     <div class="pi-img-wrapper">
-        <!-- Top-Left Badge (Grid Layout: Screenshot 2) -->
+        <!-- Top-Left Badge: Daily Deal / Flash Sale / Limited Stock -->
         <?php if (!$is_normal_layout): ?>
-            <div class="promo-badge-overlay-left">
+            <span class="promo-badge-overlay-left" style="position: absolute !important; top: 8px !important; left: 8px !important; right: auto !important; bottom: auto !important; width: auto !important; height: auto !important; z-index: 15 !important; display: flex !important; flex-direction: column !important; align-items: flex-start !important; text-align: left !important; pointer-events: none !important; background: transparent !important; margin: 0 !important; padding: 0 !important;">
                 <?php if ($promo): ?>
                     <?php if ($promo->type === 'flash_sale'): ?>
                         <span class="promo-badge promo-badge-flash-sale">⚡ FLASH SALE</span>
@@ -61,13 +61,13 @@ $card_class = $is_normal_layout ? 'product-item product-item-normal' : 'product-
                 <?php elseif ($stock): ?>
                     <span class="promo-badge promo-badge-limited-stock">📦 LIMITED STOCK</span>
                 <?php endif; ?>
-            </div>
+            </span>
 
-            <!-- Top-Right Discount Percentage Badge (Grid Layout: Screenshot 2) -->
+            <!-- Top-Right Badge: Discount Percentage (e.g. -22%) -->
             <?php if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0): ?>
-                <div class="promo-badge-overlay-right">
+                <span class="promo-badge-overlay-right" style="position: absolute !important; top: 8px !important; right: 8px !important; left: auto !important; bottom: auto !important; width: auto !important; height: auto !important; z-index: 15 !important; display: block !important; text-align: right !important; pointer-events: none !important; background: transparent !important; margin: 0 !important; padding: 0 !important;">
                     <span class="promo-discount-badge">-<?php echo $promo->discount_percent; ?>%</span>
-                </div>
+                </span>
             <?php endif; ?>
         <?php endif; ?>
 

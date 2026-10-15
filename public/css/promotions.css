@@ -4,29 +4,60 @@
    PROMOTIONAL BADGES (GRID & GENERAL)
    ===================================== */
 .pi-img-wrapper {
-    position: relative;
+    position: relative !important;
     overflow: hidden;
 }
 
-/* Badges positioned over product image top-left */
-.promo-badge-overlay-left {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    pointer-events: none;
+/* Badges positioned over product image top-left (Daily Deal / Flash Sale / Limited Stock) */
+.promo-badge-overlay-left,
+span.promo-badge-overlay-left,
+div.promo-badge-overlay-left,
+.pi-img-wrapper .promo-badge-overlay-left,
+.product-item .pi-img-wrapper .promo-badge-overlay-left {
+    position: absolute !important;
+    top: 8px !important;
+    left: 8px !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    max-width: 65% !important;
+    height: auto !important;
+    background: transparent !important;
+    z-index: 15 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    gap: 4px !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
-/* Discount percentage badge top-right */
-.promo-badge-overlay-right {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 10;
-    pointer-events: none;
+/* Discount percentage badge top-right (-XX%) */
+.promo-badge-overlay-right,
+span.promo-badge-overlay-right,
+div.promo-badge-overlay-right,
+.pi-img-wrapper .promo-badge-overlay-right,
+.product-item .pi-img-wrapper .promo-badge-overlay-right {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: auto !important;
+    background: transparent !important;
+    z-index: 15 !important;
+    display: block !important;
+    text-align: right !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .promo-badge {
