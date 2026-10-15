@@ -1,232 +1,285 @@
 <?php
-$is_promo_enabled = false;
-$promo_type = 'daily_deal';
-$promo_starts_at = null;
-$promo_ends_at = null;
-$promo_special_val = '';
-$regular_price_val = 0.00;
+/**
+ * Special Pricing Section for Edit Product (Admin & Merchant)
+ * Matches YellowMarkets Special Pricing specification
+ */
+
+$product_name_val = '';
+$eshop_price_val = 0.00;
+$special_price_val = '';
+$from_date_val = '';
+$to_date_val = '';
+$display_original_val = 1;
+$promo_type_val = 'daily_deal';
 
 if (isset($ProductData) && is_object($ProductData)) {
-    $is_promo_enabled = (!empty($ProductData->daily_deals) || !empty($ProductData->flash_sale) || (!empty($ProductData->special_price) && $ProductData->special_price > 0));
-    $promo_type = (!empty($ProductData->flash_sale)) ? 'flash_sale' : 'daily_deal';
-
-    if (!empty($ProductData->daily_deals) && !empty($ProductData->daily_deal_starts_at)) {
-        $promo_starts_at = $ProductData->daily_deal_starts_at;
-    } elseif (!empty($ProductData->flash_sale) && !empty($ProductData->flash_sale_starts_at)) {
-        $promo_starts_at = $ProductData->flash_sale_starts_at;
-    } elseif (!empty($ProductData->special_price_from)) {
-        $promo_starts_at = $ProductData->special_price_from;
+    $product_name_val = $ProductData->name ?? '';
+    $eshop_price_val = (float)($ProductData->webshop_price ?: ($ProductData->price ?: 0));
+    if (!empty($ProductData->special_price) && (float)$ProductData->special_price > 0) {
+        $special_price_val = number_format((float)$ProductData->special_price, 2, '.', '');
     }
 
-    if (!empty($ProductData->daily_deals) && !empty($ProductData->daily_deal_ends_at)) {
-        $promo_ends_at = $ProductData->daily_deal_ends_at;
-    } elseif (!empty($ProductData->flash_sale) && !empty($ProductData->flash_sale_ends_at)) {
-        $promo_ends_at = $ProductData->flash_sale_ends_at;
-    } elseif (!empty($ProductData->special_price_to)) {
-        $promo_ends_at = $ProductData->special_price_to;
+    $starts_ts = !empty($ProductData->special_price_from) ? $ProductData->special_price_from : (!empty($ProductData->daily_deal_starts_at) ? $ProductData->daily_deal_starts_at : (!empty($ProductData->flash_sale_starts_at) ? $ProductData->flash_sale_starts_at : null));
+    $ends_ts = !empty($ProductData->special_price_to) ? $ProductData->special_price_to : (!empty($ProductData->daily_deal_ends_at) ? $ProductData->daily_deal_ends_at : (!empty($ProductData->flash_sale_ends_at) ? $ProductData->flash_sale_ends_at : null));
+
+    if (!empty($starts_ts)) {
+        $from_date_val = date('Y-m-d', is_numeric($starts_ts) ? (int)$starts_ts : strtotime($starts_ts));
+    }
+    if (!empty($ends_ts)) {
+        $to_date_val = date('Y-m-d', is_numeric($ends_ts) ? (int)$ends_ts : strtotime($ends_ts));
     }
 
-    if (!empty($ProductData->special_price) && $ProductData->special_price > 0) {
-        $promo_special_val = number_format((float)$ProductData->special_price, 2, '.', '');
-    }
-
-    if (!empty($ProductData->webshop_price) && $ProductData->webshop_price > 0) {
-        $regular_price_val = (float)$ProductData->webshop_price;
-    } elseif (!empty($ProductData->price) && $ProductData->price > 0) {
-        $regular_price_val = (float)$ProductData->price;
+    if (!empty($ProductData->flash_sale)) {
+        $promo_type_val = 'flash_sale';
+    } else {
+        $promo_type_val = 'daily_deal';
     }
 }
 
-$promo_start_val = $promo_starts_at ? date('Y-m-d\TH:i', $promo_starts_at) : '';
-$promo_end_val = $promo_ends_at ? date('Y-m-d\TH:i', $promo_ends_at) : '';
+// Enrich from products_special_prices if available
+if (isset($SpecialPriceData) && is_object($SpecialPriceData)) {
+    if (!empty($SpecialPriceData->special_price) && (float)$SpecialPriceData->special_price > 0) {
+        $special_price_val = number_format((float)$SpecialPriceData->special_price, 2, '.', '');
+    }
+    if (!empty($SpecialPriceData->special_price_from)) {
+        $from_date_val = date('Y-m-d', is_numeric($SpecialPriceData->special_price_from) ? (int)$SpecialPriceData->special_price_from : strtotime($SpecialPriceData->special_price_from));
+    }
+    if (!empty($SpecialPriceData->special_price_to)) {
+        $to_date_val = date('Y-m-d', is_numeric($SpecialPriceData->special_price_to) ? (int)$SpecialPriceData->special_price_to : strtotime($SpecialPriceData->special_price_to));
+    }
+    if (isset($SpecialPriceData->display_original)) {
+        $display_original_val = (int)$SpecialPriceData->display_original;
+    }
+    if (!empty($SpecialPriceData->offer_type)) {
+        $promo_type_val = $SpecialPriceData->offer_type;
+    }
+}
 ?>
 
-<div class="col-md-12 promo-pricing-section" style="margin-top: 25px; margin-bottom: 25px;">
-    <div style="background: #ffffff; border: 1px solid #dce4ec; border-radius: 8px; padding: 22px 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-        <h2 style="font-size: 1.25em; font-weight: 700; color: #2c3e50; margin-top: 0; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #edf2f7; display: flex; align-items: center; gap: 8px;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-            Promotions &amp; Special Pricing
-        </h2>
+<div class="col-md-12 special-pricing-container" style="margin-top: 30px; margin-bottom: 30px;">
+    <!-- Section Title matching screenshot -->
+    <div style="border-bottom: 2px solid #f1f3f5; padding-bottom: 12px; margin-bottom: 25px;">
+        <span style="color: #ff8a00; border-bottom: 3px solid #ff8a00; padding-bottom: 11px; font-weight: 700; font-size: 13.5px; letter-spacing: 0.8px; text-transform: uppercase; display: inline-block;">
+            SPECIAL PRICING
+        </span>
+    </div>
 
-        <div class="row">
-            <div class="col-sm-12" style="margin-bottom: 15px;">
-                <label class="checkbox font-weight-bold" style="font-size: 15px; cursor: pointer; user-select: none; display: inline-flex; align-items: center;">
-                    <input type="checkbox" name="enable_promotional_offer" id="enable_promotional_offer" value="1" <?php echo ($is_promo_enabled ? 'checked' : ''); ?>>
-                    &nbsp;<span style="font-weight: 700; color: #333;">Enable promotional offer</span>
-                    <span class="checkmark"></span>
+    <!-- Hidden compatibility flag -->
+    <input type="hidden" name="enable_promotional_offer" id="enable_promotional_offer" value="1">
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-md-6 col-sm-6">
+            <!-- Product Name -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 6px; display: block;">Product Name</label>
+                <input type="text" class="form-control" name="sp_product_name_display" id="sp_product_name_display" readonly value="<?php echo htmlspecialchars($product_name_val, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Product Name" style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; height: 40px; box-shadow: none; font-size: 13.5px;">
+            </div>
+
+            <!-- Eshop Price -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 6px; display: block;">Eshop Price :</label>
+                <input type="text" class="form-control" readonly id="sp_eshop_price_display" value="<?php echo ($eshop_price_val > 0) ? number_format($eshop_price_val, 2, '.', '') : ''; ?>" placeholder="" style="background: #e9ecef; border: 1px solid #ced4da; border-radius: 4px; height: 40px; color: #495057; font-weight: 600; box-shadow: none; font-size: 13.5px;">
+            </div>
+
+            <!-- From Date -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 6px; display: block;">From</label>
+                <input type="date" class="form-control" name="from_date" id="sp_from_date" value="<?php echo $from_date_val; ?>" placeholder="mm/dd/yyyy" style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; height: 40px; box-shadow: none; font-size: 13.5px;">
+            </div>
+
+            <!-- Display Original Toggle -->
+            <div class="form-group" style="margin-bottom: 15px; display: flex; align-items: center; gap: 16px;">
+                <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 0;">Display Original</label>
+                <label class="sp-switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 22px; margin-bottom: 0; cursor: pointer;">
+                    <input type="checkbox" name="display_original" id="sp_display_original" value="1" <?php echo ($display_original_val ? 'checked' : ''); ?> style="opacity: 0; width: 0; height: 0;">
+                    <span class="sp-slider-round"></span>
                 </label>
-                <p style="font-size: 0.88em; color: #7f8c8d; margin-top: 4px; margin-left: 24px;">Activate calendar-based Daily Deals or Flash Sales with special discounted pricing.</p>
             </div>
         </div>
 
-        <div id="promotional_offer_fields" style="<?php echo ($is_promo_enabled ? 'display: block;' : 'display: none;'); ?>">
-            <div class="row" style="margin-bottom: 18px;">
-                <div class="col-sm-12">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block; color: #34495e;">Promotion type</label>
-                    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
-                        <label class="radio-inline" style="font-size: 14px; cursor: pointer; margin-right: 25px;">
-                            <input type="radio" name="promo_type" id="promo_type_daily_deal" value="daily_deal" <?php echo ($promo_type !== 'flash_sale' ? 'checked' : ''); ?>>
-                            &nbsp;<strong style="color: #d48806;">★ Daily Deal</strong> <span style="color: #666; font-size: 0.9em;">— scheduled promotional offer</span>
-                        </label>
-                        <label class="radio-inline" style="font-size: 14px; cursor: pointer;">
-                            <input type="radio" name="promo_type" id="promo_type_flash_sale" value="flash_sale" <?php echo ($promo_type === 'flash_sale' ? 'checked' : ''); ?>>
-                            &nbsp;<strong style="color: #cf1322;">⚡ Flash Sale</strong> <span style="color: #666; font-size: 0.9em;">— time-sensitive promotion</span>
-                        </label>
-                    </div>
-                </div>
+        <!-- Right Column -->
+        <div class="col-md-6 col-sm-6">
+            <!-- Alignment spacer to match Left Column layout -->
+            <div class="form-group" style="margin-bottom: 24px; visibility: hidden; height: 40px; display: none;">
+                <label>&nbsp;</label>
             </div>
 
-            <div class="row" style="margin-bottom: 15px;">
-                <div class="col-md-3 col-sm-6" style="margin-bottom: 12px;">
-                    <label style="font-weight: 600; color: #34495e;">Regular price (MUR)</label>
-                    <input type="text" class="form-control" id="promo_regular_price_display" readonly value="<?php echo number_format($regular_price_val, 2); ?>" style="background-color: #f8fafc; font-weight: 600; color: #475569; border-color: #cbd5e1;">
-                    <small style="color: #94a3b8; font-size: 11px;">Derived from EShop price</small>
-                </div>
-                <div class="col-md-3 col-sm-6" style="margin-bottom: 12px;">
-                    <label style="font-weight: 600; color: #34495e;">Special price (MUR) <span style="color: red;">*</span></label>
-                    <input type="number" step="0.01" min="0" class="form-control" name="promo_special_price" id="promo_special_price" value="<?php echo $promo_special_val; ?>" placeholder="e.g. 990.00" style="border-color: #cbd5e1;">
-                </div>
-                <div class="col-md-3 col-sm-6" style="margin-bottom: 12px;">
-                    <label style="font-weight: 600; color: #34495e;">Start date &amp; time <span style="color: red;">*</span></label>
-                    <input type="datetime-local" class="form-control" name="promo_start_date" id="promo_start_date" value="<?php echo $promo_start_val; ?>" style="border-color: #cbd5e1;">
-                </div>
-                <div class="col-md-3 col-sm-6" style="margin-bottom: 12px;">
-                    <label style="font-weight: 600; color: #34495e;">End date &amp; time <span style="color: red;">*</span></label>
-                    <input type="datetime-local" class="form-control" name="promo_end_date" id="promo_end_date" value="<?php echo $promo_end_val; ?>" style="border-color: #cbd5e1;">
-                </div>
+            <!-- Special Price -->
+            <div class="form-group" style="margin-bottom: 24px; margin-top: 66px;">
+                <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 6px; display: block;">Special Price :</label>
+                <input type="number" step="0.01" min="0" class="form-control" name="special_price" id="sp_special_price" value="<?php echo $special_price_val; ?>" placeholder="Special Price" style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; height: 40px; box-shadow: none; font-size: 13.5px;">
+                <input type="hidden" name="promo_special_price" id="promo_special_price" value="<?php echo $special_price_val; ?>">
             </div>
 
-            <!-- Discount Preview Box -->
-            <div id="promo_discount_preview_box" style="margin-top: 15px; padding: 16px 20px; background: #fffcf0; border: 1px solid #ffd591; border-radius: 6px;">
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #d46b08;">Discount preview</span>
-                <div style="display: flex; align-items: baseline; gap: 18px; margin-top: 6px; flex-wrap: wrap;">
-                    <h3 id="promo_preview_discount_text" style="margin: 0; font-size: 22px; font-weight: 800; color: #d4380d;"># 0% off</h3>
-                    <div id="promo_preview_price_transition" style="font-size: 15px; font-weight: 600; color: #434343;">MUR 0.00 → MUR 0.00</div>
-                </div>
-                <div id="promo_validation_warning" style="display: none; color: #cf1322; font-size: 13px; margin-top: 8px; font-weight: 600;"></div>
+            <!-- To Date -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 6px; display: block;">To</label>
+                <input type="date" class="form-control" name="to_date" id="sp_to_date" value="<?php echo $to_date_val; ?>" placeholder="mm/dd/yyyy" style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; height: 40px; box-shadow: none; font-size: 13.5px;">
             </div>
+
+            <!-- Promotion Type Selection (Daily Deal vs Flash Sale integration) -->
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 6px; display: block;">Promotion Type :</label>
+                <div style="display: flex; gap: 24px; align-items: center; margin-top: 5px;">
+                    <label style="font-size: 13px; cursor: pointer; color: #333; margin-right: 15px; font-weight: normal; margin-bottom: 0;">
+                        <input type="radio" name="promo_type" id="sp_promo_type_daily" value="daily_deal" <?php echo ($promo_type_val !== 'flash_sale' ? 'checked' : ''); ?>>
+                        &nbsp;<strong style="color: #d48806;">★ Daily Deal</strong>
+                    </label>
+                    <label style="font-size: 13px; cursor: pointer; color: #333; font-weight: normal; margin-bottom: 0;">
+                        <input type="radio" name="promo_type" id="sp_promo_type_flash" value="flash_sale" <?php echo ($promo_type_val === 'flash_sale' ? 'checked' : ''); ?>>
+                        &nbsp;<strong style="color: #cf1322;">⚡ Flash Sale</strong>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Preview & Notice Bar -->
+    <div id="sp_preview_row" style="margin-top: 15px; margin-bottom: 10px; display: none;">
+        <div style="padding: 10px 16px; background: #fffcf0; border: 1px solid #ffd591; border-radius: 4px; font-size: 12.5px; color: #874d00; display: flex; align-items: center; justify-content: space-between;">
+            <span id="sp_preview_text"></span>
+            <span id="sp_discount_badge" style="background: #e52525; color: #fff; font-weight: 700; border-radius: 12px; padding: 2px 8px; font-size: 11px;"></span>
+        </div>
+    </div>
+
+    <!-- Discard & Save Action Buttons matching screenshot -->
+    <div class="row" style="margin-top: 30px; margin-bottom: 10px;">
+        <div class="col-xs-12" style="display: flex; justify-content: flex-end; align-items: center; gap: 14px;">
+            <button type="button" id="sp_discard_btn" style="background: #ffffff; color: #222222; border: 1.5px solid #222222; padding: 7px 26px; font-size: 13.5px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: all 0.2s; outline: none;">
+                Discard
+            </button>
+            <button type="submit" id="sp_save_btn" name="save_product" value="Save" style="background: #2b2b2b; color: #ffffff; border: 1.5px solid #2b2b2b; padding: 7px 32px; font-size: 13.5px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: all 0.2s; outline: none;">
+                Save
+            </button>
         </div>
     </div>
 </div>
 
+<style>
+/* Clean Toggle Switch styling for Special Pricing */
+.sp-switch-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+}
+.sp-switch-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.sp-slider-round {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ced4da;
+    transition: .3s;
+    border-radius: 22px;
+}
+.sp-slider-round:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.sp-switch-toggle input:checked + .sp-slider-round {
+    background-color: #2b2b2b;
+}
+.sp-switch-toggle input:checked + .sp-slider-round:before {
+    transform: translateX(22px);
+}
+#sp_discard_btn:hover {
+    background-color: #f8f9fa;
+    border-color: #000;
+}
+#sp_save_btn:hover {
+    background-color: #000000;
+    border-color: #000000;
+}
+</style>
+
 <script>
 (function() {
-    function initPromoScript() {
-        var enableCheckbox = document.getElementById('enable_promotional_offer');
-        var promoFields = document.getElementById('promotional_offer_fields');
-        var regularDisplay = document.getElementById('promo_regular_price_display');
-        var specialInput = document.getElementById('promo_special_price');
-        var startDateInput = document.getElementById('promo_start_date');
-        var endDateInput = document.getElementById('promo_end_date');
-        var discountText = document.getElementById('promo_preview_discount_text');
-        var transitionText = document.getElementById('promo_preview_price_transition');
-        var warningBox = document.getElementById('promo_validation_warning');
+    // Initial loaded state snapshot for Discard action
+    var initialData = {
+        special_price: <?php echo json_encode($special_price_val); ?>,
+        from_date: <?php echo json_encode($from_date_val); ?>,
+        to_date: <?php echo json_encode($to_date_val); ?>,
+        display_original: <?php echo json_encode((bool)$display_original_val); ?>,
+        promo_type: <?php echo json_encode($promo_type_val); ?>
+    };
 
-        if (!enableCheckbox || !promoFields) return;
+    var specialPriceInput = document.getElementById('sp_special_price');
+    var promoSpecialPriceHidden = document.getElementById('promo_special_price');
+    var fromDateInput = document.getElementById('sp_from_date');
+    var toDateInput = document.getElementById('sp_to_date');
+    var displayOriginalInput = document.getElementById('sp_display_original');
+    var eshopPriceInput = document.getElementById('sp_eshop_price_display');
+    var discardBtn = document.getElementById('sp_discard_btn');
+    var previewRow = document.getElementById('sp_preview_row');
+    var previewText = document.getElementById('sp_preview_text');
+    var discountBadge = document.getElementById('sp_discount_badge');
 
-        function getActiveRegularPrice() {
-            // Check if #webshop_price exists in the main pricing section
-            var mainWebshopInput = document.getElementById('webshop_price');
-            if (mainWebshopInput && parseFloat(mainWebshopInput.value) > 0) {
-                return parseFloat(mainWebshopInput.value);
-            }
-            // Check bundle webshop price if any
-            var bundleWebshopInput = document.getElementById('bundle_webshop_price');
-            if (bundleWebshopInput && parseFloat(bundleWebshopInput.value) > 0) {
-                return parseFloat(bundleWebshopInput.value);
-            }
-            // Fallback to text inside display input
-            if (regularDisplay) {
-                var cleaned = regularDisplay.value.replace(/[^0-9.]/g, '');
-                var val = parseFloat(cleaned);
-                if (!isNaN(val) && val > 0) return val;
-            }
-            return 0;
+    function updatePreview() {
+        var eshop = parseFloat(eshopPriceInput ? eshopPriceInput.value : 0) || 0;
+        var special = parseFloat(specialPriceInput ? specialPriceInput.value : 0) || 0;
+        if (promoSpecialPriceHidden) {
+            promoSpecialPriceHidden.value = special > 0 ? special.toFixed(2) : '';
         }
 
-        function updatePreview() {
-            var regular = getActiveRegularPrice();
-            if (regularDisplay) {
-                regularDisplay.value = regular.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (special > 0 && eshop > 0 && special < eshop) {
+            var discountPct = Math.round(((eshop - special) / eshop) * 100);
+            if (previewText) {
+                previewText.textContent = 'Promotional Price: MUR ' + special.toFixed(2) + ' (Original: MUR ' + eshop.toFixed(2) + ')';
             }
+            if (discountBadge) {
+                discountBadge.textContent = '-' + discountPct + '% OFF';
+            }
+            if (previewRow) {
+                previewRow.style.display = 'block';
+            }
+        } else {
+            if (previewRow) {
+                previewRow.style.display = 'none';
+            }
+        }
+    }
 
-            var special = parseFloat(specialInput ? specialInput.value : 0);
-            var hasWarning = false;
-            var warningMsg = '';
+    if (specialPriceInput) {
+        specialPriceInput.addEventListener('input', updatePreview);
+    }
 
-            if (special > 0 && regular > 0) {
-                if (special >= regular) {
-                    hasWarning = true;
-                    warningMsg = 'Special price (MUR ' + special.toFixed(2) + ') must be less than regular price (MUR ' + regular.toFixed(2) + ').';
-                    discountText.innerText = '# 0% off';
-                    transitionText.innerText = 'MUR ' + regular.toFixed(2) + ' → MUR ' + special.toFixed(2);
-                } else {
-                    var discountPct = ((regular - special) / regular) * 100;
-                    discountText.innerText = '# ' + discountPct.toFixed(2) + '% off';
-                    transitionText.innerText = 'MUR ' + regular.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' → MUR ' + special.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                }
+    // Discard button resets inputs to initial loaded state without modifying saved pricing
+    if (discardBtn) {
+        discardBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (specialPriceInput) specialPriceInput.value = initialData.special_price;
+            if (promoSpecialPriceHidden) promoSpecialPriceHidden.value = initialData.special_price;
+            if (fromDateInput) fromDateInput.value = initialData.from_date;
+            if (toDateInput) toDateInput.value = initialData.to_date;
+            if (displayOriginalInput) displayOriginalInput.checked = initialData.display_original;
+
+            var dailyRadio = document.getElementById('sp_promo_type_daily');
+            var flashRadio = document.getElementById('sp_promo_type_flash');
+            if (initialData.promo_type === 'flash_sale') {
+                if (flashRadio) flashRadio.checked = true;
             } else {
-                discountText.innerText = '# 0% off';
-                transitionText.innerText = 'MUR ' + regular.toFixed(2) + ' → MUR ' + (special > 0 ? special.toFixed(2) : '0.00');
+                if (dailyRadio) dailyRadio.checked = true;
             }
-
-            if (startDateInput && endDateInput && startDateInput.value && endDateInput.value) {
-                var startVal = new Date(startDateInput.value);
-                var endVal = new Date(endDateInput.value);
-                if (endVal <= startVal) {
-                    hasWarning = true;
-                    warningMsg = (warningMsg ? warningMsg + ' ' : '') + 'End date & time must be later than start date & time.';
-                }
-            }
-
-            if (warningBox) {
-                if (hasWarning) {
-                    warningBox.innerText = warningMsg;
-                    warningBox.style.display = 'block';
-                } else {
-                    warningBox.style.display = 'none';
-                    warningBox.innerText = '';
-                }
-            }
-        }
-
-        enableCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                promoFields.style.display = 'block';
-                updatePreview();
-            } else {
-                promoFields.style.display = 'none';
-            }
-        });
-
-        if (specialInput) {
-            specialInput.addEventListener('input', updatePreview);
-            specialInput.addEventListener('change', updatePreview);
-        }
-        if (startDateInput) {
-            startDateInput.addEventListener('change', updatePreview);
-        }
-        if (endDateInput) {
-            endDateInput.addEventListener('change', updatePreview);
-        }
-
-        var mainWebshop = document.getElementById('webshop_price');
-        if (mainWebshop) {
-            mainWebshop.addEventListener('input', updatePreview);
-            mainWebshop.addEventListener('change', updatePreview);
-            mainWebshop.addEventListener('blur', updatePreview);
-        }
-
-        // Initial preview calculation
-        if (enableCheckbox.checked) {
             updatePreview();
-        }
+        });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initPromoScript);
-    } else {
-        initPromoScript();
-    }
+    updatePreview();
 })();
 </script>
