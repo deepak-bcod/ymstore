@@ -35,7 +35,7 @@
                         <th>SR NO.</th>
                         <th>MERCHANT NAME</th>
                         <th>ADDON SERVICE</th>
-                        <th>STATUS</th>
+                        <th>ADDON Name</th>
                         <th>DATE</th>
                         <th>AMOUNT</th>
                         <th>ACTIONS</th>
