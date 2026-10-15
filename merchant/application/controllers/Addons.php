@@ -724,16 +724,14 @@ public function status($token = null)
         $this->load->view('addons/service_details', $data);
     }
     public function manage() {
-    // Check if profile is complete or user is logged in according to your project standards
-    
     $data['side_menu'] = 'manage_addons';
     
-    // Fetch your addon purchase/order records from the database here
+    // Fetch your addon records from the database if needed
     // $data['manage_addons'] = $this->Addons_model->get_merchant_addons(); 
 
-    // Load the view file for managing addons
-    $this->load->view('merchant/header', $data);
-    $this->load->view('merchant/manage_addons_view', $data); // Create this view file
-    $this->load->view('merchant/footer');
+    // Adjust these view paths to match how other controllers in your project load views
+    $this->load->view('header', $data);          // Or whatever your correct header path is
+    $this->load->view('manage_addons_view', $data); // Your view file
+    $this->load->view('footer');                 // Or whatever your correct footer path is
 }
 }
