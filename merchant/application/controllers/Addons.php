@@ -726,15 +726,13 @@ public function status($token = null)
 public function manage() {
     $data['side_menu'] = 'manage_addons';
     
-    // Load the model
     $this->load->model('Addon_model');
     
-    // Fetch records (make sure this model method returns data matching your table columns)
-    $data['manage_addons'] = $this->Addon_model->get_addons_with_services(); // or your merchant-specific method
+    // Call the correct method
+    $data['manage_addons'] = $this->Addon_model->get_merchant_addons(); 
 
-    // Load views using the correct relative path including the subfolder
     $this->load->view('common/fbc-user/header', $data); 
-    $this->load->view('addons/manage_addons_view', $data); // <-- Updated path here
+    $this->load->view('addons/manage_addons_view', $data); 
     $this->load->view('common/fbc-user/footer');
 }
 }

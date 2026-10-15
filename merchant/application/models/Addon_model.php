@@ -44,14 +44,25 @@ class Addon_model extends CI_Model {
         return $query->row_array();
 
     }
-    public function get_merchant_addons() {
-    $this->db->select('m.*, s.title as addon_service_name, merchants.name as merchant_name');
-    $this->db->from('merchant_addons m'); // Replace 'merchant_addons' with your actual table name if different
-    $this->db->join('addon_services s', 's.id = m.service_id', 'left');
-    $this->db->join('merchants', 'merchants.id = m.merchant_id', 'left');
+   public function get_merchant_addons() {
+    $this->db->select('
+        p.id as purchase_id,
+        p.created_at as date,
+        p.status,
+        s.title as addon_service_name,
+        s.final_price as amount,
+        pub.name as merchant_name
+    ');
+    $this->db->from('merchant_addon_purchases p');
+    $this->db->join('addon_services s', 's.id = p.service_id', 'left');
+    $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
+    
+    // If you only want to show addons for the currently logged-in merchant, uncomment below:
+    // $this->db->where('p.merchant_id', $this->session->userdata('LoginID'));
+
+    $this->db->order_by('p.id', 'DESC');
     $query = $this->db->get();
     return $query->result(); // Returns objects so $row->property works in your view
 }
-
 }
 
