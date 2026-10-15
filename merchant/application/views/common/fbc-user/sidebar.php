@@ -167,7 +167,7 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
             <li class="nav-item">
                 <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?>" 
                    href="<?php echo !$profile_incomplete ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
-                    Manage
+                    <?= $this->lang->line('sidebar_manage_addons') ?>
                 </a>
             </li>
         </ul>
