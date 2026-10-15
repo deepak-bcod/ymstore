@@ -726,13 +726,15 @@ public function status($token = null)
  public function manage() {
     $data['side_menu'] = 'manage_addons';
     
+    // Load the model
     $this->load->model('Addon_model');
     
-    // Fetch merchant addon records
-    $data['manage_addons'] = $this->Addon_model->get_merchant_addons(); 
+    // Fetch addon records from the database
+    $data['manage_addons'] = $this->Addon_model->get_addons_with_services(); 
 
+    // Load views with the correct folder path
     $this->load->view('common/fbc-user/header', $data); 
-    $this->load->view('addons/manage_addons_view', $data); 
+    $this->load->view('addons/manage_addons_view', $data); // Updated path here
     $this->load->view('common/fbc-user/footer');
 }
 }
