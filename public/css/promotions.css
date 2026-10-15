@@ -1,337 +1,365 @@
-/* YellowMarkets - Daily Deals & Flash Sales Promotions Styling */
+/* ==========================================================================
+   YellowMarkets - Product Promotions & Uniform Product Card Styling
+   Applicable to: Daily Deals, Flash Sales, New Arrivals, Trending Products,
+   and all product listing components across YellowMarkets.
+   ========================================================================== */
 
-/* =====================================
-   PROMOTIONAL BADGES (GRID & GENERAL)
-   ===================================== */
-.pi-img-wrapper {
+/* ==========================================================================
+   1. UNIFORM PRODUCT CARD CONTAINER
+   ========================================================================== */
+.uniform-product-card,
+.product-item.uniform-product-card,
+.product-item.product-item-grid,
+.product-item.product-item-normal,
+.home-trending-slider .product-item,
+.home-products-section .products-list-full .owl-stage .product-item,
+.trending-products-section .home-trending-slider .owl-stage .product-item,
+.grid-view .product-item,
+.list-view .product-item,
+.category-products .product-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+    background: #ffffff !important;
+    border: 1px solid #e9ecef !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     position: relative !important;
-    overflow: hidden;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+    margin-bottom: 15px !important;
+    min-height: 155px !important;
+    text-align: left !important;
 }
 
-/* Badges positioned over product image top-left (Daily Deal / Flash Sale / Limited Stock) */
-.promo-badge-overlay-left,
-span.promo-badge-overlay-left,
-div.promo-badge-overlay-left,
-.pi-img-wrapper .promo-badge-overlay-left,
-.product-item .pi-img-wrapper .promo-badge-overlay-left {
-    position: absolute !important;
-    top: 8px !important;
-    left: 8px !important;
-    right: auto !important;
-    bottom: auto !important;
+.uniform-product-card:hover,
+.product-item.uniform-product-card:hover,
+.product-item.product-item-grid:hover,
+.home-trending-slider .product-item:hover,
+.category-products .product-item:hover {
+    border-color: #d0d7de !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ==========================================================================
+   2. LEFT COLUMN: FIXED IMAGE THUMBNAIL WRAPPER
+   ========================================================================== */
+.uniform-product-card .pi-img-wrapper,
+.product-item.uniform-product-card .pi-img-wrapper,
+.product-item.product-item-grid .pi-img-wrapper,
+.product-item.product-item-normal .pi-img-wrapper,
+.home-trending-slider .product-item .pi-img-wrapper,
+.home-products-section .products-list-full .product-item .pi-img-wrapper,
+.trending-products-section .home-trending-slider .product-item .pi-img-wrapper,
+.grid-view .product-item .pi-img-wrapper,
+.list-view .product-item .pi-img-wrapper,
+.category-products .product-item .pi-img-wrapper {
+    width: 130px !important;
+    min-width: 130px !important;
+    max-width: 130px !important;
+    height: 130px !important;
+    min-height: 130px !important;
+    max-height: 130px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #fbfbfb !important;
+    border: 1px solid #f0f0f0 !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    padding: 4px !important;
+    margin: 0 !important;
+    position: relative !important;
+}
+
+.uniform-product-card .pi-img-wrapper a,
+.uniform-product-card .pi-img-wrapper .pi-img-link,
+.product-item .pi-img-wrapper a {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.uniform-product-card .pi-img-wrapper img,
+.product-item.product-item-grid .pi-img-wrapper img,
+.product-item.product-item-normal .pi-img-wrapper img,
+.home-trending-slider .product-item .pi-img-wrapper img,
+.category-products .product-item .pi-img-wrapper img {
+    max-width: 100% !important;
+    max-height: 100% !important;
     width: auto !important;
-    max-width: 65% !important;
     height: auto !important;
-    background: transparent !important;
-    z-index: 15 !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: auto !important;
+}
+
+/* ==========================================================================
+   3. RIGHT COLUMN: PRODUCT CONTENT WRAPPER
+   ========================================================================== */
+.uniform-product-card .pi-content-wrapper,
+.product-item.uniform-product-card .pi-content-wrapper,
+.product-item.product-item-grid .pi-content-wrapper,
+.product-item.product-item-normal .pi-content-wrapper,
+.home-trending-slider .product-item .pi-content-wrapper,
+.category-products .product-item .pi-content-wrapper {
+    flex: 1 1 auto !important;
     display: flex !important;
     flex-direction: column !important;
-    align-items: flex-start !important;
+    justify-content: space-between !important;
+    min-width: 0 !important;
     text-align: left !important;
-    gap: 4px !important;
-    pointer-events: none !important;
-    margin: 0 !important;
     padding: 0 !important;
-    opacity: 1 !important;
-    visibility: visible !important;
+    margin: 0 !important;
 }
 
-/* Discount percentage badge top-right (-XX%) */
-.promo-badge-overlay-right,
-span.promo-badge-overlay-right,
-div.promo-badge-overlay-right,
-.pi-img-wrapper .promo-badge-overlay-right,
-.product-item .pi-img-wrapper .promo-badge-overlay-right {
-    position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
-    left: auto !important;
-    bottom: auto !important;
-    width: auto !important;
-    height: auto !important;
-    background: transparent !important;
-    z-index: 15 !important;
-    display: block !important;
-    text-align: right !important;
-    pointer-events: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    opacity: 1 !important;
-    visibility: visible !important;
+/* ==========================================================================
+   4. PROMOTIONAL BADGES & PILLS
+   ========================================================================== */
+.pi-badges-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-bottom: 4px !important;
+    line-height: 1 !important;
 }
 
 .promo-badge {
-    display: inline-block;
-    padding: 3px 8px;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    border-radius: 4px;
-    line-height: 1.3;
-    white-space: nowrap;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    border-radius: 4px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
 }
 
-/* Daily Deal: bright yellow with dark text */
 .promo-badge-daily-deal {
-    background-color: #f7b928;
-    color: #1a1a1a;
+    background-color: #f7b928 !important;
+    color: #1a1a1a !important;
 }
 
-/* Flash Sale: bright red with white text */
 .promo-badge-flash-sale {
-    background-color: #e52525;
-    color: #ffffff;
+    background-color: #e52525 !important;
+    color: #ffffff !important;
 }
 
-/* Limited Stock: forest green with white text */
 .promo-badge-limited-stock {
-    background-color: #1b873f;
-    color: #ffffff;
+    background-color: #1b873f !important;
+    color: #ffffff !important;
 }
 
-/* Red percentage pill badge */
 .promo-discount-badge {
-    display: inline-block;
-    background-color: #e52525;
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 2px 7px;
-    border-radius: 12px;
-    line-height: 1.3;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-
-/* =====================================
-   PRICING TYPOGRAPHY
-   ===================================== */
-.pi-price-wrapper {
-    margin: 6px 0;
-}
-
-.pi-regular-price {
-    color: #8c9196;
-    font-size: 0.9em;
-    line-height: 1.2;
-}
-
-.pi-regular-price del {
-    color: #8c9196;
-}
-
-.pi-special-price {
-    color: #ff8a00;
-    font-size: 1.25em;
-    font-weight: 800;
-    line-height: 1.3;
-    margin-top: 2px;
-}
-
-.pi-normal-price {
-    color: #222222;
-    font-size: 1.15em;
-    font-weight: 700;
-    line-height: 1.3;
-}
-
-/* =====================================
-   COUNTDOWN TIMER
-   ===================================== */
-.pi-countdown-timer {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: #d32f2f;
-    font-size: 0.88em;
-    font-weight: 700;
-    margin: 6px 0 10px 0;
-}
-
-.pi-countdown-timer svg,
-.pi-countdown-timer i {
-    width: 13px;
-    height: 13px;
-    flex-shrink: 0;
-}
-
-/* =====================================
-   ACTION BUTTON
-   ===================================== */
-.pi-btn-details {
-    display: inline-block;
-    background-color: #0d6efd;
+    display: inline-flex !important;
+    align-items: center !important;
+    background-color: #e52525 !important;
     color: #ffffff !important;
-    font-size: 0.9em;
-    font-weight: 600;
-    padding: 6px 18px;
-    border-radius: 4px;
-    text-align: center;
-    text-decoration: none !important;
-    transition: background-color 0.2s ease;
-    border: none;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    padding: 2px 7px !important;
+    border-radius: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
 }
 
-.pi-btn-details:hover {
-    background-color: #0b5ed7;
-    color: #ffffff !important;
-}
-
-/* =====================================
-   NORMAL / LIST LAYOUT (SCREENSHOT 1)
-   ===================================== */
-.product-item.product-item-normal,
-.list-view .product-item,
-.normal-view .product-item {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    background: #ffffff;
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 15px;
-}
-
-.product-item.product-item-normal .pi-img-wrapper,
-.list-view .product-item .pi-img-wrapper,
-.normal-view .product-item .pi-img-wrapper {
-    width: 140px;
-    min-width: 140px;
-    height: 140px;
-    flex-shrink: 0;
-    margin-right: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fbfbfb;
-    border: 1px solid #f0f0f0;
-    border-radius: 4px;
-}
-
-.product-item.product-item-normal .pi-img-wrapper img,
-.list-view .product-item .pi-img-wrapper img,
-.normal-view .product-item .pi-img-wrapper img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
-
-.product-item.product-item-normal .pi-content-wrapper,
-.list-view .product-item .pi-content-wrapper,
-.normal-view .product-item .pi-content-wrapper {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    text-align: left;
-}
-
-.product-item.product-item-normal h3,
-.list-view .product-item h3,
-.normal-view .product-item h3 {
-    font-size: 1.05em;
-    font-weight: 600;
-    margin: 0 0 6px 0;
-}
-
-.product-item.product-item-normal .promo-pill-normal,
-.list-view .product-item .promo-pill-normal,
-.normal-view .product-item .promo-pill-normal {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    width: fit-content;
-    margin: 4px 0;
-}
-
-.promo-pill-normal.promo-pill-flash-sale {
-    background-color: #fff1f0;
-    color: #e52525;
-    border: 1px solid #ffa39e;
-}
-
-.promo-pill-normal.promo-pill-daily-deal {
-    background-color: #fffbe6;
-    color: #d48806;
-    border: 1px solid #ffe58f;
+.promo-stock-qty-text {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #1b873f !important;
 }
 
 .promo-stock-warning {
-    display: inline-block;
-    color: #cf1322;
-    font-weight: 700;
-    font-size: 0.9em;
-    margin: 4px 0;
+    display: inline-block !important;
+    color: #cf1322 !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    margin: 2px 0 !important;
 }
 
-/* =====================================
-   GRID CARD ADJUSTMENTS (SCREENSHOT 2)
-   ===================================== */
-.product-item.product-item-grid,
-.grid-view .product-item,
-.home-trending-slider .product-item {
-    background: #ffffff;
-    border-radius: 6px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    text-align: left;
-}
-
-.product-item.product-item-grid .pi-img-wrapper,
-.grid-view .product-item .pi-img-wrapper,
-.home-trending-slider .product-item .pi-img-wrapper {
-    width: 100%;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-    background: #fafafa;
-    border-radius: 4px;
-}
-
-.product-item.product-item-grid .pi-img-wrapper img,
-.grid-view .product-item .pi-img-wrapper img,
-.home-trending-slider .product-item .pi-img-wrapper img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-}
-
-.product-item.product-item-grid .pi-content-wrapper,
-.grid-view .product-item .pi-content-wrapper,
-.home-trending-slider .product-item .pi-content-wrapper {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-}
-
+/* ==========================================================================
+   5. PRODUCT TITLE
+   ========================================================================== */
+.uniform-product-card h3,
+.uniform-product-card .pi-title,
 .product-item.product-item-grid h3,
-.grid-view .product-item h3,
-.home-trending-slider .product-item h3 {
-    font-size: 0.98em;
-    font-weight: 600;
-    min-height: 38px;
-    margin: 0 0 6px 0;
-    line-height: 1.35;
+.product-item.product-item-normal h3,
+.home-trending-slider .product-item h3,
+.category-products .product-item h3 {
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+    margin: 2px 0 4px 0 !important;
+    min-height: auto !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
 }
 
-.product-item.product-item-grid h3 a,
-.grid-view .product-item h3 a,
-.home-trending-slider .product-item h3 a {
-    color: #222222;
-    text-decoration: none;
+.uniform-product-card h3 a,
+.uniform-product-card .pi-title a,
+.product-item h3 a {
+    color: #212529 !important;
+    text-decoration: none !important;
 }
 
-.product-item.product-item-grid h3 a:hover,
-.grid-view .product-item h3 a:hover,
-.home-trending-slider .product-item h3 a:hover {
-    color: #0d6efd;
+.uniform-product-card h3 a:hover,
+.uniform-product-card .pi-title a:hover,
+.product-item h3 a:hover {
+    color: #0d6efd !important;
+}
+
+/* ==========================================================================
+   6. PRICING TYPOGRAPHY
+   ========================================================================== */
+.pi-price-wrapper {
+    margin: 2px 0 4px 0 !important;
+    line-height: 1.2 !important;
+}
+
+.pi-regular-price {
+    color: #8c9196 !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 2px !important;
+}
+
+.pi-regular-price del {
+    color: #8c9196 !important;
+}
+
+.pi-special-price {
+    color: #ff7a00 !important;
+    font-size: 16.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+}
+
+.pi-normal-price {
+    color: #ff7a00 !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+}
+
+/* ==========================================================================
+   7. COUNTDOWN TIMER
+   ========================================================================== */
+.pi-countdown-timer {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    color: #cf1322 !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    margin: 3px 0 6px 0 !important;
+    line-height: 1.2 !important;
+}
+
+.pi-countdown-timer svg {
+    flex-shrink: 0 !important;
+    stroke: #cf1322 !important;
+}
+
+/* ==========================================================================
+   8. ACTION BUTTON
+   ========================================================================== */
+.pi-actions {
+    margin-top: auto !important;
+    padding-top: 2px !important;
+}
+
+.pi-btn-details {
+    display: inline-block !important;
+    background-color: #0d6efd !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 6px 16px !important;
+    border-radius: 4px !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    border: none !important;
+    transition: background-color 0.2s ease !important;
+    line-height: 1.35 !important;
+    width: fit-content !important;
+}
+
+.pi-btn-details:hover {
+    background-color: #0b5ed7 !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   9. HOME SLIDERS & GRID INTEGRATION
+   ========================================================================== */
+.home-products-section .products-list-full .owl-stage,
+.trending-products-section .home-trending-slider .owl-stage {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    gap: 0 !important;
+}
+
+.home-products-section .products-list-full .owl-stage .product-item,
+.trending-products-section .home-trending-slider .owl-stage .product-item {
+    flex-basis: calc(33.333% - 16px) !important;
+    max-width: calc(33.333% - 16px) !important;
+    margin: 8px !important;
+}
+
+/* ==========================================================================
+   10. RESPONSIVE BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 991px) {
+    .home-products-section .products-list-full .owl-stage .product-item,
+    .trending-products-section .home-trending-slider .owl-stage .product-item {
+        flex-basis: calc(50% - 14px) !important;
+        max-width: calc(50% - 14px) !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .home-products-section .products-list-full .owl-stage .product-item,
+    .trending-products-section .home-trending-slider .owl-stage .product-item {
+        flex-basis: 100% !important;
+        max-width: 100% !important;
+        margin: 6px 0 !important;
+    }
+
+    .uniform-product-card,
+    .product-item.uniform-product-card {
+        padding: 10px !important;
+        gap: 10px !important;
+    }
+
+    .uniform-product-card .pi-img-wrapper,
+    .product-item.product-item-grid .pi-img-wrapper,
+    .home-trending-slider .product-item .pi-img-wrapper {
+        width: 105px !important;
+        min-width: 105px !important;
+        max-width: 105px !important;
+        height: 105px !important;
+        min-height: 105px !important;
+        max-height: 105px !important;
+    }
+
+    .uniform-product-card h3,
+    .uniform-product-card .pi-title {
+        font-size: 12.5px !important;
+    }
+
+    .pi-special-price {
+        font-size: 14.5px !important;
+    }
 }
