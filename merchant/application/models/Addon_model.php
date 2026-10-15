@@ -44,21 +44,20 @@ class Addon_model extends CI_Model {
         return $query->row_array();
 
     }
-    public function get_merchant_addons() {
+   public function get_merchant_addons() {
     $this->db->select('
         p.id as purchase_id,
         p.created_at as date,
         p.status,
-        s.title as addon_service_name,
+        c.name as addon_service_name,
+        s.title as addon_name,
         s.final_price as amount,
         pub.company_name as merchant_name
     ');
     $this->db->from('merchant_addon_purchases p');
     $this->db->join('addon_services s', 's.id = p.service_id', 'left');
+    $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
     $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
-    
-    // Optional: Filter for only the logged-in merchant
-    // $this->db->where('p.merchant_id', $this->session->userdata('LoginID'));
 
     $this->db->order_by('p.id', 'DESC');
     $query = $this->db->get();
