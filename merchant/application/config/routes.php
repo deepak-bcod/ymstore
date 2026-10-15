@@ -844,6 +844,9 @@ $route['addons/mytNotify'] = 'addons/mytNotify';
 $route['addons/mytCallback'] = 'addons/mytCallback';
 $route['addons/status/(:any)'] = 'addons/status/$1';
 
+// Add this new route for Manage Addon page
+$route['addons/manage'] = 'addons/manage';
+
 
 $route['webshop/return-orders'] = 'WebshopOrdersController/returnOrders';
 $route['webshop/replacement-orders'] = 'WebshopOrdersController/replacementOrders';

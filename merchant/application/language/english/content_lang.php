@@ -1243,7 +1243,7 @@ $lang['send_to_support'] = 'Send to Support';
 $lang['send_message'] = 'Send Message';
 $lang['accounting_team'] = 'Accounting Team (@Acct)';
 $lang['you_merchant'] = 'You (Merchant)';
-$lang['escalation_in_progress'] = 'Escalation In Progress';
-$lang['escalation_complete'] = 'Escalation Complete';
-$lang['escalation_request'] = 'Escalation Request';
-$lang['escalation_status'] = 'Escalation Status';
+
+
+
+
