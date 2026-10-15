@@ -148,12 +148,35 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
             </a>
          </li>
 
-         <li class="nav-item">
-            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='addons')) ? 'has-submenu show' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
-               <?= $this->lang->line('sidebar_addons_services') ?>
-            </a>
-         </li>
-
+       <li class="nav-item">
+    <!-- Main Add-On Services Menu with Submenu Toggle -->
+    <a class="nav-link <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'has-submenu show' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" 
+       href="javascript:void(0);" 
+       data-toggle="collapse" 
+       data-target="#addonsSubmenu">
+        <?= $this->lang->line('sidebar_addons_services') ?>
+    </a>
+    
+    <!-- Submenu List -->
+    <div id="addonsSubmenu" class="collapse <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'show' : ''; ?>">
+        <ul class="nav flex-column sub-menu">
+            <!-- Link to the original Add-on Services list page -->
+            <li class="nav-item">
+                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?>" 
+                   href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
+                   Browse Add-Ons
+                </a>
+            </li>
+            <!-- New Submenu: Manage Addon -->
+            <li class="nav-item">
+                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?>" 
+                   href="<?php echo !$profile_incomplete ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
+                   Manage Addon
+                </a>
+            </li>
+        </ul>
+    </div>
+</li>
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='mydocuments')) ? 'has-submenu show' : ''; ?>
                <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
