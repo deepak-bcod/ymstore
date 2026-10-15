@@ -8,12 +8,11 @@
                         <thead>
                             <tr>
                                 <th>SR NO.</th>
-                                <th>MERCHANT NAME</th>
+                                <th>CATEGORY NAME</th>
                                 <th>Addon Service</th>
                                 <th>STATUS</th>
-                                <th>Order</th>
-                                <th>DATE</th>
-                                <th>AMOUNT</th>
+                                <th>SERVICE ID</th>
+                                <th>PRICE</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -21,17 +20,16 @@
                                 <?php $sr = 1; foreach($manage_addons as $row): ?>
                                 <tr>
                                     <td><?php echo $sr++; ?></td>
-                                    <td><?php echo $row->merchant_name; ?></td>
-                                    <td><?php echo $row->addon_service_name; ?></td>
-                                    <td><?php echo $row->status; ?></td>
-                                    <td><?php echo $row->order_id; ?></td>
-                                    <td><?php echo $row->date; ?></td>
-                                    <td><?php echo $row->amount; ?></td>
+                                    <td><?php echo $row->category_name; ?></td>
+                                    <td><?php echo $row->title; ?></td>
+                                    <td>Active</td>
+                                    <td><?php echo $row->service_id; ?></td>
+                                    <td><?php echo $row->final_price; ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="7" class="text-center">No records found</td>
+                                    <td colspan="6" class="text-center">No records found</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
