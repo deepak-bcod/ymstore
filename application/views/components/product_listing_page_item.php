@@ -40,62 +40,52 @@ if ($promo && !empty($promo->special_price)) {
     $special_price = (float)$prod->special_price;
 }
 
-// Promotional countdown ends_at calculation
-$ends_at = null;
-if ($promo && !empty($promo->ends_at) && $promo->ends_at > time()) {
-    $ends_at = (int)$promo->ends_at;
-} elseif ($type === 'DailyDealsListing' && !empty($prod->daily_deal_ends_at)) {
-    $parsed_ends = is_numeric($prod->daily_deal_ends_at) ? (int)$prod->daily_deal_ends_at : strtotime($prod->daily_deal_ends_at);
-    if ($parsed_ends > time()) {
-        $ends_at = $parsed_ends;
-    }
-} elseif ($type === 'FlashSaleListing' && !empty($prod->flash_sale_ends_at)) {
-    $parsed_ends = is_numeric($prod->flash_sale_ends_at) ? (int)$prod->flash_sale_ends_at : strtotime($prod->flash_sale_ends_at);
-    if ($parsed_ends > time()) {
-        $ends_at = $parsed_ends;
-    }
-}
-
 $is_normal_layout = (isset($viewmode) && $viewmode === 'list') || (isset($check) && $check === 'normalView');
 $card_class = $is_normal_layout ? 'product-item product-item-normal' : 'product-item product-item-grid';
 ?>
 
 <?php if (isset($check) && $check == 'owlView') { echo "<div>"; } ?>
 
-<div class="product-item uniform-product-card <?php echo $card_class; ?>" title="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $prod->name, ENT_QUOTES, 'UTF-8'); ?>">
+<div class="<?php echo $card_class; ?>" title="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $prod->name, ENT_QUOTES, 'UTF-8'); ?>">
 
-    <!-- LEFT COLUMN: Product Image -->
     <div class="pi-img-wrapper">
-        <a href="<?= $product_url ?>" class="pi-img-link">
-            <img src="<?php echo $prod_image; ?>" class="img-responsive pi-thumb-img" title="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $display_name, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $display_name, ENT_QUOTES, 'UTF-8'); ?>">
+        <!-- Top-Left Badge: Daily Deal / Flash Sale / Limited Stock -->
+        <?php if (!$is_normal_layout): ?>
+            <span class="promo-badge-overlay-left" style="position: absolute !important; top: 8px !important; left: 8px !important; right: auto !important; bottom: auto !important; width: auto !important; height: auto !important; z-index: 15 !important; display: flex !important; flex-direction: column !important; align-items: flex-start !important; text-align: left !important; pointer-events: none !important; background: transparent !important; margin: 0 !important; padding: 0 !important;">
+                <?php if ($promo): ?>
+                    <?php if ($promo->type === 'flash_sale'): ?>
+                        <span class="promo-badge promo-badge-flash-sale">⚡ FLASH SALE</span>
+                    <?php else: ?>
+                        <span class="promo-badge promo-badge-daily-deal">★ DAILY DEAL</span>
+                    <?php endif; ?>
+                <?php elseif ($stock): ?>
+                    <span class="promo-badge promo-badge-limited-stock">📦 LIMITED STOCK</span>
+                <?php endif; ?>
+            </span>
+
+            <!-- Top-Right Badge: Discount Percentage (e.g. -22%) -->
+            <?php if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0): ?>
+                <span class="promo-badge-overlay-right" style="position: absolute !important; top: 8px !important; right: 8px !important; left: auto !important; bottom: auto !important; width: auto !important; height: auto !important; z-index: 15 !important; display: block !important; text-align: right !important; pointer-events: none !important; background: transparent !important; margin: 0 !important; padding: 0 !important;">
+                    <span class="promo-discount-badge">-<?php echo $promo->discount_percent; ?>%</span>
+                </span>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <a href="<?= $product_url ?>">
+            <img src="<?php echo $prod_image; ?>" class="img-responsive" title="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $display_name, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $display_name, ENT_QUOTES, 'UTF-8'); ?>">
         </a>
+
+        <?php if (!$is_normal_layout): ?>
+            <div class="quick-view-wrapper d-none">
+                <a href="javascript:QuickViewProdDetails('<?php echo $prod->url_key; ?>','<?= $product_url ?>')" class="btn btn-default"><?= lang('view_label') ?></a>
+            </div>
+        <?php endif; ?>
     </div>
 
-    <!-- RIGHT COLUMN: Details -->
     <div class="pi-content-wrapper">
-        <!-- Badges Row: Promotion badge & discount percentage or stock -->
-        <div class="pi-badges-row">
-            <?php if ($promo): ?>
-                <?php if ($promo->type === 'flash_sale'): ?>
-                    <span class="promo-badge promo-badge-flash-sale">⚡ FLASH SALE</span>
-                <?php else: ?>
-                    <span class="promo-badge promo-badge-daily-deal">★ DAILY DEAL</span>
-                <?php endif; ?>
-                <?php if (!empty($promo->discount_percent) && $promo->discount_percent > 0): ?>
-                    <span class="promo-discount-badge">-<?php echo $promo->discount_percent; ?>%</span>
-                <?php endif; ?>
-            <?php elseif ($stock): ?>
-                <span class="promo-badge promo-badge-limited-stock">📦 LIMITED STOCK</span>
-                <?php if (!empty($stock->qty)): ?>
-                    <span class="promo-stock-qty-text">Only <?php echo $stock->qty; ?> left</span>
-                <?php endif; ?>
-            <?php endif; ?>
-        </div>
-
-        <!-- Product Name -->
-        <h3 class="pi-title" id="product-name-<?php echo $prod->id; ?>" title="<?php echo htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8'); ?>">
+        <h3 id="product-name-<?php echo $prod->id; ?>" title="<?php echo htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8'); ?>">
             <a href="<?= $product_url ?>">
-                <?php echo (strlen($display_name) > 38) ? substr($display_name, 0, 35) . '...' : $display_name; ?>
+                <?php echo (strlen($display_name) > 35) ? substr($display_name, 0, 32) . '...' : $display_name; ?>
             </a>
         </h3>
 
@@ -109,23 +99,35 @@ $card_class = $is_normal_layout ? 'product-item product-item-normal' : 'product-
             <?php endif; ?>
         </div>
 
-        <!-- Stock Information (if no promo active but stock warning present) -->
-        <?php if (!$promo && $stock && !empty($stock->qty)): ?>
-            <div class="pi-stock-status">
-                <span class="promo-stock-warning">⚠️ Only <?php echo $stock->qty; ?> left in stock</span>
-            </div>
+        <!-- Normal Layout Badges (Screenshot 1) -->
+        <?php if ($is_normal_layout): ?>
+            <?php if ($promo): ?>
+                <?php if ($promo->type === 'flash_sale'): ?>
+                    <span class="promo-pill-normal promo-pill-flash-sale">⚡ FLASH SALE</span>
+                <?php else: ?>
+                    <span class="promo-pill-normal promo-pill-daily-deal">★ DAILY DEAL</span>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <?php if ($stock): ?>
+                <div class="promo-stock-warning">⚠️ Only <?php echo $stock->qty; ?> left</div>
+            <?php endif; ?>
         <?php endif; ?>
 
-        <!-- Active Countdown Timer -->
-        <?php if (!empty($ends_at) && $ends_at > time()): ?>
-            <div class="pi-countdown-timer" data-promo-ends-at="<?php echo $ends_at; ?>" data-countdown-prefix="Ends in ">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <!-- Countdown Timer (Active for scheduled/ends_at promotions) -->
+        <?php if ($promo && !empty($promo->ends_at) && $promo->ends_at > time()): ?>
+            <div class="pi-countdown-timer" data-promo-ends-at="<?php echo $promo->ends_at; ?>" data-countdown-prefix="Ends in ">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 <span class="countdown-time">Ends in ...</span>
             </div>
+        <?php elseif ($type === 'DailyDealsListing' && !empty($prod->daily_deal_ends_at)): ?>
+            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('deal_ends') ? $this->lang->line('deal_ends') : 'Deal ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->daily_deal_ends_at) ? (int)$prod->daily_deal_ends_at : strtotime($prod->daily_deal_ends_at)); ?></p>
+        <?php elseif ($type === 'FlashSaleListing' && !empty($prod->flash_sale_ends_at)): ?>
+            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('sale_ends') ? $this->lang->line('sale_ends') : 'Sale ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->flash_sale_ends_at) ? (int)$prod->flash_sale_ends_at : strtotime($prod->flash_sale_ends_at)); ?></p>
         <?php endif; ?>
 
-        <!-- Action / View Details Button -->
-        <div class="pi-actions">
+        <!-- View Details Button -->
+        <div class="pi-actions" style="margin-top: 4px;">
             <a href="<?= $product_url ?>" class="btn pi-btn-details"><?= lang('view_details') ?: 'View Details' ?></a>
         </div>
 
