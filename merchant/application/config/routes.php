@@ -844,6 +844,9 @@ $route['addons/mytNotify'] = 'addons/mytNotify';
 $route['addons/mytCallback'] = 'addons/mytCallback';
 $route['addons/status/(:any)'] = 'addons/status/$1';
 
+// Add route for your new Addon report/listing page
+$route['addons/new-addon'] = 'addons/new_addon';
+
 
 
 

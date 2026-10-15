@@ -153,6 +153,11 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
                <?= $this->lang->line('sidebar_addons_services') ?>
             </a>
          </li>
+         <li class="nav-item">
+    <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='addons')) ? 'has-submenu show' : ''; ?>" href="<?php echo base_url('addons/new-addon'); ?>">
+        New Add-On Report
+    </a>
+</li>
 
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='mydocuments')) ? 'has-submenu show' : ''; ?>

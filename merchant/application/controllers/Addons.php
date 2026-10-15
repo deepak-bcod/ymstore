@@ -723,4 +723,21 @@ public function status($token = null)
         $data['service'] = $service;
         $this->load->view('addons/service_details', $data);
     }
+
+    public function new_addon() {
+    // Check if user is logged in (depending on your authentication setup)
+    if (!$this->session->userdata('logged_in')) {
+        redirect('auth/login');
+    }
+
+    $data['side_menu'] = 'addons';
+    
+    // Fetch data from model (ensure you create this function in your model)
+    $data['addons_list'] = $this->Addons_model->get_new_addons_data();
+
+    // Load your view file
+    $this->load->view('admin/header', $data); // Adjust paths to match your project
+    $this->load->view('addons/new_addon_view', $data);
+    $this->load->view('admin/footer');
+}
 }

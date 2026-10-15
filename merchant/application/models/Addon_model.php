@@ -44,6 +44,13 @@ class Addon_model extends CI_Model {
         return $query->row_array();
 
     }
+    public function get_new_addons_data() {
+    $this->select('addons_table.*, merchants.merchant_name');
+    $this->from('addons_table'); // Replace with your actual table name
+    $this->join('merchants', 'merchants.id = addons_table.merchant_id', 'left'); // Adjust foreign keys as per your DB
+    $query = $this->db->get();
+    return $query->result();
+}
 
 }
 
