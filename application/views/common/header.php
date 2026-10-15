@@ -43,7 +43,7 @@
 
   <?php $this->template->load('common_for_all/header_link_details'); ?>
 
-  <link rel="stylesheet" type="text/css" href="<?php echo SKIN_CSS ?>new/ymstyle.css?v50">
+  <link rel="stylesheet" type="text/css" href="<?php echo SKIN_CSS ?>new/ymstyle.css?v53">
   <style>
     .search-box {
       position: relative;
