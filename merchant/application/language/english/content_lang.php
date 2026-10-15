@@ -1245,5 +1245,5 @@ $lang['accounting_team'] = 'Accounting Team (@Acct)';
 $lang['you_merchant'] = 'You (Merchant)';
 
 
-
+$lang['sidebar_manage_addons'] = 'Manage Addon';
 
