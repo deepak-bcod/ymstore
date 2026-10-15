@@ -636,7 +636,8 @@ class Subscription_model extends CI_Model
             log_message('info', "Subscription {$reminder_type} renewal reminder sent to merchant {$publisher_id} ({$to_email}), expires {$expiry_date_formatted}");
             return true;
         } else {
-            $this->last_expiry_error = "Failed: CommonModel->sendCommonHTMLEmail returned false when sending to {$to_email} (check SMTP configuration)";
+            $smtp_diag = !empty($CI->CommonModel->last_smtp_error) ? ' [SMTP Error: ' . trim($CI->CommonModel->last_smtp_error) . ']' : ' (check SMTP configuration)';
+            $this->last_expiry_error = "Failed: CommonModel->sendCommonHTMLEmail returned false when sending to {$to_email}{$smtp_diag}";
             log_message('error', "Failed sending subscription {$reminder_type} renewal reminder to merchant {$publisher_id} ({$to_email})");
             return false;
         }
