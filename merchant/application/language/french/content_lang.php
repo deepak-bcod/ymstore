@@ -52,6 +52,7 @@ $lang['select_plan'] = "Sélectionner un forfait";
 $lang['active'] = "Actif";
 $lang['expires'] = "Expire";
 $lang['select'] = "Sélectionner";
+$lang['renew'] = "Renouveler";
 
 $lang['proceed_to_payment'] = "Procéder au paiement";
 $lang['warehouse'] = "Entrepôt";
@@ -1200,3 +1201,4 @@ $lang['escalation_status'] = 'Statut d\'escalade';
 
 
 
+$lang['sidebar_manage_addons'] = 'Gérer le module complémentaire';

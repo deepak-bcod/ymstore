@@ -34,6 +34,13 @@ class Subscription extends CI_Controller {
         $data['plan_features'] = $this->Subscription_model->get_plan_features();
         $data['active_plan'] = $this->Subscription_model->get_active_plan($publisher_id);
      
+        // Check and send subscription renewal reminders if near expiry and not renewed
+        try {
+            $this->Subscription_model->check_and_send_expiry_reminders($publisher_id);
+        } catch (Exception $e) {
+            log_message('error', 'Subscription expiry check error on subscription page: ' . $e->getMessage());
+        }
+
         // Restructure plan_features for easy lookup
         $plan_features = [];
         foreach ($data['plan_features'] as $pf) {
@@ -47,7 +54,7 @@ class Subscription extends CI_Controller {
     // Handle subscription request
     public function subscribe() {
         $publisher_id = $this->session->userdata('LoginID');
-        $plan_id = $this->input->post('plan_id');
+        $plan_id = $this->input->post('plan_id') ?: $this->input->get('plan_id');
 
         if(!$publisher_id || !$plan_id) {
             $this->session->set_flashdata('error', 'Invalid request.');
@@ -92,33 +99,95 @@ class Subscription extends CI_Controller {
         $order = $this->Subscription_model->get_order_by_id($order_id, $publisher_id);
         if (!$order) show_404();
 
-        // Get additional data
-        $order['plan'] = $this->Subscription_model->get_plan_by_id($order['plan_id']);
-        $order['publisher'] = $this->db->get_where('publisher', ['id' => $order['publisher_id']])->row_array();
+        $saved_pdf = rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/subscription_invoice_' . $order['id'] . '.pdf';
+        if (file_exists($saved_pdf) && filesize($saved_pdf) > 0) {
+            $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Length: ' . filesize($saved_pdf));
+            readfile($saved_pdf);
+            exit;
+        }
 
-        $data['order'] = $order;
+        // If not cached on disk yet, generate and stream
+        $pdf_res = $this->Subscription_model->generate_subscription_invoice_pdf($order['id']);
+        if ($pdf_res && file_exists($pdf_res['file_path'])) {
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $pdf_res['filename'] . '"');
+            header('Content-Length: ' . filesize($pdf_res['file_path']));
+            readfile($pdf_res['file_path']);
+            exit;
+        }
 
-        // Load Dompdf autoload
-        require_once APPPATH . '../vendor/autoload.php';
-        // Get HTML
-        $htmldata = $this->load->view('invoice/subscription_invoice', $data, true);
+        show_error('Unable to generate invoice.');
+    }
 
-        // Generate PDF using Dompdf directly
-        $options = new Options();
-        $options->set('isRemoteEnabled', TRUE);
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($htmldata);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $output = $dompdf->output();
+    /**
+     * Test or manually trigger invoice generation and confirmation email
+     */
+    public function test_invoice_email($order_id = null) {
+        $publisher_id = $this->session->userdata('LoginID');
+        if (!$publisher_id) {
+            $this->output->set_content_type('application/json')->set_output(json_encode([
+                'status'  => 'error',
+                'message' => 'Not logged in'
+            ]));
+            return;
+        }
 
-        // Set headers for download
-        $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Content-Length: ' . strlen($output));
-        echo $output;
-        exit;
+        if (!$order_id) {
+            // Find latest subscription order for merchant
+            $latest = $this->db
+                ->where('publisher_id', $publisher_id)
+                ->order_by('id', 'DESC')
+                ->get('subscription_orders')
+                ->row_array();
+            if ($latest) {
+                $order_id = $latest['id'];
+            }
+        }
+
+        if (!$order_id) {
+            $this->output->set_content_type('application/json')->set_output(json_encode([
+                'status'  => 'error',
+                'message' => 'No subscription orders found for this merchant'
+            ]));
+            return;
+        }
+
+        $sent = $this->Subscription_model->generate_and_send_subscription_invoice($order_id);
+        $order = $this->db->get_where('subscription_orders', ['id' => $order_id])->row_array();
+
+        $this->output->set_content_type('application/json')->set_output(json_encode([
+            'status'     => $sent ? 'success' : 'failed',
+            'order_id'   => $order_id,
+            'email_sent' => $sent,
+            'order'      => $order
+        ]));
+    }
+
+    /**
+     * Test or manually trigger expiry reminders for current merchant
+     */
+    public function check_expiry_reminders() {
+        $publisher_id = $this->session->userdata('LoginID');
+        if (!$publisher_id) {
+            $this->output->set_content_type('application/json')->set_output(json_encode([
+                'status'  => 'error',
+                'message' => 'Not logged in'
+            ]));
+            return;
+        }
+
+        $result = $this->Subscription_model->check_and_send_expiry_reminders($publisher_id);
+        $active_sub = $this->Subscription_model->get_active_plan($publisher_id);
+
+        $this->output->set_content_type('application/json')->set_output(json_encode([
+            'status'       => 'success',
+            'email_sent'   => $result,
+            'publisher_id' => $publisher_id,
+            'active_sub'   => $active_sub
+        ]));
     }
 
 }
