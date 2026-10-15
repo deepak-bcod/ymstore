@@ -3,7 +3,7 @@
     .manage-addons-wrapper {
         margin-left: 260px; /* Adjust to match your sidebar width */
         padding: 20px 30px;
-        width: calc(100% - 260px); /* Fixed the missing minus sign */
+        width: calc(100% - 260px);
         box-sizing: border-box;
     }
     .table thead th {
@@ -33,7 +33,7 @@
                 <thead>
                     <tr>
                         <th>SR NO.</th>
-                        <th>MERCHANT NAME</th>
+                        <!-- Merchant Name column hata diya gaya hai -->
                         <th>ADDON SERVICE</th>
                         <th>ADDON NAME</th>
                         <th>DATE</th>
@@ -46,21 +46,20 @@
                         <?php $sr = 1; foreach($manage_addons as $row): ?>
                         <tr>
                             <td><?php echo $sr++; ?></td>
-                            <!-- Ensure these property names match your database columns or model results -->
-                            <td><?php echo isset($row->merchant_name) ? $row->merchant_name : ''; ?></td>
+                            <!-- Merchant Name wala td bhi hata diya gaya hai -->
                             <td><?php echo isset($row->addon_service_name) ? $row->addon_service_name : ''; ?></td>
-                            <td><?php echo isset($row->addon_name) ? $row->addon_name : ''; ?></td> <!-- Changed from status to addon_name -->
+                            <td><?php echo isset($row->addon_name) ? $row->addon_name : ''; ?></td>
                             <td><?php echo isset($row->date) ? $row->date : ''; ?></td>
                             <td><?php echo isset($row->amount) ? $row->amount : ''; ?></td>
                             <td>
-                                <a href="<?php echo base_url('addons/edit/' . $row->id); ?>" class="text-warning font-weight-bold mr-2">Edit</a>
-                                <a href="<?php echo base_url('addons/delete/' . $row->id); ?>" class="text-danger font-weight-bold" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
+                                <a href="<?php echo base_url('addons/edit/' . $row->purchase_id); ?>" class="text-warning font-weight-bold mr-2">Edit</a>
+                                <a href="<?php echo base_url('addons/delete/' . $row->purchase_id); ?>" class="text-danger font-weight-bold" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="7" class="text-center">No records found</td>
+                            <td colspan="6" class="text-center">No records found</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
