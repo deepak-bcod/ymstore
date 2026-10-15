@@ -44,13 +44,13 @@ class Addon_model extends CI_Model {
         return $query->row_array();
 
     }
-  public function get_merchant_addons() {
+ public function get_merchant_addons() {
     // Get the currently logged-in merchant ID from the session
     $merchant_id = $this->session->userdata('LoginID');
 
     $this->db->select('
         p.id as purchase_id,
-        p.created_at as date,
+        DATE_FORMAT(p.created_at, "%d-%m-%Y %H:%i:%s") as date,
         p.status,
         c.name as addon_service_name,
         s.title as addon_name,
