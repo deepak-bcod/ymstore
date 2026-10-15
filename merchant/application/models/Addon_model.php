@@ -44,6 +44,14 @@ class Addon_model extends CI_Model {
         return $query->row_array();
 
     }
+    public function get_merchant_addons() {
+    $this->db->select('m.*, s.title as addon_service_name, merchants.name as merchant_name');
+    $this->db->from('merchant_addons m'); // Replace 'merchant_addons' with your actual table name if different
+    $this->db->join('addon_services s', 's.id = m.service_id', 'left');
+    $this->db->join('merchants', 'merchants.id = m.merchant_id', 'left');
+    $query = $this->db->get();
+    return $query->result(); // Returns objects so $row->property works in your view
+}
 
 }
 
