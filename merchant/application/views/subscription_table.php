@@ -84,6 +84,11 @@
                             <?php if($is_active): ?>
                                 <span class="badge badge-success"><?php echo lang('active'); ?></span>
                                 <br><small><?php echo lang('expires'); ?>: <?= date('d M Y', strtotime($active_plan['end_date'] ?? '')); ?></small>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-warning btn-sm font-weight-bold px-3 text-dark btn-renew" onclick="renewSubscription(<?= $plan['id']; ?>)">
+                                        <i class="fa fa-refresh"></i> <?php echo lang('renew') ?: 'Renew'; ?>
+                                    </button>
+                                </div>
                             <?php elseif($has_active_plan && $is_starter): ?>
                                 <!-- Hide select option only for the Starter plan when any plan is already active -->
                                 <span class="text-muted">-</span>
@@ -108,6 +113,22 @@
 </main>
 
 <script>
+function renewSubscription(planId) {
+    if (!planId) return;
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<?= base_url("subscription/subscribe") ?>';
+
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'plan_id';
+    input.value = planId;
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
 setTimeout(() => {
   document.querySelectorAll('.alert').forEach(a => {
     a.classList.remove('show');

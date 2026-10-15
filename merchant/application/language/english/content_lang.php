@@ -1,6 +1,6 @@
 <?php
 
-	defined('BASEPATH') or exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
 $lang['sidebar_dashboard']       = "Dashboard";
 $lang['sidebar_subscriptions']   = "Subscriptions";
@@ -54,6 +54,7 @@ $lang['select_plan'] = "Select Plan";
 $lang['active'] = "Active";
 $lang['expires'] = "Expires";
 $lang['select'] = "Select";
+$lang['renew'] = "Renew";
 
 $lang['proceed_to_payment'] = "Proceed to Payment";
 $lang['warehouse'] = "Warehouse";
@@ -95,7 +96,7 @@ $lang['buy_in'] = "Buy In";
 $lang['dropship'] = "Dropship";
 $lang['last_updated'] = " Updated";
 $lang['to'] = "To";
-$lang['b2b_order_number'] = "ES|Order No.";	
+$lang['b2b_order_number'] = "ES|Order No.";
 $lang['webshop_order_no'] = "YM|Order No.";
 $lang['purchased_on'] = "Purchased On";
 $lang['shopper_name'] = "Shopper Name";
@@ -301,7 +302,7 @@ $lang['sr_no'] = "SR No";
 $lang['product_name'] = "Product";
 $lang['customer_name_'] = "Shopper";
 $lang['category'] = "Category";
-$lang['status'] ="Status";
+$lang['status'] = "Status";
 
 $lang['status_not_opened'] = 'Waiting Reply';
 $lang['status_open']       = 'In Progress';
@@ -915,7 +916,7 @@ $lang['field_required'] = 'This field is required';
 $lang['submit_button'] = 'Submit';
 
 $lang['notifications']        = "Notifications";
-$lang['list_of_notifications']= "List of Notifications";
+$lang['list_of_notifications'] = "List of Notifications";
 $lang['mark_all_read']        = "Mark all read";
 $lang['mark_read']            = "Mark read";
 $lang['mark_unread']          = "Mark unread";
@@ -974,7 +975,7 @@ $lang['total']        = "Total (MUR)";
 $lang['approve_label'] = "Approve";
 $lang['reject_label']  = "Reject";
 
-$lang['faq_title']    = "FAQs"; 
+$lang['faq_title']    = "FAQs";
 $lang['btn_faq_form'] = "FAQ Form";
 
 
@@ -1026,12 +1027,12 @@ $lang['order_processing_success'] = 'Order marked as processing successfully.';
 $lang['order_status_update_failed'] = 'Failed to update order status.';
 $lang['invalid_request'] = 'Invalid request.';
 
-$lang['product_name'] = 'Product Name'; 
-$lang['eshop_price_label'] = 'Eshop Price'; 
-$lang['from'] = 'From'; 
-$lang['to'] = 'To'; 
-$lang['display_original'] = 'Display Original'; 
-$lang['discard'] = 'Discard'; 
+$lang['product_name'] = 'Product Name';
+$lang['eshop_price_label'] = 'Eshop Price';
+$lang['from'] = 'From';
+$lang['to'] = 'To';
+$lang['display_original'] = 'Display Original';
+$lang['discard'] = 'Discard';
 $lang['save'] = 'Save';
 
 $lang['please_select_items']   = 'Please select items to delete.';
@@ -1245,3 +1246,6 @@ $lang['send_to_support'] = 'Send to Support';
 $lang['send_message'] = 'Send Message';
 $lang['accounting_team'] = 'Accounting Team (@Acct)';
 $lang['you_merchant'] = 'You (Merchant)';
+
+
+$lang['sidebar_manage_addons'] = 'Manage Addon';
