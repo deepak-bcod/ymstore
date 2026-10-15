@@ -155,7 +155,7 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
         data-target="#addonsSubmenu"
         aria-expanded="<?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'true' : 'false'; ?>">
         <span><?= $this->lang->line('sidebar_addons_services') ?></span>
-        <i class="fa fa-angle-down"><span></span></i>
+        <i class="fa fa-angle-down"></i>
     </a>
     
     <!-- Submenu List -->
