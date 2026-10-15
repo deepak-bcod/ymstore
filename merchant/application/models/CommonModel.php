@@ -941,16 +941,26 @@ class CommonModel extends CI_Model
 
 
 
-	public function sendHTMLMailSMTP($to, $subject, $content, $from_email = '', $attachment = "",$ccEmail = "", $webshop_smtp_host = "", $webshop_smtp_port = "", $webshop_smtp_username = "", $webshop_smtp_password = "", $webshop_smtp_secure = "")
-
+	public function getCustomVariableByIdentifier($identifier)
 	{
+		$row = $this->db->get_where('custom_variables', array('identifier' => $identifier))->row();
+		return $row ? $row->value : null;
+	}
 
-		$email = 'ranjana.patel@bcod.co.in';
-		$webshop_smtp_host = 'smtp.gmail.com'; // $this->getCustomVariableByIdentifier('smtp_host');
-		$webshop_smtp_port =  465; // $this->getCustomVariableByIdentifier('smtp_port') ??
-		$webshop_smtp_username = 'noreply@yellowmarkets.com'; //$this->getCustomVariableByIdentifier('smtp_username') ?? 
-		$webshop_smtp_password = 'fkyvohootmnwylkg'; //$this->getCustomVariableByIdentifier('smtp_password') ?? 
-		$webshop_smtp_secure = 'ssl';
+	public function sendHTMLMailSMTP($to, $subject, $content, $from_email = '', $attachment = "",$ccEmail = "", $webshop_smtp_host = "", $webshop_smtp_port = "", $webshop_smtp_username = "", $webshop_smtp_password = "", $webshop_smtp_secure = "")
+	{
+		$db_host = $this->getCustomVariableByIdentifier('smtp_host');
+		$db_port = $this->getCustomVariableByIdentifier('smtp_port');
+		$db_user = $this->getCustomVariableByIdentifier('smtp_username');
+		$db_pass = $this->getCustomVariableByIdentifier('smtp_password');
+		$db_sec  = $this->getCustomVariableByIdentifier('smtp_secure');
+
+		$webshop_smtp_host     = !empty($webshop_smtp_host) ? $webshop_smtp_host : (!empty($db_host) ? $db_host : 'smtp.gmail.com');
+		$webshop_smtp_port     = !empty($webshop_smtp_port) ? $webshop_smtp_port : (!empty($db_port) ? $db_port : 465);
+		$webshop_smtp_username = !empty($webshop_smtp_username) ? $webshop_smtp_username : (!empty($db_user) ? $db_user : 'noreply@yellowmarkets.com');
+		$webshop_smtp_password = !empty($webshop_smtp_password) ? $webshop_smtp_password : (!empty($db_pass) ? $db_pass : 'prnjvyghqnkptwzf');
+		$webshop_smtp_secure   = !empty($webshop_smtp_secure) ? $webshop_smtp_secure : (!empty($db_sec) ? $db_sec : 'ssl');
+
 		$this->load->library('email');
 		$this->email->clear(TRUE);
 		// print_r($webshop_smtp_host);die;
