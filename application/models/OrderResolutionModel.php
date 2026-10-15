@@ -1982,9 +1982,9 @@ class OrderResolutionModel extends CI_Model
 
         // 4. By sales_order_return table
         if ($amount <= 0 && !empty($res->order_id) && $this->db->table_exists('sales_order_return')) {
-            $sor = $this->db->select('refund_amount')->where('order_id', $res->order_id)->get('sales_order_return')->row();
-            if ($sor && !empty($sor->refund_amount)) {
-                $amount = (float)$sor->refund_amount;
+            $sor = $this->db->select('order_grandtotal_approved')->where('order_id', $res->order_id)->get('sales_order_return')->row();
+            if ($sor && !empty($sor->order_grandtotal_approved)) {
+                $amount = (float)$sor->order_grandtotal_approved;
             }
         }
 
