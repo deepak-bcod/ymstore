@@ -155,9 +155,9 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
        data-toggle="collapse" 
        data-target="#addonsSubmenu"
        aria-expanded="<?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'true' : 'false'; ?>">
-        <?= $this->lang->line('sidebar_addons_services') ?>
-        <!-- Optional: Add an explicit arrow icon here if your theme uses one -->
-        <!-- <i class="fas fa-angle-down float-right"></i> -->
+        <span><?= $this->lang->line('sidebar_addons_services') ?></span>
+        <!-- Dropdown Arrow Icon -->
+        <i class="fas fa-angle-down submenu-arrow"></i>
     </a>
     
     <!-- Submenu List -->
