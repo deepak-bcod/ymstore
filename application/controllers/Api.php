@@ -1318,425 +1318,498 @@ class Api extends CI_Controller {
 	}
 	*/
 
-	public function delivery_image_upload_details()
-	{
-		header('Content-Type: application/json');
-
-		$jwtToken = $this->input->post('token_id')
-			?? $this->input->get('token_id');
-
-		$image = $this->input->post('image');
-		$order_id = $this->input->post('order_id');
-		$is_parent_level = $this->input->post('is_parent_level');
-
-		// Validate required parameters
-		if (empty($jwtToken)) {
-			echo json_encode([
-				'flag' => 0,
-				'status' => 200,
-				'msg' => 'Token missing.',
-				'data' => []
-			]);
-			return;
-		}
-
-		if (empty($order_id)) {
-			echo json_encode([
-				'flag' => 0,
-				'status' => 200,
-				'msg' => 'Order ID is required.',
-				'data' => []
-			]);
-			return;
-		}
-
-		if (empty($image)) {
-			echo json_encode([
-				'flag' => 0,
-				'status' => 200,
-				'msg' => 'Image is required.',
-				'data' => []
-			]);
-			return;
-		}
-
-		// Validate driver token
-		$tokenRow = $this->db
-			->where('token', $jwtToken)
-			->where('status', 0)
-			->get('driver_tokens')
-			->row();
-
-		if (!$tokenRow) {
-			echo json_encode([
-				'flag' => 0,
-				'status' => 200,
-				'msg' => 'Token inactive or not found.',
-				'data' => []
-			]);
-			return;
-		}
-
-		$driver_id = $tokenRow->driver_id;
-
-		$filePath1 = null;
-		$filePath2 = null;
-
-		try {
-
-			/*
-			* 1. Decode Base64 image
-			*/
-			$ext = 'jpg';
-			$imageData = $image;
-
-			if (preg_match(
-				'/^data:image\/(jpeg|jpg|png|webp);base64,/i',
-				$imageData,
-				$matches
-			)) {
-				$ext = strtolower($matches[1]);
-
-				if ($ext === 'jpeg') {
-					$ext = 'jpg';
-				}
-
-				$imageData = preg_replace(
-					'/^data:image\/(jpeg|jpg|png|webp);base64,/i',
-					'',
-					$imageData
-				);
-			}
-
-			$imageBinary = base64_decode($imageData, true);
-
-			if ($imageBinary === false || $imageBinary === '') {
-				echo json_encode([
-					'flag' => 0,
-					'status' => 200,
-					'msg' => 'Invalid Base64 image.',
-					'data' => []
-				]);
-				return;
-			}
-
-			// Verify that the decoded data is a supported image
-			$imageInfo = @getimagesizefromstring($imageBinary);
-
-			if (
-				$imageInfo === false ||
-				!in_array(
-					$imageInfo['mime'],
-					['image/jpeg', 'image/png', 'image/webp'],
-					true
-				)
-			) {
-				echo json_encode([
-					'flag' => 0,
-					'status' => 200,
-					'msg' => 'Unsupported or invalid image format.',
-					'data' => []
-				]);
-				return;
-			}
-
-			// Use the actual image format rather than trusting the filename/header
-			$mimeExtensions = [
-				'image/jpeg' => 'jpg',
-				'image/png'  => 'png',
-				'image/webp' => 'webp'
-			];
-
-			$ext = $mimeExtensions[$imageInfo['mime']];
-
-			/*
-			* 2. Prepare upload directories
-			*/
-			$mainPath1 = SIS_SERVER_PATH
-				. '/admin/admin/public/images/delivery/';
-
-			$mainPath2 = SIS_SERVER_PATH
-				. '/admin/admin/public/images/delivery/thumbnail/';
-
-			foreach ([$mainPath1, $mainPath2] as $directory) {
-				if (
-					!is_dir($directory) &&
-					!mkdir($directory, 0755, true) &&
-					!is_dir($directory)
-				) {
-					throw new Exception(
-						'Unable to create image directory.'
-					);
-				}
-			}
-
-			/*
-			* 3. Generate unique filenames
-			*/
-			$uniqueId = bin2hex(random_bytes(8));
-
-			$fileName1 = 'delivery_' . $driver_id . '_'
-				. $uniqueId . '.' . $ext;
-
-			$fileName2 = 'delivery_' . $driver_id . '_'
-				. $uniqueId . '_thumb.' . $ext;
-
-			$filePath1 = $mainPath1 . $fileName1;
-			$filePath2 = $mainPath2 . $fileName2;
-
-			/*
-			* 4. Save original image
-			*/
-			if (file_put_contents($filePath1, $imageBinary) === false) {
-				throw new Exception('Failed to save delivery image.');
-			}
-
-			// Apply existing orientation correction
-			$this->_fix_image_orientation($filePath1);
-
-			/*
-			* 5. Create thumbnail
-			*/
-			if (!copy($filePath1, $filePath2)) {
-				throw new Exception('Failed to create thumbnail image.');
-			}
-
-			$config = [
-				'image_library'  => 'gd2',
-				'source_image'   => $filePath2,
-				'new_image'      => $filePath2,
-				'maintain_ratio' => true,
-				'width'          => 150,
-				'height'         => 150
-			];
-
-			$this->load->library('image_lib', $config);
-
-			if (!$this->image_lib->resize()) {
-				$resizeError = strip_tags(
-					$this->image_lib->display_errors('', '')
-				);
-
-				$this->image_lib->clear();
-
-				throw new Exception(
-					'Thumbnail resize failed: ' . $resizeError
-				);
-			}
-
-			$this->image_lib->clear();
-
-			/*
-			* 6. Prepare image metadata
-			*/
-			$uploadedAt = date('Y-m-d H:i:s');
-
-			
-
-			/*
-			* 7. Update database
-			*/
-			$this->db->trans_begin();
-
-			if ((string) $is_parent_level === '1') {
-
-				/*
-				* Parent-level upload:
-				* Find eligible ES-order rows for this parent order.
-				*
-				* Assumption:
-				* - webshop_order_id identifies the parent order.
-				* - order_id identifies the individual ES order.
-				* - id is the primary key of the delivery-details table.
-				*/
-				$esOrders = $this->db
-					->where('webshop_order_id', $order_id)
-					->get('b2b_orders')
-					->result();
-
-				if (empty($esOrders)) {
-					$this->db->trans_rollback();
-
-					throw new Exception(
-						'No eligible ES orders found for this parent order.'
-					);
-				}
-
-				$updatedOrders = [];
-
-				
-                $ordersDeliveryDetails = $this->db
-					->where('order_id', $order_id)
-					->get('b2b_orders_delivery_details')
-					->result();
-
-				
-				// Decode order_json
-				$orderJson = json_decode($ordersDeliveryDetails->order_json, true);
-				if (!is_array($orderJson)) {
-					$orderJson = [];
-				}
-
-				foreach ($esOrders as $esOrder) {
-					$esOrderId=$esOrder->order_id;
-					// Update product_id details
-					if (!isset($orderJson[$esOrderId])) {
-						$orderJson[$esOrderId] = [];
-					}
-
-					
-
-					/*
-					* Append this image to each eligible ES order.
-					*/
-					if (
-						!isset($orderJson[$esOrderId]['delivery_images']) ||
-						!is_array($orderJson[$esOrderId]['delivery_images'])
-					) {
-						$orderJson[$esOrderId]['delivery_images'] = [];
-					}
-
-					$orderJson[$esOrderId]['delivery_images'][] = $imageRecord;
-
-					$jsonEncoded = json_encode($orderJson);
-
-					if ($jsonEncoded === false) {
-						$this->db->trans_rollback();
-
-						throw new Exception(
-							'Failed to encode delivery image JSON.'
-						);
-					}
-				}
-
-				$this->db->where('order_id', $order_id);
-
-				$this->db->update(
-					'b2b_orders_delivery_details',
-					[
-						'order_json' => $jsonEncoded,
-						'updated_at' => $uploadedAt
-					]
-				);
-
-				if ($this->db->trans_status() === false) {
-					$this->db->trans_rollback();
-
-					throw new Exception(
-						'Failed to update'
-					);
-				}
-
-			} else {
-
-				/*
-				* Individual-order upload:
-				* Prefer delivery_status = 3 if present;
-				* otherwise update delivery_status = 1.
-				*/
-				$this->db
-					->where('order_id', $order_id)
-					->where('driver_id', $driver_id)
-					->where('delivery_status', 3);
-
-				$existsStatus3 = $this->db
-					->count_all_results(
-						'b2b_orders_delivery_details'
-					);
-
-				$targetStatus = $existsStatus3 > 0 ? 3 : 1;
-
-				$this->db
-					->where('order_id', $order_id)
-					->where('driver_id', $driver_id)
-					->where('delivery_status', $targetStatus);
-
-				$this->db->update(
-					'b2b_orders_delivery_details',
-					[
-						'image'       => $fileName1,
-						'thumbnail'   => $fileName2,
-						'updated_at'  => $uploadedAt
-					]
-				);
-
-				if ($this->db->trans_status() === false) {
-					$this->db->trans_rollback();
-
-					throw new Exception(
-						'Failed to update delivery image record.'
-					);
-				}
-			}
-
-			/*
-			* 8. Commit database transaction
-			*/
-			if ($this->db->trans_status() === false) {
-				$this->db->trans_rollback();
-
-				throw new Exception(
-					'Database transaction failed.'
-				);
-			}
-
-			$this->db->trans_commit();
-
-			/*
-			* 9. Return successful response
-			*/
-			$responseData = [
-				'image_url' => BASE_URL
-					. 'admin/admin/public/images/delivery/'
-					. $fileName1,
-
-				'thumb_url' => BASE_URL
-					. 'admin/admin/public/images/delivery/thumbnail/'
-					. $fileName2
-			];
-
-			if ((string) $is_parent_level === '1') {
-				$responseData['parent_order_id'] = $order_id;
-				$responseData['es_order_ids'] = $updatedOrders;
-			} else {
-				$responseData['order_id'] = $order_id;
-			}
-
-			echo json_encode([
-				'flag' => 1,
-				'status' => 200,
-				'msg' => 'Delivery image uploaded successfully.',
-				'data' => $responseData
-			]);
-
-		} catch (Throwable $e) {
-
-			if ($this->db->trans_status() !== false) {
-				$this->db->trans_rollback();
-			}
-
-			// Remove files if database processing failed
-			if ($filePath1 && file_exists($filePath1)) {
-				@unlink($filePath1);
-			}
-
-			if ($filePath2 && file_exists($filePath2)) {
-				@unlink($filePath2);
-			}
-
-			log_message(
-				'error',
-				'Delivery image upload failed: ' . $e->getMessage()
-			);
-
-			echo json_encode([
-				'flag' => 0,
-				'status' => 200,
-				'msg' => 'Unable to upload delivery image.',
-				'data' => []
-			]);
-		}
-	}
+	
+public function delivery_image_upload_details()
+{
+    $this->output->set_content_type('application/json');
+
+    $jwtToken = $this->input->post('token_id')
+        ?? $this->input->get('token_id');
+
+    $image = $this->input->post('image');
+    $order_id = (int) $this->input->post('order_id');
+    $is_parent_level = (string) $this->input->post('is_parent_level');
+
+    $filePath1 = null;
+    $filePath2 = null;
+    $transactionStarted = false;
+
+    // Return a consistent JSON response.
+    $sendResponse = function ($flag, $msg, $data = []) {
+        $this->output->set_output(json_encode([
+            'flag'   => $flag,
+            'status' => 200,
+            'msg'    => $msg,
+            'data'   => $data
+        ]));
+    };
+
+    // Validate required parameters.
+    if (empty($jwtToken)) {
+        $sendResponse(0, 'Token missing.');
+        return;
+    }
+
+    if ($order_id <= 0) {
+        $sendResponse(0, 'Valid order ID is required.');
+        return;
+    }
+
+    if (!in_array($is_parent_level, ['0', '1'], true)) {
+        $sendResponse(0, 'Invalid is_parent_level value.');
+        return;
+    }
+
+    if (empty($image)) {
+        $sendResponse(0, 'Image is required.');
+        return;
+    }
+
+    // Validate driver token.
+    $tokenRow = $this->db
+        ->where('token', $jwtToken)
+        ->where('status', 0)
+        ->get('driver_tokens')
+        ->row();
+
+    if (!$tokenRow) {
+        $sendResponse(0, 'Token inactive or not found.');
+        return;
+    }
+
+    $driver_id = (int) $tokenRow->driver_id;
+
+    try {
+        /*
+         * 1. Decode Base64 image.
+         */
+        $imageData = trim($image);
+
+        if (preg_match(
+            '/^data:image\/(jpeg|jpg|png|webp);base64,/i',
+            $imageData,
+            $matches
+        )) {
+            $imageData = substr(
+                $imageData,
+                strpos($imageData, ',') + 1
+            );
+        }
+
+        $imageData = preg_replace('/\s+/', '', $imageData);
+
+        $imageBinary = base64_decode($imageData, true);
+
+        if ($imageBinary === false || $imageBinary === '') {
+            throw new Exception('Invalid Base64 image.');
+        }
+
+        // Limit image size to 10 MB.
+        if (strlen($imageBinary) > 10 * 1024 * 1024) {
+            throw new Exception('Image size must not exceed 10 MB.');
+        }
+
+        /*
+         * 2. Validate actual image format.
+         */
+        $imageInfo = @getimagesizefromstring($imageBinary);
+
+        if (
+            $imageInfo === false ||
+            empty($imageInfo['mime'])
+        ) {
+            throw new Exception('Invalid image file.');
+        }
+
+        $mimeExtensions = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp'
+        ];
+
+        $mimeType = strtolower($imageInfo['mime']);
+
+        if (!isset($mimeExtensions[$mimeType])) {
+            throw new Exception(
+                'Only JPG, PNG and WebP images are allowed.'
+            );
+        }
+
+        $ext = $mimeExtensions[$mimeType];
+
+        /*
+         * 3. Prepare upload directories.
+         */
+        $mainPath1 = SIS_SERVER_PATH
+            . '/admin/admin/public/images/delivery/';
+
+        $mainPath2 = SIS_SERVER_PATH
+            . '/admin/admin/public/images/delivery/thumbnail/';
+
+        foreach ([$mainPath1, $mainPath2] as $directory) {
+            if (
+                !is_dir($directory) &&
+                !mkdir($directory, 0755, true) &&
+                !is_dir($directory)
+            ) {
+                throw new Exception(
+                    'Unable to create image directory.'
+                );
+            }
+
+            if (!is_writable($directory)) {
+                throw new Exception(
+                    'Image directory is not writable.'
+                );
+            }
+        }
+
+        /*
+         * 4. Generate unique filenames.
+         */
+        $uniqueId = bin2hex(random_bytes(8));
+
+        $fileName1 = 'delivery_' . $driver_id . '_'
+            . $uniqueId . '.' . $ext;
+
+        $fileName2 = 'delivery_' . $driver_id . '_'
+            . $uniqueId . '_thumb.' . $ext;
+
+        $filePath1 = $mainPath1 . $fileName1;
+        $filePath2 = $mainPath2 . $fileName2;
+
+        /*
+         * 5. Save original image.
+         */
+        if (
+            file_put_contents($filePath1, $imageBinary) === false
+        ) {
+            throw new Exception(
+                'Failed to save delivery image.'
+            );
+        }
+
+        // Apply orientation correction for JPEG images.
+        if (
+            $ext === 'jpg' &&
+            method_exists($this, '_fix_image_orientation')
+        ) {
+            $this->_fix_image_orientation($filePath1);
+        }
+
+        /*
+         * 6. Create 150 x 150 thumbnail.
+         */
+        if (!copy($filePath1, $filePath2)) {
+            throw new Exception(
+                'Failed to create thumbnail image.'
+            );
+        }
+
+        $this->load->library('image_lib');
+
+        $config = [
+            'image_library'  => 'gd2',
+            'source_image'   => $filePath2,
+            'new_image'      => $filePath2,
+            'maintain_ratio' => true,
+            'width'          => 150,
+            'height'         => 150
+        ];
+
+        $this->image_lib->clear();
+        $this->image_lib->initialize($config);
+
+        if (!$this->image_lib->resize()) {
+            $resizeError = strip_tags(
+                $this->image_lib->display_errors('', '')
+            );
+
+            $this->image_lib->clear();
+
+            throw new Exception(
+                'Thumbnail resize failed: ' . $resizeError
+            );
+        }
+
+        $this->image_lib->clear();
+
+        /*
+         * 7. Prepare image metadata.
+         */
+        $uploadedAt = date('Y-m-d H:i:s');
+
+        $imageBaseUrl = rtrim(BASE_URL, '/')
+            . '/admin/admin/public/images/delivery/';
+
+        $thumbBaseUrl = $imageBaseUrl . 'thumbnail/';
+
+        $imageRecord = [
+            'image'       => $fileName1,
+            'thumbnail'   => $fileName2,
+            'image_url'   => $imageBaseUrl . $fileName1,
+            'thumb_url'   => $thumbBaseUrl . $fileName2,
+            'uploaded_at' => $uploadedAt
+        ];
+
+        /*
+         * 8. Begin database transaction.
+         */
+        $this->db->trans_begin();
+        $transactionStarted = true;
+
+        $updatedOrders = [];
+        $esOrderResponse = [];
+
+        if ($is_parent_level === '1') {
+
+            /*
+             * PARENT-LEVEL DELIVERY
+             *
+             * Assumptions:
+             * - Request order_id is the parent B2C order ID.
+             * - b2b_orders.webshop_order_id links ES orders
+             *   to the parent B2C order.
+             * - The parent delivery-details row is identified
+             *   by webshop_order_id, is_parent_level and driver_id.
+             */
+
+            // Find the parent delivery-details record.
+            $parentDeliveryDetails = $this->db
+                ->where('webshop_order_id', $order_id)
+                ->where('is_parent_level', 1)
+                ->where('driver_id', $driver_id)
+                ->order_by('id', 'DESC')
+                ->limit(1)
+                ->get('b2b_orders_delivery_details')
+                ->row();
+
+            if (!$parentDeliveryDetails) {
+                throw new Exception(
+                    'Parent delivery-details record not found.'
+                );
+            }
+
+            // Fetch ES orders linked to the parent B2C order.
+            $esOrders = $this->db
+                ->where('webshop_order_id', $order_id)
+                ->get('b2b_orders')
+                ->result();
+
+            if (empty($esOrders)) {
+                throw new Exception(
+                    'No ES orders found for this parent order.'
+                );
+            }
+
+            /*
+             * Decode existing order_json.
+             * Preserve existing data and previously uploaded images.
+             */
+            $orderJson = [];
+
+            if (
+                trim((string) $parentDeliveryDetails->order_json)
+                !== ''
+            ) {
+                $decodedJson = json_decode(
+                    $parentDeliveryDetails->order_json,
+                    true
+                );
+
+                if (
+                    json_last_error() !== JSON_ERROR_NONE ||
+                    !is_array($decodedJson)
+                ) {
+                    throw new Exception(
+                        'Existing order_json contains invalid JSON.'
+                    );
+                }
+
+                $orderJson = $decodedJson;
+            }
+
+            /*
+             * Append the image to each ES order.
+             * Do not modify product_details.
+             */
+            foreach ($esOrders as $esOrder) {
+
+                $esOrderId = (string) $esOrder->order_id;
+
+                if (
+                    !isset($orderJson[$esOrderId]) ||
+                    !is_array($orderJson[$esOrderId])
+                ) {
+                    $orderJson[$esOrderId] = [];
+                }
+
+                if (
+                    !isset(
+                        $orderJson[$esOrderId]['delivery_images']
+                    ) ||
+                    !is_array(
+                        $orderJson[$esOrderId]['delivery_images']
+                    )
+                ) {
+                    $orderJson[$esOrderId]['delivery_images'] = [];
+                }
+
+                // Append instead of replacing previous images.
+                $orderJson[$esOrderId]['delivery_images'][]
+                    = $imageRecord;
+
+                $updatedOrders[] = (int) $esOrder->order_id;
+
+                $esOrderResponse[] = [
+                    'es_order_id' => (int) $esOrder->order_id,
+                    'image_url'   => $imageRecord['image_url'],
+                    'thumb_url'   => $imageRecord['thumb_url']
+                ];
+            }
+
+            /*
+             * Encode JSON once after processing every ES order.
+             */
+            $jsonEncoded = json_encode(
+                $orderJson,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            );
+
+            if ($jsonEncoded === false) {
+                throw new Exception(
+                    'Failed to encode delivery image JSON.'
+                );
+            }
+
+            /*
+             * Update the parent delivery-details row only.
+             */
+            $this->db
+                ->where('id', $parentDeliveryDetails->id)
+                ->where('webshop_order_id', $order_id)
+                ->where('is_parent_level', 1)
+                ->where('driver_id', $driver_id)
+                ->update(
+                    'b2b_orders_delivery_details',
+                    [
+                        'order_json' => $jsonEncoded,
+                        'updated_at' => $uploadedAt
+                    ]
+                );
+
+            if ($this->db->trans_status() === false) {
+                throw new Exception(
+                    'Failed to update parent delivery details.'
+                );
+            }
+
+            $responseData = [
+                'parent_order_id' => $order_id,
+                'es_order_ids'    => $updatedOrders,
+                'es_orders'       => $esOrderResponse,
+                'image_url'       => $imageRecord['image_url'],
+                'thumb_url'       => $imageRecord['thumb_url']
+            ];
+
+        } else {
+
+            /*
+             * INDIVIDUAL-ORDER DELIVERY
+             *
+             * Retains your original delivery_status logic:
+             * prefer status 3 when present, otherwise status 1.
+             */
+
+            $this->db
+                ->where('order_id', $order_id)
+                ->where('driver_id', $driver_id)
+                ->where('delivery_status', 3);
+
+            $existsStatus3 = $this->db
+                ->count_all_results(
+                    'b2b_orders_delivery_details'
+                );
+
+            $targetStatus = ($existsStatus3 > 0) ? 3 : 1;
+
+            $this->db
+                ->where('order_id', $order_id)
+                ->where('driver_id', $driver_id)
+                ->where('delivery_status', $targetStatus)
+                ->update(
+                    'b2b_orders_delivery_details',
+                    [
+                        'image'      => $fileName1,
+                        'thumbnail'  => $fileName2,
+                        'updated_at' => $uploadedAt
+                    ]
+                );
+
+            if ($this->db->trans_status() === false) {
+                throw new Exception(
+                    'Failed to update individual delivery image.'
+                );
+            }
+
+            $responseData = [
+                'order_id'  => $order_id,
+                'image_url' => $imageRecord['image_url'],
+                'thumb_url' => $imageRecord['thumb_url']
+            ];
+        }
+
+        /*
+         * 9. Check transaction and commit.
+         */
+        if ($this->db->trans_status() === false) {
+            throw new Exception(
+                'Database transaction failed.'
+            );
+        }
+
+        $this->db->trans_commit();
+        $transactionStarted = false;
+
+        /*
+         * 10. Return successful response.
+         */
+        $sendResponse(
+            1,
+            'Delivery image uploaded successfully.',
+            $responseData
+        );
+
+    } catch (Throwable $e) {
+
+        // Roll back only if this function started a transaction.
+        if ($transactionStarted) {
+            $this->db->trans_rollback();
+            $transactionStarted = false;
+        }
+
+        // Remove files created by this failed upload.
+        if ($filePath1 && file_exists($filePath1)) {
+            @unlink($filePath1);
+        }
+
+        if ($filePath2 && file_exists($filePath2)) {
+            @unlink($filePath2);
+        }
+
+        log_message(
+            'error',
+            'Delivery image upload failed: ' . $e->getMessage()
+        );
+
+        $sendResponse(
+            0,
+            'Unable to upload delivery image.',
+            []
+        );
+    }
+}
+
 
 	public function pickup_image_upload_details()
 	{
