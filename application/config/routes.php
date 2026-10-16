@@ -434,8 +434,6 @@ $route['get_pickup_listing'] = 'Api/get_pickup_listing';
 $route['get_delivery_listing'] = 'Api/get_delivery_listing';
 $route['get_pickup_order_details'] = 'Api/get_pickup_order_details';
 $route['get_delivery_order_details'] = 'Api/get_delivery_order_details';
-$route['get_delivery_images'] = 'Api/get_delivery_images';
-$route['delivery_images'] = 'Api/get_delivery_images';
 
 $route['get_today_route'] = 'Api/get_today_route';
 $route['update_order_status'] = 'Api/update_order_status';
