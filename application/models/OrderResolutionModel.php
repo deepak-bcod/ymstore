@@ -1410,7 +1410,7 @@ class OrderResolutionModel extends CI_Model
     /**
      * @Help closes ticket where Shopper has a Resolution Option -> status becomes 'Close'
      */
-    public function admin_close_ticket($ticket_number, $admin_id, $notes = '')
+  public function admin_close_ticket($ticket_number, $admin_id, $notes = '')
 {
     $res = $this->get_resolution_by_ticket_number($ticket_number);
     if (!$res) {
@@ -1469,6 +1469,7 @@ class OrderResolutionModel extends CI_Model
 
     return ['status' => true, 'message' => 'Ticket closed successfully. Merchant notified.'];
 }
+
     /**
      * @Help finally closes a Resolution Request with no further options -> status becomes 'Close (Final)'
      */
