@@ -149,15 +149,7 @@ $menu_disabled = ($profile_incomplete || $subscription_expired);
             </a>
          </li>
 
-       <li class="nav-item">
-    <!-- Main Add-On Services Menu with Submenu Toggle -->
-    <a class="nav-link <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'has-submenu show' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
-       href="javascript:void(0);" 
-       <?php if(!$menu_disabled): ?>
-       data-toggle="collapse" 
-       data-target="#addonsSubmenu"
-       <?php endif; ?>>
-        <?= $this->lang->line('sidebar_addons_services') ?>
+       
 <li class="nav-item">
     <!-- Main Add-On Services Menu with Submenu Toggle & Arrow Icon -->
     <a class="nav-link d-flex justify-content-between align-items-center <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'has-submenu show' : ''; ?> <?php echo (isset($profile_incomplete) && $profile_incomplete) ? ' link-disabled' : ''; ?>" 
