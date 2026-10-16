@@ -1618,9 +1618,7 @@ class Api extends CI_Controller {
 						);
 					}
 
-					$this->db
-						->where('driver_id', $driver_id)
-						->where('order_id', $order_id);
+					$this->db->where('order_id', $order_id);
 
 					$this->db->update(
 						'b2b_orders_delivery_details',
