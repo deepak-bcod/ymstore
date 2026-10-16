@@ -1352,6 +1352,7 @@ $lang['order_track'] = "Les détails du suivi seront envoyés à votre adresse e
 
 $lang['no_products_shop'] = 'Aucun produit trouvé pour cette boutique.';
 $lang['no_shops_found'] = 'Aucune boutique trouvée.';
+$lang['shop_temporarily_unavailable'] = 'Cette boutique est temporairement indisponible.';
 
 
 $lang['invoice_not_uploaded'] = 'La facture n’a pas été téléchargée par le marchand';

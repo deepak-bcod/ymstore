@@ -60,6 +60,46 @@ class Subscription_model extends CI_Model
         return $latest ?: null;
     }
 
+    /**
+     * Check if the merchant's subscription is expired and not renewed
+     *
+     * @param int $publisher_id
+     * @return bool
+     */
+    public function is_subscription_expired($publisher_id)
+    {
+        if (empty($publisher_id) || !$this->db->table_exists('publisher_subscriptions')) {
+            return false;
+        }
+
+        // Check if there is an active subscription with a future end_date
+        $active_sub = $this->db
+            ->where('publisher_id', $publisher_id)
+            ->where('status', 'active')
+            ->where('(end_date IS NULL OR end_date >= NOW())', NULL, FALSE)
+            ->order_by('id', 'DESC')
+            ->get('publisher_subscriptions')
+            ->row_array();
+
+        if ($active_sub) {
+            return false; // Active and not expired
+        }
+
+        // Check if the merchant has a subscription record that is expired or in the past
+        $expired_sub = $this->db
+            ->where('publisher_id', $publisher_id)
+            ->where("(status = 'expired' OR (end_date IS NOT NULL AND end_date < NOW()))", NULL, FALSE)
+            ->order_by('id', 'DESC')
+            ->get('publisher_subscriptions')
+            ->row_array();
+
+        if ($expired_sub) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function get_merchant_plan($publisher_id)
     {
         $active_sub = $this->get_active_plan($publisher_id);
@@ -141,22 +181,22 @@ class Subscription_model extends CI_Model
         $start_date = date('Y-m-d H:i:s');
         $ip = $ip ?: ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
 
-        $existing = $this->db->get_where('publisher_subscriptions', [
-            'publisher_id' => $publisher_id,
-            'status' => 'active'
+        $existing = $this->db->order_by('id', 'DESC')->get_where('publisher_subscriptions', [
+            'publisher_id' => $publisher_id
         ])->row_array();
 
         // If renewing the same active plan before it expires, extend from current end_date
-        if ($existing && !empty($existing['end_date']) && strtotime($existing['end_date']) > strtotime($start_date) && $existing['plan_id'] == $plan_id) {
+        if ($existing && $existing['status'] === 'active' && !empty($existing['end_date']) && strtotime($existing['end_date']) > strtotime($start_date) && $existing['plan_id'] == $plan_id) {
             $end_date = date('Y-m-d H:i:s', strtotime('+1 year', strtotime($existing['end_date'])));
         } else {
             $end_date = date('Y-m-d H:i:s', strtotime('+1 year', strtotime($start_date)));
         }
 
         if ($existing) {
-            // Update existing active subscription to new plan and reset reminder tracking
+            // Update existing subscription to active and reset reminder tracking
             $updateData = [
                 'plan_id'    => $plan_id,
+                'status'     => 'active',
                 'start_date' => $start_date,
                 'end_date'   => $end_date,
                 'ip'         => $ip,

@@ -36,6 +36,7 @@ class Subscription extends CI_Controller
         $data['features'] = $this->Subscription_model->get_features();
         $data['plan_features'] = $this->Subscription_model->get_plan_features();
         $data['active_plan'] = $this->Subscription_model->get_active_plan($publisher_id);
+        $data['is_expired']  = $this->Subscription_model->is_subscription_expired($publisher_id);
 
         // Check and send subscription renewal reminders if near expiry and not renewed
         try {
@@ -102,6 +103,7 @@ class Subscription extends CI_Controller
     {
         $publisher_id = $this->session->userdata('LoginID');
         $data['subscription_orders'] = $this->Subscription_model->get_subscription_orders($publisher_id);
+        $data['is_expired']          = $this->Subscription_model->is_subscription_expired($publisher_id);
 
         // Load the main listing view
 

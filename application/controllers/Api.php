@@ -724,286 +724,391 @@ class Api extends CI_Controller {
 		exit;
 	}*/
 
-	public function update_order_status()
-	{
-		$jwtToken = $this->input->post('token_id') ?? $this->input->get('token_id');
-		$date     = $this->input->post('date');
-		$type     = strtolower(trim($this->input->post('type'))); // 'pickup' or 'delivery'
-		$status   = (int) $this->input->post('status');
-		$order_id = $this->input->post('order_id'); // can be b2b order id OR webshop id when parent
-		$is_parent_level = (int) $this->input->post('is_parent_level'); // 1 => parent (webshop)
+	
 
-		if (empty($jwtToken)) {
-			echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'Token missing.', 'data' => []]); exit;
-		}
+public function update_order_status()
+{
+    $jwtToken = $this->input->post('token_id') ?? $this->input->get('token_id');
+    $date = $this->input->post('date');
+    $type = strtolower(trim((string)$this->input->post('type')));
+    $status = (int)$this->input->post('status');
+    $order_id = $this->input->post('order_id');
+    $is_parent_level = (int)$this->input->post('is_parent_level');
 
-		// Validate token
-		$tokenRow = $this->db->where('token', $jwtToken)
-							->where('status', 0)
-							->get('driver_tokens')
-							->row();
+    if (empty($jwtToken)) {
+        echo json_encode([
+            'flag' => 0,
+            'status' => 200,
+            'msg' => 'Token missing.',
+            'data' => []
+        ]);
+        exit;
+    }
 
-		if (!$tokenRow) {
-			echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'Token inactive or not found.', 'data' => []]); exit;
-		}
+    // Validate driver token
+    $tokenRow = $this->db
+        ->where('token', $jwtToken)
+        ->where('status', 0)
+        ->get('driver_tokens')
+        ->row();
 
-		$driver_id = $tokenRow->driver_id;
+    if (!$tokenRow) {
+        echo json_encode([
+            'flag' => 0,
+            'status' => 200,
+            'msg' => 'Token inactive or not found.',
+            'data' => []
+        ]);
+        exit;
+    }
 
-		try {
-			// Determine table and status field
-			if ($type === 'pickup') {
-				$table = 'b2b_orders_pickup_details';
-				$status_field = 'pickup_status';
-			} elseif ($type === 'delivery') {
-				$table = 'b2b_orders_delivery_details';
-				$status_field = 'delivery_status';
-			} else {
-				echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'Invalid type. Must be pickup or delivery.', 'data' => []]);
-				exit;
-			}
+    $driver_id = (int)$tokenRow->driver_id;
 
-			// -------------------------------
-			// DELIVERY: attempt logging & insert
-			// -------------------------------
-			if ($type === 'delivery') {
+    try {
+        if ($type === 'pickup') {
+            $table = 'b2b_orders_pickup_details';
+            $status_field = 'pickup_status';
+        } elseif ($type === 'delivery') {
+            $table = 'b2b_orders_delivery_details';
+            $status_field = 'delivery_status';
+        } else {
+            echo json_encode([
+                'flag' => 0,
+                'status' => 200,
+                'msg' => 'Invalid type. Must be pickup or delivery.',
+                'data' => []
+            ]);
+            exit;
+        }
 
-				// We'll use two lookup keys depending on parent or not:
-				// parent -> webshop_order_id
-				// child  -> order_id
-				$lookup_field = ($is_parent_level === 1) ? 'webshop_order_id' : 'order_id';
-				$lookup_value = $order_id;
+        // -----------------------------------------
+        // DELIVERY: INSERT ATTEMPT
+        // -----------------------------------------
+        if ($type === 'delivery') {
+            $lookup_field = ($is_parent_level === 1)
+                ? 'webshop_order_id'
+                : 'order_id';
 
-				// 1) Fetch last attempt for the same key AND same driver (safer)
-				$lastAttempt = $this->db->where($lookup_field, $lookup_value)
-					->where('driver_id', $driver_id)
-					->order_by('delivery_attempt_no', 'DESC')
-					->limit(1)
-					->get('b2b_orders_delivery_details')
-					->row();
+            $lastAttempt = $this->db
+                ->where($lookup_field, $order_id)
+                ->where('driver_id', $driver_id)
+                ->order_by('delivery_attempt_no', 'DESC')
+                ->limit(1)
+                ->get('b2b_orders_delivery_details')
+                ->row();
 
-				$currentAttempt = $lastAttempt ? (int)$lastAttempt->delivery_attempt_no : 0;
-				$nextAttempt    = $currentAttempt + 1;
+            $nextAttempt = $lastAttempt
+                ? ((int)$lastAttempt->delivery_attempt_no + 1)
+                : 1;
 
-				// 2) Mark last attempt as closed (if exists) - optional behaviour kept
-				if (!empty($lastAttempt)) {
-					$this->db->where('id', $lastAttempt->id)
-						->update('b2b_orders_delivery_details', [
-							'delivery_status' => 1,
-							'updated_at'      => date('Y-m-d H:i:s')
-						]);
-				}
+            if ($lastAttempt) {
+                $this->db
+                    ->where('id', $lastAttempt->id)
+                    ->update('b2b_orders_delivery_details', [
+                        'delivery_status' => 1,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+            }
 
-				// 3) Prepare insert payload depending on parent or child
-				$insertData = [
-					// order_id column: for parent -> 0, for child -> actual b2b order id
-					'order_id'                  => ($is_parent_level === 1) ? 0 : (int)$order_id,
-					// webshop_order_id column: for parent -> webshop id, for child -> maybe null or parent webshop id if available
-					'webshop_order_id'          => ($is_parent_level === 1) ? $order_id : null,
-					'delivery_type'             => 2,
-					'is_parent_level'           => $is_parent_level,
-					'driver_id'                 => $driver_id,
-					'delivery_date'             => date('Y-m-d H:i:s'),
-					'remarks'                   => ($status == 8 ? 'Order Delivered Successfully' : 'Delivery Attempt Updated'),
-					'delivery_status'           => $status,
-					'delivery_attempt_no'       => $nextAttempt,
-					'reason_for_attempt_failed' => ($status == 8 ? 'Success' : 'NA'),
-					'generate_by'               => $driver_id,
-					'created_at'                => date('Y-m-d H:i:s'),
-					'ip'                        => $this->input->ip_address()
-				];
+            $insertData = [
+                'order_id' => ($is_parent_level === 1) ? 0 : (int)$order_id,
+                'webshop_order_id' => ($is_parent_level === 1)
+                    ? $order_id
+                    : null,
+                'delivery_type' => 2,
+                'is_parent_level' => $is_parent_level,
+                'driver_id' => $driver_id,
+                'delivery_date' => date('Y-m-d H:i:s'),
+                'remarks' => ($status === 8)
+                    ? 'Order Delivered Successfully'
+                    : 'Delivery Attempt Updated',
+                'delivery_status' => $status,
+                'delivery_attempt_no' => $nextAttempt,
+                'reason_for_attempt_failed' => ($status === 8)
+                    ? 'Success'
+                    : 'NA',
+                'generate_by' => $driver_id,
+                'created_at' => date('Y-m-d H:i:s'),
+                'ip' => $this->input->ip_address()
+            ];
 
-				$this->db->insert('b2b_orders_delivery_details', $insertData);
-			}
+            $this->db->insert(
+                'b2b_orders_delivery_details',
+                $insertData
+            );
+        }
 
-			// -------------------------------
-			// UPDATE delivery/pickup details table rows (existing records)
-			// -------------------------------
-			$updateData = [
-				$status_field => $status,
-				'updated_at'  => date('Y-m-d H:i:s')
-			];
+        // -----------------------------------------
+        // UPDATE PICKUP / DELIVERY RECORD
+        // -----------------------------------------
+        $this->db->where('driver_id', $driver_id);
 
-			// Build WHERE clause for updating existing rows
-			$this->db->where('driver_id', $driver_id);
+        if (!empty($order_id)) {
+            if ($type === 'delivery' && $is_parent_level === 1) {
+                $this->db->where('webshop_order_id', $order_id);
+            } else {
+                $this->db->where('order_id', $order_id);
+            }
+        }
 
-			if (!empty($order_id)) {
-				if ($type === 'delivery' && $is_parent_level == 1) {
-					$this->db->where('webshop_order_id', $order_id);
-				} else {
-					$this->db->where('order_id', $order_id);
-				}
-			}
+        if (!empty($date)) {
+            $dateObject = DateTime::createFromFormat('d-m-Y', $date);
 
-			if (!empty($date)) {
-				$converted_date = DateTime::createFromFormat('d-m-Y', $date)->format('Y-m-d');
-				$this->db->where('DATE(created_at)', $converted_date);
-			}
+            if ($dateObject) {
+                $this->db->where(
+                    'DATE(created_at)',
+                    $dateObject->format('Y-m-d')
+                );
+            }
+        }
 
-			$this->db->update($table, $updateData);
-			$affected = $this->db->affected_rows();
+        $updateSuccess = $this->db->update($table, [
+            $status_field => $status,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
 
-			// -------------------------------
-			// If final delivered -> update orders tables
-			// -------------------------------
-			if ($status == 8) {
-				// reset query builder
-				$this->db->reset_query();
+        $affected = $this->db->affected_rows();
 
-				// Update b2b_orders: if parent => all rows with webshop_order_id = $order_id
-				// else => specific b2b order_id
-				$b2b_update = ['status' => 8, 'updated_at' => date('Y-m-d H:i:s')];
+        // -----------------------------------------
+        // UPDATE ORDER STATUS WHEN DELIVERED
+        // -----------------------------------------
+        if ($type === 'delivery' && $status === 8 && $updateSuccess) {
+            if (!empty($order_id)) {
+                if ($is_parent_level === 1) {
+                    $this->db->where('webshop_order_id', $order_id);
+                } else {
+                    $this->db->where('order_id', $order_id);
+                }
 
-				if (!empty($order_id)) {
-					if ($is_parent_level == 1) {
-						// parent: update all b2b_orders that belong to this webshop order
-						$this->db->where('webshop_order_id', $order_id);
-					} else {
-						// child: update just that b2b order
-						$this->db->where('order_id', $order_id);
-					}
+                $this->db->update('b2b_orders', [
+                    'status' => 8,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
 
-					$this->db->update('b2b_orders', $b2b_update);
-				}
+            $webshop_order_id = null;
 
-				// Also update sales_order.status if we can find the webshop_order_id
-				// If parent -> order_id is webshop id already.
-				// If child  -> find webshop id for that b2b order.
-				$webshop_order_id = null;
-				if ($is_parent_level == 1) {
-					$webshop_order_id = $order_id;
-				} else {
-					// fetch webshop id from b2b_orders (child)
-					$orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
-					if ($orderData && !empty($orderData->webshop_order_id)) {
-						$webshop_order_id = $orderData->webshop_order_id;
-					}
-				}
+            if ($is_parent_level === 1) {
+                $webshop_order_id = $order_id;
+            } else {
+                $mainOrderData = $this->CommonModel
+                    ->getOrderDataByb2bOrderId($order_id);
 
-				if (!empty($webshop_order_id)) {
-					$this->CommonModel->checkAndUpdateMainOrderStatus($webshop_order_id);
-				}
-			}
-			// 🔔 MOBILE PICKUP / DELIVERY NOTIFICATION
-			if (in_array($type, ['pickup', 'delivery'])) {
+                if ($mainOrderData && !empty($mainOrderData->webshop_order_id)) {
+                    $webshop_order_id = $mainOrderData->webshop_order_id;
+                }
+            }
 
-				// Get B2B order data (needed for barcode + shipment_type)
-				if ($is_parent_level != 1 && !empty($order_id)) {
-					$orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
-				} else {
-					$orderData = null;
-				}
+            if (!empty($webshop_order_id)) {
+                $this->CommonModel->checkAndUpdateMainOrderStatus(
+                    $webshop_order_id
+                );
+            }
+        }
 
-				if ($orderData && $orderData->shipment_type == 2) {
+        // -----------------------------------------
+        // GET ORDER DETAILS FOR NOTIFICATIONS
+        // -----------------------------------------
+        if ($updateSuccess && $affected > 0 && !empty($order_id)) {
+            $orderData = null;
+            $webshop_order_id = null;
 
-					if ($type === 'pickup') {
-						$title   = 'Order Picked Up';
-						$message = 'Order no ' . $orderData->order_barcode . ' is Picked Up from Merchant Store.';
-						$subtype = 'b2b_pickup_mobile';
-					}
+            if ($is_parent_level === 1) {
+                $webshop_order_id = $order_id;
 
-					// 🔔 DELIVERY NOTIFICATION
-					if ($type === 'delivery' && $status == 8) {
+                // Get one B2B order belonging to this webshop order.
+                $orderData = $this->db
+                    ->where('webshop_order_id', $order_id)
+                    ->get('b2b_orders')
+                    ->row();
+            } else {
+                $orderData = $this->CommonModel
+                    ->getOrderDataByb2bOrderId($order_id);
 
-						// Get B2B order data
-						if ($is_parent_level != 1 && !empty($order_id)) {
-							$orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
-						} else {
-							$orderData = null;
-						}
+                if ($orderData && !empty($orderData->webshop_order_id)) {
+                    $webshop_order_id = $orderData->webshop_order_id;
+                }
+            }
 
-						if ($orderData && $orderData->shipment_type == 2) {
+            // Get driver name
+            $driver = $this->db
+                ->where('id', $driver_id)
+                ->get('driver_details')
+                ->row();
 
-							$title   = 'Order Delivered';
-							$message = 'Order no ' . $orderData->order_barcode . ' is Delivered to Shopper.';
-							$subtype = 'b2b_delivery_mobile';
+            $driver_name = $driver
+                ? trim(($driver->first_name ?? '') . ' ' . ($driver->last_name ?? ''))
+                : '';
 
-							/*
-							* =========================
-							* ADMIN NOTIFICATION
-							* =========================
-							*/
-							$adminNotification = [
-								'type'           => 'order',
-								'subtype'        => $subtype,
-								'recipient_type' => 'admin',
-								'recipient_id'   => 1,
-								'title'          => $title,
-								'message'        => $message,
-								'data'           => json_encode([
-									'order_id' => $orderData->order_barcode,
-									'source'   => 'mobile'
-								]),
-								'is_read'        => 0,
-								'created_at'     => date('Y-m-d H:i:s')
-							];
+            // -----------------------------------------
+            // PICKUP: ADMIN NOTIFICATION
+            // -----------------------------------------
+            if (
+                $type === 'pickup' &&
+                $orderData &&
+                (int)($orderData->shipment_type ?? 0) === 2
+            ) {
+                $es_order_no = $orderData->order_barcode ?? $order_id;
 
-							$this->db->insert('notifications', $adminNotification);
+                $merchant_name = $orderData->merchant_name
+                    ?? $orderData->store_name
+                    ?? $orderData->publisher_name
+                    ?? '';
 
+                $message = 'Order ' . $es_order_no .
+                    ' is picked up by driver ' . $driver_name .
+                    ' from ' . $merchant_name . ' store.';
 
-							/*
-							* =========================
-							* MERCHANT NOTIFICATION
-							* =========================
-							*/
-							$merchant_id = !empty($orderData->publisher_id)
-								? $orderData->publisher_id
-								: 0;
+                $this->db->insert('notifications', [
+                    'type' => 'order',
+                    'subtype' => 'b2b_pickup_mobile',
+                    'recipient_type' => 'admin',
+                    'recipient_id' => 1,
+                    'title' => 'Order Picked Up',
+                    'message' => $message,
+                    'data' => json_encode([
+                        'order_id' => $order_id,
+                        'order_barcode' => $es_order_no,
+                        'driver_id' => $driver_id,
+                        'driver_name' => $driver_name,
+                        'merchant_id' => $orderData->publisher_id ?? 0,
+                        'merchant_name' => $merchant_name,
+                        'source' => 'mobile'
+                    ]),
+                    'is_read' => 0,
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+            }
 
-							if (!empty($merchant_id)) {
+            // -----------------------------------------
+            // DELIVERY: ADMIN + MERCHANT + SHOPPER
+            // -----------------------------------------
+            if (
+                $type === 'delivery' &&
+                $status === 8 &&
+                $orderData &&
+                (int)($orderData->shipment_type ?? 0) === 2
+            ) {
+                $es_order_no = $orderData->order_barcode ?? $order_id;
 
-								$merchantNotification = [
-									'type'           => 'order',
-									'subtype'        => $subtype,
-									'recipient_type' => 'merchant',
-									'recipient_id'   => $merchant_id,
-									'title'          => $title,
-									'message'        => $message,
-									'data'           => json_encode([
-										'order_id' => $orderData->order_barcode,
-										'source'   => 'mobile'
-									]),
-									'is_read'        => 0,
-									'created_at'     => date('Y-m-d H:i:s')
-								];
+                $title = 'Order Delivered';
+                $message = 'Order ' . $es_order_no .
+                    ' has been delivered to the shopper.';
 
-								$this->db->insert('notifications', $merchantNotification);
-							}
-						}
-					}
-				}
-			}
+                $subtype = 'b2b_delivery_mobile';
 
-			// Return response
-			if ($affected > 0) {
-				echo json_encode([
-					'flag' => 1,
-					'status' => 200,
-					'msg' => ucfirst($type) . ' status updated successfully.',
-					'data' => [
-						'status' => $status,
-						'orders_updated_count' => $affected,
-						'order_id' => $order_id ?? 'all'
-					]
-				]);
-			} else {
-				echo json_encode([
-					'flag' => 0,
-					'status' => 200,
-					'msg' => 'No records updated. Please check order ID, date, or driver assignment.',
-					'data' => []
-				]);
-			}
-		} catch (Exception $e) {
-			echo json_encode([
-				'flag' => 0,
-				'status' => 200,
-				'msg' => 'An error occurred: ' . $e->getMessage(),
-				'data' => []
-			]);
-		}
+                $notificationData = [
+                    'order_id' => $order_id,
+                    'order_barcode' => $es_order_no,
+                    'source' => 'mobile'
+                ];
 
-		exit;
-	}
+                // 1. ADMIN NOTIFICATION
+                $this->db->insert('notifications', [
+                    'type' => 'order',
+                    'subtype' => $subtype,
+                    'recipient_type' => 'admin',
+                    'recipient_id' => 1,
+                    'title' => $title,
+                    'message' => $message,
+                    'data' => json_encode($notificationData),
+                    'is_read' => 0,
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+
+                // 2. MERCHANT NOTIFICATION
+                $merchant_id = (int)($orderData->publisher_id ?? 0);
+
+                if ($merchant_id > 0) {
+                    $this->db->insert('notifications', [
+                        'type' => 'order',
+                        'subtype' => $subtype,
+                        'recipient_type' => 'merchant',
+                        'recipient_id' => $merchant_id,
+                        'title' => $title,
+                        'message' => $message,
+                        'data' => json_encode($notificationData),
+                        'is_read' => 0,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+
+                // 3. SHOPPER NOTIFICATION
+                // sales_order.order_id is assumed to be the webshop order ID.
+                if (!empty($webshop_order_id)) {
+                    $salesOrder = $this->db
+                        ->where('order_id', $webshop_order_id)
+                        ->get('sales_order')
+                        ->row();
+
+                    $shopper_id = (int)($salesOrder->customer_id ?? 0);
+
+                    if ($shopper_id > 0) {
+                        $this->db->insert('notifications', [
+                            'type' => 'order',
+                            'subtype' => $subtype,
+                            'recipient_type' => 'shopper',
+                            'recipient_id' => $shopper_id,
+                            'title' => 'Order Delivered',
+                            'message' => 'Your order ' . $es_order_no .
+                                ' has been delivered successfully.',
+                            'data' => json_encode([
+                                'order_id' => $order_id,
+                                'webshop_order_id' => $webshop_order_id,
+                                'order_barcode' => $es_order_no,
+                                'source' => 'mobile'
+                            ]),
+                            'is_read' => 0,
+                            'created_at' => date('Y-m-d H:i:s')
+                        ]);
+                    } else {
+                        log_message(
+                            'error',
+                            'Shopper notification not sent: customer_id missing for webshop order ' .
+                            $webshop_order_id
+                        );
+                    }
+                }
+            }
+        }
+
+        // -----------------------------------------
+        // API RESPONSE
+        // -----------------------------------------
+        if ($updateSuccess && $affected > 0) {
+            echo json_encode([
+                'flag' => 1,
+                'status' => 200,
+                'msg' => ucfirst($type) . ' status updated successfully.',
+                'data' => [
+                    'status' => $status,
+                    'orders_updated_count' => $affected,
+                    'order_id' => $order_id ?? 'all'
+                ]
+            ]);
+        } else {
+            echo json_encode([
+                'flag' => 0,
+                'status' => 200,
+                'msg' => 'No records updated. Please check order ID, date, or driver assignment.',
+                'data' => []
+            ]);
+        }
+
+    } catch (Exception $e) {
+        log_message('error', 'update_order_status error: ' . $e->getMessage());
+
+        echo json_encode([
+            'flag' => 0,
+            'status' => 200,
+            'msg' => 'An error occurred while updating order status.',
+            'data' => []
+        ]);
+    }
+
+    exit;
+}
+
 
 
 	public function pickup_proof_image_upload_details()
