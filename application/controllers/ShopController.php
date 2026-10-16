@@ -186,7 +186,22 @@ class ShopController extends CI_Controller {
 
     public function shop_details($id){
 
+        if ($this->Shop_model->is_shop_subscription_expired($id)) {
+            $msg = $this->lang->line('shop_temporarily_unavailable') ?: 'This shop is temporarily unavailable.';
+            $this->session->set_flashdata('error_message', $msg);
+            redirect('shops');
+            return;
+        }
+
         $data['shop_details'] = $this->Shop_model->shop_details($id);
+
+        if (!$data['shop_details']) {
+            $msg = $this->lang->line('shop_temporarily_unavailable') ?: 'This shop is temporarily unavailable.';
+            $this->session->set_flashdata('error_message', $msg);
+            redirect('shops');
+            return;
+        }
+
         $data['rating'] = $this->Shop_model->get_avg_ratings_by_merchant($id);
 
         // echo "<pre>";print_r($data);die;
@@ -200,6 +215,13 @@ class ShopController extends CI_Controller {
 
 
         public function fetch_shops_products($shop_id, $page = 0) {
+
+            if ($this->Shop_model->is_shop_subscription_expired($shop_id)) {
+                $data['shops'] = [];
+                $data['pagination'] = '';
+                $this->load->view('shops_products_ajax', $data);
+                return;
+            }
 
             $limit = 8;
 

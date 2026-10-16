@@ -58,6 +58,11 @@ class DashboardController extends CI_Controller
 
 		}
 
+		$this->load->model('Subscription_model');
+		if ($this->Subscription_model->is_subscription_expired($_SESSION['LoginID'])) {
+			redirect('subscription');
+		}
+
 		$site_lang = $this->session->userdata('site_lang');
 
 		if ($site_lang) {

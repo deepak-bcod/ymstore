@@ -25,6 +25,7 @@ class Shop_model extends CI_Model {
         if (!empty($zipcode)) $this->db->where('zipcode', $zipcode);
 
         $this->db->where('status', '1'); // ACTIVE shops only
+        $this->_apply_active_subscription_filter();
         return $this->db->count_all_results();
     }
 
@@ -37,6 +38,7 @@ class Shop_model extends CI_Model {
         if (!empty($zipcode)) $this->db->where('zipcode', $zipcode);
 
         $this->db->where('status', '1');
+        $this->_apply_active_subscription_filter();
         $this->db->limit($limit, $offset);
 
         return $this->db->get()->result();
@@ -79,7 +81,9 @@ class Shop_model extends CI_Model {
 
         $this->db->from('publisher');
 
-        $this->db->where('id', $id);  // <-- FIXED
+        $this->db->where('id', $id);
+        $this->db->where('status', '1');
+        $this->_apply_active_subscription_filter();
 
         $query = $this->db->get();
 
@@ -88,6 +92,10 @@ class Shop_model extends CI_Model {
     }
 
     public function get_shops_products($shop_id, $limit, $offset, $filters = []) {
+        if ($this->is_shop_subscription_expired($shop_id)) {
+            return [];
+        }
+
         $this->db->select('products.*');
         
         // Select Min Webshop Price
@@ -162,6 +170,9 @@ class Shop_model extends CI_Model {
 
 
     public function get_count_products($shop_id) {
+        if ($this->is_shop_subscription_expired($shop_id)) {
+            return 0;
+        }
 
         return $this->db->where('publisher_id', $shop_id)
                         ->where('status', 1)
@@ -180,9 +191,62 @@ class Shop_model extends CI_Model {
         return $query->row(); // one merchant
     }
 
+    /**
+     * Check if a shop's merchant subscription is expired and not renewed
+     *
+     * @param int $shop_id
+     * @return bool
+     */
+    public function is_shop_subscription_expired($shop_id)
+    {
+        if (empty($shop_id) || !$this->db->table_exists('publisher_subscriptions')) {
+            return false;
+        }
 
+        // Check if there is an active subscription with a future end_date
+        $active_sub = $this->db
+            ->where('publisher_id', $shop_id)
+            ->where('status', 'active')
+            ->where('(end_date IS NULL OR end_date >= NOW())', NULL, FALSE)
+            ->order_by('id', 'DESC')
+            ->get('publisher_subscriptions')
+            ->row_array();
 
+        if ($active_sub) {
+            return false; // Active and valid
+        }
 
+        // Check if the merchant has a subscription record that is expired or in the past
+        $expired_sub = $this->db
+            ->where('publisher_id', $shop_id)
+            ->where("(status = 'expired' OR (end_date IS NOT NULL AND end_date < NOW()))", NULL, FALSE)
+            ->order_by('id', 'DESC')
+            ->get('publisher_subscriptions')
+            ->row_array();
+
+        if ($expired_sub) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Exclude merchants whose subscription is expired and not renewed
+     */
+    private function _apply_active_subscription_filter()
+    {
+        if ($this->db->table_exists('publisher_subscriptions')) {
+            $this->db->where("publisher.id NOT IN (
+                SELECT ps1.publisher_id FROM publisher_subscriptions ps1
+                WHERE (ps1.status = 'expired' OR (ps1.end_date IS NOT NULL AND ps1.end_date < NOW()))
+                AND ps1.publisher_id NOT IN (
+                    SELECT ps2.publisher_id FROM publisher_subscriptions ps2
+                    WHERE ps2.status = 'active' AND (ps2.end_date IS NULL OR ps2.end_date >= NOW())
+                )
+            )", NULL, FALSE);
+        }
+    }
 
 }
 

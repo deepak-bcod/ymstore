@@ -30,7 +30,12 @@ class WebshopOrdersController extends CI_Controller {
 		$this->load->model('WebshopModel');
 		$this->load->model('CommonModel');
 		$this->load->model('SalesOrderPaymentModel');
+		$this->load->model('Subscription_model');
 		$this->load->library('encryption');
+
+		if ($this->Subscription_model->is_subscription_expired($this->session->userdata('LoginID'))) {
+			redirect('subscription');
+		}
 
 		$site_lang = $this->session->userdata('site_lang');
 

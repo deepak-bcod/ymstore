@@ -2244,6 +2244,7 @@ $lang['order_track'] = "Tracking details will be sent to your registered email i
 
 $lang['no_products_shop'] = 'No products found for this shop.';
 $lang['no_shops_found'] = 'No shops found.';
+$lang['shop_temporarily_unavailable'] = 'This shop is temporarily unavailable.';
 
 
 
