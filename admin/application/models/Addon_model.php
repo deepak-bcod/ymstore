@@ -95,11 +95,10 @@ class Addon_model extends CI_Model {
 
     }
     public function get_all_manage_addons() {
-        $this->db->select('merchant_addons.*, merchants.name as merchant_name, addon_services.title as service_title');
-        $this->db->from('merchant_addons');
-        $this->db->join('merchants', 'merchants.id = merchant_addons.merchant_id', 'left');
-        $this->db->join('addon_services', 'addon_services.id = merchant_addons.addon_service_id', 'left');
-        $this->db->order_by('merchant_addons.id', 'DESC');
+        $this->db->select('addon_services.*, addon_categories.name as category_name');
+        $this->db->from('addon_services');
+        $this->db->join('addon_categories', 'addon_categories.id = addon_services.category_id', 'left');
+        $this->db->order_by('addon_services.id', 'DESC');
         return $this->db->get()->result();
     }
 

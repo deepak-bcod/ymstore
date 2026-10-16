@@ -5,29 +5,27 @@
         <table class="table table-bordered table-striped">
             <thead>
                 <tr style="background-color: #ffc107; color: #000;">
-                    <th>SR NO.</th>
-                    <th>MERCHANT NAME</th>
-                    <th>ADDON SERVICE</th>
-                    <th>ADDON NAME</th>
-                    <th>DATE</th>
-                    <th>AMOUNT</th>
+                    <th>ID</th>
+                    <th>CATEGORY</th>
+                    <th>TITLE</th>
+                    <th>FINAL PRICE</th>
+                    <th>STATUS</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if(!empty($manage_addons)): ?>
-                    <?php $sr = 1; foreach($manage_addons as $row): ?>
+                    <?php foreach($manage_addons as $row): ?>
                         <tr>
-                            <td><?php echo $sr++; ?></td>
-                            <td><?php echo html_escape($row->merchant_name); ?></td>
-                            <td><?php echo html_escape($row->service_title); ?></td>
-                            <td><?php echo html_escape($row->addon_name); ?></td>
-                            <td><?php echo html_escape($row->date); ?></td>
-                            <td><?php echo number_format($row->amount, 2); ?></td>
+                            <td><?php echo $row->id; ?></td>
+                            <td><?php echo html_escape($row->category_name); ?></td>
+                            <td><?php echo html_escape($row->title); ?></td>
+                            <td><?php echo number_format($row->final_price, 2); ?></td>
+                            <td><?php echo ($row->status == 1) ? 'Active' : 'Inactive'; ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" class="text-center">No records found</td>
+                        <td colspan="5" class="text-center">No records found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
