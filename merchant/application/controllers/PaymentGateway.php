@@ -183,9 +183,13 @@ class PaymentGateway extends CI_Controller {
                 $shop_id = $publisher->id;
                 $ShopOwnerId = $publisher->id;
                 if (isset($this->UserModel) && method_exists($this->UserModel, 'getShopDetailsByShopId')) {
-                    $ShopDetails = $this->UserModel->getShopDetailsByShopId($shop_id);
-                    if ($ShopDetails && !empty($ShopDetails->fbc_user_id)) {
-                        $ShopOwnerId = $ShopDetails->fbc_user_id;
+                    try {
+                        $ShopDetails = $this->UserModel->getShopDetailsByShopId($shop_id);
+                        if ($ShopDetails && !empty($ShopDetails->fbc_user_id)) {
+                            $ShopOwnerId = $ShopDetails->fbc_user_id;
+                        }
+                    } catch (\Throwable $e) {
+                        log_message('error', 'Error getting shop details in callback: ' . $e->getMessage());
                     }
                 }
 
@@ -198,8 +202,11 @@ class PaymentGateway extends CI_Controller {
                 ];
 
                 $this->session->set_userdata($sessionArr);
-                $_SESSION['LoginID'] = $publisher->id;
-                $_SESSION['LoginToken'] = $LoginToken;
+                $_SESSION['LoginID']     = $publisher->id;
+                $_SESSION['LoginToken']  = $LoginToken;
+                $_SESSION['ShopID']      = $shop_id;
+                $_SESSION['ShopOwnerId'] = $ShopOwnerId;
+                $_SESSION['UserRole']    = '';
 
                 if (isset($this->UserModel) && method_exists($this->UserModel, 'insertIntoLoginSession')) {
                     $this->UserModel->insertIntoLoginSession($LoginToken, $publisher->id);
@@ -215,6 +222,16 @@ class PaymentGateway extends CI_Controller {
             }
         } else {
             log_message('info', "Existing merchant session verified for Publisher ID: {$currentLoginId}");
+        }
+
+        if ($order['status'] === 'paid') {
+            $this->session->set_flashdata('payment_status', 'success');
+        } elseif ($order['status'] === 'failed') {
+            $this->session->set_flashdata('payment_status', 'error');
+        }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
         }
 
         // Redirect to merchant subscription page with appropriate status
