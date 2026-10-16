@@ -35,172 +35,38 @@ When a product is displayed as a part of search or category filtering or within 
 prnjvyghqnkptwzf
 
 
-YellowMarkets – Daily Deals & Flash Sales Enhancement Plan & Affected Files
-We have inspected the database schema, Admin and Merchant controllers and views, shared pricing presenters, and storefront product card rendering components. Below is the comprehensive identification of affected files, architectural analysis, and step-by-step implementation plan for your review and approval before making any code changes.
+Badges :
+Curve inside ★ DAILY DEAL (bright yellow badge with dark text) 
+Curve inside ⚡ FLASH SALE (red badge with white text).
+-XX% discount pill
 
-1. Summary of Architectural Findings
-Current Decoupled Workflow:
+Above all the things inside product image at bottom this has been used by Daily Deals, New Arrivals, Trending Products, and Flash Sales. But won't be diturb existing design and layout
 
-In Admin and Merchant panels, special pricing is handled independently under WebshopController (webshop/discount/*) which writes to the products_special_prices table.
-Products table contains promotion columns (daily_deals, daily_deal_ends_at, flash_sale, flash_sale_ends_at, special_price, special_price_from, special_price_to), but the Edit Product form (edit_product.php) and Add Product form (add_product.php) lack a unified promotional configuration interface.
-products currently lacks daily_deal_starts_at and flash_sale_starts_at columns to support scheduled activation based on calendar start times.
-Scheduling & Automatic Activation/Expiry:
+📦 LIMITED STOCK and remaining stock indicator in flash sale promotion has been applicable only.
 
-Currently, promotions only check end times via cron or runtime filters, without validating calendar start times (starts_at).
-By storing start and end timestamps (daily_deal_starts_at, daily_deal_ends_at, flash_sale_starts_at, flash_sale_ends_at) and centralizing eligibility checks, promotions will automatically transition through Scheduled $\rightarrow$ Active $\rightarrow$ Expired $\rightarrow$ Disabled without manual product updates.
-Storefront Card Consistency (Grid & Normal Layouts):
+@ product listing in shopper side
 
-Storefront product cards across Trending Products, New Arrivals, category pages, search results, and deal pages route through ProductList.php $\rightarrow$ components/product_listing_page_item.php.
-The current card does not feature the exact badges, discount percentage overlays, or live JavaScript countdown timers depicted in your two reference screenshots.
-2. Affected Files List
-A. Database & Schema Updates
-Database Migration / Schema Helper:
-Ensure daily_deal_starts_at (INT(11) NULL) exists on table products.
-Ensure flash_sale_starts_at (INT(11) NULL) exists on table products.
-Ensure offer_type (VARCHAR(50) DEFAULT 'special_price') exists on table products_special_prices.
-B. Admin & Merchant Promotion Configuration (Edit & Add Product)
+Please check product stock if it is less than 0 then OUT OF STOCK indicator must be shown everywhere product has been display but won't be disturb exiting design components and layout
 
 
-admin/application/views/seller/products/edit_product.php
-:
-Add the dedicated Promotions & Special Pricing UI section:
-Enable promotional offer toggle / checkbox.
-Radio selection for Promotion Type (Daily Deal vs Flash Sale).
-Read-only Regular Price preview (MUR) mapped to EShop Price.
-Special Price (MUR) input field with validation.
-Start Date & Time calendar picker (from_date).
-End Date & Time calendar picker (to_date).
-Real-time Discount Preview: Percentage badge (e.g., 23.27% off) and price transition (MUR 1,290.30 → MUR 990.00).
+curl --location 'https://mu.yellowmarkets.com/pickup_image_upload_details' \
+
+--form 'token_id="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJMb2dpbklEIjoiOCIsIkZpcnN0TmFtZSI6Ik5pY2siLCJFbWFpbCI6Im5pdGVzaHBAYmNvZC5jby5pbiIsImlhdCI6MTc2MDY4NjM2NSwiZXhwIjoxNzYwNjg5OTY1fQ.nvwtSKEknrd3twnO0sDPqMq-Of-I6O2443zWw4ZdZ8Y"' \
+
+--form 'image="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"' \
+
+--form 'order_id="655"' \
+
+--form 'is_parent_level=""' \
+
+--form 'product_id="220"'
 
 
-admin/application/views/seller/products/add_product.php
-:
-Add the same promotional configuration block to support creating promotions directly during new product creation.
+curl --location 'https://mu.yellowmarkets.com/get_pickup_order_details' \
 
+--header 'Cookie: ci_front_session=cm3re7e9ltdonmuivoh6a7ih6rvd606c' \
 
-admin/application/controllers/Sellerproduct.php
-:
-Update editproduct() and add() to parse promotional fields from $_POST.
-Validate that special price is positive and less than webshop price, and that end date is strictly greater than start date.
-Save promotion parameters to products (daily_deals, daily_deal_starts_at, daily_deal_ends_at, flash_sale, flash_sale_starts_at, flash_sale_ends_at, special_price, special_price_from, special_price_to).
-Synchronize with products_special_prices for backward compatibility with existing reporting/discount queries.
+--form 'token_id="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJMb2dpbklEIjoiNCIsIkZpcnN0TmFtZSI6IkFudSIsIkVtYWlsIjoiYW51QGJjb2QuY28uaW4iLCJpYXQiOjE3ODIzMDA4NDksImV4cCI6MTc4MjMwNDQ0OX0.MsCLGbbJhXpAbPnRwjiKK3laaIjOCvBd5NewqHv-XPk"' \
 
-
-merchant/application/views/seller/products/edit_product.php
-:
-Add the identical Promotions & Special Pricing section for merchant edit.
-
-
-merchant/application/views/seller/products/add_product.php
-:
-Add the identical promotional section for merchant product creation.
-
-
-merchant/application/controllers/Sellerproduct.php
-:
-Update editproduct() and add() to process and validate promotional data for merchants.
-C. Shared Promotion & Pricing Logic
-
-
-application/presenters/ProductPresenter.php
-:
-Centralize promotion evaluation methods:
-get_active_promotion(): Determines whether product has an active daily_deal or flash_sale based on current server time, start date, and end date.
-Computes discount percentage: round((($regular - $special) / $regular) * 100).
-Returns badge configuration (★ DAILY DEAL / ⚡ FLASH SALE), countdown target timestamp (ends_at), and stock alert state (📦 LIMITED STOCK / ⚠️ Only X left).
-
-
-application/presenters/DisplayPricePresenter.php
-:
-Standardize display of original strikethrough price and orange promotional price according to active promotion rules.
-
-
-application/models/Product_model.php
-:
-Update get_daily_deals(), get_flash_sales(), and auto_expire_deals() to respect both starts_at <= current_time and ends_at > current_time.
-Ensure scheduled deals are not prematurely exposed, and expired deals automatically revert.
-
-
-admin/application/controllers/CronController.php
-:
-Ensure background expiry handles both daily_deals and flash_sale cleanly.
-D. Storefront Presentation (Grid & Normal Layouts Matching Screenshots)
-
-
-application/views/components/product_listing_page_item.php
-:
-Grid Layout (following your second screenshot):
-Top-left badge over image: ★ DAILY DEAL (yellow pill), ⚡ FLASH SALE (red pill), or 📦 LIMITED STOCK (green pill).
-Top-right badge over image: Red discount pill (e.g., -18%, -28%, -10%).
-Product name link.
-Strikethrough original price (e.g., <del>MUR 1,290.00</del>).
-Promotional price in bold orange (e.g., <span class="promo-price-orange">MUR 990.00</span>).
-Countdown timer (e.g., 🕒 Ends in 02:15:30) with clock icon.
-View Details blue action button.
-Normal Layout (following your first screenshot):
-Left side: Product thumbnail.
-Right side: Title, strikethrough original price, bold orange special price, offer badge (⚡ FLASH SALE / ★ DAILY DEAL / ⚠️ Only X left), live countdown timer, and View Details button.
-
-
-application/ViewComponents/ProductList.php
-:
-Supply active promotion details, remaining countdown seconds, discount percentage, and stock badge to the template.
-
-
-application/views/components/featured_products.php
- & 
-
-application/views/components/trending_products.php
-:
-Ensure Trending Products display promotional badges, prices, and countdowns consistently.
-
-
-application/views/daily_deals.php
- & 
-
-application/views/flash_sale.php
-:
-Unify card rendering to reuse the standardized card design.
-
-
-application/views/product/product_details.php
-:
-Ensure product detail page reflects active promotional badge, discount percentage, original price, special price, and countdown timer.
-Frontend Assets (CSS & JS):
-JavaScript Countdown Engine: A lightweight, performant script that ticks every second for all visible countdown timers using data-ends-at timestamps.
-Promotional CSS: Yellow ★ DAILY DEAL pill, Red ⚡ FLASH SALE pill, Green 📦 LIMITED STOCK pill, Red discount percentage pill, strikethrough styling, and orange price typography.
-3. Implementation Steps
-mermaid
-flowchart TD
-    A[Step 1: Database Schema Verification] --> B[Step 2: Edit & Add Product UI in Admin & Merchant]
-    B --> C[Step 3: Controller Save & Validation Logic]
-    C --> D[Step 4: Centralized Promotion Presenter & Pricing Engine]
-    D --> E[Step 5: Storefront Card Refactoring - Grid & Normal Layouts]
-    E --> F[Step 6: Real-time JS Countdown & CSS Styling]
-    F --> G[Step 7: Verification Across All Storefront Surfaces]
-Step 1: Verify and apply column additions (daily_deal_starts_at, flash_sale_starts_at in products).
-Step 2: Implement the dedicated "Promotions & Special Pricing" UI section in edit_product.php and add_product.php (both Admin and Merchant). Include live discount calculation (X% off, MUR A → MUR B).
-Step 3: Update Sellerproduct controllers to save promotional fields and synchronize products_special_prices.
-Step 4: Implement ProductPresenter promotion helper to handle Scheduled, Active, Expired, and Disabled states based on calendar dates.
-Step 5: Refactor product_listing_page_item.php and ProductList.php to output the exact Grid and Normal visual layouts shown in your screenshots.
-Step 6: Add live countdown timer JavaScript and CSS styling matching the badges (★ DAILY DEAL, ⚡ FLASH SALE, 📦 LIMITED STOCK, -18%, Orange price).
-Step 7: Test across Trending Products, New Arrivals, category pages, search results, dedicated deal pages, and product details.
-Please let us know if this implementation plan meets your requirements so we can proceed with executing the changes.
-
-Check Promo Schema
-Get Products Table
-Get Promo Tables
-11:38 AM
-
-
-Fix 
-A Database Error Occurred
-Error Number: 1054
-
-Unknown column 'refund_amount' in 'field list'
-
-SELECT `refund_amount` FROM `sales_order_return` WHERE `order_id` = '167'
-
-Filename: /var/www/ymstore/application/models/OrderResolutionModel.php
-
-Line Number: 1985 Please replace refund_amount by order_grandtotal_approved
+--form 'order_id="582"'
+ 
