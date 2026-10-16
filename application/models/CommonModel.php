@@ -948,26 +948,7 @@ class CommonModel extends CI_Model
                 ? IMAGE_URL . 'admin/admin/public/images/delivery/thumbnail/' . $details['delivery_thumb']
                 : null;
 
-            // All delivery images, if saved by the upload API
-            $deliveryImages = [];
-
-            if (!empty($details['delivery_images']) &&
-                is_array($details['delivery_images'])) {
-
-                foreach ($details['delivery_images'] as $img) {
-                    $deliveryImages[] = [
-                        'image' => !empty($img['image'])
-                            ? IMAGE_URL . 'admin/admin/public/images/delivery/' . $img['image']
-                            : null,
-
-                        'thumbnail' => !empty($img['thumbnail'])
-                            ? IMAGE_URL . 'admin/admin/public/images/delivery/thumbnail/' . $img['thumbnail']
-                            : null,
-
-                        'uploaded_at' => $img['uploaded_at'] ?? null
-                    ];
-                }
-            }
+            
 
             $order['products'][] = [
                 'product_id' => $productId,
@@ -982,8 +963,7 @@ class CommonModel extends CI_Model
                     : IMAGE_URL . 'uploads/products/thumb/no_image.png',
 
                 'delivery_image' => $deliveryImage,
-                'delivery_thumb' => $deliveryThumb,
-                'delivery_images' => $deliveryImages
+                'delivery_thumb' => $deliveryThumb
             ];
 
             $added[$productId] = true;
