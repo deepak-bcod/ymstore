@@ -54,6 +54,24 @@
 
                                 switch ($type) {
 
+                                // ----------------------------------------------------
+            // NEW: TICKET CLOSED CASE
+            // ----------------------------------------------------
+            case 'ticket_closed':
+                $title = "Résolution de commande fermée";
+                $msg   = str_replace(
+                    [
+                        "Order Resolution Ticket #",
+                        "has been marked as Close by Yellow Markets Support (@Help)."
+                    ],
+                    [
+                        "Le ticket de résolution de commande #",
+                        "a été marqué comme fermé par le support Yellow Markets (@Help)."
+                    ],
+                    $raw_msg
+                );
+                break;
+
                                     case 'helpdesk':
 
                                         $title = "Nouveau ticket d'assistance";
