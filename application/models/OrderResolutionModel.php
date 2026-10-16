@@ -1411,50 +1411,64 @@ class OrderResolutionModel extends CI_Model
      * @Help closes ticket where Shopper has a Resolution Option -> status becomes 'Close'
      */
     public function admin_close_ticket($ticket_number, $admin_id, $notes = '')
-    {
-        $res = $this->get_resolution_by_ticket_number($ticket_number);
-        if (!$res) {
-            return ['status' => false, 'message' => 'Ticket not found.'];
-        }
-
-        // State & Idempotency Guard
-        if ($res->status === 'Close (Final)') {
-            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
-        }
-        if ($res->status === 'Close') {
-            return ['status' => false, 'message' => 'Ticket is already marked as Closed.', 'requires_reload' => true];
-        }
-
-        $time = time();
-        $this->db->where('id', $res->id)->update('order_resolutions', [
-            'status'     => 'Close',
-            'closed_at'  => $time,
-            'closed_by'  => 'admin',
-            'updated_at' => $time,
-        ]);
-
-        $this->update_payout_eligibility_for_resolution($res);
-
-        $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
-
-        // Merchant receives: Order Resolution No.: [TicketNumber] - Closed
-        $this->send_ticket_closed_merchant_email($res);
-
-        // In-App Notification to Merchant
-        if (!empty($res->merchant_id)) {
-            $this->send_inapp_notification('merchant', $res->merchant_id, 'ticket_closed',
-                'Order Resolution Closed',
-                "Order Resolution Ticket #{$ticket_number} has been marked as Close by Yellow Markets Support (@Help).", $res);
-        }
-
-        // If replacement was completed, notify shopper
-        if ($res->merchant_action === 'replacement_completed') {
-            $this->send_replacement_completed_shopper_email($res);
-        }
-
-        return ['status' => true, 'message' => 'Ticket closed successfully. Merchant notified.'];
+{
+    $res = $this->get_resolution_by_ticket_number($ticket_number);
+    if (!$res) {
+        return ['status' => false, 'message' => 'Ticket not found.'];
     }
 
+    // State & Idempotency Guard
+    if ($res->status === 'Close (Final)') {
+        return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
+    }
+    if ($res->status === 'Close') {
+        return ['status' => false, 'message' => 'Ticket is already marked as Closed.', 'requires_reload' => true];
+    }
+
+    $time = time();
+    $this->db->where('id', $res->id)->update('order_resolutions', [
+        'status'     => 'Close',
+        'closed_at'  => $time,
+        'closed_by'  => 'admin',
+        'updated_at' => $time,
+    ]);
+
+    $this->update_payout_eligibility_for_resolution($res);
+
+    $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
+
+    // Merchant receives: Order Resolution No.: [TicketNumber] - Closed
+    $this->send_ticket_closed_merchant_email($res);
+
+    // In-App Notification to Merchant (Using Language Files)
+    if (!empty($res->merchant_id)) {
+        // Determine merchant language (fallback to 'english')
+        $merchant_lang = !empty($res->language) ? strtolower($res->language) : (!empty($res->merchant_lang) ? strtolower($res->merchant_lang) : 'english');
+        
+        // Normalize short codes if needed (e.g., 'fr' -> 'french', 'en' -> 'english')
+        if ($merchant_lang === 'fr') {
+            $merchant_lang = 'french';
+        } elseif ($merchant_lang === 'en') {
+            $merchant_lang = 'english';
+        }
+
+        // Load the language file ('app_lang.php' -> 'app')
+        $this->lang->load('app', $merchant_lang);
+
+        // Fetch translated strings and format the message with the ticket number
+        $title = $this->lang->line('ticket_closed_title');
+        $msg   = sprintf($this->lang->line('ticket_closed_msg'), $ticket_number);
+
+        $this->send_inapp_notification('merchant', $res->merchant_id, 'ticket_closed', $title, $msg, $res);
+    }
+
+    // If replacement was completed, notify shopper
+    if ($res->merchant_action === 'replacement_completed') {
+        $this->send_replacement_completed_shopper_email($res);
+    }
+
+    return ['status' => true, 'message' => 'Ticket closed successfully. Merchant notified.'];
+}
     /**
      * @Help finally closes a Resolution Request with no further options -> status becomes 'Close (Final)'
      */
