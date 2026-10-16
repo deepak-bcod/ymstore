@@ -174,9 +174,7 @@ $menu_disabled = ($profile_incomplete || $subscription_expired);
         <ul class="nav flex-column sub-menu pl-3">
             <!-- Link to Browse Add-ons -->
             <li class="nav-item">
-                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
-                   href="<?php echo !$menu_disabled ? base_url('addons') : 'javascript:void(0);'; ?>">
-                   Browse Add-Ons
+                
                 <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?>" 
                     href="<?php echo (!isset($profile_incomplete) || !$profile_incomplete) ? base_url('addons') : 'javascript:void(0);'; ?>">
                     <?= $this->lang->line('sidebar_browse_addons') ?>
@@ -184,9 +182,7 @@ $menu_disabled = ($profile_incomplete || $subscription_expired);
             </li>
             <!-- Link to Manage Addon -->
             <li class="nav-item">
-                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
-                   href="<?php echo !$menu_disabled ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
-                   Manage Addon
+               
                 <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?>" 
                     href="<?php echo (!isset($profile_incomplete) || !$profile_incomplete) ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
                     <?= $this->lang->line('sidebar_manage_addons') ?>
