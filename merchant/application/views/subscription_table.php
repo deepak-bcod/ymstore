@@ -13,7 +13,7 @@
 <main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
 
     <!-- Flash messages -->
-  <?php if($this->input->get('payment') === 'success'): ?>
+  <?php if($this->input->get('payment') === 'success' || $this->session->flashdata('payment') === 'success' || $this->session->flashdata('payment_status') === 'success'): ?>
     <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
         <?php echo lang('payment_success'); ?>
         <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -21,7 +21,7 @@
 <?php endif; ?>
 
 <!-- Error Message -->
-<?php if($this->input->get('payment') === 'error'): ?>
+<?php if($this->input->get('payment') === 'error' || $this->session->flashdata('payment') === 'error' || $this->session->flashdata('payment_status') === 'error'): ?>
     <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
         <?php echo lang('payment_failed'); ?>
         <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -79,16 +79,31 @@
                         
                         // Check if user has an active higher plan (e.g., Growth is active, and current loop is Starter)
                         $has_active_plan = !empty($active_plan['plan_id']);
+
+                        // Renew button should only show 30 days prior before expiry date
+                        $show_renew = false;
+                        if ($is_active && !empty($active_plan['end_date'])) {
+                            $end_ts = strtotime($active_plan['end_date']);
+                            $days_remaining = ($end_ts - time()) / 86400;
+                            // Show only if 30 days or fewer remaining before expiry
+                            if ($days_remaining <= 30) {
+                                $show_renew = true;
+                            }
+                        }
                     ?>
                         <td>
                             <?php if($is_active): ?>
                                 <span class="badge badge-success"><?php echo lang('active'); ?></span>
-                                <br><small><?php echo lang('expires'); ?>: <?= date('d M Y', strtotime($active_plan['end_date'] ?? '')); ?></small>
-                                <div class="mt-2">
-                                    <button type="button" class="btn btn-warning btn-sm font-weight-bold px-3 text-dark btn-renew" onclick="renewSubscription(<?= $plan['id']; ?>)">
-                                        <i class="fa fa-refresh"></i> <?php echo lang('renew') ?: 'Renew'; ?>
-                                    </button>
-                                </div>
+                                <?php if(!empty($active_plan['end_date'])): ?>
+                                    <br><small><?php echo lang('expires'); ?>: <?= date('d M Y', strtotime($active_plan['end_date'])); ?></small>
+                                <?php endif; ?>
+                                <?php if($show_renew): ?>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-warning btn-sm font-weight-bold px-3 text-dark btn-renew" onclick="renewSubscription(<?= $plan['id']; ?>)">
+                                            <i class="fa fa-refresh"></i> <?php echo lang('renew') ?: 'Renew'; ?>
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
                             <?php elseif($has_active_plan && $is_starter): ?>
                                 <!-- Hide select option only for the Starter plan when any plan is already active -->
                                 <span class="text-muted">-</span>
@@ -127,6 +142,11 @@ function renewSubscription(planId) {
 
     document.body.appendChild(form);
     form.submit();
+}
+
+// Clean query string from browser address bar to show clean https://mu.yellowmarkets.com/merchant/subscription
+if (window.location.search.includes('payment=')) {
+    window.history.replaceState({}, document.title, window.location.pathname);
 }
 
 setTimeout(() => {

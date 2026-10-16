@@ -107,30 +107,45 @@ class UserModel extends CI_Model
 
 	public function getShopDetailsByShopId($shop_id)
 	{
+		if (!$this->db->table_exists('fbc_users_shop')) {
+			return null;
+		}
 		$result = $this->db->get_where('fbc_users_shop', array('shop_id' => $shop_id))->row();
 		return $result;
 	}
 	
 	public function getShopDetailsByfbcuserid($fbc_user_id)
 	{
+		if (!$this->db->table_exists('fbc_users_shop')) {
+			return null;
+		}
 		$result = $this->db->get_where('fbc_users_shop', array('fbc_user_id' => $fbc_user_id))->row();
 		return $result;
 	}
 	
 	public function checkUserExistByEmail($email)
 	{
+		if (!$this->db->table_exists('fbc_users')) {
+			return 0;
+		}
 		$result = $this->db->get_where('fbc_users', array('email' => $email))->num_rows();
 		return $result;
 	}
 	
 	public function getUserByUserId($fbc_user_id)
 	{
+		if (!$this->db->table_exists('fbc_users')) {
+			return null;
+		}
 		$result = $this->db->get_where('fbc_users', array('fbc_user_id' => $fbc_user_id))->row();
 		return $result;
 	}
 	
 	public function getUserDetails($fbc_user_id, $email)
 	{
+		if (!$this->db->table_exists('fbc_users')) {
+			return null;
+		}
 		$result = $this->db->get_where('fbc_users', array('fbc_user_id' => $fbc_user_id, 'email' => $email))->row();
 		//echo $this->db->last_query();
 		return $result;
@@ -138,6 +153,9 @@ class UserModel extends CI_Model
 	
 	public function getActiveUsersWithoutDB()
     {   
+		if (!$this->db->table_exists('fbc_users') || !$this->db->table_exists('fbc_users_shop')) {
+			return array();
+		}
 		$this->db->select('FU.fbc_user_id, FUS.shop_id');
 		$this->db->from('fbc_users FU');
 		$this->db->join('fbc_users_shop FUS', 'FU.fbc_user_id = FUS.fbc_user_id');
@@ -153,7 +171,9 @@ class UserModel extends CI_Model
     }
 	
 	function updateDBName($shop_id, $db_name) {
-		
+		if (!$this->db->table_exists('fbc_users_shop')) {
+			return false;
+		}
 		$data = array('database_name' => $db_name);
 		$this->db->where('shop_id',$shop_id);
 		$this->db->update('fbc_users_shop',$data);
@@ -200,6 +220,9 @@ class UserModel extends CI_Model
 
 	public function update_fbc_users($update_array)
 	{
+		if (!$this->db->table_exists('fbc_users')) {
+			return false;
+		}
 		$this->db->where('fbc_user_id', $_SESSION['LoginID']);
 		$query = $this->db->update('fbc_users',$update_array); 
 		
@@ -208,6 +231,9 @@ class UserModel extends CI_Model
 
 	public function update_fbc_users_shop($update_array)
 	{
+		if (!$this->db->table_exists('fbc_users_shop')) {
+			return false;
+		}
 		$this->db->where('fbc_user_id', $_SESSION['LoginID']);
 		$query = $this->db->update('fbc_users_shop',$update_array); 
 		
