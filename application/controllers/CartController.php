@@ -126,64 +126,19 @@ class CartController extends CI_Controller
                 echo json_encode(array('status'=>403, 'msg'=>"Please enter all mandatory / compulsory fields."));
                 exit;
             } else {
-                $product_id = $_POST['product_id'];
-                $quantity = (int)$_POST['quantity'];
-
-                if ($quantity <= 0) {
-                    echo json_encode(array('status'=>403, 'message'=>"Invalid product quantity."));
-                    exit;
-                }
-
-                // Check stock directly from database
-                $target_pid = (!empty($_POST['conf_simple_pid']) && is_numeric($_POST['conf_simple_pid'])) ? (int)$_POST['conf_simple_pid'] : (int)$product_id;
-                $db_product = $this->db->select('id, qty, stock_qty, stock_status')
-                    ->where('id', $target_pid)
-                    ->get('products')
-                    ->row();
-
-                $available_stock = null;
-                if ($db_product) {
-                    if (isset($db_product->qty) && is_numeric($db_product->qty)) {
-                        $available_stock = (float)$db_product->qty;
-                    } elseif (isset($db_product->stock_qty) && is_numeric($db_product->stock_qty)) {
-                        $available_stock = (float)$db_product->stock_qty;
-                    }
-                    if (isset($db_product->stock_status) && (strtolower(trim($db_product->stock_status)) == 'out of stock' || strtolower(trim($db_product->stock_status)) == 'outofstock')) {
-                        $available_stock = 0;
-                    }
-                }
-
-                if ($available_stock !== null && $available_stock <= 0) {
-                    echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
-                    exit;
-                }
-
-                if ($available_stock !== null && $quantity > $available_stock) {
-                    echo json_encode(array('status'=>403, 'message'=>"Requested quantity exceeds available stock (" . (int)$available_stock . " available)."));
-                    exit;
-                }
-
+                $product_id=$_POST['product_id'];
+                $quantity=$_POST['quantity'];
                 $ResponseData = CommonRepository::basic_product_detail($product_id);
                 if (!empty($ResponseData) && isset($ResponseData) && $ResponseData->statusCode=='200') {
                     $ProductData=$ResponseData->ProductData;
 
-                    if (isset($ProductData->stock_status) && ($ProductData->stock_status !== 'Instock' && strtolower(trim($ProductData->stock_status)) !== 'instock')) {
+                    if (isset($ProductData->stock_status) && $ProductData->stock_status !== 'Instock') {
                         echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
                         exit;
                     }
-                    if ($ProductData->product_type == 'simple') {
-                        $repo_stock = null;
-                        if (isset($ProductData->qty) && is_numeric($ProductData->qty)) {
-                            $repo_stock = (float)$ProductData->qty;
-                        } elseif (isset($ProductData->total_qty) && is_numeric($ProductData->total_qty)) {
-                            $repo_stock = (float)$ProductData->total_qty;
-                        } elseif (isset($ProductData->stock_qty) && is_numeric($ProductData->stock_qty)) {
-                            $repo_stock = (float)$ProductData->stock_qty;
-                        }
-                        if ($repo_stock !== null && $repo_stock <= 0) {
-                            echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
-                            exit;
-                        }
+                    if ($ProductData->product_type == 'simple' && isset($ProductData->total_qty) && (int)$ProductData->total_qty <= 0) {
+                        echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
+                        exit;
                     }
 
                     if ($ProductData->product_type=='configurable') {
