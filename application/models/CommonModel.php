@@ -682,7 +682,7 @@ class CommonModel extends CI_Model
         return (object)['order' => (object)$order];
     }
 
-
+    /*
     public function get_delivery_order_details($driver_id, $order_id, $is_parent_level = null)
     {
         if ($is_parent_level == 1) {
@@ -805,6 +805,175 @@ class CommonModel extends CI_Model
 
         return (object)['order' => (object)$order];
     }
+    */
+
+    
+    public function get_delivery_order_details($driver_id, $order_id, $is_parent_level = null)
+    {
+        if ($is_parent_level == 1) {
+            $orderField = 'b2bodd.webshop_order_id';
+            $orderAlias = 'b2bodd.webshop_order_id AS order_id';
+            $grandTotal = 'so.grand_total';
+
+            $this->db->from('b2b_orders_delivery_details as b2bodd')
+                ->join('sales_order as so', 'b2bodd.webshop_order_id = so.order_id', 'left')
+                ->join('b2b_orders as b', 'so.order_id = b.webshop_order_id', 'left')
+                ->join('sales_order_items as oi', 'b2bodd.webshop_order_id = oi.order_id', 'left');
+        } else {
+            $orderField = 'b2bodd.order_id';
+            $orderAlias = 'b2bodd.order_id AS order_id';
+            $grandTotal = 'b.grand_total';
+
+            $this->db->from('b2b_orders_delivery_details as b2bodd')
+                ->join('b2b_orders as b', 'b2bodd.order_id = b.order_id', 'left')
+                ->join('b2b_order_items as oi', 'b2bodd.order_id = oi.order_id', 'left');
+        }
+
+        // Product joins
+        $this->db->join('products as cp', 'cp.id = oi.product_id', 'left')
+            ->join('products as pp', 'pp.id = cp.parent_id', 'left');
+
+        $this->db->select("
+            DISTINCT
+            {$orderAlias},
+            b2bodd.is_parent_level,
+            b2bodd.delivery_attempt_no,
+            b2bodd.delivery_status,
+            b2bodd.image,
+            b2bodd.thumbnail,
+            b2bodd.product_details,
+            b2bodd.remarks,
+            b.order_barcode,
+            {$grandTotal} AS grand_total,
+            oi.product_id,
+            oi.product_name,
+            oi.qty_ordered,
+            oi.price,
+            oi.total_price,
+            oi.is_fragile_flag,
+            IFNULL(pp.base_image, cp.base_image) AS base_image
+        ", false);
+
+        $this->db->where('b2bodd.delivery_type', '2')
+            ->where('b2bodd.driver_id', $driver_id)
+            ->where($orderField, $order_id)
+            ->group_by('oi.product_id');
+
+        $query = $this->db->get();
+        $result = $query->result_array();
+
+        if (empty($result)) {
+            return [];
+        }
+
+        // Decode delivery product details JSON
+        $productDetailsJson = json_decode(
+            $result[0]['product_details'] ?? '',
+            true
+        );
+
+        if (!is_array($productDetailsJson)) {
+            $productDetailsJson = [];
+        }
+
+        // Order-level data
+        $order = [
+            'order_id' => $result[0]['order_id'],
+            'is_parent_level' => $result[0]['is_parent_level'],
+            'delivery_attempt_no' => $result[0]['delivery_attempt_no'],
+            'delivery_status' => $result[0]['delivery_status'],
+            'grand_total' => $result[0]['grand_total'],
+            'order_barcode' => $result[0]['order_barcode'],
+
+            'image' => !empty($result[0]['image'])
+                ? IMAGE_URL . 'admin/admin/public/images/delivery/' . $result[0]['image']
+                : null,
+
+            'thumbnail' => !empty($result[0]['thumbnail'])
+                ? IMAGE_URL . 'admin/admin/public/images/delivery/thumbnail/' . $result[0]['thumbnail']
+                : null,
+
+            'remark' => $result[0]['remarks'],
+            'products' => []
+        ];
+
+        // Preserve parent-level associated order numbers
+        if ($is_parent_level == 1) {
+            $associated_orders = $this->db
+                ->select('order_barcode, increment_id')
+                ->where('webshop_order_id', $order_id)
+                ->order_by('order_id', 'ASC')
+                ->get('b2b_orders')
+                ->result_array();
+
+            $sub_barcodes = [];
+
+            foreach ($associated_orders as $ao) {
+                $val = !empty($ao['order_barcode'])
+                    ? trim($ao['order_barcode'])
+                    : (!empty($ao['increment_id'])
+                        ? trim($ao['increment_id'])
+                        : '');
+
+                if ($val !== '' && !in_array($val, $sub_barcodes, true)) {
+                    $sub_barcodes[] = $val;
+                }
+            }
+
+            if (!empty($sub_barcodes)) {
+                $order['order_barcode'] = implode(', ', $sub_barcodes);
+                $order['order_numbers'] = $order['order_barcode'];
+                $order['associated_order_numbers'] = $order['order_barcode'];
+            }
+        }
+
+        // Build products array and prevent duplicate products
+        $added = [];
+
+        foreach ($result as $row) {
+            $productId = $row['product_id'];
+
+            if (isset($added[$productId])) {
+                continue;
+            }
+
+            $details = $productDetailsJson[$productId] ?? [];
+
+            // Latest delivery image URLs
+            $deliveryImage = !empty($details['delivery_image'])
+                ? IMAGE_URL . 'admin/admin/public/images/delivery/' . $details['delivery_image']
+                : null;
+
+            $deliveryThumb = !empty($details['delivery_thumb'])
+                ? IMAGE_URL . 'admin/admin/public/images/delivery/thumbnail/' . $details['delivery_thumb']
+                : null;
+
+            
+
+            $order['products'][] = [
+                'product_id' => $productId,
+                'product_name' => $row['product_name'],
+                'qty_ordered' => $row['qty_ordered'],
+                'price' => $row['price'],
+                'total_price' => $row['total_price'],
+                'is_fragile_flag' => $row['is_fragile_flag'],
+
+                'base_image' => !empty($row['base_image'])
+                    ? IMAGE_URL . 'uploads/products/thumb/' . $row['base_image']
+                    : IMAGE_URL . 'uploads/products/thumb/no_image.png',
+
+                'delivery_image' => $deliveryImage,
+                'delivery_thumb' => $deliveryThumb
+            ];
+
+            $added[$productId] = true;
+        }
+
+        return (object) [
+            'order' => (object) $order
+        ];
+    }
+
 
     public function get_today_route($driver_id, $date)
     {

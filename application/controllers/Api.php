@@ -1759,62 +1759,26 @@ public function update_order_status()
 				exit;
 			}
 
-			// Decode existing product details
-			$productDetails = json_decode(
-				$deliveryDetail->product_details,
-				true
-			);
+			// Decode product_details
+			$productDetails = json_decode($deliveryDetail->product_details, true);
+			if (!is_array($productDetails)) $productDetails = [];
 
-			if (!is_array($productDetails)) {
-				$productDetails = [];
-			}
-            
-			/*
-			// Verify the product exists in the delivery details
-			if (!isset($productDetails[$product_id]) ||
-				!is_array($productDetails[$product_id])) {
-				@unlink($originalFile);
-				@unlink($thumbnailFile);
-
-				echo json_encode([
-					'flag' => 0,
-					'status' => 200,
-					'msg' => 'Product not found in delivery details.'
-				]);
-				exit;
-			}
-				*/
-
-			// Keep existing delivery images and append the new image
-			if (
-				!isset($productDetails[$product_id]['delivery_images']) ||
-				!is_array($productDetails[$product_id]['delivery_images'])
-			) {
-				$productDetails[$product_id]['delivery_images'] = [];
+			// Update product_id details
+			if (!isset($productDetails[$product_id])) {
+				$productDetails[$product_id] = [];
 			}
 
-			$imageEntry = [
-				'image' => $fileName,
-				'thumbnail' => $thumbName,
-				'uploaded_at' => date('Y-m-d H:i:s')
-			];
+			$productDetails[$product_id]['delivery_image'] = $fileName1;
+			$productDetails[$product_id]['delivery_thumb'] = $fileName2;
+			$productDetails[$product_id]['updated_at']   = date('Y-m-d H:i:s');
 
-			$productDetails[$product_id]['delivery_images'][] = $imageEntry;
-
-			// Maintain latest-image fields for compatibility
-			$productDetails[$product_id]['delivery_image'] = $fileName;
-			$productDetails[$product_id]['delivery_thumb'] = $thumbName;
-			$productDetails[$product_id]['updated_at'] = date('Y-m-d H:i:s');
-
-			// Update database
+			// Update DB
 			$updateData = [
-				'product_details' => json_encode(
-					$productDetails,
-					JSON_UNESCAPED_SLASHES
-				),
-				'updated_at' => date('Y-m-d H:i:s')
+				'product_details' => json_encode($productDetails, JSON_UNESCAPED_SLASHES),
+				'updated_at'      => date('Y-m-d H:i:s')
 			];
 
+			
 			$this->db
 				->where('id', $deliveryDetail->id);
 
