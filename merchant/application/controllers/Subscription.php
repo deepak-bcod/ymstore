@@ -72,6 +72,17 @@ class Subscription extends CI_Controller
             redirect('subscription');
         }
 
+        // If renewing currently active plan, ensure it is within 30 days prior to expiry
+        $active_plan = $this->Subscription_model->get_active_plan($publisher_id);
+        if ($active_plan && $active_plan['plan_id'] == $plan_id && !empty($active_plan['end_date'])) {
+            $days_remaining = (strtotime($active_plan['end_date']) - time()) / 86400;
+            if ($days_remaining > 30) {
+                $this->session->set_flashdata('error', 'Renewal is only available within 30 days prior to your plan expiry date.');
+                redirect('subscription');
+                return;
+            }
+        }
+
         // Create a temporary order record before redirecting to My.T
         $orderData = [
             'publisher_id' => $publisher_id,
