@@ -45,7 +45,7 @@
 								<h2 class="cod <?=$divHideCod?>"><?=lang('cod_verification_required')?></h2>
 								<h3 class="thanky <?=$divHide?>">Thank you for your Order!</h3>
 								<h4  class="thankyou-order-msg <?=$divHide?>">Your order has been successfully placed.</h4>
-								<p class="ordnum thankyou-order-msg <?=$divHide?>">Order Number: <?php echo ($increment_id!='')?'#'.$increment_id:''; ?></p><!--  class="ordnum" -->
+								<p class="ordnum thankyou-order-msg <?=$divHide?>">Order Number: <?php echo ($increment_id!='')?.$increment_id:''; ?></p><!--  class="ordnum" -->
 								<p class="thankyou-email-msg <?=$divHide?>">Tracking details will be sent to your registered email id, after your order has been dispatched.</p>
 								<a class="btn btn-primary" role="button" href="<?php echo base_url(); ?>">Continue Shopping</a>
 							</div>
