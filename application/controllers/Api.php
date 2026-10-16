@@ -1768,8 +1768,8 @@ public function update_order_status()
 				$productDetails[$product_id] = [];
 			}
 
-			$productDetails[$product_id]['delivery_image'] = $fileName1;
-			$productDetails[$product_id]['delivery_thumb'] = $fileName2;
+			$productDetails[$product_id]['delivery_image'] = $originalFile;
+			$productDetails[$product_id]['delivery_thumb'] = $thumbnailFile;
 			$productDetails[$product_id]['updated_at']   = date('Y-m-d H:i:s');
 
 			// Update DB
