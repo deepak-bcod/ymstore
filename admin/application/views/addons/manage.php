@@ -7,16 +7,7 @@
         background-color: #f8f9fc;
         min-height: 100vh;
     }
-    @media (max-width: 768px) {
-        .manage-addon-container {
-            margin-left: 0; 
-        }
-    }
-    .table thead th {
-        background-color: #ffc107 !important;
-        color: #000 !important;
-        border-color: #dee2e6;
-    }
+    
 </style>
 
 <div class="manage-addon-container">
