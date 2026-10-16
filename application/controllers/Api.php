@@ -725,12 +725,13 @@ class Api extends CI_Controller {
 	}*/
 
 	
+
 public function update_order_status()
 {
     $jwtToken = $this->input->post('token_id') ?? $this->input->get('token_id');
-    $date     = $this->input->post('date');
-    $type     = strtolower(trim((string)$this->input->post('type')));
-    $status   = (int)$this->input->post('status');
+    $date = $this->input->post('date');
+    $type = strtolower(trim((string)$this->input->post('type')));
+    $status = (int)$this->input->post('status');
     $order_id = $this->input->post('order_id');
     $is_parent_level = (int)$this->input->post('is_parent_level');
 
@@ -764,8 +765,6 @@ public function update_order_status()
     $driver_id = (int)$tokenRow->driver_id;
 
     try {
-
-        // Select pickup or delivery table
         if ($type === 'pickup') {
             $table = 'b2b_orders_pickup_details';
             $status_field = 'pickup_status';
@@ -783,10 +782,9 @@ public function update_order_status()
         }
 
         // -----------------------------------------
-        // DELIVERY: log a new delivery attempt
+        // DELIVERY: INSERT ATTEMPT
         // -----------------------------------------
         if ($type === 'delivery') {
-
             $lookup_field = ($is_parent_level === 1)
                 ? 'webshop_order_id'
                 : 'order_id';
@@ -799,13 +797,10 @@ public function update_order_status()
                 ->get('b2b_orders_delivery_details')
                 ->row();
 
-            $currentAttempt = $lastAttempt
-                ? (int)$lastAttempt->delivery_attempt_no
-                : 0;
+            $nextAttempt = $lastAttempt
+                ? ((int)$lastAttempt->delivery_attempt_no + 1)
+                : 1;
 
-            $nextAttempt = $currentAttempt + 1;
-
-            // Close previous attempt
             if ($lastAttempt) {
                 $this->db
                     ->where('id', $lastAttempt->id)
@@ -815,7 +810,6 @@ public function update_order_status()
                     ]);
             }
 
-            // Insert current attempt
             $insertData = [
                 'order_id' => ($is_parent_level === 1) ? 0 : (int)$order_id,
                 'webshop_order_id' => ($is_parent_level === 1)
@@ -845,17 +839,11 @@ public function update_order_status()
         }
 
         // -----------------------------------------
-        // UPDATE EXISTING PICKUP / DELIVERY RECORD
+        // UPDATE PICKUP / DELIVERY RECORD
         // -----------------------------------------
-        $updateData = [
-            $status_field => $status,
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
-
         $this->db->where('driver_id', $driver_id);
 
         if (!empty($order_id)) {
-
             if ($type === 'delivery' && $is_parent_level === 1) {
                 $this->db->where('webshop_order_id', $order_id);
             } else {
@@ -867,35 +855,35 @@ public function update_order_status()
             $dateObject = DateTime::createFromFormat('d-m-Y', $date);
 
             if ($dateObject) {
-                $converted_date = $dateObject->format('Y-m-d');
-                $this->db->where('DATE(created_at)', $converted_date);
+                $this->db->where(
+                    'DATE(created_at)',
+                    $dateObject->format('Y-m-d')
+                );
             }
         }
 
-        $updateSuccess = $this->db->update($table, $updateData);
+        $updateSuccess = $this->db->update($table, [
+            $status_field => $status,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+
         $affected = $this->db->affected_rows();
 
         // -----------------------------------------
-        // IF DELIVERY IS COMPLETED, UPDATE ORDERS
+        // UPDATE ORDER STATUS WHEN DELIVERED
         // -----------------------------------------
         if ($type === 'delivery' && $status === 8 && $updateSuccess) {
-
-            $this->db->reset_query();
-
             if (!empty($order_id)) {
-
-                $b2b_update = [
-                    'status' => 8,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
-
                 if ($is_parent_level === 1) {
                     $this->db->where('webshop_order_id', $order_id);
                 } else {
                     $this->db->where('order_id', $order_id);
                 }
 
-                $this->db->update('b2b_orders', $b2b_update);
+                $this->db->update('b2b_orders', [
+                    'status' => 8,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
             }
 
             $webshop_order_id = null;
@@ -903,15 +891,11 @@ public function update_order_status()
             if ($is_parent_level === 1) {
                 $webshop_order_id = $order_id;
             } else {
-                $orderDataForMain = $this->CommonModel
+                $mainOrderData = $this->CommonModel
                     ->getOrderDataByb2bOrderId($order_id);
 
-                if (
-                    $orderDataForMain &&
-                    !empty($orderDataForMain->webshop_order_id)
-                ) {
-                    $webshop_order_id =
-                        $orderDataForMain->webshop_order_id;
+                if ($mainOrderData && !empty($mainOrderData->webshop_order_id)) {
+                    $webshop_order_id = $mainOrderData->webshop_order_id;
                 }
             }
 
@@ -923,68 +907,64 @@ public function update_order_status()
         }
 
         // -----------------------------------------
-        // NOTIFICATIONS
+        // GET ORDER DETAILS FOR NOTIFICATIONS
         // -----------------------------------------
         if ($updateSuccess && $affected > 0 && !empty($order_id)) {
-
-            // This lookup returns B2B order details for child orders.
             $orderData = null;
+            $webshop_order_id = null;
 
-            if ($is_parent_level !== 1) {
+            if ($is_parent_level === 1) {
+                $webshop_order_id = $order_id;
+
+                // Get one B2B order belonging to this webshop order.
+                $orderData = $this->db
+                    ->where('webshop_order_id', $order_id)
+                    ->get('b2b_orders')
+                    ->row();
+            } else {
                 $orderData = $this->CommonModel
                     ->getOrderDataByb2bOrderId($order_id);
+
+                if ($orderData && !empty($orderData->webshop_order_id)) {
+                    $webshop_order_id = $orderData->webshop_order_id;
+                }
             }
 
-            // Get the driver name
+            // Get driver name
             $driver = $this->db
                 ->where('id', $driver_id)
                 ->get('driver_details')
                 ->row();
 
-            $driver_name = '';
-
-            if ($driver) {
-                $driver_name = trim(
-                    ($driver->first_name ?? '') . ' ' .
-                    ($driver->last_name ?? '')
-                );
-            }
+            $driver_name = $driver
+                ? trim(($driver->first_name ?? '') . ' ' . ($driver->last_name ?? ''))
+                : '';
 
             // -----------------------------------------
-            // PICKUP NOTIFICATION FOR ADMIN
+            // PICKUP: ADMIN NOTIFICATION
             // -----------------------------------------
             if (
                 $type === 'pickup' &&
                 $orderData &&
-                (int)$orderData->shipment_type === 2
+                (int)($orderData->shipment_type ?? 0) === 2
             ) {
+                $es_order_no = $orderData->order_barcode ?? $order_id;
 
-                $es_order_no = $orderData->order_barcode ?? '';
-
-                // Use the merchant/store name returned by your model.
-                $merchant_name = '';
-
-                if (!empty($orderData->merchant_name)) {
-                    $merchant_name = $orderData->merchant_name;
-                } elseif (!empty($orderData->store_name)) {
-                    $merchant_name = $orderData->store_name;
-                } elseif (!empty($orderData->publisher_name)) {
-                    $merchant_name = $orderData->publisher_name;
-                }
-
-                $title = 'Order Picked Up';
+                $merchant_name = $orderData->merchant_name
+                    ?? $orderData->store_name
+                    ?? $orderData->publisher_name
+                    ?? '';
 
                 $message = 'Order ' . $es_order_no .
                     ' is picked up by driver ' . $driver_name .
                     ' from ' . $merchant_name . ' store.';
 
-                // Insert admin notification
-                $adminNotification = [
+                $this->db->insert('notifications', [
                     'type' => 'order',
                     'subtype' => 'b2b_pickup_mobile',
                     'recipient_type' => 'admin',
                     'recipient_id' => 1,
-                    'title' => $title,
+                    'title' => 'Order Picked Up',
                     'message' => $message,
                     'data' => json_encode([
                         'order_id' => $order_id,
@@ -997,35 +977,33 @@ public function update_order_status()
                     ]),
                     'is_read' => 0,
                     'created_at' => date('Y-m-d H:i:s')
-                ];
-
-                $this->db->insert('notifications', $adminNotification);
+                ]);
             }
 
             // -----------------------------------------
-            // DELIVERY NOTIFICATION
+            // DELIVERY: ADMIN + MERCHANT + SHOPPER
             // -----------------------------------------
             if (
                 $type === 'delivery' &&
                 $status === 8 &&
                 $orderData &&
-                (int)$orderData->shipment_type === 2
+                (int)($orderData->shipment_type ?? 0) === 2
             ) {
+                $es_order_no = $orderData->order_barcode ?? $order_id;
 
                 $title = 'Order Delivered';
-
-                $message = 'Order no ' .
-                    ($orderData->order_barcode ?? $order_id) .
-                    ' is Delivered to Shopper.';
+                $message = 'Order ' . $es_order_no .
+                    ' has been delivered to the shopper.';
 
                 $subtype = 'b2b_delivery_mobile';
 
                 $notificationData = [
-                    'order_id' => $orderData->order_barcode ?? $order_id,
+                    'order_id' => $order_id,
+                    'order_barcode' => $es_order_no,
                     'source' => 'mobile'
                 ];
 
-                // Admin notification
+                // 1. ADMIN NOTIFICATION
                 $this->db->insert('notifications', [
                     'type' => 'order',
                     'subtype' => $subtype,
@@ -1038,7 +1016,7 @@ public function update_order_status()
                     'created_at' => date('Y-m-d H:i:s')
                 ]);
 
-                // Merchant notification
+                // 2. MERCHANT NOTIFICATION
                 $merchant_id = (int)($orderData->publisher_id ?? 0);
 
                 if ($merchant_id > 0) {
@@ -1054,6 +1032,43 @@ public function update_order_status()
                         'created_at' => date('Y-m-d H:i:s')
                     ]);
                 }
+
+                // 3. SHOPPER NOTIFICATION
+                // sales_order.order_id is assumed to be the webshop order ID.
+                if (!empty($webshop_order_id)) {
+                    $salesOrder = $this->db
+                        ->where('order_id', $webshop_order_id)
+                        ->get('sales_order')
+                        ->row();
+
+                    $shopper_id = (int)($salesOrder->customer_id ?? 0);
+
+                    if ($shopper_id > 0) {
+                        $this->db->insert('notifications', [
+                            'type' => 'order',
+                            'subtype' => $subtype,
+                            'recipient_type' => 'shopper',
+                            'recipient_id' => $shopper_id,
+                            'title' => 'Order Delivered',
+                            'message' => 'Your order ' . $es_order_no .
+                                ' has been delivered successfully.',
+                            'data' => json_encode([
+                                'order_id' => $order_id,
+                                'webshop_order_id' => $webshop_order_id,
+                                'order_barcode' => $es_order_no,
+                                'source' => 'mobile'
+                            ]),
+                            'is_read' => 0,
+                            'created_at' => date('Y-m-d H:i:s')
+                        ]);
+                    } else {
+                        log_message(
+                            'error',
+                            'Shopper notification not sent: customer_id missing for webshop order ' .
+                            $webshop_order_id
+                        );
+                    }
+                }
             }
         }
 
@@ -1061,21 +1076,17 @@ public function update_order_status()
         // API RESPONSE
         // -----------------------------------------
         if ($updateSuccess && $affected > 0) {
-
             echo json_encode([
                 'flag' => 1,
                 'status' => 200,
-                'msg' => ucfirst($type) .
-                    ' status updated successfully.',
+                'msg' => ucfirst($type) . ' status updated successfully.',
                 'data' => [
                     'status' => $status,
                     'orders_updated_count' => $affected,
                     'order_id' => $order_id ?? 'all'
                 ]
             ]);
-
         } else {
-
             echo json_encode([
                 'flag' => 0,
                 'status' => 200,
@@ -1085,7 +1096,6 @@ public function update_order_status()
         }
 
     } catch (Exception $e) {
-
         log_message('error', 'update_order_status error: ' . $e->getMessage());
 
         echo json_encode([
@@ -1098,6 +1108,7 @@ public function update_order_status()
 
     exit;
 }
+
 
 
 	public function pickup_proof_image_upload_details()
