@@ -1204,3 +1204,15 @@ $lang['escalation_status'] = 'Statut d\'escalade';
 
 
 $lang['sidebar_manage_addons'] = 'Gérer le module complémentaire';
+
+$lang['manage_addon_title'] = 'Gérer le module complémentaire';
+$lang['addon_sr_no'] = 'N° SR';
+$lang['addon_service'] = 'SERVICE COMPLÉMENTAIRE';
+$lang['addon_name'] = 'NOM DU MODULE';
+$lang['addon_date'] = 'DATE';
+$lang['addon_amount'] = 'MONTANT';
+$lang['addon_actions'] = 'ACTIONS';
+$lang['addon_edit'] = 'Modifier';
+$lang['addon_delete'] = 'Supprimer';
+$lang['addon_delete_confirm'] = 'Êtes-vous sûr de vouloir supprimer cet enregistrement ?';
+$lang['addon_no_records'] = 'Aucun enregistrement trouvé';

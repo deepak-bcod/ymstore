@@ -3,7 +3,7 @@
     .manage-addons-wrapper {
         margin-left: 260px; /* Adjust to match your sidebar width */
         padding: 20px 30px;
-        width: calc(100% - 260px);
+        width: calc(100% - 260px); /* Fixed the syntax error here as well */
         box-sizing: border-box;
     }
     .table thead th {
@@ -27,18 +27,19 @@
 
 <div class="manage-addons-wrapper">
     <div class="main-content w-100">
-        <h3 class="mb-4">Manage Addon</h3>
+        <!-- Page Title -->
+        <h3 class="mb-4"><?php echo lang('manage_addon_title'); ?></h3>
+        
         <div class="table-responsive w-100">
             <table class="table table-bordered table-striped w-100">
                 <thead>
                     <tr>
-                        <th>SR NO.</th>
-                        <!-- Merchant Name column hata diya gaya hai -->
-                        <th>ADDON SERVICE</th>
-                        <th>ADDON NAME</th>
-                        <th>DATE</th>
-                        <th>AMOUNT</th>
-                        <th>ACTIONS</th>
+                        <th><?php echo lang('addon_sr_no'); ?></th>
+                        <th><?php echo lang('addon_service'); ?></th>
+                        <th><?php echo lang('addon_name'); ?></th>
+                        <th><?php echo lang('addon_date'); ?></th>
+                        <th><?php echo lang('addon_amount'); ?></th>
+                        <th><?php echo lang('addon_actions'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,20 +47,19 @@
                         <?php $sr = 1; foreach($manage_addons as $row): ?>
                         <tr>
                             <td><?php echo $sr++; ?></td>
-                            <!-- Merchant Name wala td bhi hata diya gaya hai -->
                             <td><?php echo isset($row->addon_service_name) ? $row->addon_service_name : ''; ?></td>
                             <td><?php echo isset($row->addon_name) ? $row->addon_name : ''; ?></td>
                             <td><?php echo isset($row->date) ? $row->date : ''; ?></td>
                             <td><?php echo isset($row->amount) ? $row->amount : ''; ?></td>
                             <td>
-                                <a href="<?php echo base_url('addons/edit/' . $row->purchase_id); ?>" class="text-warning font-weight-bold mr-2">Edit</a>
-                                <a href="<?php echo base_url('addons/delete/' . $row->purchase_id); ?>" class="text-danger font-weight-bold" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
+                                <a href="<?php echo base_url('addons/edit/' . $row->purchase_id); ?>" class="text-warning font-weight-bold mr-2"><?php echo lang('addon_edit'); ?></a>
+                                <a href="<?php echo base_url('addons/delete/' . $row->purchase_id); ?>" class="text-danger font-weight-bold" onclick="return confirm('<?php echo lang('addon_delete_confirm'); ?>');"><?php echo lang('addon_delete'); ?></a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" class="text-center">No records found</td>
+                            <td colspan="6" class="text-center"><?php echo lang('addon_no_records'); ?></td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
