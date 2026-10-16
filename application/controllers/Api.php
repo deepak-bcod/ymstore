@@ -1663,7 +1663,8 @@ class Api extends CI_Controller {
 			if (!is_array($productDetails)) {
 				$productDetails = [];
 			}
-
+            
+			/*
 			// Verify the product exists in the delivery details
 			if (!isset($productDetails[$product_id]) ||
 				!is_array($productDetails[$product_id])) {
@@ -1677,6 +1678,7 @@ class Api extends CI_Controller {
 				]);
 				exit;
 			}
+				*/
 
 			// Keep existing delivery images and append the new image
 			if (
