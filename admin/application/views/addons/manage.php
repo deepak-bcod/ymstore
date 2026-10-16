@@ -1,10 +1,9 @@
-<?php $this->load->view('admin/header'); // Load your admin header (adjust path if needed) ?>
+<?php $this->load->view('common/fbc-user/header'); ?>
 
 <div class="container-fluid" style="padding: 20px;">
     <h2 class="mb-4">Manage Addon</h2>
 
     <div class="table-responsive">
-        <!-- Added Bootstrap table classes here -->
         <table class="table table-bordered table-striped" width="100%" cellspacing="0">
             <thead>
                 <tr style="background-color: #ffc107; color: #000;">
@@ -36,4 +35,4 @@
     </div>
 </div>
 
-<?php $this->load->view('admin/footer'); // Load your admin footer (adjust path if needed) ?>
+<?php $this->load->view('common/fbc-user/footer'); ?>
