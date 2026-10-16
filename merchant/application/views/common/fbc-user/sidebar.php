@@ -1,8 +1,8 @@
 <style>
 .link-disabled {
-    pointer-events: none;
-    opacity: 0.5;
-    cursor: not-allowed;
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
 }
 </style>
 <?php
@@ -42,9 +42,18 @@ foreach ($requiredFields as $field) {
     }
 }
 
-if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
+if ($UserDetails && $UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
     $profile_incomplete = true;
 }
+
+$CI->load->model('Subscription_model');
+$subscription_expired = false;
+$login_id = $this->session->userdata('LoginID');
+if ($login_id) {
+    $subscription_expired = $CI->Subscription_model->is_subscription_expired($login_id);
+}
+
+$menu_disabled = ($profile_incomplete || $subscription_expired);
 ?>
 
 <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"> 
@@ -56,24 +65,16 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
 
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='dashboard'))?'has-submenu show':''; ?>
-               <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
-               href="<?php echo !$profile_incomplete ? base_url('DashboardController/index') : 'javascript:void(0);' ?>">
+               <?php echo $menu_disabled ? ' link-disabled' : ''; ?>"
+               href="<?php echo !$menu_disabled ? base_url('DashboardController/index') : 'javascript:void(0);' ?>">
                <?= $this->lang->line('sidebar_dashboard') ?>
             </a>
          </li>
 
-         <!-- <li class="nav-item">
-            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='subscription'))?'has-submenu show':''; ?>
-               <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
-               href="<?php echo !$profile_incomplete ? base_url('subscription') : 'javascript:void(0);' ?>">
-              <?= $this->lang->line('sidebar_subscriptions') ?>
-            </a>
-         </li> -->
-
+         <!-- Subscription Menu (Always active so merchant can subscribe/renew) -->
          <li class="nav-item <?php echo (isset($side_menu) && ($side_menu == 'subscription')) ? 'active' : ''; ?>">
 
-   <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'subscription')) ? 'has-submenu' : 'collapsed'; ?> 
-      <?php echo $profile_incomplete ? 'link-disabled' : ''; ?>"
+   <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'subscription')) ? 'has-submenu' : 'collapsed'; ?>"
       href="#SubMenuSubscription"
       data-toggle="collapse"
       data-parent="#SubMenuSubscription">
@@ -85,14 +86,14 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
    <div class="submenu <?php echo (isset($side_menu) && ($side_menu == 'subscription')) ? 'collapse show' : 'collapse'; ?>" id="SubMenuSubscription">
 
       <!-- Subscription Plans -->
-      <a class="list-submenu <?php echo $profile_incomplete ? 'link-disabled' : ''; ?>"
-         href="<?php echo !$profile_incomplete ? base_url('subscription') : 'javascript:void(0);'; ?>">
+      <a class="list-submenu"
+         href="<?php echo base_url('subscription'); ?>">
          <?= $this->lang->line('sidebar_subscription_plans') ?>
       </a>
 
       <!-- Subscription List -->
-      <a class="list-submenu <?php echo $profile_incomplete ? 'link-disabled' : ''; ?>"
-         href="<?php echo !$profile_incomplete ? base_url('manage_subscription') : 'javascript:void(0);'; ?>">
+      <a class="list-submenu"
+         href="<?php echo base_url('manage_subscription'); ?>">
          <?= $this->lang->line('sidebar_subscription_list') ?>
       </a>
 
@@ -101,16 +102,16 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
 
          <li class="nav-item <?php echo (isset($side_menu) && in_array($side_menu,['category','warehouse','add_product','edit_product','search']))?'active':''; ?>">
             <a class="nav-link <?php echo (isset($side_menu) && in_array($side_menu,['category','warehouse','add_product','edit_product','search']))?'has-submenu collapsed':''; ?>
-               <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
-               href="<?php echo !$profile_incomplete ? '#SubMenu1' : 'javascript:void(0);'; ?>" 
-               data-toggle="collapse" data-parent="#SubMenu1">
+               <?php echo $menu_disabled ? ' link-disabled' : ''; ?>"
+               href="<?php echo !$menu_disabled ? '#SubMenu1' : 'javascript:void(0);'; ?>" 
+               <?php if(!$menu_disabled): ?>data-toggle="collapse" data-parent="#SubMenu1"<?php endif; ?>>
                <?= $this->lang->line('sidebar_cataloging') ?>
                <i class="fas fa-angle-down"></i>
             </a>
 
             <div class="submenu <?php echo (isset($side_menu) && in_array($side_menu,['category','warehouse','add_product','edit_product','search']))?'collapse show':'collapse'; ?>" id="SubMenu1">
-               <a href="<?php echo !$profile_incomplete ? base_url('seller/warehouse/') : 'javascript:void(0);'; ?>" 
-                  class="list-submenu <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" 
+               <a href="<?php echo !$menu_disabled ? base_url('seller/warehouse/') : 'javascript:void(0);'; ?>" 
+                  class="list-submenu <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
                   data-parent="#SubMenu1"><?= $this->lang->line('sidebar_product') ?></a>
             </div>
          </li>
@@ -118,9 +119,9 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
          <li class="nav-item <?php echo (isset($side_menu) && in_array($side_menu,['webShop','webshopThemes','webshopStaticBlocks','webshopPayment','webshopProductBlocks','webshopContactUs','webshopPromoTextBanners']))?'active':''; ?>">
             <?php if(empty($this->session->userdata('userPermission')) || in_array('webshop',$this->session->userdata('userPermission'))){ ?>
                <a class="nav-link <?php echo (isset($side_menu) && in_array($side_menu,['webShop','webshop','webshopThemes','webshopStaticBlocks','webshopPayment','webshopProductBlocks','webshopContactUs','webshopPromoTextBanners']))?'has-submenu collapsed':''; ?>
-                  <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
-                  href="<?php echo !$profile_incomplete ? '#SubMenu2' : 'javascript:void(0);'; ?>" 
-                  data-toggle="collapse" data-parent="#SubMenu2">
+                  <?php echo $menu_disabled ? ' link-disabled' : ''; ?>"
+                  href="<?php echo !$menu_disabled ? '#SubMenu2' : 'javascript:void(0);'; ?>" 
+                  <?php if(!$menu_disabled): ?>data-toggle="collapse" data-parent="#SubMenu2"<?php endif; ?>>
                   <?= $this->lang->line('sidebar_eshop') ?>
                   <i class="fas fa-angle-down"></i>
                </a>
@@ -128,32 +129,34 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
 
             <div class="submenu <?php echo (isset($side_menu) && in_array($side_menu,['webShop','webshop','webshopThemes','webshopStaticBlocks','webshopPayment','webshopProductBlocks','webshopContactUsRequests','webshopPromoTextBanners']))?'collapse show':'collapse'; ?>" id="SubMenu2">
                <?php if(empty($this->session->userdata('userPermission')) || in_array('webshop/orders',$this->session->userdata('userPermission'))){ ?>
-                  <a href="<?php echo !$profile_incomplete ? base_url('webshop/b2b-orders') : 'javascript:void(0);'; ?>" 
-                     class="list-submenu <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" 
+                  <a href="<?php echo !$menu_disabled ? base_url('webshop/b2b-orders') : 'javascript:void(0);'; ?>" 
+                     class="list-submenu <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
                      data-parent="#SubMenu2"><?= $this->lang->line('sidebar_orders') ?></a>
                <?php } ?>
                <?php if (empty($this->session->userdata('userPermission')) || in_array('webshop/special-pricing', $this->session->userdata('userPermission'))) { ?>
-                     <a href="<?= base_url('webshop/special-pricing') ?>" class="list-submenu" data-parent="#SubMenu2"><?= $this->lang->line('sidebar_discounts') ?></a>
+                     <a href="<?php echo !$menu_disabled ? base_url('webshop/special-pricing') : 'javascript:void(0);'; ?>" class="list-submenu <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" data-parent="#SubMenu2"><?= $this->lang->line('sidebar_discounts') ?></a>
                   <?php } ?>
             </div>
          </li>
          <li class="nav-item">
-            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'payouts')) ? 'has-submenu  show' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" href="<?php echo !$profile_incomplete ? base_url('payouts') : 'javascript:void(0);'; ?>">
+            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'payouts')) ? 'has-submenu  show' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" href="<?php echo !$menu_disabled ? base_url('payouts') : 'javascript:void(0);'; ?>">
                <?= $this->lang->line('sidebar_payouts') ?>
             </a>
          </li>
          <li class="nav-item">
-            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'webshop/return-orders')) ? 'has-submenu  show' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" href="<?php echo !$profile_incomplete ? base_url('webshop/return-orders') : 'javascript:void(0);'; ?>">
+            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'webshop/return-orders')) ? 'has-submenu  show' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" href="<?php echo !$menu_disabled ? base_url('webshop/return-orders') : 'javascript:void(0);'; ?>">
                <?= $this->lang->line('sidebar_return_replace') ?>
             </a>
          </li>
 
        <li class="nav-item">
     <!-- Main Add-On Services Menu with Submenu Toggle -->
-    <a class="nav-link <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'has-submenu show' : ''; ?> <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>" 
+    <a class="nav-link <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'has-submenu show' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
        href="javascript:void(0);" 
+       <?php if(!$menu_disabled): ?>
        data-toggle="collapse" 
-       data-target="#addonsSubmenu">
+       data-target="#addonsSubmenu"
+       <?php endif; ?>>
         <?= $this->lang->line('sidebar_addons_services') ?>
     </a>
     
@@ -162,15 +165,15 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
         <ul class="nav flex-column sub-menu">
             <!-- Link to the original Add-on Services list page -->
             <li class="nav-item">
-                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?>" 
-                   href="<?php echo !$profile_incomplete ? base_url('addons') : 'javascript:void(0);'; ?>">
+                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
+                   href="<?php echo !$menu_disabled ? base_url('addons') : 'javascript:void(0);'; ?>">
                    Browse Add-Ons
                 </a>
             </li>
             <!-- New Submenu: Manage Addon -->
             <li class="nav-item">
-                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?>" 
-                   href="<?php echo !$profile_incomplete ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
+                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
+                   href="<?php echo !$menu_disabled ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
                    Manage Addon
                 </a>
             </li>
@@ -179,11 +182,13 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
 </li>
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='mydocuments')) ? 'has-submenu show' : ''; ?>
-               <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
-               href="<?php echo !$profile_incomplete ? base_url('mydocuments') : 'javascript:void(0);'; ?>">
+               <?php echo $menu_disabled ? ' link-disabled' : ''; ?>"
+               href="<?php echo !$menu_disabled ? base_url('mydocuments') : 'javascript:void(0);'; ?>">
                <?= $this->lang->line('sidebar_my_documents') ?>
             </a>
          </li>
+
+        <!-- Help Desk Menu (Always active) -->
         <li class="nav-item <?php echo (isset($side_menu) && ($side_menu == 'help_desk')) ? 'active' : ''; ?>">
 
     <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'help_desk')) ? 'has-submenu collapsed' : ''; ?>"
@@ -213,6 +218,7 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
     </div>
 </li>
 
+<!-- Order Resolution Menu (Always active) -->
 <li class="nav-item <?php echo (isset($side_menu) && ($side_menu == 'order_resolution')) ? 'active' : ''; ?>">
     <a class="nav-link" href="<?php echo base_url('order_resolution'); ?>">
         <i class="fa fa-ticket mr-1"></i> <?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?>
@@ -221,23 +227,23 @@ if ($UserDetails->vat_status == 'registered' && empty($UserDetails->vat_no)) {
 
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='messaging')) ? 'has-submenu show' : ''; ?>
-               <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
-               href="<?php echo !$profile_incomplete ? base_url('messaging') : 'javascript:void(0);'; ?>">
+               <?php echo $menu_disabled ? ' link-disabled' : ''; ?>"
+               href="<?php echo !$menu_disabled ? base_url('messaging') : 'javascript:void(0);'; ?>">
                <?= $this->lang->line('sidebar_messaging') ?>
             </a>
          </li>
 
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='productbadges')) ? 'has-submenu show' : ''; ?>
-               <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
-               href="<?php echo !$profile_incomplete ? base_url('productbadges') : 'javascript:void(0);'; ?>">
+               <?php echo $menu_disabled ? ' link-disabled' : ''; ?>"
+               href="<?php echo !$menu_disabled ? base_url('productbadges') : 'javascript:void(0);'; ?>">
                <?= $this->lang->line('sidebar_product_badges') ?>
             </a>
          </li>
          <li class="nav-item">
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='merchantfaqs')) ? 'has-submenu show' : ''; ?>
-               <?php echo $profile_incomplete ? ' link-disabled' : ''; ?>"
-               href="<?php echo !$profile_incomplete ? base_url('merchantfaqs') : 'javascript:void(0);'; ?>">
+               <?php echo $menu_disabled ? ' link-disabled' : ''; ?>"
+               href="<?php echo !$menu_disabled ? base_url('merchantfaqs') : 'javascript:void(0);'; ?>">
               <?= $this->lang->line('sidebar_merchant_faq') ?>
             </a>
          </li>

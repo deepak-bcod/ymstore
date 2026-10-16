@@ -27,7 +27,27 @@
         <button type="button" class="close" data-dismiss="alert">&times;</button>
     </div>
 <?php endif; ?>
-    <h4 class="mt-4 mb-3"><?php echo lang('choose_subscription_plan'); ?></h4>
+
+<?php if(!empty($is_expired)): ?>
+    <div class="alert alert-danger fade show mt-3" role="alert">
+        <i class="fa fa-exclamation-triangle mr-2"></i>
+        <?= ($this->session->userdata('site_lang') == 'french') 
+            ? "Votre abonnement a expiré et votre boutique a été temporairement désactivée sur la place de marché. Veuillez renouveler votre abonnement ci-dessous pour réactiver votre boutique et restaurer l'accès complet." 
+            : "Your subscription has expired and your shop is currently disabled on the storefront. Please renew your subscription below to reactivate your shop and restore full access."; ?>
+    </div>
+<?php endif; ?>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center mt-4 mb-3">
+        <h4 class="mb-0"><?php echo lang('choose_subscription_plan'); ?></h4>
+        <?php if(!empty($is_expired)): ?>
+            <div class="text-center flex-grow-1">
+                <span class="font-weight-bold" style="color: red !important; font-size: 16px; text-decoration: underline;">
+                    <?= ($this->session->userdata('site_lang') == 'french') 
+                        ? 'Veuillez renouveler votre compte pour accéder au portail.' 
+                        : 'Please Renew your account to access the Portal.'; ?>
+                </span>
+            </div>
+        <?php endif; ?>
+    </div>
 
     <form method="post" action="<?= base_url('subscription/subscribe') ?>">
 
@@ -80,20 +100,28 @@
                         // Check if user has an active higher plan (e.g., Growth is active, and current loop is Starter)
                         $has_active_plan = !empty($active_plan['plan_id']);
 
-                        // Renew button should only show 30 days prior before expiry date
+                        // Renew button should only show 30 days prior before expiry date (or if expired)
                         $show_renew = false;
-                        if ($is_active && !empty($active_plan['end_date'])) {
-                            $end_ts = strtotime($active_plan['end_date']);
-                            $days_remaining = ($end_ts - time()) / 86400;
-                            // Show only if 30 days or fewer remaining before expiry
-                            if ($days_remaining <= 30) {
+                        if ($is_active) {
+                            if (!empty($is_expired)) {
                                 $show_renew = true;
+                            } elseif (!empty($active_plan['end_date'])) {
+                                $end_ts = strtotime($active_plan['end_date']);
+                                $days_remaining = ($end_ts - time()) / 86400;
+                                // Show only if 30 days or fewer remaining before expiry
+                                if ($days_remaining <= 30) {
+                                    $show_renew = true;
+                                }
                             }
                         }
                     ?>
                         <td>
                             <?php if($is_active): ?>
-                                <span class="badge badge-success"><?php echo lang('active'); ?></span>
+                                <?php if(!empty($is_expired)): ?>
+                                    <span class="badge badge-danger"><?php echo lang('expired') ?: 'Expired'; ?></span>
+                                <?php else: ?>
+                                    <span class="badge badge-success"><?php echo lang('active'); ?></span>
+                                <?php endif; ?>
                                 <?php if(!empty($active_plan['end_date'])): ?>
                                     <br><small><?php echo lang('expires'); ?>: <?= date('d M Y', strtotime($active_plan['end_date'])); ?></small>
                                 <?php endif; ?>

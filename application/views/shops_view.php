@@ -25,6 +25,11 @@
 								<script>window.authenticationPopup = {"autocomplete":"off","customerRegisterUrl":"http:\/\/localhost:8081\/mu\/customer\/account\/create\/","customerForgotPasswordUrl":"http:\/\/localhost:8081\/mu\/customer\/account\/forgotpassword\/","baseUrl":"http:\/\/localhost:8081\/mu\/"}</script>    <!-- ko template: getTemplate() -->
 								<!-- /ko -->	
 							</div>
+							<?php if ($this->session->flashdata('error_message')) { ?>
+								<div class="alert alert-danger" style="margin: 15px auto; max-width: 600px; text-align: center; padding: 12px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 4px;">
+									<?= $this->session->flashdata('error_message'); ?>
+								</div>
+							<?php } ?>
 							<div style="text-align:center;" class="page-title category-title">
 								<h1><?= lang('marketplace') ?></h1>
 							</div>

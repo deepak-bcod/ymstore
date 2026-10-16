@@ -8,6 +8,15 @@
 
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
         <h1 class="head-name"><?php echo $this->lang->line('subscription_list_title'); ?></h1>
+        <?php if (!empty($is_expired)): ?>
+            <div class="text-center flex-grow-1">
+                <a href="<?php echo base_url('subscription'); ?>" class="font-weight-bold" style="color: red !important; font-size: 16px; text-decoration: underline;">
+                    <?= ($this->session->userdata('site_lang') == 'french') 
+                        ? 'Veuillez renouveler votre compte pour accéder au portail.' 
+                        : 'Please Renew your account to access the Portal.'; ?>
+                </a>
+            </div>
+        <?php endif; ?>
     </div>
 
     <div class="content-main form-dashboard">

@@ -26,6 +26,10 @@ class Sellerproduct extends CI_Controller {
 
 		$this->load->model('Subscription_model');
 
+		if ($this->Subscription_model->is_subscription_expired($this->session->userdata('LoginID'))) {
+			redirect('subscription');
+		}
+
 	 	$this->load->library('image_lib');
 
 		$site_lang = $this->session->userdata('site_lang');
