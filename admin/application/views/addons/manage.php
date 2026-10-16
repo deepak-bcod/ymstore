@@ -1,12 +1,17 @@
 <?php $this->load->view('common/fbc-user/header'); ?>
 
 <style>
-    
+    .manage-addon-container {
+        margin-left: 260px; /* Adjust this value to match your sidebar's exact width */
+        padding: 20px;
+    }
+
     @media (max-width: 768px) {
         .manage-addon-container {
             margin-left: 0; 
         }
     }
+
     .table thead th {
         background-color: #ffc107 !important;
         color: #000 !important;
