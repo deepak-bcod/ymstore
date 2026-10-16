@@ -2396,7 +2396,3 @@ $lang['escalation_in_progress'] = 'Escalation In Progress';
 $lang['escalation_complete'] = 'Escalation Complete';
 $lang['escalation_request'] = 'Escalation Request';
 $lang['escalation_status'] = 'Escalation Status';
-
-
-$lang['ticket_closed_title'] = 'Order Resolution Closed';
-$lang['ticket_closed_msg']   = 'Order Resolution Ticket #%s has been marked as Close by Yellow Markets Support (@Help).';

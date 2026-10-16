@@ -1505,7 +1505,3 @@ $lang['escalation_in_progress'] = 'Escalade en cours';
 $lang['escalation_complete'] = 'Escalade terminée';
 $lang['escalation_request'] = 'Demande d\'escalade';
 $lang['escalation_status'] = 'Statut d\'escalade';
-
-
-$lang['ticket_closed_title'] = 'Résolution de commande fermée';
-$lang['ticket_closed_msg']   = 'Le ticket de résolution de commande n°%s a été marqué comme fermé par le support Yellow Markets (@Help).';

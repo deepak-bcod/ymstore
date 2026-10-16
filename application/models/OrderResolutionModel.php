@@ -523,191 +523,366 @@ class OrderResolutionModel extends CI_Model
     /**
      * Create a new Order Resolution ticket
      */
-    public function create_resolution($data)
-    {
-        $ticket_number = $this->generate_ticket_number();
-        $order_id      = (int)$data['order_id'];
-        $product_id    = (int)($data['product_id'] ?? 0);
-        $customer_id   = (int)$data['customer_id'];
-        $merchant_id   = (int)($data['merchant_id'] ?? 0);
-        $category      = $data['category'] ?? 'Others';
-        $priority      = $data['priority'] ?? 'Medium';
-        $message       = trim($data['message'] ?? '');
-        $attachment    = $data['attachment'] ?? '';
-        $ip            = $data['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? '');
-        $time          = time();
+    
+public function create_resolution($data)
+{
+    $ticket_number = $this->generate_ticket_number();
+    $order_id      = (int) $data['order_id'];
+    $product_id    = (int) ($data['product_id'] ?? 0);
+    $customer_id   = (int) $data['customer_id'];
+    $merchant_id   = (int) ($data['merchant_id'] ?? 0);
+    $category      = $data['category'] ?? 'Others';
+    $priority      = $data['priority'] ?? 'Medium';
+    $message       = trim($data['message'] ?? '');
+    $attachment    = $data['attachment'] ?? '';
+    $ip            = $data['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? '');
+    $time          = time();
 
-        // Resolve order number (increment_id)
-        $order_row = $this->db->select('increment_id, customer_email, customer_firstname, customer_lastname')
-            ->where('order_id', $order_id)->get('sales_order')->row();
-        $order_number = $order_row ? ($order_row->increment_id ?: (string)$order_id) : (string)$order_id;
+    // Resolve order number
+    $order_row = $this->db
+        ->select('increment_id, customer_email, customer_firstname, customer_lastname')
+        ->where('order_id', $order_id)
+        ->get('sales_order')
+        ->row();
 
-        // Resolve merchant if missing
-        if (empty($merchant_id) && !empty($product_id)) {
-            $p_row = $this->db->select('publisher_id')->where('id', $product_id)->get('products')->row();
-            if ($p_row && !empty($p_row->publisher_id)) {
-                $merchant_id = (int)$p_row->publisher_id;
-            }
-        }
-        if (empty($merchant_id)) {
-            $b2b_row = $this->db->select('publisher_id, order_id')->where('webshop_order_id', $order_id)->get('b2b_orders')->row();
-            if ($b2b_row && !empty($b2b_row->publisher_id)) {
-                $merchant_id = (int)$b2b_row->publisher_id;
-            }
-        }
+    $order_number = $order_row
+        ? ($order_row->increment_id ?: (string) $order_id)
+        : (string) $order_id;
 
-        // Resolve b2b_order_id and order_item_id
-        $b2b_order_id = null;
-        $order_item_id = null;
-        if (!empty($merchant_id)) {
-            $b2b_row = $this->db->select('order_id')->where('webshop_order_id', $order_id)->where('publisher_id', $merchant_id)->get('b2b_orders')->row();
-            if ($b2b_row) {
-                $b2b_order_id = $b2b_row->order_id;
-            }
-        }
-        if (!empty($product_id)) {
-            $soi_row = $this->db->select('item_id')->where('order_id', $order_id)->where('product_id', $product_id)->get('sales_order_items')->row();
-            if ($soi_row) {
-                $order_item_id = $soi_row->item_id;
-            }
-        }
+    // Resolve merchant if missing
+    if (empty($merchant_id) && !empty($product_id)) {
+        $p_row = $this->db
+            ->select('publisher_id')
+            ->where('id', $product_id)
+            ->get('products')
+            ->row();
 
-        // Calculate refund amount for resolution
-        $refund_amount = 0.00;
-        if (!empty($order_item_id)) {
-            $soi = $this->db->select('price, total_price, qty_ordered')->where('item_id', $order_item_id)->get('sales_order_items')->row();
-            if ($soi) {
-                $refund_amount = (float)($soi->total_price ?: ($soi->price * (int)($soi->qty_ordered ?: 1)));
-            } else {
-                $boi = $this->db->select('price, total_price, qty_ordered')->where('item_id', $order_item_id)->get('b2b_order_items')->row();
-                if ($boi) {
-                    $refund_amount = (float)($boi->total_price ?: ($boi->price * (int)($boi->qty_ordered ?: 1)));
-                }
-            }
+        if ($p_row && !empty($p_row->publisher_id)) {
+            $merchant_id = (int) $p_row->publisher_id;
         }
-        if ($refund_amount <= 0 && !empty($order_id) && !empty($product_id)) {
-            $soi = $this->db->select('price, total_price, qty_ordered')->where('order_id', $order_id)->where('product_id', $product_id)->get('sales_order_items')->row();
-            if ($soi) {
-                $refund_amount = (float)($soi->total_price ?: ($soi->price * (int)($soi->qty_ordered ?: 1)));
-            }
-        }
-        if ($refund_amount <= 0 && !empty($b2b_order_id) && !empty($product_id)) {
-            $boi = $this->db->select('price, total_price, qty_ordered')->where('order_id', $b2b_order_id)->where('product_id', $product_id)->get('b2b_order_items')->row();
-            if ($boi) {
-                $refund_amount = (float)($boi->total_price ?: ($boi->price * (int)($boi->qty_ordered ?: 1)));
-            }
-        }
-        if ($refund_amount <= 0 && !empty($product_id)) {
-            $prod = $this->db->select('price, special_price')->where('id', $product_id)->get('products')->row();
-            if ($prod) {
-                $refund_amount = (float)(($prod->special_price > 0) ? $prod->special_price : $prod->price);
-            }
-        }
-        if ($refund_amount <= 0 && !empty($order_id)) {
-            $so = $this->db->select('subtotal, grand_total')->where('order_id', $order_id)->get('sales_order')->row();
-            if ($so) {
-                $refund_amount = (float)($so->subtotal ?: $so->grand_total);
-            }
-        }
-
-        $resolution_data = [
-            'ticket_number'    => $ticket_number,
-            'order_id'         => $order_id,
-            'order_number'     => $order_number,
-            'product_id'       => $product_id ?: null,
-            'order_item_id'    => $order_item_id,
-            'b2b_order_id'     => $b2b_order_id,
-            'merchant_id'      => $merchant_id ?: null,
-            'customer_id'      => $customer_id,
-            'category'         => $category,
-            'priority'         => $priority,
-            'status'           => 'Open',
-            'merchant_action'  => 'none',
-            'delivery_option'  => 'none',
-            'resolution_status'=> 'none',
-            'refund_amount'    => $refund_amount,
-            'assigned_role'    => 'Help',
-            'subject'          => $data['subject'] ?? ($category . ' - ' . $order_number),
-            'message'          => $message,
-            'attachment'       => $attachment,
-            'is_active_dispute'=> 1,
-            'created_at'       => $time,
-            'updated_at'       => $time,
-            'ip'               => $ip,
-        ];
-
-        $this->db->insert('order_resolutions', $resolution_data);
-        $resolution_id = $this->db->insert_id();
-
-        if (!$resolution_id) {
-            return false;
-        }
-
-        // Immediately sync payout status (put on hold due to active resolution)
-        $this->update_payout_eligibility_for_resolution((object)$resolution_data);
-
-        // Insert initial message into order_resolution_messages
-        $shopper_name = 'Shopper';
-        if (!empty($customer_id)) {
-            $c_row = $this->db->select('first_name, last_name')->where('id', $customer_id)->get('customers')->row();
-            if ($c_row) {
-                $shopper_name = trim(($c_row->first_name ?? '') . ' ' . ($c_row->last_name ?? '')) ?: 'Shopper';
-            }
-        }
-
-        $msg_data = [
-            'resolution_id' => $resolution_id,
-            'ticket_number' => $ticket_number,
-            'sender_role'   => 'shopper',
-            'sender_id'     => $customer_id,
-            'sender_name'   => $shopper_name,
-            'message'       => $message,
-            'attachment'    => $attachment,
-            'created_at'    => $time,
-            'ip'            => $ip,
-        ];
-        if ($this->db->field_exists('conversion_type', 'order_resolution_messages')) {
-            $msg_data['conversion_type'] = 'shopper_merchant';
-        }
-        $this->db->insert('order_resolution_messages', $msg_data);
-
-        // Audit Log
-        $audit_data = [
-            'resolution_id' => $resolution_id,
-            'ticket_number' => $ticket_number,
-            'from_status'   => '',
-            'to_status'     => 'Open',
-            'action'        => 'Ticket Created',
-            'actor_role'    => 'shopper',
-            'actor_id'      => $customer_id,
-            'notes'         => 'Order resolution request submitted by shopper.',
-            'created_at'    => $time,
-        ];
-        if ($this->db->field_exists('source_panel', 'order_resolution_audit_log')) {
-            $audit_data['source_panel'] = 'shopper';
-        }
-        if ($this->db->field_exists('conversion_direction', 'order_resolution_audit_log')) {
-            $audit_data['conversion_direction'] = 'shopper_merchant';
-        }
-        $this->db->insert('order_resolution_audit_log', $audit_data);
-
-        // Order Status & Item Status remain completely separate and are never altered by resolution tickets
-
-        // Send Email Notifications
-        $this->send_creation_emails($resolution_data, $shopper_name);
-
-        // Send In-App Notifications
-        $this->send_inapp_notification('admin', 1, 'new_ticket',
-            'New Order Resolution Ticket',
-            "New Resolution Ticket #{$ticket_number} created for Order #{$order_number} by {$shopper_name}.", $resolution_data);
-        if (!empty($merchant_id)) {
-            $this->send_inapp_notification('merchant', $merchant_id, 'new_ticket',
-                'New Order Resolution Ticket',
-                "New Resolution Ticket #{$ticket_number} raised for Order #{$order_number}.", $resolution_data);
-        }
-
-        return $this->get_resolution_by_ticket_number($ticket_number);
     }
+
+    if (empty($merchant_id)) {
+        $b2b_row = $this->db
+            ->select('publisher_id, order_id')
+            ->where('webshop_order_id', $order_id)
+            ->get('b2b_orders')
+            ->row();
+
+        if ($b2b_row && !empty($b2b_row->publisher_id)) {
+            $merchant_id = (int) $b2b_row->publisher_id;
+        }
+    }
+
+    // Resolve B2B order ID and sales order item ID
+    $b2b_order_id  = null;
+    $order_item_id = null;
+
+    if (!empty($merchant_id)) {
+        $b2b_row = $this->db
+            ->select('order_id')
+            ->where('webshop_order_id', $order_id)
+            ->where('publisher_id', $merchant_id)
+            ->get('b2b_orders')
+            ->row();
+
+        if ($b2b_row) {
+            $b2b_order_id = $b2b_row->order_id;
+        }
+    }
+
+    if (!empty($product_id)) {
+        $soi_row = $this->db
+            ->select('item_id')
+            ->where('order_id', $order_id)
+            ->where('product_id', $product_id)
+            ->get('sales_order_items')
+            ->row();
+
+        if ($soi_row) {
+            $order_item_id = $soi_row->item_id;
+        }
+    }
+
+    // Calculate refund amount
+    $refund_amount = 0.00;
+
+    if (!empty($order_item_id)) {
+        $soi = $this->db
+            ->select('price, total_price, qty_ordered')
+            ->where('item_id', $order_item_id)
+            ->get('sales_order_items')
+            ->row();
+
+        if ($soi) {
+            $refund_amount = (float) (
+                $soi->total_price
+                ?: ($soi->price * (int) ($soi->qty_ordered ?: 1))
+            );
+        } else {
+            $boi = $this->db
+                ->select('price, total_price, qty_ordered')
+                ->where('item_id', $order_item_id)
+                ->get('b2b_order_items')
+                ->row();
+
+            if ($boi) {
+                $refund_amount = (float) (
+                    $boi->total_price
+                    ?: ($boi->price * (int) ($boi->qty_ordered ?: 1))
+                );
+            }
+        }
+    }
+
+    // Fallback: sales order item amount
+    if ($refund_amount <= 0 && !empty($order_id) && !empty($product_id)) {
+        $soi = $this->db
+            ->select('price, total_price, qty_ordered')
+            ->where('order_id', $order_id)
+            ->where('product_id', $product_id)
+            ->get('sales_order_items')
+            ->row();
+
+        if ($soi) {
+            $refund_amount = (float) (
+                $soi->total_price
+                ?: ($soi->price * (int) ($soi->qty_ordered ?: 1))
+            );
+        }
+    }
+
+    // Fallback: B2B order item amount
+    if ($refund_amount <= 0 && !empty($b2b_order_id) && !empty($product_id)) {
+        $boi = $this->db
+            ->select('price, total_price, qty_ordered')
+            ->where('order_id', $b2b_order_id)
+            ->where('product_id', $product_id)
+            ->get('b2b_order_items')
+            ->row();
+
+        if ($boi) {
+            $refund_amount = (float) (
+                $boi->total_price
+                ?: ($boi->price * (int) ($boi->qty_ordered ?: 1))
+            );
+        }
+    }
+
+    // Fallback: product price
+    if ($refund_amount <= 0 && !empty($product_id)) {
+        $prod = $this->db
+            ->select('price, special_price')
+            ->where('id', $product_id)
+            ->get('products')
+            ->row();
+
+        if ($prod) {
+            $refund_amount = (float) (
+                ($prod->special_price > 0)
+                    ? $prod->special_price
+                    : $prod->price
+            );
+        }
+    }
+
+    // Fallback: order total
+    if ($refund_amount <= 0 && !empty($order_id)) {
+        $so = $this->db
+            ->select('subtotal, grand_total')
+            ->where('order_id', $order_id)
+            ->get('sales_order')
+            ->row();
+
+        if ($so) {
+            $refund_amount = (float) ($so->subtotal ?: $so->grand_total);
+        }
+    }
+
+    // Prepare resolution data
+    $resolution_data = [
+        'ticket_number'     => $ticket_number,
+        'order_id'          => $order_id,
+        'order_number'      => $order_number,
+        'product_id'        => $product_id ?: null,
+        'order_item_id'     => $order_item_id,
+        'b2b_order_id'      => $b2b_order_id,
+        'merchant_id'       => $merchant_id ?: null,
+        'customer_id'       => $customer_id,
+        'category'          => $category,
+        'priority'          => $priority,
+        'status'            => 'Open',
+        'merchant_action'   => 'none',
+        'delivery_option'   => 'none',
+        'resolution_status' => 'none',
+        'refund_amount'     => $refund_amount,
+        'assigned_role'     => 'Help',
+        'subject'           => $data['subject'] ?? ($category . ' - ' . $order_number),
+        'message'           => $message,
+        'attachment'        => $attachment,
+        'is_active_dispute' => 1,
+        'created_at'        => $time,
+        'updated_at'        => $time,
+        'ip'                => $ip,
+    ];
+
+    $this->db->insert('order_resolutions', $resolution_data);
+    $resolution_id = $this->db->insert_id();
+
+    if (!$resolution_id) {
+        return false;
+    }
+
+    // Put payout on hold due to active resolution
+    $this->update_payout_eligibility_for_resolution(
+        (object) $resolution_data
+    );
+
+    // Resolve shopper name
+    $shopper_name = 'Shopper';
+
+    if (!empty($customer_id)) {
+        $c_row = $this->db
+            ->select('first_name, last_name')
+            ->where('id', $customer_id)
+            ->get('customers')
+            ->row();
+
+        if ($c_row) {
+            $shopper_name = trim(
+                ($c_row->first_name ?? '') . ' ' .
+                ($c_row->last_name ?? '')
+            ) ?: 'Shopper';
+        }
+    }
+
+    // Insert initial message
+    $msg_data = [
+        'resolution_id' => $resolution_id,
+        'ticket_number' => $ticket_number,
+        'sender_role'   => 'shopper',
+        'sender_id'     => $customer_id,
+        'sender_name'   => $shopper_name,
+        'message'       => $message,
+        'attachment'    => $attachment,
+        'created_at'    => $time,
+        'ip'            => $ip,
+    ];
+
+    if ($this->db->field_exists(
+        'conversion_type',
+        'order_resolution_messages'
+    )) {
+        $msg_data['conversion_type'] = 'shopper_merchant';
+    }
+
+    $this->db->insert('order_resolution_messages', $msg_data);
+
+    // Insert audit log
+    $audit_data = [
+        'resolution_id' => $resolution_id,
+        'ticket_number' => $ticket_number,
+        'from_status'   => '',
+        'to_status'     => 'Open',
+        'action'        => 'Ticket Created',
+        'actor_role'    => 'shopper',
+        'actor_id'      => $customer_id,
+        'notes'         => 'Order resolution request submitted by shopper.',
+        'created_at'    => $time,
+    ];
+
+    if ($this->db->field_exists(
+        'source_panel',
+        'order_resolution_audit_log'
+    )) {
+        $audit_data['source_panel'] = 'shopper';
+    }
+
+    if ($this->db->field_exists(
+        'conversion_direction',
+        'order_resolution_audit_log'
+    )) {
+        $audit_data['conversion_direction'] = 'shopper_merchant';
+    }
+
+    $this->db->insert('order_resolution_audit_log', $audit_data);
+
+    // Order status and item status are not changed by resolution tickets.
+
+    // Send email notifications
+    $this->send_creation_emails($resolution_data, $shopper_name);
+
+    // --------------------------------------------------
+    // Send bilingual in-app notifications
+    // --------------------------------------------------
+
+    // Get selected website language
+    $site_lang = $this->session->userdata('site_lang');
+
+    if (empty($site_lang)) {
+        $site_lang = 'english';
+    }
+
+    // Normalize language value
+    $site_lang = strtolower(trim($site_lang));
+
+    if ($site_lang === 'french' || $site_lang === 'fr') {
+
+        // French notification text
+        $admin_title = 'Nouveau ticket de résolution de commande';
+
+        $admin_message =
+            "Nouveau ticket de résolution #{$ticket_number} créé " .
+            "pour la commande #{$order_number} par {$shopper_name}.";
+
+        $merchant_title = 'Nouveau ticket de résolution de commande';
+
+        $merchant_message =
+            "Un nouveau ticket de résolution #{$ticket_number} " .
+            "a été créé pour la commande #{$order_number}.";
+
+    } else {
+
+        // English notification text
+        $admin_title = 'New Order Resolution Ticket';
+
+        $admin_message =
+            "New Resolution Ticket #{$ticket_number} created " .
+            "for Order #{$order_number} by {$shopper_name}.";
+
+        $merchant_title = 'New Order Resolution Ticket';
+
+        $merchant_message =
+            "New Resolution Ticket #{$ticket_number} raised " .
+            "for Order #{$order_number}.";
+    }
+
+    // Admin notification
+    $this->send_inapp_notification(
+        'admin',
+        1,
+        'new_ticket',
+        $admin_title,
+        $admin_message,
+        $resolution_data
+    );
+
+    // Merchant notification
+    if (!empty($merchant_id)) {
+        $this->send_inapp_notification(
+            'merchant',
+            $merchant_id,
+            'new_ticket',
+            $merchant_title,
+            $merchant_message,
+            $resolution_data
+        );
+    }
+
+    // Return created resolution
+    return $this->get_resolution_by_ticket_number($ticket_number);
+}
+
 
     /**
      * Deprecated / No-op: Order status and Order Item status must remain completely separate
@@ -1410,65 +1585,50 @@ class OrderResolutionModel extends CI_Model
     /**
      * @Help closes ticket where Shopper has a Resolution Option -> status becomes 'Close'
      */
-  public function admin_close_ticket($ticket_number, $admin_id, $notes = '')
-{
-    $res = $this->get_resolution_by_ticket_number($ticket_number);
-    if (!$res) {
-        return ['status' => false, 'message' => 'Ticket not found.'];
-    }
-
-    // State & Idempotency Guard
-    if ($res->status === 'Close (Final)') {
-        return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
-    }
-    if ($res->status === 'Close') {
-        return ['status' => false, 'message' => 'Ticket is already marked as Closed.', 'requires_reload' => true];
-    }
-
-    $time = time();
-    $this->db->where('id', $res->id)->update('order_resolutions', [
-        'status'     => 'Close',
-        'closed_at'  => $time,
-        'closed_by'  => 'admin',
-        'updated_at' => $time,
-    ]);
-
-    $this->update_payout_eligibility_for_resolution($res);
-
-    $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
-
-    // Merchant receives: Order Resolution No.: [TicketNumber] - Closed
-    $this->send_ticket_closed_merchant_email($res);
-
-    // In-App Notification to Merchant (Using Language Files)
-    if (!empty($res->merchant_id)) {
-        // Determine merchant language (fallback to 'english')
-        $merchant_lang = !empty($res->language) ? strtolower($res->language) : (!empty($res->merchant_lang) ? strtolower($res->merchant_lang) : 'english');
-        
-        // Normalize short codes if needed (e.g., 'fr' -> 'french', 'en' -> 'english')
-        if ($merchant_lang === 'fr') {
-            $merchant_lang = 'french';
-        } elseif ($merchant_lang === 'en') {
-            $merchant_lang = 'english';
+    public function admin_close_ticket($ticket_number, $admin_id, $notes = '')
+    {
+        $res = $this->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            return ['status' => false, 'message' => 'Ticket not found.'];
         }
 
-        // Load the language file ('app_lang.php' -> 'app')
-        $this->lang->load('app', $merchant_lang);
+        // State & Idempotency Guard
+        if ($res->status === 'Close (Final)') {
+            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
+        }
+        if ($res->status === 'Close') {
+            return ['status' => false, 'message' => 'Ticket is already marked as Closed.', 'requires_reload' => true];
+        }
 
-        // Fetch translated strings and format the message with the ticket number
-        $title = $this->lang->line('ticket_closed_title');
-        $msg   = sprintf($this->lang->line('ticket_closed_msg'), $ticket_number);
+        $time = time();
+        $this->db->where('id', $res->id)->update('order_resolutions', [
+            'status'     => 'Close',
+            'closed_at'  => $time,
+            'closed_by'  => 'admin',
+            'updated_at' => $time,
+        ]);
 
-        $this->send_inapp_notification('merchant', $res->merchant_id, 'ticket_closed', $title, $msg, $res);
+        $this->update_payout_eligibility_for_resolution($res);
+
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Close', 'Ticket Closed', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
+
+        // Merchant receives: Order Resolution No.: [TicketNumber] - Closed
+        $this->send_ticket_closed_merchant_email($res);
+
+        // In-App Notification to Merchant
+        if (!empty($res->merchant_id)) {
+            $this->send_inapp_notification('merchant', $res->merchant_id, 'ticket_closed',
+                'Order Resolution Closed',
+                "Order Resolution Ticket #{$ticket_number} has been marked as Close by Yellow Markets Support (@Help).", $res);
+        }
+
+        // If replacement was completed, notify shopper
+        if ($res->merchant_action === 'replacement_completed') {
+            $this->send_replacement_completed_shopper_email($res);
+        }
+
+        return ['status' => true, 'message' => 'Ticket closed successfully. Merchant notified.'];
     }
-
-    // If replacement was completed, notify shopper
-    if ($res->merchant_action === 'replacement_completed') {
-        $this->send_replacement_completed_shopper_email($res);
-    }
-
-    return ['status' => true, 'message' => 'Ticket closed successfully. Merchant notified.'];
-}
 
     /**
      * @Help finally closes a Resolution Request with no further options -> status becomes 'Close (Final)'
