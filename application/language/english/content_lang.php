@@ -2397,3 +2397,6 @@ $lang['escalation_complete'] = 'Escalation Complete';
 $lang['escalation_request'] = 'Escalation Request';
 $lang['escalation_status'] = 'Escalation Status';
 
+$lang['resolution_ticket_title'] = 'New Order Resolution Ticket';
+$lang['resolution_ticket_admin_message'] = 'New Resolution Ticket #%s created for Order #%s by %s.';
+$lang['resolution_ticket_merchant_message'] = 'New Resolution Ticket #%s raised for Order #%s.';
