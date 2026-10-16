@@ -375,10 +375,14 @@ $lang = $this->session->userdata('site_lang');
                                             <?php } ?>
                                         <?php } ?>
                                     <?php } else { ?>
-                                        <button class="btn btn-primary subscr-now pull-left" id="add_to_cart" type="submit"
-                                            disabled>
-                                            <?= $this->lang->line('out_of_stock_label'); ?>
-                                        </button>
+                                        <span class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;">
+                                            <?= $this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'; ?>
+                                        </span>
+                                        <?php if (!empty($customer_id) && $customer_id != 0): ?>
+                                            <button type="button" id="askQuestionBtn" class="btn btn-outline-primary">
+                                                <?= $this->lang->line('ask_a_question'); ?>
+                                            </button>
+                                        <?php endif; ?>
                                     <?php } ?>
                                     <div id="addtocart-message" class="addtocart-message"></div>
                                 </div>
@@ -1030,9 +1034,10 @@ $lang = $this->session->userdata('site_lang');
 
 
 
-                            if (simple_qty_status === "instock") {
+                            if (simple_qty_status === "instock" && parseInt(simple_qty) > 0) {
 
-                                $("#add_to_cart").prop("disabled", false);
+                                $("#add_to_cart").show().prop("disabled", false);
+                                $("#out_of_stock_btn").hide();
 
 
 
@@ -1281,6 +1286,8 @@ $lang = $this->session->userdata('site_lang');
 
 
                                     $("#quantity").attr("disabled", false);
+                                    $("#add_to_cart").show().prop("disabled", false);
+                                    $("#out_of_stock_btn").hide();
 
                                 }
 
@@ -1298,7 +1305,12 @@ $lang = $this->session->userdata('site_lang');
 
 
 
-                                $("#add_to_cart").prop("disabled", true);
+                                $("#add_to_cart").hide().prop("disabled", true);
+                                if ($("#out_of_stock_btn").length) {
+                                    $("#out_of_stock_btn").show();
+                                } else {
+                                    $("#add_to_cart").after('<span id="out_of_stock_btn" class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;">Out of Stock</span>');
+                                }
 
 
 
@@ -1316,7 +1328,12 @@ $lang = $this->session->userdata('site_lang');
 
                         } else {
 
-                            $("#add_to_cart").prop("disabled", true);
+                            $("#add_to_cart").hide().prop("disabled", true);
+                            if ($("#out_of_stock_btn").length) {
+                                $("#out_of_stock_btn").show();
+                            } else {
+                                $("#add_to_cart").after('<span id="out_of_stock_btn" class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;">Out of Stock</span>');
+                            }
 
 
 
@@ -1574,7 +1591,8 @@ $lang = $this->session->userdata('site_lang');
 
                                 if (flag == 0) {
 
-                                    $("#add_to_cart").attr("disabled", false);
+                                    $("#add_to_cart").show().attr("disabled", false);
+                                    $("#out_of_stock_btn").hide();
 
 
 
@@ -1600,7 +1618,12 @@ $lang = $this->session->userdata('site_lang');
 
 
 
-                                $("#add_to_cart").attr("disabled", true);
+                                $("#add_to_cart").hide().attr("disabled", true);
+                                if ($("#out_of_stock_btn").length) {
+                                    $("#out_of_stock_btn").show();
+                                } else {
+                                    $("#add_to_cart").after('<span id="out_of_stock_btn" class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;">Out of Stock</span>');
+                                }
 
 
 
@@ -1867,12 +1890,11 @@ $lang = $this->session->userdata('site_lang');
 
 
             submitHandler: function(form) {
-
-
+                if ($("#add_to_cart").is(':disabled') || $("#add_to_cart").is(':hidden') || $("#add_to_cart").length === 0) {
+                    return false;
+                }
 
                 $("#addtocart_error").html("");
-
-
 
                 $("#add_to_cart").attr("disabled", true);
 

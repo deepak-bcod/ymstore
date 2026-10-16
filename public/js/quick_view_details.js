@@ -274,6 +274,9 @@ function openNotifiedPopup(product_id) {
 }
 
 function Quickaddtocart() {
+  if ($("#add_to_cart").is(":disabled") || $("#add_to_cart").is(":hidden") || $("#add_to_cart").hasClass("out-of-stock") || $("#add_to_cart").length === 0) {
+    return false;
+  }
   $("#addtocart_error").html("");
   $("#add_to_cart").attr("disabled", true);
   var form_obj = $("#quick-product-frm")[0];
@@ -647,8 +650,9 @@ function GetVariantProduct() {
               $("#product-image-section").html(response.mediaGallery);
             }
 
-            if (simple_qty_status === "instock") {
-              $("#add_to_cart").prop("disabled", false);
+            if (simple_qty_status === "instock" && parseInt(simple_qty) > 0) {
+              $("#add_to_cart").show().prop("disabled", false);
+              $("#out_of_stock_btn").hide();
 
               $("#conf_simple_pid").val(simple_product_id);
 
@@ -781,7 +785,13 @@ function GetVariantProduct() {
 
               $("#quantity").attr("disabled", true);
 
-              $("#add_to_cart").prop("disabled", true);
+              $("#add_to_cart").hide().prop("disabled", true);
+
+              if ($("#out_of_stock_btn").length) {
+                $("#out_of_stock_btn").show();
+              } else {
+                $("#add_to_cart").after('<span id="out_of_stock_btn" class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;">Out of Stock</span>');
+              }
 
               $("#addtocart_error").html("Product is out of stock.");
 
@@ -790,7 +800,12 @@ function GetVariantProduct() {
               return false;
             }
           } else {
-            $("#add_to_cart").prop("disabled", true);
+            $("#add_to_cart").hide().prop("disabled", true);
+            if ($("#out_of_stock_btn").length) {
+              $("#out_of_stock_btn").show();
+            } else {
+              $("#add_to_cart").after('<span id="out_of_stock_btn" class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;">Out of Stock</span>');
+            }
 
             $("#addtocart_error").html(response.message);
 

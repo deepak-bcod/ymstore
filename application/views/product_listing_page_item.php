@@ -87,7 +87,29 @@ if ($lang == 'french' && !empty($prod->lang_title)) {
             <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('sale_ends') ? $this->lang->line('sale_ends') : 'Sale ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->flash_sale_ends_at) ? (int)$prod->flash_sale_ends_at : strtotime($prod->flash_sale_ends_at)); ?></p>
         <?php endif; ?>
 
-        <?php if ($type === 'PrelaunchListing') : ?>
+        <?php
+        $is_out_of_stock = false;
+        $product_stock = null;
+        if (isset($prod->qty) && is_numeric($prod->qty)) {
+            $product_stock = (float)$prod->qty;
+        } elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty)) {
+            $product_stock = (float)$prod->stock_qty;
+        } elseif (isset($prod->total_qty) && is_numeric($prod->total_qty)) {
+            $product_stock = (float)$prod->total_qty;
+        } elseif (isset($prod->quantity) && is_numeric($prod->quantity)) {
+            $product_stock = (float)$prod->quantity;
+        }
+
+        if ($product_stock !== null && $product_stock <= 0) {
+            $is_out_of_stock = true;
+        } elseif (isset($prod->stock_status) && (strtolower(trim($prod->stock_status)) == 'out of stock' || strtolower(trim($prod->stock_status)) == 'outofstock')) {
+            $is_out_of_stock = true;
+        }
+        ?>
+
+        <?php if ($is_out_of_stock) : ?>
+            <a href="<?= $product_url ?>" class="btn btn-default" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: pointer;"><?= $this->lang->line('out_of_stock_btn') ? $this->lang->line('out_of_stock_btn') : ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'); ?></a>
+        <?php elseif ($type === 'PrelaunchListing') : ?>
 
             <?php if ($prod->product_type === 'simple') { ?>
 

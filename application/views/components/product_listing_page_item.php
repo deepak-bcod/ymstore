@@ -183,7 +183,7 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
         <?php endif; ?>
 
         <?php if ($is_out_of_stock) : ?>
-            <a href="<?= $product_url ?>" class="btn btn-default add2cart" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: pointer;"><?= $this->lang->line('out_of_stock_btn') ? $this->lang->line('out_of_stock_btn') : ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'); ?></a>
+            <a href="<?= $product_url ?>" class="btn btn-default out-of-stock" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: pointer;"><?= $this->lang->line('out_of_stock_btn') ? $this->lang->line('out_of_stock_btn') : ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'); ?></a>
         <?php elseif ($type === 'PrelaunchListing') : ?>
             <?php if ($prod->product_type === 'simple') { ?>
                 <a href="<?= $product_url ?>" data-prelaunch="yes" <?php echo $prod->product_type; ?> data-product-id="<?php echo $prod->id; ?>" data-qty="1" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
