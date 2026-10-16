@@ -1507,6 +1507,3 @@ $lang['escalation_request'] = 'Demande d\'escalade';
 $lang['escalation_status'] = 'Statut d\'escalade';
 
 
-$lang['resolution_ticket_title'] = 'Nouveau ticket de résolution de commande';
-$lang['resolution_ticket_admin_message'] = 'Nouveau ticket de résolution #%s créé pour la commande #%s par %s.';
-$lang['resolution_ticket_merchant_message'] = 'Un nouveau ticket de résolution #%s a été créé pour la commande #%s.';
