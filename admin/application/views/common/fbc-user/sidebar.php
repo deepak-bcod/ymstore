@@ -428,42 +428,32 @@
 
 
 
-         <li class="nav-item <?php echo (isset($side_menu) && ($side_menu == 'Addons')) ? 'active' : ''; ?>">
+        <li class="nav-item <?php echo (isset($side_menu) && ($side_menu == 'Manage Addon' || $side_menu == 'Addons')) ? 'active' : ''; ?>">
+    <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'Manage Addon' || $side_menu == 'Addons')) ? 'has-submenu' : 'collapsed'; ?>" 
+       href="#SubMenuAddons" data-toggle="collapse" data-parent="#SubMenuAddons">
+       Add-ons Services
+       <i class="fas fa-angle-down"></i>
+    </a>
 
-            <a class="nav-link <?php echo (isset($side_menu) && ($side_menu == 'Addons')) ? 'has-submenu collapsed' : ''; ?>" 
+    <div class="submenu <?php echo (isset($side_menu) && ($side_menu == 'Manage Addon' || $side_menu == 'Addons')) ? 'collapse show' : 'collapse'; ?>" id="SubMenuAddons">
+       
+       <!-- Existing Addon Services Link -->
+       <a class="list-submenu <?php echo (isset($side_menu) && $side_menu == 'Addons') ? 'active' : ''; ?>" data-parent="#SubMenuAddons" href="<?php echo base_url(); ?>addons">
+             Addon Services
+       </a>
 
-               href="#SubMenuAddons" data-toggle="collapse" data-parent="#SubMenuAddons">
+       <!-- Existing Addon Categories Link -->
+       <a class="list-submenu" data-parent="#SubMenuAddons" href="<?php echo base_url(); ?>addonCategories">
+             Addon Categories
+       </a>
 
-               Add-ons Services
+       <!-- NEW: Manage Addon Link -->
+       <a class="list-submenu <?php echo (isset($side_menu) && $side_menu == 'Manage Addon') ? 'active' : ''; ?>" data-parent="#SubMenuAddons" href="<?php echo base_url(); ?>addons/manage">
+             Manage Addon
+       </a>
 
-               <i class="fas fa-angle-down"></i>
-
-            </a>
-
-
-
-            <div class="submenu <?php echo (isset($side_menu) && ($side_menu == 'Addons')) ? 'collapse show' : 'collapse'; ?>" id="SubMenuAddons">
-
-               <a class="list-submenu" data-parent="#SubMenuAddons" href="<?php echo base_url(); ?>addons">
-
-                     Addon Services
-
-               </a>
-
-               <a class="list-submenu" data-parent="#SubMenuAddons" href="<?php echo base_url(); ?>addonCategories">
-
-                     Addon Categories
-
-               </a>
-               <!-- <a class="list-submenu" data-parent="#SubMenuAddons" href="<?php echo base_url(); ?>addon-manage-service">
-             Addon Manage Service
-       </a> -->
-
-               
-
-            </div>
-
-         </li>
+    </div>
+</li>
          <li class="nav-item">
 
             <a class="nav-link <?php echo (isset($side_menu) && ($side_menu=='productbadges')) ? 'has-submenu show' : ''; ?>" 

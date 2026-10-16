@@ -94,6 +94,13 @@ class Addon_model extends CI_Model {
         return $this->db->where('id', $id)->delete($this->table);
 
     }
+    public function get_all_manage_addons() {
+        $this->db->select('addon_services.*, addon_categories.name as category_name');
+        $this->db->from('addon_services');
+        $this->db->join('addon_categories', 'addon_categories.id = addon_services.category_id', 'left');
+        $this->db->order_by('addon_services.id', 'DESC');
+        return $this->db->get()->result();
+    }
 
 }
 
