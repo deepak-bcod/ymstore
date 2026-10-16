@@ -20,7 +20,7 @@ function QuickViewProdDetails(productslug, produrl) {
   });
 }
 $(document).on("click", "#myModal .close", function () {
-    $("#myModal").modal("hide");
+  $("#myModal").modal("hide");
 });
 
 function initImageZoom() {
@@ -246,7 +246,7 @@ function openNotifiedPopup(product_id) {
           product_id: product_id,
         },
 
-        complete: function () {},
+        complete: function () { },
 
         beforeSend: function () {
           $("#notified-keep-inform").prop("disabled", true);
@@ -274,9 +274,6 @@ function openNotifiedPopup(product_id) {
 }
 
 function Quickaddtocart() {
-  if ($("#add_to_cart").is(":disabled") || $("#add_to_cart").is(":hidden") || $("#add_to_cart").hasClass("out-of-stock") || $("#add_to_cart").length === 0) {
-    return false;
-  }
   $("#addtocart_error").html("");
   $("#add_to_cart").attr("disabled", true);
   var form_obj = $("#quick-product-frm")[0];
@@ -450,16 +447,16 @@ function _GetVariantProduct() {
 
                     $(".product-price-detail").html(
                       '<span class="discounted-price special-price" id="product_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(simple_price) +
-                        '</span> <span class="special-price" id="discounted_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(special_price) +
-                        "</span>" +
-                        addition_percent_html +
-                        ""
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(simple_price) +
+                      '</span> <span class="special-price" id="discounted_price">' +
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(special_price) +
+                      "</span>" +
+                      addition_percent_html +
+                      ""
                     );
 
                     // }
@@ -474,10 +471,10 @@ function _GetVariantProduct() {
 
                     $(".product-price-detail").html(
                       '<span class="special-price" id="discounted_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(special_price) +
-                        "</span>"
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(special_price) +
+                      "</span>"
                     );
 
                     // }
@@ -493,10 +490,10 @@ function _GetVariantProduct() {
 
                   $(".product-price-detail").html(
                     '<span class="special-price" id="discounted_price">' +
-                      CURRENCY_TYPE +
-                      "&nbsp;" +
-                      numberWithCommas(special_price) +
-                      "</span>"
+                    CURRENCY_TYPE +
+                    "&nbsp;" +
+                    numberWithCommas(special_price) +
+                    "</span>"
                   );
 
                   // }
@@ -512,10 +509,10 @@ function _GetVariantProduct() {
 
                 $(".product-price-detail").html(
                   '<span class="special-price" id="product_price">' +
-                    CURRENCY_TYPE +
-                    "&nbsp;" +
-                    numberWithCommas(simple_price) +
-                    "</span>"
+                  CURRENCY_TYPE +
+                  "&nbsp;" +
+                  numberWithCommas(simple_price) +
+                  "</span>"
                 );
 
                 // }
@@ -650,9 +647,8 @@ function GetVariantProduct() {
               $("#product-image-section").html(response.mediaGallery);
             }
 
-            if (simple_qty_status === "instock" && parseInt(simple_qty) > 0) {
-              $("#add_to_cart").show().prop("disabled", false);
-              $("#out_of_stock_btn").hide();
+            if (simple_qty_status === "instock") {
+              $("#add_to_cart").prop("disabled", false);
 
               $("#conf_simple_pid").val(simple_product_id);
 
@@ -691,16 +687,16 @@ function GetVariantProduct() {
 
                     $(".product-price-detail").html(
                       '<span class="discounted-price special-price" id="product_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(simple_price) +
-                        '</span> <span class="special-price" id="discounted_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(special_price) +
-                        "</span>" +
-                        addition_percent_html +
-                        ""
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(simple_price) +
+                      '</span> <span class="special-price" id="discounted_price">' +
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(special_price) +
+                      "</span>" +
+                      addition_percent_html +
+                      ""
                     );
 
                     // }
@@ -715,10 +711,10 @@ function GetVariantProduct() {
 
                     $(".product-price-detail").html(
                       '<span class="special-price" id="discounted_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(special_price) +
-                        "</span>"
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(special_price) +
+                      "</span>"
                     );
 
                     // }
@@ -734,10 +730,10 @@ function GetVariantProduct() {
 
                   $(".product-price-detail").html(
                     '<span class="special-price" id="discounted_price">' +
-                      CURRENCY_TYPE +
-                      "&nbsp;" +
-                      numberWithCommas(special_price) +
-                      "</span>"
+                    CURRENCY_TYPE +
+                    "&nbsp;" +
+                    numberWithCommas(special_price) +
+                    "</span>"
                   );
 
                   // }
@@ -753,10 +749,10 @@ function GetVariantProduct() {
 
                 $(".product-price-detail").html(
                   '<span class="special-price" id="product_price">' +
-                    CURRENCY_TYPE +
-                    "&nbsp;" +
-                    numberWithCommas(simple_price) +
-                    "</span>"
+                  CURRENCY_TYPE +
+                  "&nbsp;" +
+                  numberWithCommas(simple_price) +
+                  "</span>"
                 );
 
                 // }
@@ -785,13 +781,7 @@ function GetVariantProduct() {
 
               $("#quantity").attr("disabled", true);
 
-              $("#add_to_cart").hide().prop("disabled", true);
-
-              if ($("#out_of_stock_btn").length) {
-                $("#out_of_stock_btn").show();
-              } else {
-                $("#add_to_cart").after('<span id="out_of_stock_btn" class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;">Out of Stock</span>');
-              }
+              $("#add_to_cart").prop("disabled", true);
 
               $("#addtocart_error").html("Product is out of stock.");
 
@@ -800,12 +790,7 @@ function GetVariantProduct() {
               return false;
             }
           } else {
-            $("#add_to_cart").hide().prop("disabled", true);
-            if ($("#out_of_stock_btn").length) {
-              $("#out_of_stock_btn").show();
-            } else {
-              $("#add_to_cart").after('<span id="out_of_stock_btn" class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;">Out of Stock</span>');
-            }
+            $("#add_to_cart").prop("disabled", true);
 
             $("#addtocart_error").html(response.message);
 

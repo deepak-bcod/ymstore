@@ -132,9 +132,7 @@
                                             <?php } ?>
                                         <?php } ?>
                                     <?php } else { ?>
-                                        <span class="btn btn-secondary subscr-now pull-left" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: not-allowed;"><?= lang('out_of_stock') ?: 'Out of Stock' ?></span>
-                                        <a href="<?php echo $productLink; ?>" class="btn btn-default subscr-moredet pull-left" target="Parent"><?= lang('more_details') ?></a>
-                                        <div class="clearfix"></div>
+                                        <button class="btn btn-primary subscr-now pull-left" id="add_to_cart" type="submit" disabled><?= lang('out_of_stock') ?></button>
                                     <?php } ?>
                                     <div id="addtocart-message" class="addtocart-message"></div>
                                 </div>
