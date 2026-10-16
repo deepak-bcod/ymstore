@@ -13,10 +13,18 @@ if (!($prod instanceof ProductPresenter) && is_object($prod)) {
 $promo = isset($active_promotion) ? $active_promotion : (is_object($prod) && method_exists($prod, 'get_active_promotion') ? $prod->get_active_promotion() : null);
 $stock = isset($stock_badge) ? $stock_badge : (is_object($prod) && method_exists($prod, 'get_stock_badge') ? $prod->get_stock_badge() : null);
 
-$is_flash_sale = ($promo && $promo->type === 'flash_sale') || ($type === 'FlashSaleListing');
-$is_daily_deal = ($promo && $promo->type === 'daily_deal') || ($type === 'DailyDealsListing');
+// Promotion detection for Daily Deals, Flash Sales, New Arrivals, and Trending Products
+$is_flash_sale = ($promo && $promo->type === 'flash_sale') 
+    || ($type === 'FlashSaleListing') 
+    || (!empty($prod->flash_sale) && $prod->flash_sale == 1) 
+    || (!empty($prod->offer_type) && $prod->offer_type === 'flash_sale');
 
-// Price options
+$is_daily_deal = ($promo && $promo->type === 'daily_deal') 
+    || ($type === 'DailyDealsListing') 
+    || (!empty($prod->daily_deals) && $prod->daily_deals == 1) 
+    || (!empty($prod->offer_type) && $prod->offer_type === 'daily_deal');
+
+// Price determination
 $price_options = [
     $prod->product_type == 'configurable' ? $prod->price_sorting_configurable : null,
     $prod->webshop_price,
@@ -42,6 +50,7 @@ if ($promo && !empty($promo->special_price)) {
     $special_price_to_show = (float)$prod->special_price;
 }
 
+// Discount percentage calculation
 $discount_percent = 0;
 if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) {
     $discount_percent = (int)$promo->discount_percent;
@@ -62,7 +71,7 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
             <img src="<?php echo $prod_image; ?>" class="img-responsive" title="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $display_name, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $display_name, ENT_QUOTES, 'UTF-8'); ?>">
         </a>
 
-        <!-- Badges inside product image at bottom -->
+        <!-- Badges inside product image at bottom (Daily Deals, New Arrivals, Trending, Flash Sales) -->
         <?php if ($is_daily_deal || $is_flash_sale || $discount_percent > 0): ?>
             <span class="pi-img-bottom-badges" style="position: absolute !important; bottom: 8px !important; left: 8px !important; right: 8px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 4px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 16px) !important; background: transparent !important;">
                 <span style="display: flex !important; align-items: center !important; gap: 4px !important;">
@@ -145,6 +154,10 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
         <?php elseif ($type === 'DailyDealsListing' && !empty($prod->daily_deal_ends_at)) : ?>
             <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('deal_ends') ? $this->lang->line('deal_ends') : 'Deal ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->daily_deal_ends_at) ? (int)$prod->daily_deal_ends_at : strtotime($prod->daily_deal_ends_at)); ?></p>
         <?php elseif ($type === 'FlashSaleListing' && !empty($prod->flash_sale_ends_at)) : ?>
+            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('sale_ends') ? $this->lang->line('sale_ends') : 'Sale ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->flash_sale_ends_at) ? (int)$prod->flash_sale_ends_at : strtotime($prod->flash_sale_ends_at)); ?></p>
+        <?php elseif (!empty($prod->daily_deal_ends_at) && $is_daily_deal) : ?>
+            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('deal_ends') ? $this->lang->line('deal_ends') : 'Deal ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->daily_deal_ends_at) ? (int)$prod->daily_deal_ends_at : strtotime($prod->daily_deal_ends_at)); ?></p>
+        <?php elseif (!empty($prod->flash_sale_ends_at) && $is_flash_sale) : ?>
             <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('sale_ends') ? $this->lang->line('sale_ends') : 'Sale ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->flash_sale_ends_at) ? (int)$prod->flash_sale_ends_at : strtotime($prod->flash_sale_ends_at)); ?></p>
         <?php endif; ?>
 
