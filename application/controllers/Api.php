@@ -1531,11 +1531,7 @@ class Api extends CI_Controller {
 			*/
 			$uploadedAt = date('Y-m-d H:i:s');
 
-			$imageRecord = [
-				'image'       => $fileName1,
-				'thumbnail'   => $fileName2,
-				'uploaded_at' => $uploadedAt
-			];
+			
 
 			/*
 			* 7. Update database
@@ -1568,45 +1564,39 @@ class Api extends CI_Controller {
 
 				$updatedOrders = [];
 
-				foreach ($esOrders as $esOrder) {
+				
+                $ordersDeliveryDetails = $this->db
+					->where('order_id', $order_id)
+					->get('b2b_orders_delivery_details')
+					->result();
 
-					/*
-					* Decode existing order_json and preserve its data.
-					*/
+				
+				// Decode order_json
+				$orderJson = json_decode($ordersDeliveryDetails->order_json, true);
+				if (!is_array($orderJson)) {
 					$orderJson = [];
+				}
 
-					if (!empty($esOrder->order_json)) {
-						$decoded = json_decode(
-							$esOrder->order_json,
-							true
-						);
-
-						if (
-							json_last_error() !== JSON_ERROR_NONE ||
-							!is_array($decoded)
-						) {
-							$this->db->trans_rollback();
-
-							throw new Exception(
-								'Invalid order_json for ES order '
-								. $esOrder->order_id
-							);
-						}
-
-						$orderJson = $decoded;
+				foreach ($esOrders as $esOrder) {
+					$esOrderId=$esOrder->order_id;
+					// Update product_id details
+					if (!isset($orderJson[$esOrderId])) {
+						$orderJson[$esOrderId] = [];
 					}
+
+					
 
 					/*
 					* Append this image to each eligible ES order.
 					*/
 					if (
-						!isset($orderJson['delivery_images']) ||
-						!is_array($orderJson['delivery_images'])
+						!isset($orderJson[$esOrderId]['delivery_images']) ||
+						!is_array($orderJson[$esOrderId]['delivery_images'])
 					) {
-						$orderJson['delivery_images'] = [];
+						$orderJson[$esOrderId]['delivery_images'] = [];
 					}
 
-					$orderJson['delivery_images'][] = $imageRecord;
+					$orderJson[$esOrderId]['delivery_images'][] = $imageRecord;
 
 					$jsonEncoded = json_encode($orderJson);
 
@@ -1617,27 +1607,24 @@ class Api extends CI_Controller {
 							'Failed to encode delivery image JSON.'
 						);
 					}
+				}
 
-					$this->db->where('order_id', $order_id);
+				$this->db->where('order_id', $order_id);
 
-					$this->db->update(
-						'b2b_orders_delivery_details',
-						[
-							'order_json' => $jsonEncoded,
-							'updated_at' => $uploadedAt
-						]
+				$this->db->update(
+					'b2b_orders_delivery_details',
+					[
+						'order_json' => $jsonEncoded,
+						'updated_at' => $uploadedAt
+					]
+				);
+
+				if ($this->db->trans_status() === false) {
+					$this->db->trans_rollback();
+
+					throw new Exception(
+						'Failed to update'
 					);
-
-					if ($this->db->trans_status() === false) {
-						$this->db->trans_rollback();
-
-						throw new Exception(
-							'Failed to update ES order '
-							. $esOrder->order_id
-						);
-					}
-
-					$updatedOrders[] = $esOrder->order_id;
 				}
 
 			} else {
