@@ -1,9 +1,8 @@
 <style>
-    /* Fixes content overlapping under the fixed sidebar and makes it full-width */
     .manage-addons-wrapper {
-        margin-left: 260px; /* Adjust to match your sidebar width */
+        margin-left: 260px; 
         padding: 20px 30px;
-        width: calc(100% - 260px); /* Fixed the syntax error here as well */
+        width: calc(100% - 260px); 
         box-sizing: border-box;
     }
     .table thead th {
@@ -27,7 +26,7 @@
 
 <div class="manage-addons-wrapper">
     <div class="main-content w-100">
-        <!-- Page Title -->
+        
         <h3 class="mb-4"><?php echo lang('manage_addon_title'); ?></h3>
         
         <div class="table-responsive w-100">
