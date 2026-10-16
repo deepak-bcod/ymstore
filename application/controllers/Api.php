@@ -1446,6 +1446,321 @@ class Api extends CI_Controller {
 		exit;
 	}
 
+	public function delivery_product_image_upload_details()
+	{
+		$jwtToken  = $this->input->post('token_id') ?? $this->input->get('token_id');
+		$image     = $this->input->post('delivery_image'); // Base64 image
+		$order_id  = $this->input->post('order_id');
+		$product_id = $this->input->post('product_id');
+
+		// Validate required parameters
+		if (empty($jwtToken)) {
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Token missing.',
+				'data' => []
+			]);
+			exit;
+		}
+
+		if (empty($order_id) || empty($product_id)) {
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Order ID and Product ID are required.',
+				'data' => []
+			]);
+			exit;
+		}
+
+		if (empty($image)) {
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Delivery image is required.',
+				'data' => []
+			]);
+			exit;
+		}
+
+		// Validate driver token
+		$tokenRow = $this->db
+			->where('token', $jwtToken)
+			->where('status', 0)
+			->get('driver_tokens')
+			->row();
+
+		if (!$tokenRow) {
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Token inactive or not found.',
+				'data' => []
+			]);
+			exit;
+		}
+
+		$driver_id = $tokenRow->driver_id;
+
+		try {
+			// Decode base64 image
+			$ext = 'jpg';
+
+			if (preg_match(
+				'/^data:image\/(jpeg|jpg|png|webp);base64,/i',
+				$image,
+				$match
+			)) {
+				$ext = strtolower($match[1]);
+				$ext = ($ext === 'jpeg') ? 'jpg' : $ext;
+
+				$image = preg_replace(
+					'/^data:image\/(jpeg|jpg|png|webp);base64,/i',
+					'',
+					$image
+				);
+			}
+
+			$imageData = base64_decode($image, true);
+
+			if ($imageData === false || empty($imageData)) {
+				echo json_encode([
+					'flag' => 0,
+					'status' => 200,
+					'msg' => 'Invalid base64 image.'
+				]);
+				exit;
+			}
+
+			// Verify that the decoded content is actually an image
+			$imageInfo = @getimagesizefromstring($imageData);
+
+			if ($imageInfo === false) {
+				echo json_encode([
+					'flag' => 0,
+					'status' => 200,
+					'msg' => 'Invalid image file.'
+				]);
+				exit;
+			}
+
+			$allowedTypes = [
+				IMAGETYPE_JPEG => 'jpg',
+				IMAGETYPE_PNG  => 'png',
+				IMAGETYPE_WEBP => 'webp'
+			];
+
+			if (!isset($allowedTypes[$imageInfo[2]])) {
+				echo json_encode([
+					'flag' => 0,
+					'status' => 200,
+					'msg' => 'Only JPG, PNG and WebP images are allowed.'
+				]);
+				exit;
+			}
+
+			// Use the actual image type
+			$ext = $allowedTypes[$imageInfo[2]];
+
+			// Delivery image directories
+			$mainPath = SIS_SERVER_PATH .
+				'/admin/admin/public/images/delivery/';
+
+			$thumbPath = $mainPath . 'thumbnail/';
+
+			if (!is_dir($mainPath) &&
+				!mkdir($mainPath, 0755, true) &&
+				!is_dir($mainPath)) {
+				throw new Exception('Unable to create delivery image directory.');
+			}
+
+			if (!is_dir($thumbPath) &&
+				!mkdir($thumbPath, 0755, true) &&
+				!is_dir($thumbPath)) {
+				throw new Exception('Unable to create thumbnail directory.');
+			}
+
+			// Generate unique filenames
+			$uniqueId = bin2hex(random_bytes(8));
+
+			$fileName = 'delivery_' . $driver_id . '_' .
+				time() . '_' . $uniqueId . '.' . $ext;
+
+			$thumbName = 'delivery_' . $driver_id . '_' .
+				time() . '_' . $uniqueId . '_thumb.' . $ext;
+
+			$originalFile = $mainPath . $fileName;
+			$thumbnailFile = $thumbPath . $thumbName;
+
+			// Save original image
+			if (file_put_contents($originalFile, $imageData) === false) {
+				throw new Exception('Unable to save delivery image.');
+			}
+
+			// Fix orientation using your existing helper
+			if (method_exists($this, '_fix_image_orientation')) {
+				$this->_fix_image_orientation($originalFile);
+			}
+
+			// Create thumbnail
+			if (!copy($originalFile, $thumbnailFile)) {
+				@unlink($originalFile);
+				throw new Exception('Unable to create delivery thumbnail.');
+			}
+
+			$config = [
+				'image_library'  => 'gd2',
+				'source_image'   => $thumbnailFile,
+				'new_image'      => $thumbnailFile,
+				'maintain_ratio' => TRUE,
+				'width'          => 150,
+				'height'         => 150
+			];
+
+			$this->load->library('image_lib', $config);
+
+			if (!$this->image_lib->resize()) {
+				$error = strip_tags($this->image_lib->display_errors('', ''));
+				$this->image_lib->clear();
+
+				@unlink($originalFile);
+				@unlink($thumbnailFile);
+
+				throw new Exception(
+					'Thumbnail resize failed: ' . $error
+				);
+			}
+
+			$this->image_lib->clear();
+
+			// Find delivery detail for this driver and order
+			// Assumes the delivery table is b2b_orders_delivery_details.
+			$deliveryDetail = $this->db
+				->where('driver_id', $driver_id)
+				->where('order_id', $order_id)
+				->get('b2b_orders_delivery_details')
+				->row();
+
+			if (!$deliveryDetail) {
+				@unlink($originalFile);
+				@unlink($thumbnailFile);
+
+				echo json_encode([
+					'flag' => 0,
+					'status' => 200,
+					'msg' => 'Delivery detail not found for this order.'
+				]);
+				exit;
+			}
+
+			// Decode existing product details
+			$productDetails = json_decode(
+				$deliveryDetail->product_details,
+				true
+			);
+
+			if (!is_array($productDetails)) {
+				$productDetails = [];
+			}
+
+			// Verify the product exists in the delivery details
+			if (!isset($productDetails[$product_id]) ||
+				!is_array($productDetails[$product_id])) {
+				@unlink($originalFile);
+				@unlink($thumbnailFile);
+
+				echo json_encode([
+					'flag' => 0,
+					'status' => 200,
+					'msg' => 'Product not found in delivery details.'
+				]);
+				exit;
+			}
+
+			// Keep existing delivery images and append the new image
+			if (
+				!isset($productDetails[$product_id]['delivery_images']) ||
+				!is_array($productDetails[$product_id]['delivery_images'])
+			) {
+				$productDetails[$product_id]['delivery_images'] = [];
+			}
+
+			$imageEntry = [
+				'image' => $fileName,
+				'thumbnail' => $thumbName,
+				'uploaded_at' => date('Y-m-d H:i:s')
+			];
+
+			$productDetails[$product_id]['delivery_images'][] = $imageEntry;
+
+			// Maintain latest-image fields for compatibility
+			$productDetails[$product_id]['delivery_image'] = $fileName;
+			$productDetails[$product_id]['delivery_thumb'] = $thumbName;
+			$productDetails[$product_id]['updated_at'] = date('Y-m-d H:i:s');
+
+			// Update database
+			$updateData = [
+				'product_details' => json_encode(
+					$productDetails,
+					JSON_UNESCAPED_SLASHES
+				),
+				'updated_at' => date('Y-m-d H:i:s')
+			];
+
+			$this->db
+				->where('id', $deliveryDetail->id);
+
+			$success = $this->db->update(
+				'b2b_orders_delivery_details',
+				$updateData
+			);
+
+			if ($success && $this->db->affected_rows() >= 0) {
+				echo json_encode([
+					'flag' => 1,
+					'status' => 200,
+					'msg' => 'Delivery image uploaded successfully.',
+					'order_id' => $order_id,
+					'product_id' => $product_id,
+					'image_url' => BASE_URL .
+						'admin/admin/public/images/delivery/' . $fileName,
+					'thumb_url' => BASE_URL .
+						'admin/admin/public/images/delivery/thumbnail/' . $thumbName
+				]);
+			} else {
+				log_message(
+					'error',
+					'Delivery image DB update failed: ' . $this->db->last_query()
+				);
+
+				@unlink($originalFile);
+				@unlink($thumbnailFile);
+
+				echo json_encode([
+					'flag' => 0,
+					'status' => 200,
+					'msg' => 'Failed to update delivery image.'
+				]);
+			}
+
+		} catch (Exception $e) {
+			log_message(
+				'error',
+				'Delivery image upload error: ' . $e->getMessage()
+			);
+
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Unable to upload delivery image.'
+			]);
+		}
+
+		exit;
+	}
+
+
 public function update_failed_attempt()
 {
     $jwtToken        = $this->input->post('token_id') ?? $this->input->get('token_id');
