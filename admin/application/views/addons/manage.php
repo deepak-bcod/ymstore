@@ -1,8 +1,11 @@
-<div class="container-fluid">
-    <h2 class="mb-4" style="margin-top: 20px;">Manage Addon</h2>
+<?php $this->load->view('admin/header'); // Load your admin header (adjust path if needed) ?>
+
+<div class="container-fluid" style="padding: 20px;">
+    <h2 class="mb-4">Manage Addon</h2>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-striped">
+        <!-- Added Bootstrap table classes here -->
+        <table class="table table-bordered table-striped" width="100%" cellspacing="0">
             <thead>
                 <tr style="background-color: #ffc107; color: #000;">
                     <th>ID</th>
@@ -32,3 +35,5 @@
         </table>
     </div>
 </div>
+
+<?php $this->load->view('admin/footer'); // Load your admin footer (adjust path if needed) ?>
