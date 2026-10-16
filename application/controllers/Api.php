@@ -1553,13 +1553,9 @@ class Api extends CI_Controller {
 				* - order_id identifies the individual ES order.
 				* - id is the primary key of the delivery-details table.
 				*/
-				$this->db
-					->where('webshop_order_id', $order_id)
-					->where('driver_id', $driver_id)
-					->where_in('delivery_status', [1, 3]);
-
 				$esOrders = $this->db
-					->get('b2b_orders_delivery_details')
+					->where('webshop_order_id', $order_id)
+					->get('b2b_orders')
 					->result();
 
 				if (empty($esOrders)) {
@@ -1623,9 +1619,8 @@ class Api extends CI_Controller {
 					}
 
 					$this->db
-						->where('id', $esOrder->id)
 						->where('driver_id', $driver_id)
-						->where('webshop_order_id', $order_id);
+						->where('order_id', $order_id);
 
 					$this->db->update(
 						'b2b_orders_delivery_details',
