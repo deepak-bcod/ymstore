@@ -461,6 +461,49 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                             </a>
 
+                                            <?php
+                                            $is_out_of_stock = false;
+                                            $product_stock = null;
+                                            if (isset($p->qty) && is_numeric($p->qty)) {
+                                                $product_stock = (float)$p->qty;
+                                            } elseif (isset($p->stock_qty) && is_numeric($p->stock_qty)) {
+                                                $product_stock = (float)$p->stock_qty;
+                                            } elseif (isset($p->total_qty) && is_numeric($p->total_qty)) {
+                                                $product_stock = (float)$p->total_qty;
+                                            } elseif (isset($p->quantity) && is_numeric($p->quantity)) {
+                                                $product_stock = (float)$p->quantity;
+                                            }
+
+                                            if ($product_stock !== null && $product_stock <= 0) {
+                                                $is_out_of_stock = true;
+                                            } elseif (isset($p->stock_status) && (strtolower(trim($p->stock_status)) == 'out of stock' || strtolower(trim($p->stock_status)) == 'outofstock')) {
+                                                $is_out_of_stock = true;
+                                            }
+
+                                            $regular_price = !empty($p->webshop_price) ? (float)$p->webshop_price : 0;
+                                            $special_price = !empty($p->special_price) ? (float)$p->special_price : 0;
+                                            $discount_percent = 0;
+                                            if ($special_price > 0 && $regular_price > $special_price) {
+                                                $discount_percent = (int)round((($regular_price - $special_price) / $regular_price) * 100);
+                                            }
+                                            ?>
+
+                                            <!-- Badges inside product image at bottom (Daily Deals, Discount Pill, Out of Stock) -->
+                                            <span class="pi-img-bottom-badges" style="position: absolute !important; bottom: 8px !important; left: 8px !important; right: 8px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 4px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 16px) !important; background: transparent !important;">
+                                                <span style="display: flex !important; align-items: center !important; gap: 4px !important;">
+                                                    <?php if ($is_out_of_stock): ?>
+                                                        <span class="badge-out-of-stock" style="background-color: #dc3545 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 9px !important; border-radius: 12px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">OUT OF STOCK</span>
+                                                    <?php else: ?>
+                                                        <span class="badge-deal-daily" style="background-color: #f7b928 !important; color: #1a1a1a !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 9px !important; border-radius: 12px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">★ DAILY DEAL</span>
+                                                    <?php endif; ?>
+                                                </span>
+
+                                                <?php if ($discount_percent > 0 && !$is_out_of_stock): ?>
+                                                    <span style="margin-left: auto !important; display: inline-block !important;">
+                                                        <span class="badge-discount-pill" style="background-color: #e52525 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 8px !important; border-radius: 12px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">-<?= $discount_percent ?>%</span>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </span>
 
                                         </div>
 
