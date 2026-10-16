@@ -601,14 +601,24 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                           
                                             <div class="view-product-wrapper">
-                                                <a
-                                                    href="<?php echo BASE_URL . 'product-detail/' . $p->url_key; ?>"
-                                                    class="view-product-btn"
-                                                >
-                                                    <?php
-                                                    echo $this->lang->line('view_details');
-                                                    ?>
-                                                </a>
+                                                <?php if ($is_out_of_stock): ?>
+                                                    <a
+                                                        href="<?php echo BASE_URL . 'product-detail/' . $p->url_key; ?>"
+                                                        class="view-product-btn"
+                                                        style="background-color: #6c757d; border-color: #6c757d; color: #ffffff;"
+                                                    >
+                                                        <?php echo $this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'; ?>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a
+                                                        href="<?php echo BASE_URL . 'product-detail/' . $p->url_key; ?>"
+                                                        class="view-product-btn"
+                                                    >
+                                                        <?php
+                                                        echo $this->lang->line('view_details');
+                                                        ?>
+                                                    </a>
+                                                <?php endif; ?>
                                             </div>
 
 

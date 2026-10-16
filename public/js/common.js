@@ -596,6 +596,17 @@ function RemoveCartItem(item_id) {
 
 
 function addToCart(el) {
+  if ($(el).is(':disabled') || $(el).hasClass('disabled') || $(el).hasClass('out-of-stock')) {
+    return false;
+  }
+
+  var stock = $(el).attr("data-stock");
+  if (typeof stock !== "undefined" && stock !== false && parseInt(stock) <= 0) {
+    if (typeof swal !== "undefined") {
+      swal(typeof LANG !== "undefined" && LANG.error ? LANG.error : "Error", "Product is out of stock.", "error");
+    }
+    return false;
+  }
 
   var product_id = $(el).attr("data-product-id");
 
