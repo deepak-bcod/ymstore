@@ -452,10 +452,66 @@ class Api extends CI_Controller {
 			exit;
 		}
 		$driver_id = $tokenRow->driver_id; // ✅ correct
-		// print_r($driver_id);die;
 
 		try {
 			$data = $this->CommonModel->get_delivery_order_details($driver_id,$order_id,$is_parent_level);
+
+			// Retrieve and group delivery images by Order ID
+			$deliveryImagesByOrder = [];
+			$ordersImageList = [];
+			$allDeliveryImages = [];
+
+			$this->db->select('b2bodd.id, b2bodd.order_id, b2bodd.webshop_order_id, b2bodd.image, b2bodd.thumbnail, b2bodd.order_json, b2bodd.updated_at, b.order_barcode')
+				->from('b2b_orders_delivery_details as b2bodd')
+				->join('b2b_orders as b', 'b2bodd.order_id = b.order_id', 'left')
+				->where('b2bodd.driver_id', $driver_id);
+
+			if ((string)$is_parent_level === '1') {
+				$this->db->where('b2bodd.webshop_order_id', $order_id);
+			} else {
+				$this->db->where('b2bodd.order_id', $order_id);
+			}
+
+			$deliveryRows = $this->db->order_by('b2bodd.order_id ASC, b2bodd.id ASC')->get()->result_array();
+
+			foreach ($deliveryRows as $row) {
+				$subOrderId = (string)$row['order_id'];
+				$orderBarcode = $row['order_barcode'] ?? '';
+				$rowImages = $this->_extract_delivery_images_from_row($row);
+
+				if (!isset($deliveryImagesByOrder[$subOrderId])) {
+					$deliveryImagesByOrder[$subOrderId] = [];
+				}
+				$deliveryImagesByOrder[$subOrderId] = array_merge($deliveryImagesByOrder[$subOrderId], $rowImages);
+
+				$ordersImageList[] = [
+					'order_id'      => $subOrderId,
+					'order_barcode' => $orderBarcode,
+					'total_images'  => count($rowImages),
+					'images'        => $rowImages
+				];
+
+				$allDeliveryImages = array_merge($allDeliveryImages, $rowImages);
+			}
+
+			if (!empty($data) && is_object($data) && isset($data->order)) {
+				$data->order->delivery_images_by_order = $deliveryImagesByOrder;
+				$data->order->orders_delivery_images   = $ordersImageList;
+				$data->order->delivery_images          = $deliveryImagesByOrder[(string)$order_id] ?? $allDeliveryImages;
+				$data->order->total_delivery_images    = count($data->order->delivery_images);
+
+				// Ensure latest image and thumbnail are also present for backward compatibility
+				if (!empty($allDeliveryImages)) {
+					$latestImg = end($allDeliveryImages);
+					if (empty($data->order->image)) {
+						$data->order->image = $latestImg['image_url'];
+					}
+					if (empty($data->order->thumbnail)) {
+						$data->order->thumbnail = $latestImg['thumb_url'];
+					}
+				}
+			}
+
 			echo json_encode([
 				'flag' => !empty($data) ? 1 : 0,
 				'status' => 200,
@@ -471,6 +527,97 @@ class Api extends CI_Controller {
 			]);
 		}
 		exit;
+	}
+
+	public function get_delivery_images()
+	{
+		header('Content-Type: application/json');
+
+		$jwtToken = $this->input->post('token_id') ?? $this->input->get('token_id');
+		$order_id = $this->input->post('order_id') ?? $this->input->get('order_id');
+		$is_parent_level = $this->input->post('is_parent_level') ?? $this->input->get('is_parent_level');
+
+		if (empty($jwtToken)) {
+			echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'Token missing.', 'data' => []]);
+			return;
+		}
+
+		if (empty($order_id)) {
+			echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'Order ID is required.', 'data' => []]);
+			return;
+		}
+
+		$tokenRow = $this->db->where('token', $jwtToken)
+							->where('status', 0)
+							->get('driver_tokens')
+							->row();
+
+		if (!$tokenRow) {
+			echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'Token inactive or not found.', 'data' => []]);
+			return;
+		}
+
+		$driver_id = $tokenRow->driver_id;
+
+		try {
+			$this->db->select('b2bodd.id, b2bodd.order_id, b2bodd.webshop_order_id, b2bodd.image, b2bodd.thumbnail, b2bodd.order_json, b2bodd.updated_at, b.order_barcode')
+				->from('b2b_orders_delivery_details as b2bodd')
+				->join('b2b_orders as b', 'b2bodd.order_id = b.order_id', 'left')
+				->where('b2bodd.driver_id', $driver_id);
+
+			if ((string)$is_parent_level === '1') {
+				$this->db->where('b2bodd.webshop_order_id', $order_id);
+			} else {
+				$this->db->where('b2bodd.order_id', $order_id);
+			}
+
+			$rows = $this->db->order_by('b2bodd.order_id ASC, b2bodd.id ASC')->get()->result_array();
+
+			$deliveryImagesByOrder = [];
+			$ordersList = [];
+			$allImages = [];
+
+			foreach ($rows as $row) {
+				$subOrderId = (string)$row['order_id'];
+				$orderBarcode = $row['order_barcode'] ?? '';
+				$rowImages = $this->_extract_delivery_images_from_row($row);
+
+				if (!isset($deliveryImagesByOrder[$subOrderId])) {
+					$deliveryImagesByOrder[$subOrderId] = [];
+				}
+				$deliveryImagesByOrder[$subOrderId] = array_merge($deliveryImagesByOrder[$subOrderId], $rowImages);
+
+				$ordersList[] = [
+					'order_id'      => $subOrderId,
+					'order_barcode' => $orderBarcode,
+					'total_images'  => count($rowImages),
+					'images'        => $rowImages
+				];
+
+				$allImages = array_merge($allImages, $rowImages);
+			}
+
+			echo json_encode([
+				'flag'   => 1,
+				'status' => 200,
+				'msg'    => !empty($allImages) ? 'Delivery images retrieved successfully.' : 'No delivery images found.',
+				'data'   => [
+					'order_id'                 => $order_id,
+					'is_parent_level'          => $is_parent_level,
+					'delivery_images_by_order' => $deliveryImagesByOrder,
+					'orders'                   => $ordersList,
+					'all_images'               => $allImages,
+					'total_images'             => count($allImages)
+				]
+			]);
+		} catch (Exception $e) {
+			echo json_encode([
+				'flag'   => 0,
+				'status' => 200,
+				'msg'    => 'An error occurred: ' . $e->getMessage(),
+				'data'   => []
+			]);
+		}
 	}
 
 	public function get_today_route()
@@ -1260,165 +1407,370 @@ public function update_order_status()
 
 		exit;
 	}
-
+    
 	public function delivery_image_upload_details()
 	{
-		$jwtToken = $this->input->post('token_id') ?? $this->input->get('token_id');
-		$image   = $this->input->post('image'); // image file name or path
-		$order_id = $this->input->post('order_id'); // required
-		$is_parent_level = $this->input->post('is_parent_level'); // optional
+		header('Content-Type: application/json');
 
+		$jwtToken = $this->input->post('token_id') ?? $this->input->get('token_id');
+		$image = $this->input->post('image');
+		$images = $this->input->post('images');
+		$order_id = $this->input->post('order_id');
+		$sub_order_id = $this->input->post('sub_order_id');
+		$is_parent_level = $this->input->post('is_parent_level');
+
+		// Validate required parameters
 		if (empty($jwtToken)) {
-			echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'Token missing.', 'data' => []]);
-			exit;
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Token missing.',
+				'data' => []
+			]);
+			return;
 		}
 
-		// Validate token
-		$tokenRow = $this->db->where('token', $jwtToken)
-							->where('status', 0)
-							->get('driver_tokens')
-							->row();
+		if (empty($order_id) && empty($sub_order_id)) {
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Order ID is required.',
+				'data' => []
+			]);
+			return;
+		}
+
+		// Validate driver token
+		$tokenRow = $this->db
+			->where('token', $jwtToken)
+			->where('status', 0)
+			->get('driver_tokens')
+			->row();
 
 		if (!$tokenRow) {
-			echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'Token inactive or not found.', 'data' => []]);
-			exit;
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Token inactive or not found.',
+				'data' => []
+			]);
+			return;
 		}
 
 		$driver_id = $tokenRow->driver_id;
 
-		try {
-			$updateData = [];
-			if (!empty($image)) {
-
-				// Paths for main image and thumbnail
-				$mainPath1 = SIS_SERVER_PATH . '/admin/admin/public/images/delivery/';
-				$mainPath2 = SIS_SERVER_PATH . '/admin/admin/public/images/delivery/thumbnail/';
-
-				// Make directories if not exist
-				if (!is_dir($mainPath1)) mkdir($mainPath1, 0777, true);
-				if (!is_dir($mainPath2)) mkdir($mainPath2, 0777, true);
-
-				// Check and decode base64
-				if (strpos($image, 'data:image') === 0) {
-					preg_match('/^data:image\/(\w+);base64,/', $image, $match);
-					$ext = isset($match[1]) ? $match[1] : 'jpg';
-					$image = preg_replace('/^data:image\/(\w+);base64,/', '', $image);
-					$image = base64_decode($image);
-				} else {
-					$ext = 'jpg'; // fallback
-					$image = base64_decode($image);
-				}
-
-				if ($image === false) {
-					log_message('error', 'Failed to decode base64 image');
-					return;
-				}
-
-				// Generate filenames
-				$fileName1 = 'delivery_' . $driver_id . '_' . time() . '.' . $ext;
-				$fileName2 = 'delivery_' . $driver_id . '_' . time() . '_thumb.' . $ext;
-
-				// Full paths
-				$filePath1 = $mainPath1 . $fileName1;
-				$filePath2 = $mainPath2 . $fileName2;
-
-				// Save main image
-				if (!file_put_contents($filePath1, $image)) {
-					log_message('error', 'Failed to save main image: ' . $filePath1);
-				}
-
-				// Auto-rotate main image based on EXIF orientation
-				$this->_fix_image_orientation($filePath1);
-
-				// Save rotated image to thumbnail path
-				@copy($filePath1, $filePath2);
-
-				// Resize thumbnail
-				$config['image_library'] = 'gd2';
-				$config['source_image'] = $filePath2;
-				$config['new_image'] = $filePath2;
-				$config['maintain_ratio'] = TRUE;
-				$config['width'] = 150;
-				$config['height'] = 150;
-
-				$this->load->library('image_lib', $config);
-				if (!$this->image_lib->resize()) {
-					log_message('error', 'Thumbnail resize failed: ' . $this->image_lib->display_errors());
-				}
-				$this->image_lib->clear();
-
-				// Update DB
-				$updateData['image'] = $fileName1;
-				$updateData['thumbnail'] = $fileName2;
+		// Collect incoming image(s) to support multiple images per order
+		$incomingImages = [];
+		if (!empty($images)) {
+			if (is_array($images)) {
+				$incomingImages = $images;
+			} elseif (is_string($images)) {
+				$decoded = json_decode($images, true);
+				$incomingImages = is_array($decoded) ? $decoded : [$images];
 			}
-
-			$updateData['updated_at'] = date('Y-m-d H:i:s');
-
-			if (empty($updateData)) {
-				echo json_encode(['flag' => 0, 'status' => 200, 'msg' => 'No data to update.', 'data' => []]);
-				exit;
+		} elseif (!empty($image)) {
+			if (is_array($image)) {
+				$incomingImages = $image;
+			} elseif (is_string($image)) {
+				$decoded = json_decode($image, true);
+				$incomingImages = is_array($decoded) ? $decoded : [$image];
 			}
+		}
 
-			// Set correct WHERE based on parent level
-			if ($is_parent_level == 1) {
-				$this->db->where('webshop_order_id', $order_id);
-			} else {
-				$this->db->where('order_id', $order_id);
-			}
-
-			// First check if there's a row with delivery_status = 3
-			$this->db->where('driver_id', $driver_id);
-			$this->db->where('delivery_status', 3);
-			$this->db->from('b2b_orders_delivery_details');
-			$exists_status3 = $this->db->count_all_results();
-
-			if ($exists_status3 > 0) {
-				// If status=3 exists, update image there
-				if ($is_parent_level == 1) {
-					$this->db->where('webshop_order_id', $order_id);
-				} else {
-					$this->db->where('order_id', $order_id);
-				}
-				$this->db->where('delivery_status', 3);
-			} else {
-				// Otherwise, update image in status=1 row
-				if ($is_parent_level == 1) {
-					$this->db->where('webshop_order_id', $order_id);
-				} else {
-					$this->db->where('order_id', $order_id);
-				}
-				$this->db->where('delivery_status', 1);
-			}
-
-			$this->db->update('b2b_orders_delivery_details', $updateData);
-			$affected = $this->db->affected_rows();
-
-			if ($affected > 0) {
-				echo json_encode([
-					'flag' => 1,
-					'status' => 200,
-					'msg' => 'Delivery image uploaded successfully.',
-					'image_url' => BASE_URL . 'admin/admin/public/images/delivery/' . $fileName1,
-					'thumb_url' => BASE_URL . 'admin/admin/public/images/delivery/thumbnail/' . $fileName2
-				]);
-			} else {
-				echo json_encode([
-					'flag' => 0,
-					'status' => 200,
-					'msg' => 'Unable to upload image. Please try again.',
-				]);
-			}
-
-
-		} catch (Exception $e) {
+		if (empty($incomingImages)) {
 			echo json_encode([
 				'flag' => 0,
 				'status' => 200,
-				'msg' => 'An error occurred: ' . $e->getMessage(),
+				'msg' => 'Image is required.',
+				'data' => []
 			]);
+			return;
 		}
 
-		exit;
+		// Locate the exact order in b2b_orders_delivery_details to group images strictly under Order ID
+		$targetOrderId = !empty($sub_order_id) ? $sub_order_id : $order_id;
+		$deliveryRow = null;
+
+		// 1. Try finding row by specific order_id
+		$deliveryRow = $this->db
+			->where('order_id', $targetOrderId)
+			->where('driver_id', $driver_id)
+			->order_by('delivery_status DESC, id DESC')
+			->get('b2b_orders_delivery_details')
+			->row();
+
+		// 2. If not found and targetOrderId might be parent webshop_order_id
+		if (!$deliveryRow) {
+			$parentRows = $this->db
+				->where('webshop_order_id', $targetOrderId)
+				->where('driver_id', $driver_id)
+				->order_by('delivery_status DESC, id DESC')
+				->get('b2b_orders_delivery_details')
+				->result();
+
+			if (!empty($parentRows)) {
+				if (!empty($sub_order_id)) {
+					foreach ($parentRows as $pRow) {
+						if ((string)$pRow->order_id === (string)$sub_order_id) {
+							$deliveryRow = $pRow;
+							$targetOrderId = $pRow->order_id;
+							break;
+						}
+					}
+				}
+				if (!$deliveryRow) {
+					$deliveryRow = $parentRows[0];
+					$targetOrderId = $deliveryRow->order_id;
+				}
+			}
+		}
+
+		if (!$deliveryRow) {
+			echo json_encode([
+				'flag' => 0,
+				'status' => 200,
+				'msg' => 'Delivery detail not found for this order.',
+				'data' => []
+			]);
+			return;
+		}
+
+		$createdFiles = [];
+
+		try {
+			$savedImages = [];
+			foreach ($incomingImages as $imgRaw) {
+				if (empty($imgRaw)) continue;
+				$savedImg = $this->_save_delivery_image_binary($imgRaw, $driver_id, $targetOrderId);
+				$savedImages[] = $savedImg;
+				$createdFiles[] = SIS_SERVER_PATH . '/admin/admin/public/images/delivery/' . $savedImg['image'];
+				$createdFiles[] = SIS_SERVER_PATH . '/admin/admin/public/images/delivery/thumbnail/' . $savedImg['thumbnail'];
+			}
+
+			if (empty($savedImages)) {
+				throw new Exception('No valid images could be processed.');
+			}
+
+			// Read existing order_json and preserve existing order images
+			$orderJson = [];
+			if (!empty($deliveryRow->order_json)) {
+				$decoded = json_decode($deliveryRow->order_json, true);
+				if (is_array($decoded)) {
+					$orderJson = $decoded;
+				}
+			}
+
+			if (!isset($orderJson['delivery_images']) || !is_array($orderJson['delivery_images'])) {
+				$orderJson['delivery_images'] = [];
+				// If legacy image exists, preserve it as first image
+				if (!empty($deliveryRow->image)) {
+					$orderJson['delivery_images'][] = [
+						'image'       => $deliveryRow->image,
+						'thumbnail'   => !empty($deliveryRow->thumbnail) ? $deliveryRow->thumbnail : $deliveryRow->image,
+						'image_url'   => BASE_URL . 'admin/admin/public/images/delivery/' . $deliveryRow->image,
+						'thumb_url'   => BASE_URL . 'admin/admin/public/images/delivery/thumbnail/' . (!empty($deliveryRow->thumbnail) ? $deliveryRow->thumbnail : $deliveryRow->image),
+						'order_id'    => (string)$targetOrderId,
+						'uploaded_at' => $deliveryRow->updated_at ?? date('Y-m-d H:i:s')
+					];
+				}
+			}
+
+			// Append new images specifically to this order
+			foreach ($savedImages as $img) {
+				$orderJson['delivery_images'][] = $img;
+			}
+
+			$latestImg = end($savedImages);
+			$uploadedAt = date('Y-m-d H:i:s');
+
+			// Update ONLY the target order row (never mix into other orders)
+			$this->db->where('id', $deliveryRow->id)->update('b2b_orders_delivery_details', [
+				'image'      => $latestImg['image'],
+				'thumbnail'  => $latestImg['thumbnail'],
+				'order_json' => json_encode($orderJson, JSON_UNESCAPED_SLASHES),
+				'updated_at' => $uploadedAt
+			]);
+
+			// Also update any secondary rows with same order_id and driver_id if they exist
+			$this->db
+				->where('order_id', $targetOrderId)
+				->where('driver_id', $driver_id)
+				->where('id !=', $deliveryRow->id)
+				->update('b2b_orders_delivery_details', [
+					'image'      => $latestImg['image'],
+					'thumbnail'  => $latestImg['thumbnail'],
+					'order_json' => json_encode($orderJson, JSON_UNESCAPED_SLASHES),
+					'updated_at' => $uploadedAt
+				]);
+
+			echo json_encode([
+				'flag'         => 1,
+				'status'       => 200,
+				'msg'          => 'Delivery image uploaded successfully.',
+				'order_id'     => (string)$targetOrderId,
+				'image_url'    => $latestImg['image_url'],
+				'thumb_url'    => $latestImg['thumb_url'],
+				'data'         => [
+					'order_id'     => (string)$targetOrderId,
+					'image_url'    => $latestImg['image_url'],
+					'thumb_url'    => $latestImg['thumb_url'],
+					'images'       => $orderJson['delivery_images'],
+					'total_images' => count($orderJson['delivery_images'])
+				]
+			]);
+		} catch (Throwable $e) {
+			// Clean up any files created in this failed request
+			foreach ($createdFiles as $f) {
+				if (!empty($f) && file_exists($f)) {
+					@unlink($f);
+				}
+			}
+
+			log_message('error', 'Delivery image upload failed: ' . $e->getMessage());
+
+			echo json_encode([
+				'flag'   => 0,
+				'status' => 200,
+				'msg'    => 'Unable to upload delivery image: ' . $e->getMessage(),
+				'data'   => []
+			]);
+		}
+	}
+
+	/**
+	 * Extract and normalize delivery images from a b2b_orders_delivery_details row
+	 */
+	private function _extract_delivery_images_from_row($row)
+	{
+		$subOrderId = (string)($row['order_id'] ?? '');
+		$images = [];
+
+		if (!empty($row['order_json'])) {
+			$decodedJson = is_array($row['order_json']) ? $row['order_json'] : json_decode($row['order_json'], true);
+			if (is_array($decodedJson) && !empty($decodedJson['delivery_images']) && is_array($decodedJson['delivery_images'])) {
+				foreach ($decodedJson['delivery_images'] as $imgItem) {
+					if (!is_array($imgItem)) continue;
+					$imgName = $imgItem['image'] ?? '';
+					$thumbName = $imgItem['thumbnail'] ?? $imgName;
+					if (!empty($imgName)) {
+						$images[] = [
+							'image'       => $imgName,
+							'thumbnail'   => $thumbName,
+							'image_url'   => !empty($imgItem['image_url']) ? $imgItem['image_url'] : (BASE_URL . 'admin/admin/public/images/delivery/' . $imgName),
+							'thumb_url'   => !empty($imgItem['thumb_url']) ? $imgItem['thumb_url'] : (BASE_URL . 'admin/admin/public/images/delivery/thumbnail/' . $thumbName),
+							'order_id'    => $subOrderId,
+							'uploaded_at' => $imgItem['uploaded_at'] ?? ($row['updated_at'] ?? date('Y-m-d H:i:s'))
+						];
+					}
+				}
+			}
+		}
+
+		// Fallback to legacy single image columns if delivery_images array was empty
+		if (empty($images) && !empty($row['image'])) {
+			$imgName = $row['image'];
+			$thumbName = !empty($row['thumbnail']) ? $row['thumbnail'] : $imgName;
+			$images[] = [
+				'image'       => $imgName,
+				'thumbnail'   => $thumbName,
+				'image_url'   => BASE_URL . 'admin/admin/public/images/delivery/' . $imgName,
+				'thumb_url'   => BASE_URL . 'admin/admin/public/images/delivery/thumbnail/' . $thumbName,
+				'order_id'    => $subOrderId,
+				'uploaded_at' => $row['updated_at'] ?? date('Y-m-d H:i:s')
+			];
+		}
+
+		return $images;
+	}
+
+	/**
+	 * Process and save base64 delivery image with orientation correction and thumbnail
+	 */
+	private function _save_delivery_image_binary($imageInput, $driver_id, $order_id)
+	{
+		$ext = 'jpg';
+		$imageData = $imageInput;
+
+		if (preg_match('/^data:image\/(jpeg|jpg|png|webp);base64,/i', $imageData, $matches)) {
+			$ext = strtolower($matches[1]);
+			if ($ext === 'jpeg') {
+				$ext = 'jpg';
+			}
+			$imageData = preg_replace('/^data:image\/(jpeg|jpg|png|webp);base64,/i', '', $imageData);
+		}
+
+		$imageBinary = base64_decode($imageData, true);
+		if ($imageBinary === false || $imageBinary === '') {
+			throw new Exception('Invalid base64 image data.');
+		}
+
+		$imageInfo = @getimagesizefromstring($imageBinary);
+		if ($imageInfo === false || !in_array($imageInfo['mime'], ['image/jpeg', 'image/png', 'image/webp'], true)) {
+			throw new Exception('Unsupported or invalid image format. Only JPG, PNG, and WebP are allowed.');
+		}
+
+		$mimeExtensions = [
+			'image/jpeg' => 'jpg',
+			'image/png'  => 'png',
+			'image/webp' => 'webp'
+		];
+		$ext = $mimeExtensions[$imageInfo['mime']] ?? 'jpg';
+
+		$mainPath1 = SIS_SERVER_PATH . '/admin/admin/public/images/delivery/';
+		$mainPath2 = SIS_SERVER_PATH . '/admin/admin/public/images/delivery/thumbnail/';
+
+		foreach ([$mainPath1, $mainPath2] as $dir) {
+			if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+				throw new Exception('Unable to create delivery image directory.');
+			}
+		}
+
+		$uniqueId = bin2hex(random_bytes(8));
+		$fileName1 = 'delivery_' . $driver_id . '_' . $order_id . '_' . time() . '_' . $uniqueId . '.' . $ext;
+		$fileName2 = 'delivery_' . $driver_id . '_' . $order_id . '_' . time() . '_' . $uniqueId . '_thumb.' . $ext;
+
+		$filePath1 = $mainPath1 . $fileName1;
+		$filePath2 = $mainPath2 . $fileName2;
+
+		if (file_put_contents($filePath1, $imageBinary) === false) {
+			throw new Exception('Failed to save delivery image file.');
+		}
+
+		if (method_exists($this, '_fix_image_orientation')) {
+			$this->_fix_image_orientation($filePath1);
+		}
+
+		if (!copy($filePath1, $filePath2)) {
+			@unlink($filePath1);
+			throw new Exception('Failed to create thumbnail file.');
+		}
+
+		$config = [
+			'image_library'  => 'gd2',
+			'source_image'   => $filePath2,
+			'new_image'      => $filePath2,
+			'maintain_ratio' => true,
+			'width'          => 150,
+			'height'         => 150
+		];
+		$this->load->library('image_lib', $config);
+		if (!$this->image_lib->resize()) {
+			$err = strip_tags($this->image_lib->display_errors('', ''));
+			$this->image_lib->clear();
+			@unlink($filePath1);
+			@unlink($filePath2);
+			throw new Exception('Thumbnail resize failed: ' . $err);
+		}
+		$this->image_lib->clear();
+
+		return [
+			'image'       => $fileName1,
+			'thumbnail'   => $fileName2,
+			'image_url'   => BASE_URL . 'admin/admin/public/images/delivery/' . $fileName1,
+			'thumb_url'   => BASE_URL . 'admin/admin/public/images/delivery/thumbnail/' . $fileName2,
+			'order_id'    => (string)$order_id,
+			'uploaded_at' => date('Y-m-d H:i:s')
+		];
 	}
 
 	public function pickup_image_upload_details()
