@@ -39,7 +39,7 @@
 					<h2 class="cod <?=$divHideCod?>"><?=lang('cod_verification_required')?></h2>
 					<h3 class="thanky <?=$divHide?>"><?= lang('order_thanks') ?></h3>
 					<h4 class="thankyou-order-msg <?=$divHide?>"><?= lang('order_success') ?></h4>
-					<p class="ordnum thankyou-order-msg <?=$divHide?>"><?= lang('order_number') ?>: <?php echo ($increment_id!='')?$increment_id:''; ?></p><!--  class="ordnum" -->
+					<p class="ordnum thankyou-order-msg <?=$divHide?>"><?= lang('order_number') ?> <?php echo ($increment_id!='')?$increment_id:''; ?></p><!--  class="ordnum" -->
 					<p class="thankyou-email-msg <?=$divHide?>"><?= lang('order_track') ?></p>
 					<a class="btn btn-primary" role="button" href="<?php echo base_url(); ?>"><?= lang('continue_shopping') ?></a>
 				</div>
