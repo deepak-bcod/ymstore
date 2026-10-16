@@ -523,7 +523,7 @@ class OrderResolutionModel extends CI_Model
     /**
      * Create a new Order Resolution ticket
      */
- 
+   
 public function create_resolution($data)
 {
     $ticket_number = $this->generate_ticket_number();
@@ -555,6 +555,7 @@ public function create_resolution($data)
     // 2. Resolve merchant if missing
     // --------------------------------------------------
     if (empty($merchant_id) && !empty($product_id)) {
+
         $p_row = $this->db
             ->select('publisher_id')
             ->where('id', $product_id)
@@ -567,6 +568,7 @@ public function create_resolution($data)
     }
 
     if (empty($merchant_id)) {
+
         $b2b_row = $this->db
             ->select('publisher_id, order_id')
             ->where('webshop_order_id', $order_id)
@@ -585,6 +587,7 @@ public function create_resolution($data)
     $order_item_id = null;
 
     if (!empty($merchant_id)) {
+
         $b2b_row = $this->db
             ->select('order_id')
             ->where('webshop_order_id', $order_id)
@@ -598,6 +601,7 @@ public function create_resolution($data)
     }
 
     if (!empty($product_id)) {
+
         $soi_row = $this->db
             ->select('item_id')
             ->where('order_id', $order_id)
@@ -616,6 +620,7 @@ public function create_resolution($data)
     $refund_amount = 0.00;
 
     if (!empty($order_item_id)) {
+
         $soi = $this->db
             ->select('price, total_price, qty_ordered')
             ->where('item_id', $order_item_id)
@@ -623,11 +628,14 @@ public function create_resolution($data)
             ->row();
 
         if ($soi) {
+
             $refund_amount = (float) (
                 $soi->total_price
                 ?: ($soi->price * (int) ($soi->qty_ordered ?: 1))
             );
+
         } else {
+
             $boi = $this->db
                 ->select('price, total_price, qty_ordered')
                 ->where('item_id', $order_item_id)
@@ -644,7 +652,12 @@ public function create_resolution($data)
     }
 
     // Fallback: sales order item amount
-    if ($refund_amount <= 0 && !empty($order_id) && !empty($product_id)) {
+    if (
+        $refund_amount <= 0 &&
+        !empty($order_id) &&
+        !empty($product_id)
+    ) {
+
         $soi = $this->db
             ->select('price, total_price, qty_ordered')
             ->where('order_id', $order_id)
@@ -661,7 +674,12 @@ public function create_resolution($data)
     }
 
     // Fallback: B2B order item amount
-    if ($refund_amount <= 0 && !empty($b2b_order_id) && !empty($product_id)) {
+    if (
+        $refund_amount <= 0 &&
+        !empty($b2b_order_id) &&
+        !empty($product_id)
+    ) {
+
         $boi = $this->db
             ->select('price, total_price, qty_ordered')
             ->where('order_id', $b2b_order_id)
@@ -679,6 +697,7 @@ public function create_resolution($data)
 
     // Fallback: product price
     if ($refund_amount <= 0 && !empty($product_id)) {
+
         $prod = $this->db
             ->select('price, special_price')
             ->where('id', $product_id)
@@ -696,6 +715,7 @@ public function create_resolution($data)
 
     // Fallback: order subtotal or grand total
     if ($refund_amount <= 0 && !empty($order_id)) {
+
         $so = $this->db
             ->select('subtotal, grand_total')
             ->where('order_id', $order_id)
@@ -703,7 +723,9 @@ public function create_resolution($data)
             ->row();
 
         if ($so) {
-            $refund_amount = (float) ($so->subtotal ?: $so->grand_total);
+            $refund_amount = (float) (
+                $so->subtotal ?: $so->grand_total
+            );
         }
     }
 
@@ -711,29 +733,29 @@ public function create_resolution($data)
     // 5. Prepare resolution data
     // --------------------------------------------------
     $resolution_data = [
-        'ticket_number'      => $ticket_number,
-        'order_id'           => $order_id,
-        'order_number'       => $order_number,
-        'product_id'         => $product_id ?: null,
-        'order_item_id'      => $order_item_id,
-        'b2b_order_id'       => $b2b_order_id,
-        'merchant_id'        => $merchant_id ?: null,
-        'customer_id'        => $customer_id,
-        'category'           => $category,
-        'priority'           => $priority,
-        'status'             => 'Open',
-        'merchant_action'    => 'none',
-        'delivery_option'    => 'none',
-        'resolution_status'  => 'none',
-        'refund_amount'      => $refund_amount,
-        'assigned_role'      => 'Help',
-        'subject'            => $data['subject'] ?? ($category . ' - ' . $order_number),
-        'message'            => $message,
-        'attachment'         => $attachment,
-        'is_active_dispute'  => 1,
-        'created_at'         => $time,
-        'updated_at'         => $time,
-        'ip'                 => $ip,
+        'ticket_number'       => $ticket_number,
+        'order_id'            => $order_id,
+        'order_number'        => $order_number,
+        'product_id'          => $product_id ?: null,
+        'order_item_id'       => $order_item_id,
+        'b2b_order_id'        => $b2b_order_id,
+        'merchant_id'         => $merchant_id ?: null,
+        'customer_id'         => $customer_id,
+        'category'            => $category,
+        'priority'            => $priority,
+        'status'              => 'Open',
+        'merchant_action'     => 'none',
+        'delivery_option'     => 'none',
+        'resolution_status'   => 'none',
+        'refund_amount'       => $refund_amount,
+        'assigned_role'       => 'Help',
+        'subject'             => $data['subject'] ?? ($category . ' - ' . $order_number),
+        'message'             => $message,
+        'attachment'          => $attachment,
+        'is_active_dispute'   => 1,
+        'created_at'          => $time,
+        'updated_at'          => $time,
+        'ip'                  => $ip,
     ];
 
     $this->db->insert('order_resolutions', $resolution_data);
@@ -756,6 +778,7 @@ public function create_resolution($data)
     $shopper_name = 'Shopper';
 
     if (!empty($customer_id)) {
+
         $c_row = $this->db
             ->select('first_name, last_name')
             ->where('id', $customer_id)
@@ -828,14 +851,18 @@ public function create_resolution($data)
     // --------------------------------------------------
     // 10. Send email notifications
     // --------------------------------------------------
-    $this->send_creation_emails($resolution_data, $shopper_name);
+    $this->send_creation_emails(
+        $resolution_data,
+        $shopper_name
+    );
 
     // --------------------------------------------------
     // 11. Send in-app notifications
-    // Using content_lang.php for English/French
+    // English is the default; French when selected
     // --------------------------------------------------
+
     $site_lang = strtolower(trim(
-        $this->session->userdata('site_lang') ?: 'english'
+        (string) $this->session->userdata('site_lang')
     ));
 
     $language = in_array($site_lang, ['french', 'fr'], true)
@@ -844,11 +871,33 @@ public function create_resolution($data)
 
     $this->lang->load('content', $language);
 
-    $notification_title = lang('resolution_ticket_title');
+    // Notification title
+    $notification_title = $this->lang->line(
+        'resolution_ticket_title'
+    );
+
+    if (
+        $notification_title === false ||
+        $notification_title === ''
+    ) {
+        $notification_title = 'New Order Resolution Ticket';
+    }
 
     // Admin notification
+    $admin_template = $this->lang->line(
+        'resolution_ticket_admin_message'
+    );
+
+    if (
+        $admin_template === false ||
+        $admin_template === ''
+    ) {
+        $admin_template =
+            'New Resolution Ticket #%s created for Order #%s by %s.';
+    }
+
     $admin_message = sprintf(
-        lang('resolution_ticket_admin_message'),
+        $admin_template,
         $ticket_number,
         $order_number,
         $shopper_name
@@ -865,8 +914,21 @@ public function create_resolution($data)
 
     // Merchant notification
     if (!empty($merchant_id)) {
+
+        $merchant_template = $this->lang->line(
+            'resolution_ticket_merchant_message'
+        );
+
+        if (
+            $merchant_template === false ||
+            $merchant_template === ''
+        ) {
+            $merchant_template =
+                'New Resolution Ticket #%s raised for Order #%s.';
+        }
+
         $merchant_message = sprintf(
-            lang('resolution_ticket_merchant_message'),
+            $merchant_template,
             $ticket_number,
             $order_number
         );
@@ -884,7 +946,9 @@ public function create_resolution($data)
     // --------------------------------------------------
     // 12. Return created resolution
     // --------------------------------------------------
-    return $this->get_resolution_by_ticket_number($ticket_number);
+    return $this->get_resolution_by_ticket_number(
+        $ticket_number
+    );
 }
 
 
