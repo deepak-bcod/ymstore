@@ -18989,209 +18989,162 @@ public function AssignParentDeliveryPopup()
  */
 
 	public function saveParentDeliveryAssignment()
-
-	{
-
-		$User_id          = $this->session->userdata('LoginID');
-
-		$webshop_order_id = $this->input->post('webshop_order_id');
-
-		$driver_id        = $this->input->post('driver_id');
-
-		$delivery_date    = $this->input->post('delivery_date');
-
-		$remarks          = $this->input->post('remarks');
-
-
-
-		header('Content-Type: application/json');
-
-
-
-		if (!$webshop_order_id || !$driver_id || !$delivery_date) {
-
-			echo json_encode(['status' => 400, 'msg' => 'All fields are required.']);
-
-			return;
-
-		}
-
-
-
-		// Start transaction
-
-		$this->db->trans_start();
-
-
-
-		// Re-fetch last attempt (fresh) and compute nextAttempt
-
-		$lastAttempt = $this->db
-
-			->where('webshop_order_id', $webshop_order_id)
-
-			->where('is_parent_level', 1)
-
-			->order_by('delivery_attempt_no', 'DESC')
-
-			->limit(1)
-
-			->get('b2b_orders_delivery_details')
-
-			->row();
-
-
-
-		$nextAttempt = $lastAttempt ? ((int)$lastAttempt->delivery_attempt_no + 1) : 1;
-
-
-
-		if ($nextAttempt > 2) {
-
-			$this->db->trans_complete();
-
-			echo json_encode(['status' => 400, 'msg' => 'Maximum 2 delivery attempts allowed.']);
-
-			return;
-
-		}
-
-
-
-		// Double-insert prevention: check if a row for this attempt already exists
-
-		$already = $this->db
-
-			->where('webshop_order_id', $webshop_order_id)
-
-			->where('is_parent_level', 1)
-
-			->where('delivery_attempt_no', $nextAttempt)
-
-			->get('b2b_orders_delivery_details')
-
-			->row();
-
-
-
-		if ($already) {
-
-			// Someone else already created it (or duplicate request)
-
-			$this->db->trans_complete();
-
-			log_message('error', "Duplicate delivery insert prevented for webshop_order_id={$webshop_order_id}, attempt={$nextAttempt}");
-
-			echo json_encode(['status' => 409, 'msg' => 'This delivery attempt has already been created.']);
-
-			return;
-
-		}
-
-
-
-		$delivery_status = ($nextAttempt == 1) ? 1 : 3;
-
-		$order_status    = ($nextAttempt == 1) ? 4 : 5;
-
-
-
-		$insert = [
-
-			'webshop_order_id'         => $webshop_order_id,
-
-			'is_parent_level'          => 1,
-
-			'delivery_type'            => 2,
-
-			'driver_id'                => $driver_id,
-
-			'own_delivery_person_name' => NULL,
-
-			'delivery_date'            => $delivery_date,
-
-			'remarks'                  => $remarks,
-
-			'delivery_status'          => $delivery_status,
-
-			'delivery_attempt_no'      => $nextAttempt,
-
-			'generate_by'              => $User_id ?? 0,
-
-			'created_at'               => date('Y-m-d H:i:s'),
-
-			'ip'                       => $this->input->ip_address(),
-
-		];
-
-
-
-		$this->db->insert('b2b_orders_delivery_details', $insert);
-
-		$insert_id = $this->db->insert_id();
-
-
-
-		// Update sub-orders under parent
-
-		$this->db->where('webshop_order_id', $webshop_order_id)
-			->update('b2b_orders', ['status' => $order_status]);
-
-		// ✅ Get order_id
-		$orderData = $this->db->select('order_id')
-			->from('b2b_orders')
-			->where('webshop_order_id', $webshop_order_id)
-			->get()
-			->row();
-
-		$order_id = isset($orderData->order_id) ? $orderData->order_id : 0;
-
-		if (!empty($order_id)) {
-
-			// ✅ Get all products from this order
-			$orderItems = $this->db->select('product_id, qty_ordered')
-				->from('b2b_order_items')
-				->where('order_id', $order_id)
-				->get()
-				->result();
-
-			// ✅ Loop and update inventory
-			if (!empty($orderItems)) {
-				foreach ($orderItems as $item) {
-
-					$product_id = $item->product_id;
-					$ordered_qty = $item->qty_ordered;
-
-					$this->db->set('qty', "qty - $ordered_qty", FALSE);
-					$this->db->where('product_id', $product_id);
-					$this->db->update('products_inventory');
-				}
-			}
-		}
-
-
-		$this->db->trans_complete();
-
-
-
-		if ($this->db->trans_status() === FALSE) {
-
-			log_message('error', "Failed to insert delivery for webshop_order_id={$webshop_order_id}");
-
-			echo json_encode(['status' => 500, 'msg' => 'Failed to assign delivery, try again.']);
-
-			return;
-
-		}
-
-
-
-		log_message('info', "Parent delivery assigned: webshop_order_id={$webshop_order_id}, attempt={$nextAttempt}, id={$insert_id}");
-
-		echo json_encode(['status' => 200, 'msg' => 'Parent-level delivery assigned successfully.']);
-
-	}
-
+{
+    $User_id          = $this->session->userdata('LoginID');
+    $webshop_order_id = $this->input->post('webshop_order_id');
+    $driver_id        = $this->input->post('driver_id');
+    $delivery_date    = $this->input->post('delivery_date');
+    $remarks          = $this->input->post('remarks');
+
+    header('Content-Type: application/json');
+
+    if (!$webshop_order_id || !$driver_id || !$delivery_date) {
+        echo json_encode(['status' => 400, 'msg' => 'All fields are required.']);
+        return;
+    }
+
+    // Start transaction
+    $this->db->trans_start();
+
+    // Re-fetch last attempt (fresh) and compute nextAttempt
+    $lastAttempt = $this->db
+        ->where('webshop_order_id', $webshop_order_id)
+        ->where('is_parent_level', 1)
+        ->order_by('delivery_attempt_no', 'DESC')
+        ->limit(1)
+        ->get('b2b_orders_delivery_details')
+        ->row();
+
+    $nextAttempt = $lastAttempt ? ((int)$lastAttempt->delivery_attempt_no + 1) : 1;
+
+    if ($nextAttempt > 2) {
+        $this->db->trans_complete();
+        echo json_encode(['status' => 400, 'msg' => 'Maximum 2 delivery attempts allowed.']);
+        return;
+    }
+
+    // Double-insert prevention: check if a row for this attempt already exists
+    $already = $this->db
+        ->where('webshop_order_id', $webshop_order_id)
+        ->where('is_parent_level', 1)
+        ->where('delivery_attempt_no', $nextAttempt)
+        ->get('b2b_orders_delivery_details')
+        ->row();
+
+    if ($already) {
+        // Someone else already created it (or duplicate request)
+        $this->db->trans_complete();
+        log_message('error', "Duplicate delivery insert prevented for webshop_order_id={$webshop_order_id}, attempt={$nextAttempt}");
+        echo json_encode(['status' => 409, 'msg' => 'This delivery attempt has already been created.']);
+        return;
+    }
+
+    $delivery_status = ($nextAttempt == 1) ? 1 : 3;
+    $order_status    = ($nextAttempt == 1) ? 4 : 5;
+
+    $insert = [
+        'webshop_order_id'         => $webshop_order_id,
+        'is_parent_level'          => 1,
+        'delivery_type'            => 2,
+        'driver_id'                => $driver_id,
+        'own_delivery_person_name' => NULL,
+        'delivery_date'            => $delivery_date,
+        'remarks'                  => $remarks,
+        'delivery_status'          => $delivery_status,
+        'delivery_attempt_no'      => $nextAttempt,
+        'generate_by'              => $User_id ?? 0,
+        'created_at'               => date('Y-m-d H:i:s'),
+        'ip'                       => $this->input->ip_address(),
+    ];
+
+    $this->db->insert('b2b_orders_delivery_details', $insert);
+    $insert_id = $this->db->insert_id();
+
+    // Update sub-orders under parent
+    $this->db->where('webshop_order_id', $webshop_order_id)
+        ->update('b2b_orders', ['status' => $order_status]);
+
+    // Get order_id
+    $orderData = $this->db->select('order_id')
+        ->from('b2b_orders')
+        ->where('webshop_order_id', $webshop_order_id)
+        ->get()
+        ->row();
+
+    $order_id = isset($orderData->order_id) ? $orderData->order_id : 0;
+
+    if (!empty($order_id)) {
+        // Get all products from this order
+        $orderItems = $this->db->select('product_id, qty_ordered')
+            ->from('b2b_order_items')
+            ->where('order_id', $order_id)
+            ->get()
+            ->result();
+
+        // Loop and update inventory
+        if (!empty($orderItems)) {
+            foreach ($orderItems as $item) {
+                $product_id = $item->product_id;
+                $ordered_qty = $item->qty_ordered;
+
+                $this->db->set('qty', "qty - $ordered_qty", FALSE);
+                $this->db->where('product_id', $product_id);
+                $this->db->update('products_inventory');
+            }
+        }
+    }
+
+    // ==========================================
+    // Send Notification to Merchant(s)
+    // ==========================================
+    $sub_orders = $this->db->select('id, order_number, merchant_id')
+                           ->from('b2b_orders')
+                           ->where('webshop_order_id', $webshop_order_id)
+                           ->get()
+                           ->result();
+
+    if (!empty($sub_orders)) {
+        $merchant_orders = [];
+        
+        // Group order numbers (ES order nos) by merchant_id
+        foreach ($sub_orders as $sub) {
+            if (!empty($sub->merchant_id) && !empty($sub->order_number)) {
+                $merchant_orders[$sub->merchant_id][] = $sub->order_number;
+            }
+        }
+
+        // Insert notification per merchant with comma-separated order numbers
+        foreach ($merchant_orders as $merchant_id => $order_numbers) {
+            $order_list_str = implode(', ', $order_numbers);
+            $notification_message = "Order (" . $order_list_str . ") is shipped to shopper";
+
+            $notification_data = [
+                'type'           => 'order',
+                'subtype'        => 'shipping',
+                'recipient_type' => 'merchant',
+                'recipient_id'   => $merchant_id,
+                'title'          => 'Order Shipped',
+                'message'        => $notification_message,
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s')
+            ];
+
+            $this->db->insert('notifications', $notification_data);
+        }
+    }
+    // ==========================================
+
+    $this->db->trans_complete();
+
+    if ($this->db->trans_status() === FALSE) {
+        log_message('error', "Failed to insert delivery for webshop_order_id={$webshop_order_id}");
+        echo json_encode(['status' => 500, 'msg' => 'Failed to assign delivery, try again.']);
+        return;
+    }
+
+    log_message('info', "Parent delivery assigned: webshop_order_id={$webshop_order_id}, attempt={$nextAttempt}, id={$insert_id}");
+    echo json_encode(['status' => 200, 'msg' => 'Parent-level delivery assigned successfully.']);
+}
 
 
 
