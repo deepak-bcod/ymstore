@@ -250,31 +250,6 @@ $lang = $this->session->userdata('site_lang');
 
                                 <?php } ?>
 
-                                <?php 
-                                $detailPresenter = ProductPresenter::from($ProductData);
-                                $detailPromo = $detailPresenter->get_active_promotion();
-                                if ($detailPromo): 
-                                ?>
-                                    <div class="promo-details-banner" style="margin: 12px 0 16px 0; padding: 12px 16px; border-radius: 6px; background: <?= ($detailPromo->type === 'flash_sale' ? '#fff1f0' : '#fffbe6') ?>; border: 1px solid <?= ($detailPromo->type === 'flash_sale' ? '#ffa39e' : '#ffe58f') ?>; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                                        <div style="display: flex; align-items: center; gap: 10px;">
-                                            <?php if ($detailPromo->type === 'flash_sale'): ?>
-                                                <span class="promo-badge promo-badge-flash-sale" style="font-size: 13px; padding: 4px 10px;">⚡ FLASH SALE</span>
-                                            <?php else: ?>
-                                                <span class="promo-badge promo-badge-daily-deal" style="font-size: 13px; padding: 4px 10px;">★ DAILY DEAL</span>
-                                            <?php endif; ?>
-                                            <?php if ($detailPromo->discount_percent > 0): ?>
-                                                <span class="promo-discount-badge" style="font-size: 12px; padding: 3px 8px;">-<?= $detailPromo->discount_percent ?>% OFF</span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <?php if (!empty($detailPromo->ends_at) && $detailPromo->ends_at > time()): ?>
-                                            <div class="pi-countdown-timer" style="margin: 0; font-size: 14px;" data-promo-ends-at="<?= $detailPromo->ends_at ?>" data-countdown-prefix="Ends in ">
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                                <span class="countdown-time">Ends in ...</span>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endif; ?>
-
                                 <?php if ($ProductData->product_type == 'configurable') { ?>
                                     <div class="table-responsive product-price">
                                         <div class="product-price-detail"></div>
@@ -317,7 +292,7 @@ $lang = $this->session->userdata('site_lang');
                                 <?php } ?>
 
                                 <div class="subscribe-deli">
-                                    <?php if (isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (int)$ProductData->total_qty > 0)) { ?>
+                                    <?php if (isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (float)$ProductData->total_qty > 0) && (!isset($ProductData->qty) || (float)$ProductData->qty > 0) && (!isset($ProductData->stock_qty) || (float)$ProductData->stock_qty > 0)) { ?>
                                         <?php if ($restricted_access == "yes" && $customer_id == 0) { ?>
                                             <button type="button" class="btn btn-primary subscr-now pull-left" <?php echo isset($ProductData->stock_status) &&
                                                                                                                     ($ProductData->stock_status == "Instock" && $ProductData->product_type == "simple")

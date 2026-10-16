@@ -158,23 +158,38 @@ $menu_disabled = ($profile_incomplete || $subscription_expired);
        data-target="#addonsSubmenu"
        <?php endif; ?>>
         <?= $this->lang->line('sidebar_addons_services') ?>
+<li class="nav-item">
+    <!-- Main Add-On Services Menu with Submenu Toggle & Arrow Icon -->
+    <a class="nav-link d-flex justify-content-between align-items-center <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'has-submenu show' : ''; ?> <?php echo (isset($profile_incomplete) && $profile_incomplete) ? ' link-disabled' : ''; ?>" 
+        href="javascript:void(0);" 
+        data-toggle="collapse" 
+        data-target="#addonsSubmenu"
+        aria-expanded="<?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'true' : 'false'; ?>">
+        <span><?= $this->lang->line('sidebar_addons_services') ?></span>
+        <i class="fa fa-angle-down"></i>
     </a>
     
     <!-- Submenu List -->
     <div id="addonsSubmenu" class="collapse <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'show' : ''; ?>">
-        <ul class="nav flex-column sub-menu">
-            <!-- Link to the original Add-on Services list page -->
+        <ul class="nav flex-column sub-menu pl-3">
+            <!-- Link to Browse Add-ons -->
             <li class="nav-item">
                 <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
                    href="<?php echo !$menu_disabled ? base_url('addons') : 'javascript:void(0);'; ?>">
                    Browse Add-Ons
+                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?>" 
+                    href="<?php echo (!isset($profile_incomplete) || !$profile_incomplete) ? base_url('addons') : 'javascript:void(0);'; ?>">
+                    <?= $this->lang->line('sidebar_browse_addons') ?>
                 </a>
             </li>
-            <!-- New Submenu: Manage Addon -->
+            <!-- Link to Manage Addon -->
             <li class="nav-item">
                 <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
                    href="<?php echo !$menu_disabled ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
                    Manage Addon
+                <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?>" 
+                    href="<?php echo (!isset($profile_incomplete) || !$profile_incomplete) ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
+                    <?= $this->lang->line('sidebar_manage_addons') ?>
                 </a>
             </li>
         </ul>

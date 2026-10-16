@@ -442,6 +442,7 @@ $route['pickup_image_upload_details'] = 'Api/pickup_image_upload_details';
 $route['pickup_proof_image_upload_details'] = 'Api/pickup_proof_image_upload_details';
 
 $route['delivery_image_upload_details'] = 'Api/delivery_image_upload_details';
+$route['delivery_product_image_upload_details'] = 'Api/delivery_product_image_upload_details';
 $route['update_failed_attempt'] = 'Api/update_failed_attempt';
 
 

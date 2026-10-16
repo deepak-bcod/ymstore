@@ -291,7 +291,5 @@ $(function () {
 
 <?php $this->template->load('common_for_all/header_script'); ?>
 
-<script src="<?php echo SKIN_JS; ?>promotions_countdown.js?v=<?php echo CSSJS_VERSION; ?>"></script>
-
 </body>
 </html>

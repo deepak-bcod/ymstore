@@ -977,54 +977,7 @@ class Sellerproduct extends CI_Controller {
 
 							);
 
-							// Promotions & Special Pricing processing
-							$enable_promo = !empty($_POST['enable_promotional_offer']) ? 1 : 0;
-							$promo_special_price = 0.00;
-							$promo_start_ts = null;
-							$promo_end_ts = null;
-							$promo_type = 'daily_deal';
-
-							if ($enable_promo) {
-								$promo_type = (isset($_POST['promo_type']) && $_POST['promo_type'] === 'flash_sale') ? 'flash_sale' : 'daily_deal';
-								$promo_special_price = (isset($_POST['promo_special_price']) && is_numeric($_POST['promo_special_price'])) ? floatval($_POST['promo_special_price']) : 0.00;
-								$promo_start_ts = !empty($_POST['promo_start_date']) ? strtotime($_POST['promo_start_date']) : time();
-								$promo_end_ts = !empty($_POST['promo_end_date']) ? strtotime($_POST['promo_end_date']) : null;
-
-								if ($promo_type === 'flash_sale') {
-									$insertdata['flash_sale'] = 1;
-									$insertdata['flash_sale_starts_at'] = $promo_start_ts;
-									$insertdata['flash_sale_ends_at'] = $promo_end_ts;
-									$insertdata['daily_deals'] = 0;
-									$insertdata['daily_deal_starts_at'] = null;
-									$insertdata['daily_deal_ends_at'] = null;
-								} else {
-									$insertdata['daily_deals'] = 1;
-									$insertdata['daily_deal_starts_at'] = $promo_start_ts;
-									$insertdata['daily_deal_ends_at'] = $promo_end_ts;
-									$insertdata['flash_sale'] = 0;
-									$insertdata['flash_sale_starts_at'] = null;
-									$insertdata['flash_sale_ends_at'] = null;
-								}
-								$insertdata['special_price'] = ($promo_special_price > 0) ? $promo_special_price : null;
-								$insertdata['special_price_from'] = $promo_start_ts;
-								$insertdata['special_price_to'] = $promo_end_ts;
-							}
-
 							$product_id=$this->SellerProductModel->insertData('products',$insertdata);
-							if ($product_id && $enable_promo && $promo_special_price > 0) {
-								$sp_data = array(
-									'product_id' => $product_id,
-									'special_price' => $promo_special_price,
-									'special_price_from' => $promo_start_ts,
-									'special_price_to' => $promo_end_ts,
-									'display_original' => 1,
-									'offer_type' => $promo_type,
-									'created_by' => $this->session->userdata('LoginID'),
-									'created_at' => time(),
-									'ip' => $_SERVER['REMOTE_ADDR']
-								);
-								$this->SellerProductModel->insertData('products_special_prices', $sp_data);
-							}
 
 							// ================================
 							// ADD NOTIFICATION
@@ -10129,6 +10082,9 @@ class Sellerproduct extends CI_Controller {
 			$data['smallBoxCharge']  = $smallBoxCharge ? $smallBoxCharge->value : 0;
 			$data['mediumBoxCharge'] = $mediumBoxCharge ? $mediumBoxCharge->value : 0;
 
+			// Special Pricing data
+			$data['SpecialPriceData'] = $this->SellerProductModel->getSingleDataByID('products_special_prices', array('product_id' => $product_id), '*');
+
 			$this->load->view('seller/products/edit_product', $data);
 
 		}
@@ -10955,15 +10911,19 @@ class Sellerproduct extends CI_Controller {
 
 						);
 
-						// Promotions & Special Pricing processing
-						$enable_promo = !empty($_POST['enable_promotional_offer']) ? 1 : 0;
-						if ($enable_promo) {
-							$promo_type = (isset($_POST['promo_type']) && $_POST['promo_type'] === 'flash_sale') ? 'flash_sale' : 'daily_deal';
-							$promo_special_price = (isset($_POST['promo_special_price']) && is_numeric($_POST['promo_special_price'])) ? floatval($_POST['promo_special_price']) : 0.00;
-							$promo_start_ts = !empty($_POST['promo_start_date']) ? strtotime($_POST['promo_start_date']) : time();
-							$promo_end_ts = !empty($_POST['promo_end_date']) ? strtotime($_POST['promo_end_date']) : null;
+						// Special Pricing processing
+						$special_price_in = isset($_POST['special_price']) ? $_POST['special_price'] : (isset($_POST['promo_special_price']) ? $_POST['promo_special_price'] : '');
+						$from_date_in = isset($_POST['from_date']) ? $_POST['from_date'] : (isset($_POST['promo_start_date']) ? $_POST['promo_start_date'] : '');
+						$to_date_in = isset($_POST['to_date']) ? $_POST['to_date'] : (isset($_POST['promo_end_date']) ? $_POST['promo_end_date'] : '');
+						$display_original_in = isset($_POST['display_original']) ? 1 : 0;
+						$promo_type_in = (isset($_POST['promo_type']) && $_POST['promo_type'] === 'flash_sale') ? 'flash_sale' : 'daily_deal';
 
-							if ($promo_type === 'flash_sale') {
+						$promo_special_price = (is_numeric($special_price_in) && floatval($special_price_in) > 0) ? floatval($special_price_in) : 0.00;
+						$promo_start_ts = !empty($from_date_in) ? strtotime($from_date_in) : time();
+						$promo_end_ts = !empty($to_date_in) ? (strlen($to_date_in) <= 10 ? strtotime($to_date_in . ' 23:59:59') : strtotime($to_date_in)) : null;
+
+						if ($promo_special_price > 0) {
+							if ($promo_type_in === 'flash_sale') {
 								$updatedata['flash_sale'] = 1;
 								$updatedata['flash_sale_starts_at'] = $promo_start_ts;
 								$updatedata['flash_sale_ends_at'] = $promo_end_ts;
@@ -10978,7 +10938,7 @@ class Sellerproduct extends CI_Controller {
 								$updatedata['flash_sale_starts_at'] = null;
 								$updatedata['flash_sale_ends_at'] = null;
 							}
-							$updatedata['special_price'] = ($promo_special_price > 0) ? $promo_special_price : null;
+							$updatedata['special_price'] = $promo_special_price;
 							$updatedata['special_price_from'] = $promo_start_ts;
 							$updatedata['special_price_to'] = $promo_end_ts;
 						} else {
@@ -10997,16 +10957,17 @@ class Sellerproduct extends CI_Controller {
 
 						$this->SellerProductModel->updateData('products', $where_arr, $updatedata);
 
+
 						// Synchronize products_special_prices
 						$existing_sp = $this->SellerProductModel->getSingleDataByID('products_special_prices', array('product_id' => $product_id), '*');
-						if ($enable_promo && $promo_special_price > 0) {
+						if ($promo_special_price > 0) {
 							$sp_data = array(
 								'product_id' => $product_id,
 								'special_price' => $promo_special_price,
 								'special_price_from' => $promo_start_ts,
 								'special_price_to' => $promo_end_ts,
-								'display_original' => 1,
-								'offer_type' => $promo_type,
+								'display_original' => $display_original_in,
+								'offer_type' => $promo_type_in,
 								'updated_at' => time(),
 								'ip' => $_SERVER['REMOTE_ADDR']
 							);
