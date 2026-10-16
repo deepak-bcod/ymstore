@@ -444,7 +444,9 @@ $route['addon-categories/create']       = 'AddonCategories/create';
 $route['addon-categories/edit/(:num)']  = 'AddonCategories/edit/$1';
 $route['addon-categories/delete/(:num)']= 'AddonCategories/delete/$1';
 
-$route['addon-manage-service'] = 'AddonManageService/index';
+$route['addons/manage'] = 'addons/manage';
+
+
 
 
 

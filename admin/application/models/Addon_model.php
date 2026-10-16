@@ -94,6 +94,14 @@ class Addon_model extends CI_Model {
         return $this->db->where('id', $id)->delete($this->table);
 
     }
+    public function get_all_manage_addons() {
+        $this->db->select('merchant_addons.*, merchants.name as merchant_name, addon_services.title as service_title');
+        $this->db->from('merchant_addons');
+        $this->db->join('merchants', 'merchants.id = merchant_addons.merchant_id', 'left');
+        $this->db->join('addon_services', 'addon_services.id = merchant_addons.addon_service_id', 'left');
+        $this->db->order_by('merchant_addons.id', 'DESC');
+        return $this->db->get()->result();
+    }
 
 }
 
