@@ -19032,7 +19032,6 @@ public function AssignParentDeliveryPopup()
         ->row();
 
     if ($already) {
-        // Someone else already created it (or duplicate request)
         $this->db->trans_complete();
         log_message('error', "Duplicate delivery insert prevented for webshop_order_id={$webshop_order_id}, attempt={$nextAttempt}");
         echo json_encode(['status' => 409, 'msg' => 'This delivery attempt has already been created.']);
@@ -19060,44 +19059,12 @@ public function AssignParentDeliveryPopup()
     $this->db->insert('b2b_orders_delivery_details', $insert);
     $insert_id = $this->db->insert_id();
 
-    // Update sub-orders under parent
+    // Update status for all sub-orders under this parent
     $this->db->where('webshop_order_id', $webshop_order_id)
         ->update('b2b_orders', ['status' => $order_status]);
 
-    // Get order_id
-    $orderData = $this->db->select('order_id')
-        ->from('b2b_orders')
-        ->where('webshop_order_id', $webshop_order_id)
-        ->get()
-        ->row();
-
-    $order_id = isset($orderData->order_id) ? $orderData->order_id : 0;
-
-    if (!empty($order_id)) {
-        // Get all products from this order
-        $orderItems = $this->db->select('product_id, qty_ordered')
-            ->from('b2b_order_items')
-            ->where('order_id', $order_id)
-            ->get()
-            ->result();
-
-        // Loop and update inventory
-        if (!empty($orderItems)) {
-            foreach ($orderItems as $item) {
-                $product_id = $item->product_id;
-                $ordered_qty = $item->qty_ordered;
-
-                $this->db->set('qty', "qty - $ordered_qty", FALSE);
-                $this->db->where('product_id', $product_id);
-                $this->db->update('products_inventory');
-            }
-        }
-    }
-
-    // ==========================================
-    // Send Notification to Merchant(s)
-    // ==========================================
-    $sub_orders = $this->db->select('id, order_number, merchant_id')
+    // Get all sub-orders to fetch their order_ids and order numbers
+    $sub_orders = $this->db->select('id, order_id, order_number, merchant_id')
                            ->from('b2b_orders')
                            ->where('webshop_order_id', $webshop_order_id)
                            ->get()
@@ -19105,15 +19072,38 @@ public function AssignParentDeliveryPopup()
 
     if (!empty($sub_orders)) {
         $merchant_orders = [];
-        
-        // Group order numbers (ES order nos) by merchant_id
+        $order_ids = [];
+
         foreach ($sub_orders as $sub) {
+            if (!empty($sub->order_id)) {
+                $order_ids[] = $sub->order_id;
+            }
             if (!empty($sub->merchant_id) && !empty($sub->order_number)) {
                 $merchant_orders[$sub->merchant_id][] = $sub->order_number;
             }
         }
 
-        // Insert notification per merchant with comma-separated order numbers
+        // Update inventory for all items associated with these sub-orders
+        if (!empty($order_ids)) {
+            $orderItems = $this->db->select('product_id, qty_ordered')
+                ->from('b2b_order_items')
+                ->where_in('order_id', $order_ids)
+                ->get()
+                ->result();
+
+            if (!empty($orderItems)) {
+                foreach ($orderItems as $item) {
+                    $product_id = $item->product_id;
+                    $ordered_qty = $item->qty_ordered;
+
+                    $this->db->set('qty', "qty - $ordered_qty", FALSE);
+                    $this->db->where('product_id', $product_id);
+                    $this->db->update('products_inventory');
+                }
+            }
+        }
+
+        // Send Notification to Merchant(s) with comma-separated ES order numbers
         foreach ($merchant_orders as $merchant_id => $order_numbers) {
             $order_list_str = implode(', ', $order_numbers);
             $notification_message = "Order (" . $order_list_str . ") is shipped to shopper";
@@ -19132,7 +19122,6 @@ public function AssignParentDeliveryPopup()
             $this->db->insert('notifications', $notification_data);
         }
     }
-    // ==========================================
 
     $this->db->trans_complete();
 
