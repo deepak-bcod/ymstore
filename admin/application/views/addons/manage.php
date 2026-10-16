@@ -1,21 +1,44 @@
 <?php $this->load->view('common/fbc-user/header'); ?>
 
 <style>
+    /* 1. Ensure main container expands properly next to sidebar */
     .manage-addon-container {
-        margin-left: 260px; /* Adjust this value to match your sidebar's exact width */
+        margin-left: 260px; /* Adjust to match your exact sidebar width */
         padding: 20px;
+        width: calc(100% - 260px);
     }
 
-    @media (max-width: 768px) {
-        .manage-addon-container {
-            margin-left: 0; 
-        }
+    /* 2. Prevent table from creating vertical/horizontal scroll box */
+    .table-responsive {
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+    }
+
+    /* 3. Allow text to wrap and fix table layout */
+    .table {
+        table-layout: auto;
+        width: 100% !important;
+    }
+
+    .table th, .table td {
+        white-space: normal; /* Prevents rows/columns from becoming unnecessarily wide */
+        vertical-align: middle;
     }
 
     .table thead th {
         background-color: #ffc107 !important;
         color: #000 !important;
         border-color: #dee2e6;
+    }
+
+    @media (max-width: 768px) {
+        .manage-addon-container {
+            margin-left: 0;
+            width: 100%;
+        }
+        .table-responsive {
+            overflow-x: auto !important; /* Re-enable smooth mobile scrolling */
+        }
     }
 </style>
 
