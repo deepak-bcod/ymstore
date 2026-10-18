@@ -1349,34 +1349,6 @@ class Api extends CI_Controller {
 		};
 
 		/*
-		* Handle failures:
-		* - Roll back an active transaction.
-		* - Remove files created during this request.
-		* - Return a JSON error response.
-		*/
-		$failResponse = function ($message) use (
-			&$transactionStarted,
-			&$filePath1,
-			&$filePath2,
-			$sendResponse
-		) {
-			if ($transactionStarted) {
-				$this->db->trans_rollback();
-				$transactionStarted = false;
-			}
-
-			if ($filePath1 && is_file($filePath1)) {
-				@unlink($filePath1);
-			}
-
-			if ($filePath2 && is_file($filePath2)) {
-				@unlink($filePath2);
-			}
-
-			$sendResponse(0, $message, []);
-		};
-
-		/*
 		* 1. Validate required parameters.
 		*/
 		if (empty($jwtToken)) {
@@ -1442,7 +1414,7 @@ class Api extends CI_Controller {
 			$imageBinary = base64_decode($imageData, true);
 
 			if ($imageBinary === false || $imageBinary === '') {
-				$failResponse('Invalid Base64 image.');
+				$sendResponse(0,'Invalid Base64 image.');
 				return;
 			}
 
@@ -1450,7 +1422,7 @@ class Api extends CI_Controller {
 			* Limit image size to 10 MB.
 			*/
 			if (strlen($imageBinary) > 10 * 1024 * 1024) {
-				$failResponse('Invalid Base64 image.');
+				$sendResponse(0,'Invalid Base64 image.');
 				return;
 			}
 
@@ -1463,7 +1435,7 @@ class Api extends CI_Controller {
 				$imageInfo === false ||
 				empty($imageInfo['mime'])
 			) {
-				$failResponse('Invalid image file.');
+				$sendResponse(0,'Invalid image file.');
 				return;
 			}
 
@@ -1476,7 +1448,7 @@ class Api extends CI_Controller {
 			$mimeType = strtolower($imageInfo['mime']);
 
 			if (!isset($mimeExtensions[$mimeType])) {
-				$failResponse(
+				$sendResponse(0,
 					'Only JPG, PNG and WebP images are allowed.'
 				);
 				return;
@@ -1500,12 +1472,12 @@ class Api extends CI_Controller {
 					!mkdir($directory, 0755, true) &&
 					!is_dir($directory)
 				) {
-					$failResponse('Unable to create image directory.');
+					$sendResponse(0,'Unable to create image directory.');
 					return;
 				}
 
 				if (!is_writable($directory)) {
-					$failResponse('Image directory is not writable.');
+					$sendResponse(0,'Image directory is not writable.');
 					return;
 				}
 			}
@@ -1530,7 +1502,7 @@ class Api extends CI_Controller {
 			if (
 				file_put_contents($filePath1, $imageBinary) === false
 			) {
-				$failResponse('Failed to save delivery image.');
+				$sendResponse(0,'Failed to save delivery image.');
 				return;
 			}
 
@@ -1548,7 +1520,7 @@ class Api extends CI_Controller {
 			* 8. Create 150 x 150 thumbnail.
 			*/
 			if (!copy($filePath1, $filePath2)) {
-				$failResponse('Failed to create thumbnail image.');
+				$sendResponse(0,'Failed to create thumbnail image.');
 				return;
 			}
 
@@ -1574,7 +1546,7 @@ class Api extends CI_Controller {
 
 				$this->image_lib->clear();
 
-				$failResponse(
+				$sendResponse(0,
 					'Thumbnail resize failed.'
 					. ($resizeError !== '' ? ' ' . $resizeError : '')
 				);
@@ -1617,7 +1589,6 @@ class Api extends CI_Controller {
 				*/
 				$parentDeliveryDetails = $this->db
 					->where('webshop_order_id', $order_id)
-					->where('is_parent_level', 1)
 					->where('driver_id', $driver_id)
 					->order_by('id', 'DESC')
 					->limit(1)
@@ -1625,7 +1596,7 @@ class Api extends CI_Controller {
 					->row();
 
 				if (!$parentDeliveryDetails) {
-					$failResponse(
+					$sendResponse(0,
 						'Parent delivery-details record not found.'
 					);
 					return;
@@ -1637,12 +1608,12 @@ class Api extends CI_Controller {
 				*/
 				$esOrder = $this->db
 					->where('webshop_order_id', $order_id)
-					->where('order_id', (int) $requestEsOrderId)
+					->where('order_barcode', $requestEsOrderId)
 					->get('b2b_orders')
 					->row();
 
 				if (!$esOrder) {
-					$failResponse(
+					$sendResponse(0,
 						'ES order does not belong to this parent order.'
 					);
 					return;
@@ -1666,7 +1637,7 @@ class Api extends CI_Controller {
 						json_last_error() !== JSON_ERROR_NONE ||
 						!is_array($decodedJson)
 					) {
-						$failResponse(
+						$sendResponse(0,
 							'Existing order_json contains invalid JSON.'
 						);
 						return;
@@ -1711,7 +1682,7 @@ class Api extends CI_Controller {
 				);
 
 				if ($jsonEncoded === false) {
-					$failResponse(
+					$sendResponse(0,
 						'Failed to encode delivery image JSON.'
 					);
 					return;
@@ -1722,9 +1693,7 @@ class Api extends CI_Controller {
 				* product_details remains unchanged.
 				*/
 				$this->db
-					->where('id', $parentDeliveryDetails->id)
-					->where('webshop_order_id', $order_id)
-					->where('is_parent_level', 1)
+					->where('order_id', $order_id)
 					->where('driver_id', $driver_id)
 					->update(
 						'b2b_orders_delivery_details',
@@ -1735,7 +1704,7 @@ class Api extends CI_Controller {
 					);
 
 				if ($this->db->trans_status() === false) {
-					$failResponse(
+					$sendResponse(0,
 						'Failed to update parent delivery details.'
 					);
 					return;
@@ -1743,7 +1712,7 @@ class Api extends CI_Controller {
 
 				$responseData = [
 					'parent_order_id' => $order_id,
-					'es_order_id'     => (int) $requestEsOrderId,
+					'es_order_id'     => $requestEsOrderId,
 					'image_url'       => $imageRecord['image_url'],
 					'thumb_url'       => $imageRecord['thumb_url']
 				];
@@ -1781,7 +1750,7 @@ class Api extends CI_Controller {
 					);
 
 				if ($this->db->trans_status() === false) {
-					$failResponse(
+					$sendResponse(0,
 						'Failed to update individual delivery image.'
 					);
 					return;
@@ -1798,7 +1767,7 @@ class Api extends CI_Controller {
 			* 11. Verify and commit transaction.
 			*/
 			if ($this->db->trans_status() === false) {
-				$failResponse('Database transaction failed.');
+				$sendResponse(0,'Database transaction failed.');
 				return;
 			}
 
@@ -1825,7 +1794,7 @@ class Api extends CI_Controller {
 				'Delivery image upload failed: ' . $e->getMessage()
 			);
 
-			$failResponse(
+			$sendResponse(0,
 				'Unable to upload delivery image.'
 			);
 			return;
