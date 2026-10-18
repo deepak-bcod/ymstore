@@ -1594,8 +1594,8 @@ class Api extends CI_Controller {
 					->limit(1)
 					->get('b2b_orders_delivery_details')
 					->row();
-					
-				echo $this->db->last_query();exit;
+
+				//echo $this->db->last_query();exit;
 
 				if (!$parentDeliveryDetails) {
 					$sendResponse(0,
