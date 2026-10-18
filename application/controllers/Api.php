@@ -1630,7 +1630,7 @@ class Api extends CI_Controller {
 						return;
 					}
 
-					echo "<pre>";print_r($decodedJson);die;
+					//echo "<pre>";print_r($decodedJson);die;
 
 					$orderJson = $decodedJson;
 				}
