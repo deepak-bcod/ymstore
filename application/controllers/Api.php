@@ -1670,7 +1670,7 @@ class Api extends CI_Controller {
 				/*
 				* Append image without replacing existing images.
 				*/
-				$orderJson[$requestEsOrderId]['delivery_images'][]
+				$orderJson[$requestEsOrderId]['delivery_images']
 					= $imageRecord;
 
 				/*
