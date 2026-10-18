@@ -163,7 +163,7 @@ defined('PRODUCT_LARGE_PATH') ||  define('PRODUCT_LARGE_PATH', SIS_SHOP_SERVER_P
 
 defined('CATBUILD_PATH') ||  define('CATBUILD_PATH', SIS_SHOP_SERVER_PATH . '/uploads/catbuild_csv/');
 
-defined('CSSJS_VERSION') ||  define('CSSJS_VERSION', 'b35'); // ddmmyy01, ddmmyy02 etc
+defined('CSSJS_VERSION') ||  define('CSSJS_VERSION', 'b36'); // ddmmyy01, ddmmyy02 etc
 
 defined('PRODUCT_DEFAULT_IMG') ||  define('PRODUCT_DEFAULT_IMG', TEMP_SKIN_IMG . '/default_product_image.png');
 
