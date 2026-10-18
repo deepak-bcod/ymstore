@@ -1602,22 +1602,7 @@ class Api extends CI_Controller {
 					return;
 				}
 
-				/*
-				* Verify that the requested ES order belongs
-				* to this parent B2C order.
-				*/
-				$esOrder = $this->db
-					->where('webshop_order_id', $order_id)
-					->where('order_barcode', $requestEsOrderId)
-					->get('b2b_orders')
-					->row();
-
-				if (!$esOrder) {
-					$sendResponse(0,
-						'ES order does not belong to this parent order.'
-					);
-					return;
-				}
+				
 
 				/*
 				* Decode existing order_json.
@@ -1642,6 +1627,8 @@ class Api extends CI_Controller {
 						);
 						return;
 					}
+
+					echo "<pre>";print_r($decodedJson);die;
 
 					$orderJson = $decodedJson;
 				}
