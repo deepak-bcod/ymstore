@@ -842,6 +842,7 @@ class CommonModel extends CI_Model
             b2bodd.image,
             b2bodd.thumbnail,
             b2bodd.product_details,
+            b2bodd.order_json,
             b2bodd.remarks,
             b.order_barcode,
             {$grandTotal} AS grand_total,
