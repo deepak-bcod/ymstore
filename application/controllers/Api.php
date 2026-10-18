@@ -1318,8 +1318,6 @@ class Api extends CI_Controller {
 	}
 	*/
 
-	
-	
 	public function delivery_image_upload_details()
 	{
 		$this->output->set_content_type('application/json');
@@ -1922,396 +1920,397 @@ class Api extends CI_Controller {
 		exit;
 	}
 
-public function update_failed_attempt()
-{
-    $jwtToken        = $this->input->post('token_id') ?? $this->input->get('token_id');
-    $reason          = $this->input->post('reason');
-    $order_id        = $this->input->post('order_id');
-    $is_parent_level = $this->input->post('is_parent_level');
+	public function update_failed_attempt()
+	{
+		$jwtToken        = $this->input->post('token_id') ?? $this->input->get('token_id');
+		$reason          = $this->input->post('reason');
+		$order_id        = $this->input->post('order_id');
+		$is_parent_level = $this->input->post('is_parent_level');
 
-    if (empty($jwtToken)) {
-        echo json_encode([
-            'flag'   => 0,
-            'status' => 200,
-            'msg'    => 'Token missing.',
-            'data'   => []
-        ]);
-        exit;
-    }
+		if (empty($jwtToken)) {
+			echo json_encode([
+				'flag'   => 0,
+				'status' => 200,
+				'msg'    => 'Token missing.',
+				'data'   => []
+			]);
+			exit;
+		}
 
-    $tokenRow = $this->db
-        ->where('token', $jwtToken)
-        ->where('status', 0)
-        ->get('driver_tokens')
-        ->row();
+		$tokenRow = $this->db
+			->where('token', $jwtToken)
+			->where('status', 0)
+			->get('driver_tokens')
+			->row();
 
-    if (!$tokenRow) {
-        echo json_encode([
-            'flag'   => 0,
-            'status' => 200,
-            'msg'    => 'Token inactive or not found.',
-            'data'   => []
-        ]);
-        exit;
-    }
+		if (!$tokenRow) {
+			echo json_encode([
+				'flag'   => 0,
+				'status' => 200,
+				'msg'    => 'Token inactive or not found.',
+				'data'   => []
+			]);
+			exit;
+		}
 
-    $driver_id = $tokenRow->driver_id;
+		$driver_id = $tokenRow->driver_id;
 
-    try {
+		try {
 
-        $updateData = [];
+			$updateData = [];
 
-        if (!empty($reason)) {
-            $updateData['reason_for_attempt_failed'] = $reason;
-        }
+			if (!empty($reason)) {
+				$updateData['reason_for_attempt_failed'] = $reason;
+			}
 
-        $updateData['updated_at'] = date('Y-m-d H:i:s');
+			$updateData['updated_at'] = date('Y-m-d H:i:s');
 
 
-        $this->db->select_max(
-            'delivery_attempt_no',
-            'latest_attempt'
-        );
+			$this->db->select_max(
+				'delivery_attempt_no',
+				'latest_attempt'
+			);
 
-        if ($is_parent_level == 1) {
+			if ($is_parent_level == 1) {
 
-            $this->db->where(
-                'webshop_order_id',
-                $order_id
-            );
+				$this->db->where(
+					'webshop_order_id',
+					$order_id
+				);
 
-        } else {
+			} else {
 
-            $this->db->where(
-                'order_id',
-                $order_id
-            );
-        }
+				$this->db->where(
+					'order_id',
+					$order_id
+				);
+			}
 
-        $this->db->where(
-            'driver_id',
-            $driver_id
-        );
+			$this->db->where(
+				'driver_id',
+				$driver_id
+			);
 
-        $query = $this->db->get(
-            'b2b_orders_delivery_details'
-        );
+			$query = $this->db->get(
+				'b2b_orders_delivery_details'
+			);
 
-        $row = $query->row();
+			$row = $query->row();
 
 
-        if (!$row || !$row->latest_attempt) {
+			if (!$row || !$row->latest_attempt) {
 
-            echo json_encode([
-                'flag'   => 0,
-                'status' => 200,
-                'msg'    => 'No delivery attempt found.',
-                'data'   => []
-            ]);
-            exit;
-        }
+				echo json_encode([
+					'flag'   => 0,
+					'status' => 200,
+					'msg'    => 'No delivery attempt found.',
+					'data'   => []
+				]);
+				exit;
+			}
 
 
-        $latest_attempt = (int) $row->latest_attempt;
+			$latest_attempt = (int) $row->latest_attempt;
 
 
-        if ($latest_attempt == 1) {
+			if ($latest_attempt == 1) {
 
-            $new_status       = 2;
-            $allowed_statuses = [1, 2];
+				$new_status       = 2;
+				$allowed_statuses = [1, 2];
 
-        } elseif ($latest_attempt == 2) {
+			} elseif ($latest_attempt == 2) {
 
-            $new_status       = 4;
-            $allowed_statuses = [3, 4];
+				$new_status       = 4;
+				$allowed_statuses = [3, 4];
 
-        } elseif ($latest_attempt == 3) {
+			} elseif ($latest_attempt == 3) {
 
-            $new_status       = 6;
-            $allowed_statuses = [5, 6];
+				$new_status       = 6;
+				$allowed_statuses = [5, 6];
 
-        } else {
+			} else {
 
-            echo json_encode([
-                'flag'   => 0,
-                'status' => 200,
-                'msg'    => 'Invalid attempt number.',
-                'data'   => []
-            ]);
-            exit;
-        }
+				echo json_encode([
+					'flag'   => 0,
+					'status' => 200,
+					'msg'    => 'Invalid attempt number.',
+					'data'   => []
+				]);
+				exit;
+			}
 
 
-        $updateData['delivery_status'] = $new_status;
+			$updateData['delivery_status'] = $new_status;
 
-        $this->db->set($updateData);
+			$this->db->set($updateData);
 
-        if ($is_parent_level == 1) {
+			if ($is_parent_level == 1) {
 
-            $this->db->where(
-                'webshop_order_id',
-                $order_id
-            );
+				$this->db->where(
+					'webshop_order_id',
+					$order_id
+				);
 
-        } else {
+			} else {
 
-            $this->db->where(
-                'order_id',
-                $order_id
-            );
-        }
+				$this->db->where(
+					'order_id',
+					$order_id
+				);
+			}
 
-        $this->db->where(
-            'driver_id',
-            $driver_id
-        );
+			$this->db->where(
+				'driver_id',
+				$driver_id
+			);
 
-        $this->db->where(
-            'delivery_attempt_no',
-            $latest_attempt
-        );
+			$this->db->where(
+				'delivery_attempt_no',
+				$latest_attempt
+			);
 
-        $this->db->where_in(
-            'delivery_status',
-            $allowed_statuses
-        );
+			$this->db->where_in(
+				'delivery_status',
+				$allowed_statuses
+			);
 
-        $this->db->update(
-            'b2b_orders_delivery_details'
-        );
+			$this->db->update(
+				'b2b_orders_delivery_details'
+			);
 
-        $affected = $this->db->affected_rows();
+			$affected = $this->db->affected_rows();
 
-        if ($affected <= 0) {
+			if ($affected <= 0) {
 
-            echo json_encode([
-                'flag'   => 0,
-                'status' => 200,
-                'msg'    => 'Unable to update. Please check the order or attempt.',
-                'data'   => []
-            ]);
-            exit;
-        }
+				echo json_encode([
+					'flag'   => 0,
+					'status' => 200,
+					'msg'    => 'Unable to update. Please check the order or attempt.',
+					'data'   => []
+				]);
+				exit;
+			}
 
-        $b2bOrder = null;
+			$b2bOrder = null;
 
-        if ($is_parent_level == 1) {
+			if ($is_parent_level == 1) {
 
-            $b2bOrder = $this->db
-                ->where(
-                    'webshop_order_id',
-                    $order_id
-                )
-                ->get('b2b_orders')
-                ->row();
+				$b2bOrder = $this->db
+					->where(
+						'webshop_order_id',
+						$order_id
+					)
+					->get('b2b_orders')
+					->row();
 
-        } else {
+			} else {
 
-            $b2bOrder = $this->db
-                ->where(
-                    'order_id',
-                    $order_id
-                )
-                ->get('b2b_orders')
-                ->row();
-        }
+				$b2bOrder = $this->db
+					->where(
+						'order_id',
+						$order_id
+					)
+					->get('b2b_orders')
+					->row();
+			}
 
 
-        if (
-            in_array($latest_attempt, [1, 2]) &&
-            !empty($b2bOrder)
-        ) {
+			if (
+				in_array($latest_attempt, [1, 2]) &&
+				!empty($b2bOrder)
+			) {
 
-            
-            $esOrderNo = !empty($b2bOrder->order_barcode)
-                ? $b2bOrder->order_barcode
-                : 'N/A';
+				
+				$esOrderNo = !empty($b2bOrder->order_barcode)
+					? $b2bOrder->order_barcode
+					: 'N/A';
 
 
-            /*
-             * ATTEMPT 1
-             */
-            if ($latest_attempt == 1) {
-
-                $notificationSubtype = 'attempt_1_failed';
-
-                $notificationTitle =
-                    '1st Attempt Failed';
+				/*
+				* ATTEMPT 1
+				*/
+				if ($latest_attempt == 1) {
+
+					$notificationSubtype = 'attempt_1_failed';
+
+					$notificationTitle =
+						'1st Attempt Failed';
 
-                $notificationMessage =
-                    ' #' . $esOrderNo . ' 1st attempt failed';
-
+					$notificationMessage =
+						' #' . $esOrderNo . ' 1st attempt failed';
+
 
-            /*
-             * ATTEMPT 2
-             */
-            } else {
-
-                $notificationSubtype = 'attempt_2_failed';
-
-                $notificationTitle =
-                    '2nd Attempt Failed';
-
-                $notificationMessage =
-                    ' #' . $esOrderNo . ' 2nd attempt failed';
-            }
-
-
-            /*
-             * NOTIFICATION DATA
-             */
-            $notificationData = [
-                'type'           => 'es_order',
-                'subtype'        => $notificationSubtype,
-                'recipient_type' => 'admin',
+				/*
+				* ATTEMPT 2
+				*/
+				} else {
+
+					$notificationSubtype = 'attempt_2_failed';
+
+					$notificationTitle =
+						'2nd Attempt Failed';
+
+					$notificationMessage =
+						' #' . $esOrderNo . ' 2nd attempt failed';
+				}
+
+
+				/*
+				* NOTIFICATION DATA
+				*/
+				$notificationData = [
+					'type'           => 'es_order',
+					'subtype'        => $notificationSubtype,
+					'recipient_type' => 'admin',
 
-                'title'          => $notificationTitle,
+					'title'          => $notificationTitle,
 
-                'message'        => $notificationMessage,
+					'message'        => $notificationMessage,
 
-                'data'           => json_encode([
-                    'order_id'         => $order_id,
-                    'b2b_order_id'     => $b2bOrder->order_id ?? null,
-                    'webshop_order_id' => $b2bOrder->webshop_order_id ?? null,
-                    'es_order_no'      => $esOrderNo,
-                    'attempt_no'       => $latest_attempt,
-                    'reason'           => $reason
-                ]),
+					'data'           => json_encode([
+						'order_id'         => $order_id,
+						'b2b_order_id'     => $b2bOrder->order_id ?? null,
+						'webshop_order_id' => $b2bOrder->webshop_order_id ?? null,
+						'es_order_no'      => $esOrderNo,
+						'attempt_no'       => $latest_attempt,
+						'reason'           => $reason
+					]),
 
-                'is_read'    => 0,
-                'created_at' => date('Y-m-d H:i:s')
-            ];
-
-
-            
-            try {
-
-                
-                $this->db->insert(
-                    'notifications',
-                    $notificationData
-                );
-
-                if ($this->db->error()['code'] != 0) {
-
-                    log_message(
-                        'error',
-                        'Failed attempt notification DB error: ' .
-                        json_encode($this->db->error())
-                    );
-                }
-
-            } catch (Exception $notificationException) {
+					'is_read'    => 0,
+					'created_at' => date('Y-m-d H:i:s')
+				];
+
+
+				
+				try {
+
+					
+					$this->db->insert(
+						'notifications',
+						$notificationData
+					);
+
+					if ($this->db->error()['code'] != 0) {
+
+						log_message(
+							'error',
+							'Failed attempt notification DB error: ' .
+							json_encode($this->db->error())
+						);
+					}
+
+				} catch (Exception $notificationException) {
 
-                log_message(
-                    'error',
-                    'Failed attempt notification exception: ' .
-                    $notificationException->getMessage()
-                );
-            }
-        }
-
-
-        /*
-         * =========================================================
-         * ATTEMPT 2 FAILED
-         * SEND CUSTOMER EMAIL
-         * =========================================================
-         */
-        if (
-            $latest_attempt == 2 &&
-            !empty($b2bOrder) &&
-            !empty($b2bOrder->webshop_order_id)
-        ) {
-
-            /*
-             * GET SALES ORDER
-             */
-            $salesOrder = $this->db
-                ->where(
-                    'order_id',
-                    $b2bOrder->webshop_order_id
-                )
-                ->get('sales_order')
-                ->row();
-
-
-            if (
-                !empty($salesOrder) &&
-                !empty($salesOrder->customer_email)
-            ) {
-
-            
-                $customerName = trim(
-                    ($salesOrder->customer_firstname ?? '') .
-                    ' ' .
-                    ($salesOrder->customer_lastname ?? '')
-                );
-
-
-                
-                $TempVars = [
-                    '##CUSTOMERNAME##',
-                    '##ORDERNO##',
-                    '##REASON##'
-                ];
-
-
-                $DynamicVars = [
-                    $customerName,
-                    $salesOrder->increment_id,
-                    $reason
-                ];
-
-
-                try {
-
-                    $mailSent =
-                        $this->CommonModel->sendCommonHTMLEmail(
-                            $salesOrder->customer_email,
-                            'delivery-attempt-2-failed',
-                            $TempVars,
-                            $DynamicVars
-                        );
-
-                } catch (Exception $mailException) {
-
-                    log_message(
-                        'error',
-                        'Attempt 2 customer email error: ' .
-                        $mailException->getMessage()
-                    );
-                }
-            }
-        }
-
-
-        
-        echo json_encode([
-            'flag'   => 1,
-            'status' => 200,
-            'msg'    => 'Failed attempt updated successfully.'
-        ]);
-
-    } catch (Exception $e) {
-
-        log_message(
-            'error',
-            'update_failed_attempt ERROR: ' .
-            $e->getMessage()
-        );
-
-
-        echo json_encode([
-            'flag'   => 0,
-            'status' => 500,
-            'msg'    => 'An error occurred: ' . $e->getMessage(),
-            'data'   => []
-        ]);
-    }
-
-    exit;
-}
+					log_message(
+						'error',
+						'Failed attempt notification exception: ' .
+						$notificationException->getMessage()
+					);
+				}
+			}
+
+
+			/*
+			* =========================================================
+			* ATTEMPT 2 FAILED
+			* SEND CUSTOMER EMAIL
+			* =========================================================
+			*/
+			if (
+				$latest_attempt == 2 &&
+				!empty($b2bOrder) &&
+				!empty($b2bOrder->webshop_order_id)
+			) {
+
+				/*
+				* GET SALES ORDER
+				*/
+				$salesOrder = $this->db
+					->where(
+						'order_id',
+						$b2bOrder->webshop_order_id
+					)
+					->get('sales_order')
+					->row();
+
+
+				if (
+					!empty($salesOrder) &&
+					!empty($salesOrder->customer_email)
+				) {
+
+				
+					$customerName = trim(
+						($salesOrder->customer_firstname ?? '') .
+						' ' .
+						($salesOrder->customer_lastname ?? '')
+					);
+
+
+					
+					$TempVars = [
+						'##CUSTOMERNAME##',
+						'##ORDERNO##',
+						'##REASON##'
+					];
+
+
+					$DynamicVars = [
+						$customerName,
+						$salesOrder->increment_id,
+						$reason
+					];
+
+
+					try {
+
+						$mailSent =
+							$this->CommonModel->sendCommonHTMLEmail(
+								$salesOrder->customer_email,
+								'delivery-attempt-2-failed',
+								$TempVars,
+								$DynamicVars
+							);
+
+					} catch (Exception $mailException) {
+
+						log_message(
+							'error',
+							'Attempt 2 customer email error: ' .
+							$mailException->getMessage()
+						);
+					}
+				}
+			}
+
+
+			
+			echo json_encode([
+				'flag'   => 1,
+				'status' => 200,
+				'msg'    => 'Failed attempt updated successfully.'
+			]);
+
+		} catch (Exception $e) {
+
+			log_message(
+				'error',
+				'update_failed_attempt ERROR: ' .
+				$e->getMessage()
+			);
+
+
+			echo json_encode([
+				'flag'   => 0,
+				'status' => 500,
+				'msg'    => 'An error occurred: ' . $e->getMessage(),
+				'data'   => []
+			]);
+		}
+
+		exit;
+	}
+
 	public function driver_logout() {
 		$jwtToken = $this->input->post('token_id') ?? '';
 
