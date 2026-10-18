@@ -876,6 +876,16 @@ class CommonModel extends CI_Model
             $productDetailsJson = [];
         }
 
+        // Decode delivery product details JSON
+        $orderDetailsJson = json_decode(
+            $result[0]['order_json'] ?? '',
+            true
+        );
+
+        if (!is_array($orderDetailsJson)) {
+            $orderDetailsJson = [];
+        }
+
         // Order-level data
         $order = [
             'order_id' => $result[0]['order_id'],
@@ -925,6 +935,8 @@ class CommonModel extends CI_Model
                 $order['order_numbers'] = $order['order_barcode'];
                 $order['associated_order_numbers'] = $order['order_barcode'];
             }
+
+            $order['es_orders'] = $orderDetailsJson;
         }
 
         // Build products array and prevent duplicate products
