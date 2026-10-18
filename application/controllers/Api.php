@@ -1588,7 +1588,7 @@ class Api extends CI_Controller {
 				* Find the parent delivery-details record.
 				*/
 				$parentDeliveryDetails = $this->db
-					->where('webshop_order_id', $order_id)
+					->where('order_id', $order_id)
 					->where('driver_id', $driver_id)
 					->order_by('id', 'DESC')
 					->limit(1)
