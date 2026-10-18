@@ -1596,17 +1596,7 @@ class Api extends CI_Controller {
 					);
 				}
 
-				// Fetch ES orders linked to the parent B2C order.
-				$esOrders = $this->db
-					->where('webshop_order_id', $order_id)
-					->get('b2b_orders')
-					->result();
-
-				if (empty($esOrders)) {
-					throw new Exception(
-						'No ES orders found for this parent order.'
-					);
-				}
+				
 
 				/*
 				* Decode existing order_json.
@@ -1635,49 +1625,37 @@ class Api extends CI_Controller {
 					$orderJson = $decodedJson;
 				}
 
-				/*
-				* Append the image to each ES order.
-				* Do not modify product_details.
-				*/
-				foreach ($esOrders as $esOrder) {
-
-					$esOrderId = (string) $esOrder->order_id;
-
-					$order_barcode =(string) $esOrder->order_barcode;;
-
-					if($order_barcode == $requestEsOrderId){
-
-						if (
-							!isset($orderJson[$esOrderId]) ||
-							!is_array($orderJson[$esOrderId])
-						) {
-							$orderJson[$esOrderId] = [];
-						}
-
-						if (
-							!isset(
-								$orderJson[$esOrderId]['delivery_images']
-							) ||
-							!is_array(
-								$orderJson[$esOrderId]['delivery_images']
-							)
-						) {
-							$orderJson[$esOrderId]['delivery_images'] = [];
-						}
-
-						// Append instead of replacing previous images.
-						$orderJson[$esOrderId]['delivery_images'][]
-							= $imageRecord;
-
-						$updatedOrders[] = (int) $esOrder->order_id;
-
-						$esOrderResponse[] = [
-							'es_order_id' => (int) $esOrder->order_id,
-							'image_url'   => $imageRecord['image_url'],
-							'thumb_url'   => $imageRecord['thumb_url']
-						];
-				    }
+				
+					
+					
+				if (
+					!isset($orderJson[$requestEsOrderId]) ||
+					!is_array($orderJson[$requestEsOrderId])
+				) {
+					$orderJson[$erequestEsOrderId] = [];
 				}
+
+				if (
+					!isset(
+						$orderJson[$requestEsOrderId]['delivery_images']
+					) ||
+					!is_array(
+						$orderJson[$requestEsOrderId]['delivery_images']
+					)
+				) {
+					$orderJson[$requestEsOrderId]['delivery_images'] = [];
+				}
+
+				// Append instead of replacing previous images.
+				$orderJson[$requestEsOrderId]['delivery_images'][]
+					= $imageRecord;
+
+			
+				$esOrderResponse[] = [
+					'es_order_id' => (int) $requestEsOrderId,
+					'image_url'   => $imageRecord['image_url'],
+					'thumb_url'   => $imageRecord['thumb_url']
+				];
 
 				/*
 				* Encode JSON once after processing every ES order.
@@ -1717,8 +1695,7 @@ class Api extends CI_Controller {
 
 				$responseData = [
 					'parent_order_id' => $order_id,
-					//'es_order_ids'    => $updatedOrders,
-					//'es_orders'       => $esOrderResponse,
+					'es_order_id'     => $requestEsOrderId,
 					'image_url'       => $imageRecord['image_url'],
 					'thumb_url'       => $imageRecord['thumb_url']
 				];
