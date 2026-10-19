@@ -200,7 +200,7 @@
                                                 </td>
 
                                                 <td>
-                                                    <a href="javascript:void(0);" class="link-orange" style="color:#f39c12;font-weight:600;" onclick="openOrderImagesModal('<?= !empty($parentDelivery) ? $parent->order_id : $b2b->order_id ?>', 'delivery')">View Image</a>
+                                                    <a href="javascript:void(0);" class="link-orange" style="color:#f39c12;font-weight:600;" onclick="openOrderImagesModal('<?= !empty($parentDelivery) ? $parent->order_id : $b2b->order_id ?>', 'delivery', '<?= !empty($b2b->increment_id) ? $b2b->increment_id : (!empty($b2b->order_barcode) ? $b2b->order_barcode : '') ?>')">View Image</a>
                                                 </td>
 
                                                 <td>

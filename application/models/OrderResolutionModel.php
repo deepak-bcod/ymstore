@@ -321,6 +321,21 @@ class OrderResolutionModel extends CI_Model
             }
         }
 
+        // Sort items descending by order number / order ID
+        usort($final_eligible, function ($a, $b) {
+            $numA = (int)preg_replace('/\D/', '', (string)($a->order_number ?? $a->order_id));
+            $numB = (int)preg_replace('/\D/', '', (string)($b->order_number ?? $b->order_id));
+            if ($numA === $numB) {
+                $orderA = (int)($a->order_id ?? 0);
+                $orderB = (int)($b->order_id ?? 0);
+                if ($orderA === $orderB) {
+                    return (int)($b->product_id ?? 0) - (int)($a->product_id ?? 0);
+                }
+                return $orderB - $orderA;
+            }
+            return $numB - $numA;
+        });
+
         return $final_eligible;
     }
 
