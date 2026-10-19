@@ -195,11 +195,16 @@ class Addons extends CI_Controller
         redirect('addons');
     }
     public function manage()
-    {
-        $data['side_menu'] = 'Manage Addon'; // To highlight the sidebar item
-        $data['manage_addons'] = $this->Addon_model->get_all_manage_addons();
-        
-        // Load the view file inside your merchant folder or views directory
-        $this->load->view('addons/manage', $data);
-    }
+{
+    $data['side_menu'] = 'Manage Addon'; // To highlight the sidebar item
+    
+    // Load model if not already auto-loaded
+    $this->load->model('Addon_model'); 
+    
+    // Fetch all merchant addon purchases for the admin
+    $data['manage_addons'] = $this->Addon_model->get_all_merchant_purchases(); 
+    
+    // Load the view file inside your admin folder or views directory
+    $this->load->view('admin/addons/manage', $data); // Adjust path to your admin view if needed
+}
 }

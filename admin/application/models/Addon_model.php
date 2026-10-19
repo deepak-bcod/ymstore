@@ -94,13 +94,28 @@ class Addon_model extends CI_Model {
         return $this->db->where('id', $id)->delete($this->table);
 
     }
-    public function get_all_manage_addons() {
-        $this->db->select('addon_services.*, addon_categories.name as category_name');
-        $this->db->from('addon_services');
-        $this->db->join('addon_categories', 'addon_categories.id = addon_services.category_id', 'left');
-        $this->db->order_by('addon_services.id', 'DESC');
-        return $this->db->get()->result();
-    }
+    public function get_all_merchant_purchases() 
+{
+    $this->db->select('
+        p.id as purchase_id,
+        DATE_FORMAT(p.created_at, "%d-%m-%Y %H:%i:%s") as date,
+        p.status,
+        c.name as addon_service_name,
+        s.title as addon_name,
+        s.final_price as amount,
+        pub.company_name as merchant_name
+    ');
+    $this->db->from('merchant_addon_purchases p');
+    $this->db->join('addon_services s', 's.id = p.service_id', 'left');
+    $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
+    $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
+    
+    // No merchant_id filter here because admin wants to see ALL merchants
+    
+    $this->db->order_by('p.id', 'DESC');
+    $query = $this->db->get();
+    return $query->result();
+}
 
 }
 
