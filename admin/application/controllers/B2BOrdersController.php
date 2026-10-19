@@ -18639,47 +18639,66 @@ public function markDelivered()
 
 
                 // ==========================================
-                // GET SHOPPER CUSTOMER ID & EMAIL
+                // GET SALES ORDER & CUSTOMER INFO
                 // ==========================================
 
                 $salesOrder = $this->db
-                    ->select('customer_id')
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
 
 
-                if ($salesOrder) {
+                // ==========================================
+                // GET B2B ORDER DETAILS & BARCODE
+                // ==========================================
 
-                    $customerId = $salesOrder->customer_id;
+                $b2bOrder = $this->db
+                    ->where('order_id', $order_id)
+                    ->get('b2b_orders')
+                    ->row();
 
-                    // Fetch customer email from customers/users table (adjust table & column name if different)
-                    $customerData = $this->db
-                        ->select('email')
-                        ->where('customer_id', $customerId) // or 'id' depending on your schema
-                        ->get('customers') 
-                        ->row();
+
+                if ($b2bOrder && !empty($b2bOrder->order_barcode)) {
+
+                    $b2bOrderNumber = $b2bOrder->order_barcode;
+                    
+                    $customerName = trim(
+                        ($b2bOrder->customer_firstname ?? '') . ' ' .
+                        ($b2bOrder->customer_lastname ?? '')
+                    );
 
 
                     // ==========================================
-                    // GET B2B ORDER BARCODE
+                    // 1. SEND DELIVERED EMAIL TO SHOPPER
                     // ==========================================
 
-                    $b2bOrder = $this->db
-                        ->select('order_barcode')
-                        ->where('order_id', $order_id)
-                        ->get('b2b_orders')
-                        ->row();
+                    if (!empty($salesOrder) && !empty($salesOrder->customer_email)) {
+
+                        $TempVars = [
+                            '##CUSTOMERNAME##',
+                            '##ORDERNO##'
+                        ];
+
+                        $DynamicVars = [
+                            $customerName,
+                            $b2bOrder->increment_id
+                        ];
+
+                        // Send Order Delivered email template
+                        $this->CommonModel->sendCommonHTMLEmail(
+                            $salesOrder->customer_email,
+                            'order-delivered', // Make sure this template exists in your email templates configuration/db
+                            $TempVars,
+                            $DynamicVars
+                        );
+                    }
 
 
-                    if ($b2bOrder && !empty($b2bOrder->order_barcode)) {
+                    // ==========================================
+                    // 2. ADD SHOPPER NOTIFICATION (DATABASE)
+                    // ==========================================
 
-                        $b2bOrderNumber = $b2bOrder->order_barcode;
-
-
-                        // ==========================================
-                        // SHOPPER NOTIFICATION - DATABASE
-                        // ==========================================
+                    if (!empty($salesOrder) && !empty($salesOrder->customer_id)) {
 
                         $notif_sql = "INSERT INTO notifications
                             (
@@ -18701,48 +18720,27 @@ public function markDelivered()
                             'order',
                             'order_delivered',
                             'shopper',
-                            $customerId,
+                            $salesOrder->customer_id,
                             'Order delivered',
                             'Your order no. ' . $b2bOrderNumber . ' is delivered.',
                             json_encode([
-                                'order_id'      => $webshop_order_id,
-                                'b2b_order_id'  => $order_id,
-                                'b2b_order_no'  => $b2bOrderNumber,
-                                'status'        => 8
+                                'order_id'         => $webshop_order_id,
+                                'b2b_order_id'     => $order_id,
+                                'b2b_order_no'     => $b2bOrderNumber,
+                                'increment_id'     => $b2bOrder->increment_id,
+                                'status'           => 8
                             ]),
                             0,
                             date('Y-m-d H:i:s'),
                             date('Y-m-d H:i:s')
                         ];
 
+                        // Insert notification
                         $this->db->query($notif_sql, $notif_params);
-
-
-                        // ==========================================
-                        // SHOPPER NOTIFICATION - EMAIL
-                        // ==========================================
-
-                        if ($customerData && !empty($customerData->email)) {
-                            
-                            $this->load->library('email');
-
-                            $this->email->from('no-reply@yellowmarkets.com', 'Yellow Markets');
-                            $this->email->to($customerData->email);
-                            $this->email->subject('Order Delivered - ' . $b2bOrderNumber);
-                            
-                            $emailMessage = "<p>Hello,</p>";
-                            $emailMessage .= "<p>Your order no. <b>" . $b2bOrderNumber . "</b> has been delivered successfully.</p>";
-                            $emailMessage .= "<p>Thank you for shopping with us!</p>";
-                            
-                            $this->email->message($emailMessage);
-                            $this->email->set_mailtype('html');
-
-                            // Send email
-                            $this->email->send();
-                        }
                     }
                 }
             }
+
 
             // ==========================================
             // SUCCESS RESPONSE
@@ -18750,7 +18748,7 @@ public function markDelivered()
 
             echo json_encode([
                 'status'  => 200,
-                'message' => 'Order marked as delivered and notifications sent successfully.'
+                'message' => 'Order marked as delivered successfully.'
             ]);
 
         } else {
@@ -18777,7 +18775,6 @@ public function markDelivered()
         ]);
     }
 }
-
 
 
 
