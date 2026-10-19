@@ -74,6 +74,20 @@ class Subscription extends CI_Controller
             redirect('subscription');
         }
 
+        // Prevent renewing or selecting Starter plan when subscription is expired
+        $plan_name_clean = strtolower(trim($plan['name'] ?? ''));
+        $is_starter = ($plan_name_clean === 'starter' || strpos($plan_name_clean, 'starter') !== false);
+        $is_expired = $this->Subscription_model->is_subscription_expired($publisher_id);
+        if ($is_starter && $is_expired) {
+            $is_fr = ($this->session->userdata('site_lang') == 'french');
+            $msg = $is_fr 
+                ? "Le forfait Starter ne peut pas être renouvelé une fois expiré. Veuillez choisir un autre forfait."
+                : "The Starter plan cannot be renewed once expired. Please select a different plan.";
+            $this->session->set_flashdata('error', $msg);
+            redirect('subscription');
+            return;
+        }
+
         // If renewing currently active plan, ensure it is within 30 days prior to expiry
         $active_plan = $this->Subscription_model->get_active_plan($publisher_id);
         if ($active_plan && $active_plan['plan_id'] == $plan_id && !empty($active_plan['end_date'])) {
