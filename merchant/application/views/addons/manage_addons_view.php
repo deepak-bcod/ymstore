@@ -2,7 +2,6 @@
     .manage-addons-wrapper {
         margin-left: 260px; 
         padding: 20px 30px;
-        width: calc(100% - 260px); 
         box-sizing: border-box;
     }
     .table thead th {
@@ -51,7 +50,18 @@
                             <td><?php echo isset($row->date) ? $row->date : ''; ?></td>
                             <td><?php echo isset($row->amount) ? $row->amount : ''; ?></td>
                             <td>
+                                <!-- Download Invoice / Receipt -->
+                                <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" 
+                                   class="text-info font-weight-bold mr-2" 
+                                   target="_blank" 
+                                   title="Download Invoice">
+                                    <i class="fa fa-download mr-1"></i><?php echo lang('addon_invoice') ? lang('addon_invoice') : 'Invoice'; ?>
+                                </a>
+
+                                <!-- Edit Action -->
                                 <a href="<?php echo base_url('addons/edit/' . $row->purchase_id); ?>" class="text-warning font-weight-bold mr-2"><?php echo lang('addon_edit'); ?></a>
+
+                                <!-- Delete Action -->
                                 <a href="<?php echo base_url('addons/delete/' . $row->purchase_id); ?>" class="text-danger font-weight-bold" onclick="return confirm('<?php echo lang('addon_delete_confirm'); ?>');"><?php echo lang('addon_delete'); ?></a>
                             </td>
                         </tr>

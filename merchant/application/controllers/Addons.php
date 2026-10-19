@@ -735,4 +735,25 @@ public function manage() {
     $this->load->view('addons/manage_addons_view', $data); 
     $this->load->view('common/fbc-user/footer');
 }
+public function download_invoice($purchase_id) 
+{
+    // Fetch purchase record details from database
+    $data['addon_purchase'] = $this->Addon_model->get_purchase_by_id($purchase_id);
+
+    if (empty($data['addon_purchase'])) {
+        show_404();
+    }
+
+    // Option A: Render receipt view for printing (similar to /receipt-order/print/...)
+    $this->load->view('addons/invoice_print_view', $data);
+
+    // Option B: If generating a PDF using Dompdf or mPDF library:
+    /*
+    $html = $this->load->view('addons/invoice_pdf_view', $data, true);
+    $this->load->library('pdf');
+    $this->pdf->loadHtml($html);
+    $this->pdf->render();
+    $this->pdf->stream("Invoice_Addon_".$purchase_id.".pdf", array("Attachment" => 1));
+    */
+}
 }
