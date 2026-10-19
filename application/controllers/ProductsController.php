@@ -826,23 +826,6 @@ class ProductsController extends CI_Controller
 
                 //End
 
-                // Sync stock availability with inventory
-                $isOutOfStock = is_product_out_of_stock($ProductData);
-                $stockQty = get_product_available_stock($ProductData);
-                $ProductData->is_out_of_stock = $isOutOfStock;
-                $ProductData->available_stock = $stockQty;
-                if ($isOutOfStock) {
-                    $ProductData->stock_status = 'OutofStock';
-                    $ProductData->total_qty = 0;
-                    $ProductData->qty = 0;
-                    $ProductData->available_qty = 0;
-                } else {
-                    $ProductData->stock_status = 'Instock';
-                    $ProductData->total_qty = $stockQty;
-                    $ProductData->qty = $stockQty;
-                    $ProductData->available_qty = $stockQty;
-                }
-
                 $data['ProductData'] = $ProductData;
                 $data['CatApiResponse'] = $CatApiResponse;
                 //echo "<pre>";print_r($data['ProductData']);die();

@@ -16,25 +16,11 @@
         /* adjust as needed */
         height: auto;
     }
-
-    .out-of-stock-badge {
-        display: inline-block;
-        background: #dc3545;
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: 600;
-        vertical-align: middle;
-        margin-left: 10px;
-    }
 </style>
 
 <?php
 //echo "<pre>";
 $lang = $this->session->userdata('site_lang');  
-$is_out_of_stock_detail = is_product_out_of_stock($ProductData);
-$product_stock_detail = get_product_available_stock($ProductData);
 // print_r($ProductData); 
 // echo "<pre>"; print_r($ProductData);die;
 ?>
@@ -74,9 +60,6 @@ $product_stock_detail = get_product_available_stock($ProductData);
                                     echo $ProductData->name;
                                 }
                                 ?>
-                                <?php if ($is_out_of_stock_detail): ?>
-                                    <span class="out-of-stock-badge"><?= $this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'; ?></span>
-                                <?php endif; ?>
                             </h1>
                         </div>
 
@@ -282,8 +265,18 @@ $product_stock_detail = get_product_available_stock($ProductData);
                                         }
                                     }
 
-                                    $is_out_of_stock_detail = is_product_out_of_stock($ProductData);
-                                    $product_stock_detail = get_product_available_stock($ProductData);
+                                    $is_out_of_stock_detail = false;
+                                    $product_stock_detail = null;
+                                    if (isset($ProductData->qty) && is_numeric($ProductData->qty)) {
+                                        $product_stock_detail = (float)$ProductData->qty;
+                                    } elseif (isset($ProductData->stock_qty) && is_numeric($ProductData->stock_qty)) {
+                                        $product_stock_detail = (float)$ProductData->stock_qty;
+                                    }
+                                    if ($product_stock_detail !== null && $product_stock_detail <= 0) {
+                                        $is_out_of_stock_detail = true;
+                                    } elseif (isset($ProductData->stock_status) && (strtolower(trim($ProductData->stock_status)) == 'out of stock' || strtolower(trim($ProductData->stock_status)) == 'outofstock')) {
+                                        $is_out_of_stock_detail = true;
+                                    }
                                     ?>
                                     <?php if ($is_flash_sale_detail && !$is_out_of_stock_detail) : ?>
                                         <?php 
@@ -344,7 +337,7 @@ $product_stock_detail = get_product_available_stock($ProductData);
                                 <?php } ?>
 
                                 <div class="subscribe-deli">
-                                    <?php if (!$is_out_of_stock_detail && isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (float)$ProductData->total_qty > 0) && (!isset($ProductData->qty) || (float)$ProductData->qty > 0) && (!isset($ProductData->stock_qty) || (float)$ProductData->stock_qty > 0)) { ?>
+                                    <?php if (isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (float)$ProductData->total_qty > 0) && (!isset($ProductData->qty) || (float)$ProductData->qty > 0) && (!isset($ProductData->stock_qty) || (float)$ProductData->stock_qty > 0)) { ?>
                                         <?php if ($restricted_access == "yes" && $customer_id == 0) { ?>
                                             <button type="button" class="btn btn-primary subscr-now pull-left" <?php echo isset($ProductData->stock_status) &&
                                                                                                                     ($ProductData->stock_status == "Instock" && $ProductData->product_type == "simple")
@@ -382,15 +375,10 @@ $product_stock_detail = get_product_available_stock($ProductData);
                                             <?php } ?>
                                         <?php } ?>
                                     <?php } else { ?>
-                                        <button class="btn btn-secondary subscr-now pull-left" id="add_to_cart" type="button"
-                                            disabled style="background-color: #6c757d; border-color: #6c757d; cursor: not-allowed; opacity: 0.65;">
-                                            <?= $this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'; ?>
+                                        <button class="btn btn-primary subscr-now pull-left" id="add_to_cart" type="submit"
+                                            disabled>
+                                            <?= $this->lang->line('out_of_stock_label'); ?>
                                         </button>
-                                        <?php if (!empty($customer_id) && $customer_id != 0): ?>
-                                            <button type="button" id="askQuestionBtn" class="btn btn-outline-primary">
-                                                <?= $this->lang->line('ask_a_question'); ?>
-                                            </button>
-                                        <?php endif; ?>
                                     <?php } ?>
                                     <div id="addtocart-message" class="addtocart-message"></div>
                                 </div>
