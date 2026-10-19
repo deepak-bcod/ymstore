@@ -132,17 +132,18 @@ class CartController extends CI_Controller
                 if (!empty($ResponseData) && isset($ResponseData) && $ResponseData->statusCode=='200') {
                     $ProductData=$ResponseData->ProductData;
 
-                    if (isset($ProductData->stock_status) && $ProductData->stock_status !== 'Instock') {
-                        echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
-                        exit;
-                    }
-                    if ($ProductData->product_type == 'simple' && isset($ProductData->total_qty) && (int)$ProductData->total_qty <= 0) {
+                    // Consistent stock validation: reject if product is out of stock (available quantity <= 0)
+                    if (is_product_out_of_stock($ProductData) || is_product_out_of_stock($product_id)) {
                         echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
                         exit;
                     }
 
                     if ($ProductData->product_type=='configurable') {
-                        $conf_simple_pid=$_POST['conf_simple_pid'];
+                        $conf_simple_pid = isset($_POST['conf_simple_pid']) ? $_POST['conf_simple_pid'] : '';
+                        if (!empty($conf_simple_pid) && is_product_out_of_stock($conf_simple_pid)) {
+                            echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
+                            exit;
+                        }
 
                         $AddtoCartParam=array('session_id'=>$session_id,'product_id'=>$product_id,'quantity'=>$quantity,'conf_simple_pid'=>$conf_simple_pid,'quote_id'=> $quote_id,'customer_id'=>$customer_id,'customer_type_id'=>$customer_type_id);
                     }else if($ProductData->product_type=='bundle'){
