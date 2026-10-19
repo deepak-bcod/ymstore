@@ -927,7 +927,6 @@ class CommonModel extends CI_Model
                 $order['associated_order_numbers'] = $order['order_barcode'];
             }
 
-            $orderDetailsJson = [];
             $query = $this->db
                 ->select('order_json')
                 ->where('order_id', $order_id)
@@ -935,13 +934,13 @@ class CommonModel extends CI_Model
                 ->limit(1)
                 ->get('b2b_orders_delivery_details');
 
-            echo '<pre>';
-            echo $this->db->last_query();
+            //echo '<pre>';
+            //echo $this->db->last_query();
 
             $parentDeliveryRow = $query->row_array();
 
-            print_r($parentDeliveryRow);
-            die;
+            //print_r($parentDeliveryRow);
+            //die;
 
             $orderDetailsJson = [];
 
@@ -998,7 +997,7 @@ class CommonModel extends CI_Model
                 'delivery_thumb' => $deliveryThumb
             ];
 
-            exit;
+            //exit;
 
             $added[$productId] = true;
         }
