@@ -89,48 +89,65 @@ class MyOrdersController extends CI_Controller
     {
         $order_id = $this->input->post('order_id');
 
-        // STEP 1: GET ALL B2B ORDER IDS MAPPED BY PRODUCT
+        // STEP 1: GET ALL B2B ORDER IDS AND ITEMS
         $b2b_items = $this->db->select('
-                boi.product_id AS product_id,
+                boi.item_id AS b2b_item_id,
                 boi.order_id AS b2b_order_id,
-                boi.item_id AS b2b_item_id
+                boi.product_id,
+                boi.parent_product_id,
+                boi.barcode,
+                boi.product_name,
+                boi.sku,
+                bo.publisher_id
             ')
             ->from('b2b_orders AS bo')
-            ->join('b2b_order_items AS boi', 'boi.order_id = bo.order_id', 'left')
+            ->join('b2b_order_items AS boi', 'boi.order_id = bo.order_id', 'inner')
             ->where('bo.webshop_order_id', $order_id)
             ->get()
             ->result();
 
-        // MAP B2B ITEMS BY PRODUCT
-        $b2b_map = [];
+        // Also fetch all b2b_orders for this webshop order
+        $b2b_orders = $this->db->select('order_id, publisher_id')
+            ->from('b2b_orders')
+            ->where('webshop_order_id', $order_id)
+            ->get()
+            ->result();
+
+        $default_b2b_order_id = !empty($b2b_orders) ? (int)$b2b_orders[0]->order_id : 0;
+        $default_publisher_id = !empty($b2b_orders) ? (int)$b2b_orders[0]->publisher_id : 0;
+
+        // MAP B2B ITEMS BY MULTIPLE KEYS FOR ACCURATE LOOKUP
+        $b2b_by_prod_id   = [];
+        $b2b_by_parent_id = [];
+        $b2b_by_barcode   = [];
+        $b2b_by_name      = [];
+
         foreach ($b2b_items as $bi) {
-            if (!isset($b2b_map[$bi->product_id])) {
-                $b2b_map[$bi->product_id] = [];
-            }
-            $b2b_map[$bi->product_id][] = [
-                'b2b_order_id' => $bi->b2b_order_id,
-                'b2b_item_id'  => $bi->b2b_item_id
+            $pair = [
+                'b2b_order_id'      => (int)$bi->b2b_order_id,
+                'b2b_item_id'       => (int)$bi->b2b_item_id,
+                'publisher_id'      => !empty($bi->publisher_id) ? (int)$bi->publisher_id : $default_publisher_id,
+                'product_id'        => (int)$bi->product_id,
+                'parent_product_id' => !empty($bi->parent_product_id) ? (int)$bi->parent_product_id : 0
             ];
+
+            if (!empty($bi->product_id)) {
+                $b2b_by_prod_id[$bi->product_id][] = $pair;
+            }
+            if (!empty($bi->parent_product_id)) {
+                $b2b_by_parent_id[$bi->parent_product_id][] = $pair;
+            }
+            if (!empty($bi->barcode)) {
+                $b2b_by_barcode[$bi->barcode][] = $pair;
+            }
+            if (!empty($bi->product_name)) {
+                $name_key = strtolower(trim($bi->product_name));
+                $b2b_by_name[$name_key][] = $pair;
+            }
         }
 
         // STEP 2: FETCH RETURNABLE ITEMS
-        /*$items = $this->db->select('
-                soi.item_id,
-                soi.product_id,
-                soi.product_name,
-                soi.qty_ordered,
-                soi.price,
-                soi.barcode,
-                p.base_image
-            ')
-            ->from('sales_order_items AS soi')
-            ->join('products AS p', 'p.id = soi.product_id', 'left')
-            ->where('soi.order_id', $order_id)
-            ->where('soi.can_be_returned', 1)
-            ->get()
-            ->result();*/
-
-            $items = $this->db->select('
+        $items = $this->db->select('
                 soi.item_id,
                 soi.product_id,
                 soi.product_name,
@@ -159,86 +176,104 @@ class MyOrdersController extends CI_Controller
         foreach ($items as $item) {
             $b2b_order_id = 0;
             $b2b_item_id  = 0;
+            $publisher_id = $default_publisher_id;
             $is_requested = false;
             $is_refund_paid = false; 
-            $is_replacement_done = false;//default to requested
+            $is_replacement_done = false;
 
-            // STEP 3: CHECK EACH B2B ITEM FOR THIS PRODUCT
-            if (isset($b2b_map[$item->product_id]) && is_array($b2b_map[$item->product_id])) {
+            // STEP 3: RESOLVE MATCHING B2B ITEMS FOR THIS ITEM
+            $b2b_pairs = [];
+            if (!empty($item->product_id) && isset($b2b_by_prod_id[$item->product_id])) {
+                $b2b_pairs = $b2b_by_prod_id[$item->product_id];
+            } elseif (!empty($item->product_id) && isset($b2b_by_parent_id[$item->product_id])) {
+                $b2b_pairs = $b2b_by_parent_id[$item->product_id];
+            } elseif (!empty($item->barcode) && isset($b2b_by_barcode[$item->barcode])) {
+                $b2b_pairs = $b2b_by_barcode[$item->barcode];
+            } elseif (!empty($item->product_name) && isset($b2b_by_name[strtolower(trim($item->product_name))])) {
+                $b2b_pairs = $b2b_by_name[strtolower(trim($item->product_name))];
+            } elseif (count($b2b_items) === 1) {
+                $b2b_pairs = [
+                    [
+                        'b2b_order_id' => (int)$b2b_items[0]->b2b_order_id,
+                        'b2b_item_id'  => (int)$b2b_items[0]->b2b_item_id,
+                        'publisher_id' => !empty($b2b_items[0]->publisher_id) ? (int)$b2b_items[0]->publisher_id : $default_publisher_id
+                    ]
+                ];
+            }
 
-                    foreach ($b2b_map[$item->product_id] as $pair) {
+            if (empty($b2b_pairs) && $default_b2b_order_id > 0) {
+                $b2b_pairs = [
+                    [
+                        'b2b_order_id' => $default_b2b_order_id,
+                        'b2b_item_id'  => !empty($b2b_items[0]) ? (int)$b2b_items[0]->b2b_item_id : 0,
+                        'publisher_id' => $default_publisher_id
+                    ]
+                ];
+            }
 
-                    // Check latest return status
-                    $return = $this->db
-                        ->select('r.status')
-                        ->from('sales_order_return_items ri')
-                        ->join('sales_order_return r', 'r.return_order_id = ri.return_order_id')
-                        ->where('ri.order_item_id', $pair['b2b_item_id'])
-                        ->order_by('r.return_order_id', 'DESC')
-                        ->limit(1)
-                        ->get()
-                        ->row();
-
-                    if ($return) {
-
-                        if ($return->status == 4) {
-                            // Refund Paid
-                            $is_refund_paid = true;
-                            $b2b_order_id = $pair['b2b_order_id'];
-                            $b2b_item_id  = $pair['b2b_item_id'];
-                            $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
-                            break;
-                        }
-
-                        if ($return->status != 2) {
-                            // Pending / Approved
-                            $is_requested = true;
-                            $b2b_order_id = $pair['b2b_order_id'];
-                            $b2b_item_id  = $pair['b2b_item_id'];
-                            $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
-                            break;
-                        }
-                    }
-
-                    // Check replacement
-                    $replacement = $this->db
-                    ->select('r.status')
-                    ->from('sales_order_replacement_items ri')
-                    ->join('sales_order_replacement r', 'r.replacement_order_id = ri.replacement_order_id')
-                    ->where('ri.order_item_id', $pair['b2b_item_id'])
-                    ->order_by('r.replacement_order_id', 'DESC')
-                    ->limit(1)
-                    ->get()
-                    ->row();
-
-                if ($replacement) {
-
-                    // Replacement completed / rejected
-                    if (in_array($replacement->status, array(3,5,6))) {
-
-                        $is_replacement_done = true;
-                        $b2b_order_id = $pair['b2b_order_id'];
-                        $b2b_item_id  = $pair['b2b_item_id'];
-                        $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
-                        break;
-                    }
-
-                    // Pending replacement
-                    if (!in_array($replacement->status, array(4))) {
-
-                        $is_requested = true;
-                        $b2b_order_id = $pair['b2b_order_id'];
-                        $b2b_item_id  = $pair['b2b_item_id'];
-                        $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
-                        break;
-                    }
-                }
-
-                    // No request
+            if (!empty($b2b_pairs)) {
+                foreach ($b2b_pairs as $pair) {
                     $b2b_order_id = $pair['b2b_order_id'];
                     $b2b_item_id  = $pair['b2b_item_id'];
-                    $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
+                    $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : $default_publisher_id;
+
+                    if ($b2b_item_id > 0) {
+                        // Check latest return status
+                        $return = $this->db
+                            ->select('r.status')
+                            ->from('sales_order_return_items ri')
+                            ->join('sales_order_return r', 'r.return_order_id = ri.return_order_id')
+                            ->where('ri.order_item_id', $b2b_item_id)
+                            ->order_by('r.return_order_id', 'DESC')
+                            ->limit(1)
+                            ->get()
+                            ->row();
+
+                        if ($return) {
+                            if ($return->status == 4) {
+                                // Refund Paid
+                                $is_refund_paid = true;
+                                break;
+                            }
+                            if ($return->status != 2) {
+                                // Pending / Approved
+                                $is_requested = true;
+                                break;
+                            }
+                        }
+
+                        // Check replacement
+                        $replacement = $this->db
+                            ->select('r.status')
+                            ->from('sales_order_replacement_items ri')
+                            ->join('sales_order_replacement r', 'r.replacement_order_id = ri.replacement_order_id')
+                            ->where('ri.order_item_id', $b2b_item_id)
+                            ->order_by('r.replacement_order_id', 'DESC')
+                            ->limit(1)
+                            ->get()
+                            ->row();
+
+                        if ($replacement) {
+                            // Replacement completed / rejected
+                            if (in_array($replacement->status, array(3, 5, 6))) {
+                                $is_replacement_done = true;
+                                break;
+                            }
+                            // Pending replacement
+                            if (!in_array($replacement->status, array(4))) {
+                                $is_requested = true;
+                                break;
+                            }
+                        }
+                    }
                 }
+            }
+
+            if ($b2b_order_id <= 0 && $default_b2b_order_id > 0) {
+                $b2b_order_id = $default_b2b_order_id;
+            }
+            if ($publisher_id <= 0 && $default_publisher_id > 0) {
+                $publisher_id = $default_publisher_id;
             }
            
             $product_image_url = !empty($item->base_image)
@@ -497,6 +532,91 @@ class MyOrdersController extends CI_Controller
         return $merchants;
     }
 
+    protected function sanitizeRequestItems($order_id, $selected_item, $b2b_order_id = 0)
+    {
+        $resolved_b2b_order_id = (int)$b2b_order_id;
+        if (!is_array($selected_item)) {
+            return array($selected_item, $resolved_b2b_order_id);
+        }
+
+        // Preload b2b_orders for this webshop order
+        $bo_list = $this->db->select('order_id, publisher_id')
+            ->from('b2b_orders')
+            ->where('webshop_order_id', $order_id)
+            ->get()
+            ->result();
+        $fallback_b2b_id = !empty($bo_list) ? (int)$bo_list[0]->order_id : 0;
+        $fallback_pub_id = !empty($bo_list) ? (int)$bo_list[0]->publisher_id : 0;
+
+        foreach ($selected_item as &$item) {
+            $item_b2b = !empty($item['b2b_order_id']) ? (int)$item['b2b_order_id'] : 0;
+            $item_id = !empty($item['item_id']) ? (int)$item['item_id'] : 0;
+            $sales_item_id = !empty($item['sales_order_item_id']) ? (int)$item['sales_order_item_id'] : 0;
+
+            if ($item_b2b <= 0) {
+                if ($resolved_b2b_order_id > 0) {
+                    $item_b2b = $resolved_b2b_order_id;
+                } elseif ($fallback_b2b_id > 0) {
+                    $item_b2b = $fallback_b2b_id;
+                }
+            }
+
+            // Verify if item_id is already a b2b_order_items item_id
+            $is_b2b_item = false;
+            if ($item_id > 0) {
+                $chk_boi = $this->db->select('item_id, order_id')
+                    ->from('b2b_order_items')
+                    ->where('item_id', $item_id)
+                    ->get()
+                    ->row();
+                if ($chk_boi) {
+                    $is_b2b_item = true;
+                    if ($item_b2b <= 0 && !empty($chk_boi->order_id)) {
+                        $item_b2b = (int)$chk_boi->order_id;
+                    }
+                }
+            }
+
+            // If not found in b2b_order_items, try resolving via sales_order_items
+            if (!$is_b2b_item) {
+                $target_soi_id = ($sales_item_id > 0) ? $sales_item_id : $item_id;
+                if ($target_soi_id > 0) {
+                    $soi_row = $this->db->select('product_id, barcode')
+                        ->from('sales_order_items')
+                        ->where('item_id', $target_soi_id)
+                        ->get()
+                        ->row();
+                    if ($soi_row && $item_b2b > 0) {
+                        $boi_match = $this->db->select('item_id')
+                            ->from('b2b_order_items')
+                            ->where('order_id', $item_b2b)
+                            ->group_start()
+                                ->where('product_id', $soi_row->product_id)
+                                ->or_where('parent_product_id', $soi_row->product_id)
+                                ->or_where('barcode', $soi_row->barcode)
+                            ->group_end()
+                            ->get()
+                            ->row();
+                        if ($boi_match) {
+                            $item['item_id'] = (int)$boi_match->item_id;
+                        }
+                    }
+                }
+            }
+
+            $item['b2b_order_id'] = $item_b2b;
+            if (empty($item['publisher_id']) && $fallback_pub_id > 0) {
+                $item['publisher_id'] = $fallback_pub_id;
+            }
+            if ($resolved_b2b_order_id <= 0 && $item_b2b > 0) {
+                $resolved_b2b_order_id = $item_b2b;
+            }
+        }
+        unset($item);
+
+        return array($selected_item, $resolved_b2b_order_id);
+    }
+
     public function addReplacementRequest()
 {
     $LoginID  = $_SESSION['LoginID'];
@@ -517,10 +637,11 @@ class MyOrdersController extends CI_Controller
     $selected_item = $_POST['selected_item'];
     $flag          = 'replacement';
 
-    
     $b2b_order_id = !empty($_POST['b2b_order_id'])
-        ? $_POST['b2b_order_id']
+        ? (int)$_POST['b2b_order_id']
         : 0;
+
+    list($selected_item, $b2b_order_id) = $this->sanitizeRequestItems($order_id, $selected_item, $b2b_order_id);
 
     $postArr = array(
         'order_id'      => $order_id,
@@ -775,12 +896,16 @@ class MyOrdersController extends CI_Controller
         $flag          = 'return';
         $selected_item = $_POST['selected_item'];
 
+        $b2b_order_id = !empty($_POST['b2b_order_id']) ? (int)$_POST['b2b_order_id'] : 0;
+        list($selected_item, $b2b_order_id) = $this->sanitizeRequestItems($order_id, $selected_item, $b2b_order_id);
+
         $postArr = array(
             'order_id'      => $order_id,
             'increment_id'  => $increment_id,
             'selected_item' => $selected_item,
             'flag'          => $flag,
-            'customer_id'   => $LoginID
+            'customer_id'   => $LoginID,
+            'b2b_order_id'  => $b2b_order_id
         );
 
         $response = OrdersRepository::return_order_request(

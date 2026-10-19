@@ -2571,6 +2571,29 @@ $app->post('/webshop/replacement_order_request', function (Request $request, Res
             $return_request_due_date='';
         }
 
+        // Auto-resolve b2b_order_id if missing in selected_item
+        foreach ($selected_item as &$s_item) {
+            if (empty($s_item['b2b_order_id'])) {
+                if (!empty($b2b_order_id)) {
+                    $s_item['b2b_order_id'] = $b2b_order_id;
+                } elseif (!empty($s_item['item_id'])) {
+                    // Check if item_id is in b2b_order_items
+                    $chk_boi = $order_obj->dbl->dbl_conn->rawQueryOne("SELECT order_id FROM b2b_order_items WHERE item_id = ?", [$s_item['item_id']]);
+                    if (!empty($chk_boi['order_id'])) {
+                        $s_item['b2b_order_id'] = $chk_boi['order_id'];
+                    }
+                }
+                if (empty($s_item['b2b_order_id']) && !empty($order_id)) {
+                    // Fallback to b2b_orders by webshop_order_id
+                    $chk_bo = $order_obj->dbl->dbl_conn->rawQueryOne("SELECT order_id FROM b2b_orders WHERE webshop_order_id = ? LIMIT 1", [$order_id]);
+                    if (!empty($chk_bo['order_id'])) {
+                        $s_item['b2b_order_id'] = $chk_bo['order_id'];
+                    }
+                }
+            }
+        }
+        unset($s_item);
+
         // Create one replacement order per b2b_order_id
         $replacement_order_ids = []; // b2b_order_id => replacement_order_id
         $replacement_items = [];     // replacement_order_id => item_ids
@@ -2610,6 +2633,23 @@ $app->post('/webshop/replacement_order_request', function (Request $request, Res
 
                 $order_item_info = $order_obj->getSingleOrderItemDetail($order_item_id);
 				
+                if (!$order_item_info) {
+                    // If not found in b2b_order_items, check sales_order_items
+                    $soi_res = $order_obj->dbl->dbl_conn->rawQueryOne("SELECT * FROM sales_order_items WHERE item_id = ?", [$order_item_id]);
+                    if (!empty($soi_res)) {
+                        $boi_res = $order_obj->dbl->dbl_conn->rawQueryOne(
+                            "SELECT * FROM b2b_order_items WHERE order_id = ? AND (product_id = ? OR parent_product_id = ? OR (barcode != '' AND barcode = ?)) LIMIT 1",
+                            [$b2b, $soi_res['product_id'], $soi_res['product_id'], $soi_res['barcode']]
+                        );
+                        if (!empty($boi_res)) {
+                            $order_item_id = $boi_res['item_id'];
+                            $order_item_info = $boi_res;
+                        } else {
+                            $order_item_info = $soi_res;
+                        }
+                    }
+                }
+
                 if (!$order_item_info) continue;
 
                 $price = $order_item_info['price'];
