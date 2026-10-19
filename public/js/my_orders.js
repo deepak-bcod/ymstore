@@ -36,20 +36,33 @@ function openReturnPopup(order_id, increment_id) {
 
 function submitReturn(order_id, increment_id) {
     var selected_item = [];
+    var common_b2b_order_id = 0;
 
     $(".return_chk:checked").each(function() {
-        var b2b_item_id = $(this).data("b2b-item"); // correct B2B item ID
-        var qty = parseInt($("#return_qty_" + $(this).data("id")).val(), 10);
+        var sales_item_id = $(this).data("id");
+        var b2b_item_id = $(this).data("b2b-item");
+        var qty = parseInt($("#return_qty_" + sales_item_id).val(), 10);
         var b2b_order_id = $(this).data("b2b");
         var publisher_id = $(this).data("publisher");
 
+        if (!b2b_order_id || b2b_order_id === "0") {
+            b2b_order_id = $("#b2b_order_id_" + sales_item_id).val();
+        }
+        if (!publisher_id || publisher_id === "0") {
+            publisher_id = $("#publisher_id_" + sales_item_id).val();
+        }
+        if (b2b_order_id && b2b_order_id !== "0" && !common_b2b_order_id) {
+            common_b2b_order_id = b2b_order_id;
+        }
+
         if(qty > 0){
             selected_item.push({
-                item_id: b2b_item_id, // use B2B item ID
+                item_id: (b2b_item_id && b2b_item_id !== "0") ? b2b_item_id : sales_item_id,
+                sales_order_item_id: sales_item_id,
                 qty_return: qty,
                 qty_ordered: qty,
-                b2b_order_id: b2b_order_id,
-                publisher_id: publisher_id
+                b2b_order_id: b2b_order_id || 0,
+                publisher_id: publisher_id || 0
             });
         }
     });
@@ -59,6 +72,9 @@ function submitReturn(order_id, increment_id) {
         return;
     }
 
+    var $btn = $("#submitReturnRequest");
+    $btn.prop("disabled", true);
+
     $.ajax({
         type: 'POST',
         url: BASE_URL + 'MyOrdersController/addReturnRequest',
@@ -66,36 +82,55 @@ function submitReturn(order_id, increment_id) {
         data: {
             order_id: order_id,
             increment_id: increment_id,
-            selected_item: selected_item
+            selected_item: selected_item,
+            b2b_order_id: common_b2b_order_id
         },
         success: function(response){
+            $btn.prop("disabled", false);
             if(response.flag == 1){
-                swal("Success", "Return Requested!", "success");
+                swal("Success", response.msg || "Return Requested!", "success");
                 $("#returnPopup").modal("hide");
                 location.reload();
             } else {
-                swal("Error", response.msg, "error");
+                swal("Error", response.msg || "Unable to submit return request.", "error");
             }
+        },
+        error: function(){
+            $btn.prop("disabled", false);
+            swal("Error", "Server error while submitting return request.", "error");
         }
     });
 }
 
 function submitReplacement(order_id, increment_id) {
     var selected_item = [];
+    var common_b2b_order_id = 0;
 
     $(".return_chk:checked").each(function() {
-        var b2b_item_id = $(this).data("b2b-item"); // correct B2B item ID
-        var qty = parseInt($("#return_qty_" + $(this).data("id")).val(), 10);
+        var sales_item_id = $(this).data("id");
+        var b2b_item_id = $(this).data("b2b-item");
+        var qty = parseInt($("#return_qty_" + sales_item_id).val(), 10);
         var b2b_order_id = $(this).data("b2b");
         var publisher_id = $(this).data("publisher");
 
+        if (!b2b_order_id || b2b_order_id === "0") {
+            b2b_order_id = $("#b2b_order_id_" + sales_item_id).val();
+        }
+        if (!publisher_id || publisher_id === "0") {
+            publisher_id = $("#publisher_id_" + sales_item_id).val();
+        }
+        if (b2b_order_id && b2b_order_id !== "0" && !common_b2b_order_id) {
+            common_b2b_order_id = b2b_order_id;
+        }
+
         if(qty > 0){
             selected_item.push({
-                item_id: b2b_item_id, // use B2B item ID
+                item_id: (b2b_item_id && b2b_item_id !== "0") ? b2b_item_id : sales_item_id,
+                sales_order_item_id: sales_item_id,
                 qty_return: qty,
                 qty_ordered: qty,
-                b2b_order_id: b2b_order_id,
-                publisher_id: publisher_id
+                b2b_order_id: b2b_order_id || 0,
+                publisher_id: publisher_id || 0
             });
         }
     });
@@ -105,6 +140,9 @@ function submitReplacement(order_id, increment_id) {
         return;
     }
 
+    var $btn = $("#submitReplacementRequest");
+    $btn.prop("disabled", true);
+
     $.ajax({
         type: 'POST',
         url: BASE_URL + 'MyOrdersController/addReplacementRequest',
@@ -113,16 +151,22 @@ function submitReplacement(order_id, increment_id) {
             order_id: order_id,
             increment_id: increment_id,
             selected_item: selected_item,
-            flag: 'replacement'
+            flag: 'replacement',
+            b2b_order_id: common_b2b_order_id
         },
         success: function(response) {
+            $btn.prop("disabled", false);
             if (response.flag == 1) {
-                swal("Success", "Replacement Requested!", "success");
+                swal("Success", response.msg || "Replacement Requested!", "success");
                 $("#returnPopup").modal("hide");
                 location.reload();
             } else {
-                swal("Error", response.msg, "error");
+                swal("Error", response.msg || "Unable to submit replacement request.", "error");
             }
+        },
+        error: function() {
+            $btn.prop("disabled", false);
+            swal("Error", "Server error while submitting replacement request.", "error");
         }
     });
 }
