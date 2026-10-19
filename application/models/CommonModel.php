@@ -939,7 +939,7 @@ class CommonModel extends CI_Model
 
             $parentDeliveryRow = $query->row_array();
 
-            echo "<pre>";print_r($parentDeliveryRow);
+            echo "<pre>";print_r($parentDeliveryRow);die;
             
             
             
