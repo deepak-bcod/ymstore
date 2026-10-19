@@ -938,6 +938,8 @@ class CommonModel extends CI_Model
             //echo $this->db->last_query();exit;
 
             $parentDeliveryRow = $query->row_array();
+
+            echo "<pre>";print_r($parentDeliveryRow);
             
             
             
@@ -999,6 +1001,8 @@ class CommonModel extends CI_Model
                 'delivery_image' => $deliveryImage,
                 'delivery_thumb' => $deliveryThumb
             ];
+
+            exit;
 
             $added[$productId] = true;
         }
