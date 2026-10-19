@@ -70,7 +70,7 @@
                             <td><?php echo number_format($row->amount ?? 0, 2); ?></td>
                             <td>
                                 <!-- FIXED: Use site_url with a single 'admin' path segment to prevent duplication -->
-                                <a href="<?php echo site_url('admin/addons/download_invoice/' . $row->purchase_id); ?>" class="text-primary font-weight-bold" target="_blank">
+                                <a href="<?php echo site_url('addons/download_invoice/' . $row->purchase_id); ?>" class="text-primary font-weight-bold" target="_blank">
                                     <i class="fa fa-download"></i> Invoice
                                 </a>
                             </td>
