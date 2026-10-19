@@ -6,7 +6,7 @@
     // echo "<pre>";
     // print_R($ProductData);
     // die();
-    if ($ProductData->stock_status == 'Instock' && (!isset($ProductData->total_qty) || (int)$ProductData->total_qty > 0)) {
+    if (!is_product_out_of_stock($ProductData) && $ProductData->stock_status == 'Instock' && (!isset($ProductData->total_qty) || (int)$ProductData->total_qty > 0)) {
         if ($ProductData->product_type == "configurable") {
             if (isset($ProductData->product_variants) && count($ProductData->product_variants) > 0 && isset($ProductData->childProducts) && count($ProductData->childProducts) > 0) { ?>
                 <input type="hidden" id="variant_main_count" value="<?= count($ProductData->product_variants) ?>">
@@ -65,8 +65,7 @@
                             $count = 1;
                             $first_instock_checked = false;
                             foreach ($ProductData->childProducts as $child_key => $child_val) {
-                                $child_qty = isset($child_val->qty) ? (int)$child_val->qty : 0;
-                                $is_child_in_stock = ($child_qty > 0);
+                                $is_child_in_stock = !is_product_out_of_stock($child_val);
                                 if ($is_child_in_stock && !$first_instock_checked) {
                                     $selected = 'checked';
                                     $first_instock_checked = true;
