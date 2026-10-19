@@ -934,8 +934,15 @@ class CommonModel extends CI_Model
                 ->where('is_parent_level', 1)
                 ->order_by('id', 'DESC')
                 ->limit(1)
-                ->get('b2b_orders_delivery_details')
-                ->row_array();
+                ->get('b2b_orders_delivery_details');
+
+            echo $this->db->last_query();
+            exit;
+
+            $parentDeliveryRow = $query->row_array();
+            
+            
+            
 
             if (
                 !empty($parentDeliveryRow['order_json'])
