@@ -18636,206 +18636,221 @@ public function MarkAsFailedPopup() {
 
 public function markDelivered()
 {
-    if ($this->input->post('order_id')) {
+    header('Content-Type: application/json');
 
-        $order_id = $this->input->post('order_id');
+    $order_id = (int) $this->input->post('order_id');
 
-        $User_id = $this->session->userdata('LoginID');
-
-        // ==========================================
-        // GET LAST DELIVERY ATTEMPT
-        // ==========================================
-
-        $lastAttempt = $this->db
-            ->where('order_id', $order_id)
-            ->order_by('delivery_attempt_no', 'DESC')
-            ->limit(1)
-            ->get('b2b_orders_delivery_details')
-            ->row();
-
-        $currentAttempt = $lastAttempt
-            ? (int)$lastAttempt->delivery_attempt_no
-            : 0;
-
-        $nextAttempt = $currentAttempt + 1;
-
-
-        // ==========================================
-        // INSERT DELIVERY DETAILS
-        // ==========================================
-
-        $insertData = [
-            'order_id'                  => $order_id,
-            'delivery_type'             => 2,
-            'driver_id'                 => '',
-            'delivery_date'             => date('Y-m-d H:i:s'),
-            'remarks'                   => 'Order Delivered Successfully',
-            'delivery_status'           => 8,
-            'delivery_attempt_no'       => $nextAttempt,
-            'reason_for_attempt_failed' => 'Success',
-            'generate_by'               => $User_id,
-            'created_at'                => date('Y-m-d H:i:s'),
-            'ip'                        => $this->input->ip_address()
-        ];
-
-        $this->CommonModel->insertData(
-            'b2b_orders_delivery_details',
-            $insertData
-        );
-
-
-        // ==========================================
-        // UPDATE B2B ORDER STATUS TO DELIVERED
-        // ==========================================
-
-        $updated = $this->CommonModel->updateData(
-            'b2b_orders',
-            ['order_id' => $order_id],
-            ['status' => 8]
-        );
-
-
-        if ($updated) {
-
-            // ==========================================
-            // GET B2B ORDER DATA
-            // ==========================================
-
-            $orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
-
-            if ($orderData && !empty($orderData->webshop_order_id)) {
-
-                $webshop_order_id = $orderData->webshop_order_id;
-
-
-                // ==========================================
-                // UPDATE MAIN SALES ORDER STATUS
-                // ==========================================
-
-                $this->CommonModel->checkAndUpdateMainOrderStatus(
-                    $webshop_order_id
-                );
-
-
-                // ==========================================
-                // GET SHOPPER CUSTOMER ID
-                // ==========================================
-
-                $salesOrder = $this->db
-                    ->select('customer_id')
-                    ->where('order_id', $webshop_order_id)
-                    ->get('sales_order')
-                    ->row();
-
-
-                if ($salesOrder) {
-
-                    $customerId = $salesOrder->customer_id;
-
-
-                    // ==========================================
-                    // GET B2B ORDER BARCODE
-                    // ==========================================
-
-                    $b2bOrder = $this->db
-                        ->select('order_barcode')
-                        ->where('order_id', $order_id)
-                        ->get('b2b_orders')
-                        ->row();
-
-
-                    if ($b2bOrder && !empty($b2bOrder->order_barcode)) {
-
-                        $b2bOrderNumber = $b2bOrder->order_barcode;
-
-
-                        // ==========================================
-                        // SHOPPER NOTIFICATION - ORDER DELIVERED
-                        // ==========================================
-
-                        $notif_sql = "INSERT INTO notifications
-                            (
-                                type,
-                                subtype,
-                                recipient_type,
-                                recipient_id,
-                                title,
-                                message,
-                                data,
-                                is_read,
-                                created_at,
-                                updated_at
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-
-                        $notif_params = [
-                            'order',
-                            'order_delivered',
-                            'shopper',
-                            $customerId,
-
-                            'Order delivered',
-
-                            // ONLY B2B ORDER NUMBER
-                            'Your order no. ' . $b2bOrderNumber . ' is delivered.',
-
-                            json_encode([
-                                'order_id'      => $webshop_order_id,
-                                'b2b_order_id'  => $order_id,
-                                'b2b_order_no'  => $b2bOrderNumber,
-                                'status'        => 8
-                            ]),
-
-                            0,
-                            date('Y-m-d H:i:s'),
-                            date('Y-m-d H:i:s')
-                        ];
-
-
-                        // Insert notification
-                        $this->db->query(
-                            $notif_sql,
-                            $notif_params
-                        );
-                    }
-                }
-            }
-
-
-            // ==========================================
-            // SUCCESS RESPONSE
-            // ==========================================
-
-            echo json_encode([
-                'status'  => 200,
-                'message' => 'Order marked as delivered successfully.'
-            ]);
-
-        } else {
-
-            // ==========================================
-            // UPDATE FAILED
-            // ==========================================
-
-            echo json_encode([
-                'status'  => 500,
-                'message' => 'Failed to update order status.'
-            ]);
-        }
-
-    } else {
-
-        // ==========================================
-        // INVALID REQUEST
-        // ==========================================
-
+    if ($order_id <= 0) {
         echo json_encode([
             'status'  => 500,
             'message' => 'Invalid request.'
         ]);
+        return;
     }
+
+    $User_id = $this->session->userdata('LoginID');
+    $now = date('Y-m-d H:i:s');
+
+    // 1. Get latest delivery attempt
+    $lastAttempt = $this->db
+        ->where('order_id', $order_id)
+        ->order_by('delivery_attempt_no', 'DESC')
+        ->limit(1)
+        ->get('b2b_orders_delivery_details')
+        ->row();
+
+    $nextAttempt = $lastAttempt
+        ? ((int) $lastAttempt->delivery_attempt_no + 1)
+        : 1;
+
+    // 2. Insert delivery details
+    $insertData = [
+        'order_id'                  => $order_id,
+        'delivery_type'             => 2,
+        'driver_id'                 => '',
+        'delivery_date'             => $now,
+        'remarks'                   => 'Order Delivered Successfully',
+        'delivery_status'           => 8,
+        'delivery_attempt_no'       => $nextAttempt,
+        'reason_for_attempt_failed' => 'Success',
+        'generate_by'               => $User_id,
+        'created_at'                => $now,
+        'ip'                        => $this->input->ip_address()
+    ];
+
+    $this->db->trans_begin();
+
+    $this->db->insert(
+        'b2b_orders_delivery_details',
+        $insertData
+    );
+
+    // 3. Update B2B order status
+    $this->db
+        ->where('order_id', $order_id)
+        ->update('b2b_orders', ['status' => 8]);
+
+    if ($this->db->trans_status() === false) {
+        $this->db->trans_rollback();
+
+        echo json_encode([
+            'status'  => 500,
+            'message' => 'Failed to save delivery details or update order.'
+        ]);
+        return;
+    }
+
+    $this->db->trans_commit();
+
+    $notificationSent = false;
+    $emailSent = false;
+    $emailError = '';
+
+    // 4. Get B2B order data
+    $orderData = $this->CommonModel
+        ->getOrderDataByb2bOrderId($order_id);
+
+    if ($orderData && !empty($orderData->webshop_order_id)) {
+
+        $webshop_order_id = (int) $orderData->webshop_order_id;
+
+        // 5. Update main sales order status
+        $this->CommonModel->checkAndUpdateMainOrderStatus(
+            $webshop_order_id
+        );
+
+        // 6. Get shopper details
+        $salesOrder = $this->db
+            ->select(
+                'customer_id, customer_email,
+                 customer_firstname, customer_lastname'
+            )
+            ->where('order_id', $webshop_order_id)
+            ->get('sales_order')
+            ->row();
+
+        // 7. Get B2B order barcode
+        $b2bOrder = $this->db
+            ->select('order_barcode')
+            ->where('order_id', $order_id)
+            ->get('b2b_orders')
+            ->row();
+
+        $b2bOrderNumber = (
+            $b2bOrder && !empty($b2bOrder->order_barcode)
+        ) ? $b2bOrder->order_barcode : $order_id;
+
+        if ($salesOrder) {
+
+            $customerId = (int) $salesOrder->customer_id;
+
+            $customerName = trim(
+                ($salesOrder->customer_firstname ?? '') . ' ' .
+                ($salesOrder->customer_lastname ?? '')
+            );
+
+            if ($customerName === '') {
+                $customerName = 'Customer';
+            }
+
+            // 8. Send shopper notification
+            if ($customerId > 0) {
+
+                $notificationData = [
+                    'type'           => 'order',
+                    'subtype'        => 'order_delivered',
+                    'recipient_type' => 'shopper',
+                    'recipient_id'   => $customerId,
+                    'title'          => 'Order delivered',
+                    'message'        => 'Your order no. ' .
+                        $b2bOrderNumber . ' is delivered.',
+                    'data'           => json_encode([
+                        'order_id'     => $webshop_order_id,
+                        'b2b_order_id' => $order_id,
+                        'b2b_order_no' => $b2bOrderNumber,
+                        'status'       => 8
+                    ]),
+                    'is_read'        => 0,
+                    'created_at'     => $now,
+                    'updated_at'     => $now
+                ];
+
+                $notificationSent = $this->db
+                    ->insert('notifications', $notificationData);
+            }
+
+            // 9. Send delivery email
+            $customerEmail = trim(
+                (string) ($salesOrder->customer_email ?? '')
+            );
+
+            if (
+                $customerEmail !== '' &&
+                filter_var($customerEmail, FILTER_VALIDATE_EMAIL)
+            ) {
+
+                // Find active email template
+                $emailTemplate = $this->db
+                    ->select('id, email_code, status')
+                    ->where('email_code', 'order-delivered')
+                    ->where('status', 1)
+                    ->limit(1)
+                    ->get('email_template')
+                    ->row();
+
+                if ($emailTemplate) {
+
+                    $tempVars = [
+                        '##CUSTOMERNAME##',
+                        '##ORDERNO##'
+                    ];
+
+                    $dynamicVars = [
+                        $customerName,
+                        $b2bOrderNumber
+                    ];
+
+                    // sendCommonEmail expects a template ID
+                    // in the existing implementation described.
+                    $emailSent = (bool) $this->CommonModel
+                        ->sendCommonEmail(
+                            $customerEmail,
+                            $emailTemplate->id,
+                            $tempVars,
+                            $dynamicVars
+                        );
+
+                    if (!$emailSent) {
+                        $emailError = 'Email sending method returned false.';
+                    }
+
+                } else {
+                    $emailError =
+                        'Active order-delivered email template was not found.';
+                }
+
+            } else {
+                $emailError = 'Shopper email address is missing or invalid.';
+            }
+
+        } else {
+            $emailError = 'Sales order details were not found.';
+        }
+
+    } else {
+        $emailError = 'B2B order data or webshop order ID was not found.';
+    }
+
+    // 10. Response
+    echo json_encode([
+        'status'            => 200,
+        'message'           => 'Order marked as delivered successfully.',
+        'notification_sent' => (bool) $notificationSent,
+        'email_sent'        => (bool) $emailSent,
+        'email_error'       => $emailError
+    ]);
 }
+
 
 
 
