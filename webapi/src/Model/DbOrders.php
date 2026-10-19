@@ -1221,18 +1221,34 @@ Class DbOrders{
         return $payment_id;
      }
 
-	 function generate_replacement_order_transaction_id($order_id,$order_inc_id)
+	 function generate_replacement_order_transaction_id($order_id, $order_inc_id)
      {
-		$payment_id='';
-        $count = $this->get_total_replacement_orders_by_order($order_id);
+		$prefix = 'REPL-' . $order_inc_id . '-';
+		$sql = "SELECT replacement_order_increment_id FROM sales_order_replacement WHERE replacement_order_increment_id LIKE ? ORDER BY replacement_order_id DESC LIMIT 1";
+		$row = $this->dbl->dbl_conn->rawQueryOne($sql, array($prefix . '%'));
 
-		if($count==0)
-		{
-			$payment_id        = 'REPL-'.$order_inc_id.'-1';
+		$count = 1;
+		if (!empty($row['replacement_order_increment_id'])) {
+			$parts = explode('-', $row['replacement_order_increment_id']);
+			$last_num = end($parts);
+			if (is_numeric($last_num)) {
+				$count = (int)$last_num + 1;
+			}
+		}
 
-		}else{
-			$count         = $count+1;
-			$payment_id        = 'REPL-'.$order_inc_id.'-'.$count;
+		$payment_id = $prefix . $count;
+
+		// Ensure uniqueness against both increment_id and barcode
+		while (true) {
+			$exists = $this->dbl->dbl_conn->rawQueryOne(
+				"SELECT replacement_order_id FROM sales_order_replacement WHERE replacement_order_increment_id = ? OR replacement_order_barcode = ?",
+				array($payment_id, $payment_id)
+			);
+			if (empty($exists)) {
+				break;
+			}
+			$count++;
+			$payment_id = $prefix . $count;
 		}
 
         return $payment_id;
@@ -1261,26 +1277,19 @@ Class DbOrders{
 	 }
 	 public function get_total_replacement_orders_by_order($order_id)
 	{
-		// $query = $this->dbl->dbl_conn->rawQueryOne(
-		// 	"SELECT COUNT(*) as total FROM sales_order_replacement 
-		// 	WHERE replacement_order_increment_id LIKE ?",
-		// 	array("REPLACE-" . $order_inc_id . "-%")
-		// );
-		// return $query['total'] ?? 0;
-
 		$total_count=0;
 
-		 $sql =  "SELECT count(*) as total_count FROM sales_order_replacement where replacement_order_increment_id=$order_id AND status NOT IN (0,1)  ";
+		 $sql =  "SELECT count(*) as total_count FROM sales_order_replacement where order_id = " . intval($order_id) . " AND status NOT IN (0,1)  ";
 		 $row  = $this->dbl->dbl_conn->rawQueryOne($sql);
 		if ($this->dbl->dbl_conn->getLastErrno() === 0){
 			if ($this->dbl->dbl_conn->count > 0){
 				$total_count =$row['total_count'];
 				return $total_count;
 			}else{
-				return false;
+				return 0;
 			}
 		}else{
-			return false;
+			return 0;
 		}
 	}
 
@@ -1383,18 +1392,23 @@ Class DbOrders{
 	{
 		$status = 0;
 		$created_at = time();
-		$ip = $_SERVER['REMOTE_ADDR'];
+		$ip = !empty($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1';
 
 		$replacement_order_increment_id = $this->generate_replacement_order_transaction_id($order_id, $increment_id);
 		$replacement_order_barcode = $replacement_order_increment_id;
 
+		// Ensure due_date is integer or 0, never empty string ''
+		$due_date = (!empty($replacement_request_due_date) && is_numeric($replacement_request_due_date))
+			? (int)$replacement_request_due_date
+			: 0;
+
 		$params = [
-			$order_id,
+			(int)$order_id,
 			$replacement_order_increment_id,
 			$replacement_order_barcode,
-			$customer_id,
+			(int)$customer_id,
 			$status,
-			$replacement_request_due_date,
+			$due_date,
 			$created_at,
 			$ip
 		];
@@ -1404,23 +1418,15 @@ Class DbOrders{
 				customer_id, status, replacement_request_due_date, created_at, ip,
 				order_amount, order_discount, order_grandtotal)
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0.00, 0.00, 0.00)";
-		// echo "<pre>";
-		// print_r($sql);
-		// die;
-		// 🟢 Debug SQL Query with real values before execution
-		// $debugSql = $sql;
-		// foreach ($params as $param) {
-		// 	$debugSql = preg_replace('/\?/', "'" . addslashes($param) . "'", $debugSql, 1);
-		// }
-		// error_log("DEBUG SQL: " . $debugSql);
 
 		// Execute
 		$this->dbl->dbl_conn->rawQuery($sql, $params);
 
 		if ($this->dbl->dbl_conn->getLastErrno() == 0) {
-			return $this->dbl->dbl_conn->getInsertId();
+			$insert_id = $this->dbl->dbl_conn->getInsertId();
+			return ($insert_id > 0) ? $insert_id : false;
 		} else {
-			error_log("MySQL ERROR: " . $this->dbl->dbl_conn->getLastError());
+			error_log("MySQL ERROR in add_to_sales_order_replacement: " . $this->dbl->dbl_conn->getLastError());
 			return false;
 		}
 	}
@@ -1430,19 +1436,20 @@ Class DbOrders{
 	// INSERT INTO sales_order_replacement_items table
 	public function add_to_sales_order_replacement_items($order_id, $replacement_order_id, $order_item_id, $qty_order, $qty_replacement, $price, $total_price, $barcode, $discount_amount = 0, $total_discount_amount = 0)
 	{
+		$ip = !empty($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1';
 		$params = array(
-			$order_id,
-			$replacement_order_id,
-			$order_item_id,
-			$qty_order,
-			$qty_replacement,
-			$price,
-			$total_price,
-			$barcode,
-			$discount_amount,
-			$total_discount_amount,
+			(int)$order_id,
+			(int)$replacement_order_id,
+			(int)$order_item_id,
+			(int)$qty_order,
+			(int)$qty_replacement,
+			(float)$price,
+			(float)$total_price,
+			$barcode ? $barcode : '',
+			(float)$discount_amount,
+			(float)$total_discount_amount,
 			time(),
-			$_SERVER['REMOTE_ADDR']
+			$ip
 		);
 
 		$sql = "INSERT INTO sales_order_replacement_items 
@@ -1452,9 +1459,12 @@ Class DbOrders{
 		$this->dbl->dbl_conn->rawQuery($sql, $params);
 
 		if ($this->dbl->dbl_conn->getLastErrno() == 0) {
-			return $this->dbl->dbl_conn->getInsertId();
+			$insert_id = $this->dbl->dbl_conn->getInsertId();
+			return ($insert_id > 0) ? $insert_id : false;
+		} else {
+			error_log("MySQL ERROR in add_to_sales_order_replacement_items: " . $this->dbl->dbl_conn->getLastError());
+			return false;
 		}
-		return false;
 	}
 
 

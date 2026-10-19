@@ -2535,74 +2535,99 @@ $app->post('/webshop/replacement_order_request', function (Request $request, Res
     $data = $request->getParsedBody();
     extract($data);
 
-    $error='';
+    $error = '';
 
-    if(empty($order_id)  || empty($flag) || empty($selected_item) || empty($customer_id) || empty($increment_id))
-    {
-        $error='Please pass all the mandatory values';
+    if (empty($order_id) || empty($flag) || empty($selected_item) || empty($customer_id) || empty($increment_id)) {
+        $error = 'Please pass all the mandatory values';
     } else {
-
-        $product_return_duration=0;
+        $product_return_duration = 0;
         $order_obj = new DbOrders();
-        $ch_obj= new  DbCheckout();
+        $ch_obj = new DbCheckout();
 
-        $order_amount=0;
-        $order_discount=0;
-        $order_grandtotal=0;
+        $order_amount = 0;
+        $order_discount = 0;
+        $order_grandtotal = 0;
 
         $glb_obj = new DbGlobalFeature();
-        $CustomerVariable=$glb_obj->get_custom_variable('product_return_duration');
-        if($CustomerVariable!=false){
-            $product_return_duration=$CustomerVariable['value'];
+        $CustomerVariable = $glb_obj->get_custom_variable('product_return_duration');
+        if ($CustomerVariable != false && !empty($CustomerVariable['value'])) {
+            $product_return_duration = (int)$CustomerVariable['value'];
         } else {
-            $product_return_duration=0;
+            $product_return_duration = 0;
         }
 
-        if($product_return_duration>0){
+        $return_request_due_date = 0;
+        if ($product_return_duration > 0) {
             $MainOrderData = $order_obj->getOrderDataById($order_id);
-            if($MainOrderData!=false){
-                $tracking_complete_date=date('Y-m-d',$MainOrderData['tracking_complete_date']);
-                $return_request_due_date= date('Y-m-d', strtotime($tracking_complete_date. ' + '.$product_return_duration.' days'));
-                $return_request_due_date=strtotime($return_request_due_date);
-            } else {
-                $return_request_due_date='';
+            if ($MainOrderData != false && !empty($MainOrderData['tracking_complete_date'])) {
+                $tracking_complete_date = date('Y-m-d', $MainOrderData['tracking_complete_date']);
+                $due_str = date('Y-m-d', strtotime($tracking_complete_date . ' + ' . $product_return_duration . ' days'));
+                $return_request_due_date = (int)strtotime($due_str);
             }
-        } else {
-            $return_request_due_date='';
         }
+
+        // Auto-resolve b2b_order_id if missing or 0 in selected_item
+        foreach ($selected_item as &$s_item) {
+            if (empty($s_item['b2b_order_id'])) {
+                if (!empty($b2b_order_id)) {
+                    $s_item['b2b_order_id'] = $b2b_order_id;
+                } elseif (!empty($s_item['item_id'])) {
+                    // Check if item_id is in b2b_order_items
+                    $chk_boi = $order_obj->dbl->dbl_conn->rawQueryOne("SELECT order_id FROM b2b_order_items WHERE item_id = ?", array($s_item['item_id']));
+                    if (!empty($chk_boi['order_id'])) {
+                        $s_item['b2b_order_id'] = $chk_boi['order_id'];
+                    }
+                }
+                if (empty($s_item['b2b_order_id']) && !empty($order_id)) {
+                    // Fallback to b2b_orders by webshop_order_id
+                    $chk_bo = $order_obj->dbl->dbl_conn->rawQueryOne("SELECT order_id FROM b2b_orders WHERE webshop_order_id = ? LIMIT 1", array($order_id));
+                    if (!empty($chk_bo['order_id'])) {
+                        $s_item['b2b_order_id'] = $chk_bo['order_id'];
+                    }
+                }
+            }
+        }
+        unset($s_item);
 
         // Create one replacement order per b2b_order_id
         $replacement_order_ids = []; // b2b_order_id => replacement_order_id
         $replacement_items = [];     // replacement_order_id => item_ids
+        $rep_order_amounts = [];     // replacement_order_id => float
+        $rep_order_discounts = [];   // replacement_order_id => float
 		
         foreach ($selected_item as $item) {
             if (!empty($item['b2b_order_id'])) {
-                $b2b = $item['b2b_order_id'];
+                $b2b = (int)$item['b2b_order_id'];
                 if (!isset($replacement_order_ids[$b2b])) {
                     $rep_id = $order_obj->add_to_sales_order_replacement($b2b, $increment_id, $customer_id, $return_request_due_date);
-                    $replacement_order_ids[$b2b] = $rep_id;
-                    $replacement_items[$rep_id] = [];
+                    if (!empty($rep_id)) {
+                        $replacement_order_ids[$b2b] = (int)$rep_id;
+                        $replacement_items[$rep_id] = [];
+                        $rep_order_amounts[$rep_id] = 0.0;
+                        $rep_order_discounts[$rep_id] = 0.0;
+                    } else {
+                        $error = 'Unable to create replacement order in database';
+                    }
                 }
             }
         }
 		
         if (empty($replacement_order_ids)) {
-            $error = 'Unable to create order';
+            if (empty($error)) {
+                $error = 'Unable to create order';
+            }
         } else {
-            foreach($selected_item as $item){
-
+            foreach ($selected_item as $item) {
                 $order_item_id = $item['item_id'];
-                $qty_ordered = $item['qty_ordered'];
-                // ✅ FIX 1: correct key + safe read
+                $qty_ordered = isset($item['qty_ordered']) ? (int)$item['qty_ordered'] : 1;
                 $qty_return = isset($item['qty_return']) ? (int)$item['qty_return'] : 0;
 
                 if ($qty_return <= 0) {
                     continue;
                 }
 
-
-                $b2b = !empty($item['b2b_order_id']) ? $item['b2b_order_id'] : 0;
-                if ($b2b == 0 || !isset($replacement_order_ids[$b2b])) {
+                $b2b = !empty($item['b2b_order_id']) ? (int)$item['b2b_order_id'] : 0;
+                if ($b2b == 0 || !isset($replacement_order_ids[$b2b]) || empty($replacement_order_ids[$b2b])) {
                     continue;
                 }
 
@@ -2610,12 +2635,32 @@ $app->post('/webshop/replacement_order_request', function (Request $request, Res
 
                 $order_item_info = $order_obj->getSingleOrderItemDetail($order_item_id);
 				
-                if (!$order_item_info) continue;
+                if (!$order_item_info) {
+                    // Fallback: If item_id was sent from sales_order_items (e.g. 364),
+                    // look it up in sales_order_items and match with b2b_order_items
+                    $soi_res = $order_obj->dbl->dbl_conn->rawQueryOne("SELECT * FROM sales_order_items WHERE item_id = ?", array($order_item_id));
+                    if (!empty($soi_res)) {
+                        $boi_res = $order_obj->dbl->dbl_conn->rawQueryOne(
+                            "SELECT * FROM b2b_order_items WHERE order_id = ? AND (product_id = ? OR parent_product_id = ? OR (barcode != '' AND barcode = ?)) LIMIT 1",
+                            array($b2b, $soi_res['product_id'], $soi_res['product_id'], $soi_res['barcode'])
+                        );
+                        if (!empty($boi_res)) {
+                            $order_item_id = $boi_res['item_id'];
+                            $order_item_info = $boi_res;
+                        } else {
+                            $order_item_info = $soi_res;
+                        }
+                    }
+                }
 
-                $price = $order_item_info['price'];
-                $total_price = $order_item_info['total_price'];
-                $discount_amount = $order_item_info['discount_amount'];
-                $barcode = $order_item_info['barcode'];
+                if (!$order_item_info) {
+                    continue;
+                }
+
+                $price = isset($order_item_info['price']) ? (float)$order_item_info['price'] : 0.0;
+                $total_price = isset($order_item_info['total_price']) ? (float)$order_item_info['total_price'] : 0.0;
+                $discount_amount = isset($order_item_info['discount_amount']) ? (float)$order_item_info['discount_amount'] : 0.0;
+                $barcode = isset($order_item_info['barcode']) ? $order_item_info['barcode'] : '';
 
                 $total_discount_amount = $qty_return * $discount_amount;
 
@@ -2632,47 +2677,46 @@ $app->post('/webshop/replacement_order_request', function (Request $request, Res
                     $total_discount_amount
                 );
 
-                // Save item for later status update
-                $replacement_items[$replacement_order_id][] = $order_item_id;
-
-                $order_amount += $price * $qty_return;
-                $order_discount += $discount_amount * $qty_return;
-
-                if(isset($order_discount) && $order_discount>0){
-                    $order_grandtotal=$order_amount-$order_discount;
-                } else {
-                    $order_grandtotal=$order_amount;
+                if (!empty($return_order_item_id)) {
+                    $replacement_items[$replacement_order_id][] = $order_item_id;
+                    $rep_order_amounts[$replacement_order_id] += $price * $qty_return;
+                    $rep_order_discounts[$replacement_order_id] += $discount_amount * $qty_return;
                 }
             }
-			// echo "<pre>";
-			// print_r($replacement_items);
-			// die;
-            // update totals and item statuses
-            foreach ($replacement_items as $rep_id => $item_ids) {
 
-                $order_obj->update_replacement_order_column($rep_id,'order_amount',$order_amount);
-                $order_obj->update_replacement_order_column($rep_id,'order_discount',$order_discount);
-                $order_obj->update_replacement_order_column($rep_id,'order_grandtotal',$order_grandtotal);
+            // Verify items were added
+            $total_items_added = 0;
+            foreach ($replacement_items as $rep_id => $item_ids) {
+                $total_items_added += count($item_ids);
+                $r_amt = isset($rep_order_amounts[$rep_id]) ? (float)$rep_order_amounts[$rep_id] : 0.0;
+                $r_disc = isset($rep_order_discounts[$rep_id]) ? (float)$rep_order_discounts[$rep_id] : 0.0;
+                $r_grand = ($r_disc > 0) ? ($r_amt - $r_disc) : $r_amt;
+
+                $order_obj->update_replacement_order_column($rep_id, 'order_amount', $r_amt);
+                $order_obj->update_replacement_order_column($rep_id, 'order_discount', $r_disc);
+                $order_obj->update_replacement_order_column($rep_id, 'order_grandtotal', $r_grand);
 
                 foreach ($item_ids as $item_id) {
                     $order_obj->update_b2b_order_item_status($item_id, 15);
                 }
             }
 
-            // Update b2b_orders status to Replacement Requested (15) and put merchant payout on hold
-            foreach (array_keys($replacement_order_ids) as $b2b_id) {
-                $order_obj->update_b2b_order_status_by_webshop_id($b2b_id, 15);
-                $order_obj->update_b2b_order_payout_status($b2b_id, 3);
-            }
+            if ($total_items_added === 0 && empty($error)) {
+                $error = 'Unable to add items to replacement request.';
+            } else {
+                // Update b2b_orders status to Replacement Requested (15) and put merchant payout on hold
+                foreach (array_keys($replacement_order_ids) as $b2b_id) {
+                    $order_obj->update_b2b_order_status_by_webshop_id($b2b_id, 15);
+                    $order_obj->update_b2b_order_payout_status($b2b_id, 3);
+                }
 
-            // Update parent order
-            $order_obj->update_sales_order_column($order_id, 'status', 9);
+                // Update parent order
+                $order_obj->update_sales_order_column($order_id, 'status', 9);
+            }
         }
     }
-	// echo "<pre>";
-	// print_r($replacement_order_ids);
-	// die;
-    if($error != '' ){
+
+    if ($error != '') {
         $message['statusCode'] = '500';
         $message['is_success'] = 'false';
         $message['message'] = $error;

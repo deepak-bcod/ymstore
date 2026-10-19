@@ -91,7 +91,7 @@ class OrdersRepository
         $APIUrl = '/webshop/replacement_order_request';
 
         $response = self::post_method($APIUrl, $final_post_arr);
-        if (isset($response) && $response->is_success == 'true') {
+        if (isset($response) && is_object($response)) {
             return $response;
         }
         return '';
