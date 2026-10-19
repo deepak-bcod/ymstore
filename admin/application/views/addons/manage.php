@@ -69,7 +69,7 @@
                             <td><?php echo html_escape($row->date ?? ''); ?></td>
                             <td><?php echo number_format($row->amount ?? 0, 2); ?></td>
                             <td>
-                                <a href="<?php echo base_url('merchant/addons/download_invoice/' . $row->purchase_id); ?>" class="text-primary font-weight-bold" target="_blank">
+                                <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" class="text-primary font-weight-bold" target="_blank">
                                     <i class="fa fa-download"></i> Invoice
                                 </a>
                             </td>
