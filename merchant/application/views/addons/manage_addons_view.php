@@ -3,10 +3,8 @@
         margin-left: 260px; 
         padding: 20px 30px;
         box-sizing: border-box;
-        width: calc(100% - 260px); /* Forces it to fill exact remaining width */
-        position: absolute;
-        top: 0;
-        left: 0;
+        width: calc(100% - 260px);
+        margin-top: 15px; /* Ensures space below the top header bar so the title is fully visible */
     }
     .table-responsive {
         width: 100%;
@@ -29,7 +27,7 @@
         .manage-addons-wrapper {
             margin-left: 0;
             width: 100%;
-            position: relative;
+            margin-top: 10px;
             padding: 10px;
         }
     }
