@@ -1586,7 +1586,7 @@ class Api extends CI_Controller {
 				* Find the parent delivery-details record.
 				*/
 				$parentDeliveryDetails = $this->db
-					->where('order_id', $order_id)
+					->where('webshop_order_id', $order_id)
 					->where('driver_id', $driver_id)
 					->order_by('id', 'DESC')
 					->limit(1)
@@ -1680,7 +1680,7 @@ class Api extends CI_Controller {
 				* product_details remains unchanged.
 				*/
 				$this->db
-					->where('order_id', $order_id)
+					->where('webshop_order_id', $order_id)
 					->where('driver_id', $driver_id)
 					->update(
 						'b2b_orders_delivery_details',

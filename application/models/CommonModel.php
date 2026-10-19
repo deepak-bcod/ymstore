@@ -1191,7 +1191,7 @@ class CommonModel extends CI_Model
             // Fetch the latest parent-level delivery JSON.
             $parentDeliveryRow = $this->db
                 ->select('order_json')
-                ->where('order_id', $order_id)
+                ->where('webshop_order_id', $order_id)
                 ->where('driver_id', $driver_id)
                 ->order_by('id', 'DESC')
                 ->limit(1)
