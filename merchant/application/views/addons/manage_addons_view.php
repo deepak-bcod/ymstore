@@ -50,8 +50,8 @@
                             <td><?php echo isset($row->date) ? $row->date : ''; ?></td>
                             <td><?php echo isset($row->amount) ? $row->amount : ''; ?></td>
                             <td>
-                                <!-- Download Invoice Link Only -->
-                                <a href="<?php echo base_url('merchant/addons/download_invoice/' . $row->purchase_id); ?>" 
+                                <!-- Download Invoice Link (Fixed URL path) -->
+                                <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" 
                                    class="text-info font-weight-bold" 
                                    target="_blank" 
                                    title="Download Invoice">
