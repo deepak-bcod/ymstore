@@ -215,4 +215,23 @@ class Addons extends CI_Controller
     // Load the view file inside your admin folder or views directory
     $this->load->view('addons/manage', $data); // Adjust path to your admin view if needed
 }
+public function download_invoice($purchase_id = NULL) 
+    {
+        if (empty($purchase_id)) {
+            show_404();
+        }
+
+        // Load the model if it isn't auto-loaded
+        $this->load->model('Addon_model');
+        
+        // Fetch purchase details using the existing method
+        $data['addon_purchase'] = $this->Addon_model->get_purchase_by_id($purchase_id);
+
+        if (empty($data['addon_purchase'])) {
+            show_404();
+        }
+
+        // Load the exact same invoice view file used by the merchant panel
+        $this->load->view('addons/invoice_print_view', $data);
+    }
 }
