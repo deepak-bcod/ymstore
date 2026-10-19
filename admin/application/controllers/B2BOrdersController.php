@@ -1101,6 +1101,7 @@ class B2BOrdersController extends CI_Controller
 	{
 		$order_id = (int)$this->input->post('order_id');
 		$type     = trim($this->input->post('type'));
+		$es_order_number = trim($this->input->post('es_order_number') ?? '');
 
 		if (empty($order_id) || !in_array($type, ['pickup', 'delivery'])) {
 			echo json_encode([
@@ -1117,6 +1118,13 @@ class B2BOrdersController extends CI_Controller
 			if ($parentInfo) {
 				$order_increment_id = !empty($parentInfo->increment_id) ? $parentInfo->increment_id : $parentInfo->order_id;
 			}
+		} elseif (empty($es_order_number) && !empty($orderInfo->webshop_order_id)) {
+			// If order_id was a sub-order, infer es_order_number
+			$es_order_number = !empty($orderInfo->order_barcode) ? trim($orderInfo->order_barcode) : trim($orderInfo->increment_id);
+		}
+
+		if (!empty($es_order_number)) {
+			$order_increment_id = $es_order_number;
 		}
 
 		$images = [];
@@ -1192,6 +1200,10 @@ class B2BOrdersController extends CI_Controller
 		} else {
 			// type === 'delivery'
 			$title = 'Delivery Images';
+			if (!empty($es_order_number)) {
+				$title = 'Delivery Images (' . $es_order_number . ')';
+			}
+
 			$deliveryAttempts = $this->db
 				->where('order_id', $order_id)
 				->order_by('delivery_attempt_no', 'ASC')
@@ -1222,6 +1234,7 @@ class B2BOrdersController extends CI_Controller
 			if (!empty($deliveryAttempts)) {
 				$dIndex = 1;
 				foreach ($deliveryAttempts as $attempt) {
+					// 1. Regular attempt image
 					if (!empty($attempt->image)) {
 						$imgName = $attempt->image;
 						$thumbName = !empty($attempt->thumbnail) ? $attempt->thumbnail : $imgName;
@@ -1255,6 +1268,70 @@ class B2BOrdersController extends CI_Controller
 						];
 						$dIndex++;
 					}
+
+					// 2. Extract delivery images from order_json (for group deliveries)
+					if (!empty($attempt->order_json)) {
+						$decodedOrderJson = json_decode($attempt->order_json, true);
+						if (json_last_error() === JSON_ERROR_NONE && is_array($decodedOrderJson)) {
+							foreach ($decodedOrderJson as $esKey => $esData) {
+								if (!empty($es_order_number) && $esKey !== $es_order_number) {
+									continue;
+								}
+								if (empty($esData['delivery_images'])) {
+									continue;
+								}
+
+								$groupImages = $esData['delivery_images'];
+								// Support single image object or array of images
+								if (isset($groupImages['image']) || isset($groupImages['image_url'])) {
+									$groupImages = [$groupImages];
+								}
+
+								$gIdx = 1;
+								foreach ($groupImages as $gImg) {
+									if (!is_array($gImg)) {
+										continue;
+									}
+
+									$imgName = $gImg['image'] ?? null;
+									$thumbName = !empty($gImg['thumbnail']) ? $gImg['thumbnail'] : $imgName;
+
+									if (!empty($imgName)) {
+										$localMain = rtrim($base_dir, '/\\') . '/admin/admin/public/images/delivery/' . $imgName;
+										$localThumb = rtrim($base_dir, '/\\') . '/admin/admin/public/images/delivery/thumbnail/' . $thumbName;
+										$this->_auto_fix_image_and_thumb($localMain, $localThumb);
+									}
+
+									$imgUrl = !empty($gImg['image_url']) 
+										? $gImg['image_url'] 
+										: (!empty($imgName) ? $base_domain_url . '/admin/admin/public/images/delivery/' . $imgName : '');
+									$thumbUrl = !empty($gImg['thumb_url']) 
+										? $gImg['thumb_url'] 
+										: (!empty($thumbName) ? $base_domain_url . '/admin/admin/public/images/delivery/thumbnail/' . $thumbName : $imgUrl);
+
+									$label = 'Delivery Proof Image';
+									if (!empty($esKey)) {
+										$label .= ' (' . $esKey . ')';
+									}
+									if (count($groupImages) > 1) {
+										$label .= ' - Image ' . $gIdx;
+									}
+
+									$images[] = [
+										'type'            => 'proof',
+										'title'           => $label,
+										'image_url'       => $imgUrl,
+										'thumb_url'       => $thumbUrl,
+										'filename'        => $imgName,
+										'es_order_number' => $esKey,
+										'uploaded_at'     => $gImg['uploaded_at'] ?? null,
+										'attempt'         => $attempt->delivery_attempt_no ?? $dIndex
+									];
+									$gIdx++;
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -1265,6 +1342,7 @@ class B2BOrdersController extends CI_Controller
 			'type'               => $type,
 			'order_id'           => $order_id,
 			'order_increment_id' => $order_increment_id,
+			'es_order_number'    => $es_order_number,
 			'count'              => count($images),
 			'images'             => $images
 		]);
@@ -19221,11 +19299,39 @@ public function getParentDeliveryDetailsPopup()
                                  ->get('b2b_orders_delivery_details')
 
                                  ->result();
+	
+	$associated_orders = $this->db
+		->select('order_barcode, increment_id')
+		->where('webshop_order_id', $webshop_order_id)
+		->order_by('order_id', 'ASC')
+		->get('b2b_orders')
+		->result_array();
 
+	$sub_barcodes = [];
 
+	foreach ($associated_orders as $ao) {
+
+		$val = !empty($ao['order_barcode'])
+			? trim($ao['order_barcode'])
+			: (
+				!empty($ao['increment_id'])
+					? trim($ao['increment_id'])
+					: ''
+			);
+
+		if (
+			$val !== '' &&
+			!in_array($val, $sub_barcodes, true)
+		) {
+			$sub_barcodes[] = $val;
+		}
+	}
+
+	if (!empty($sub_barcodes)) {
+        $data['sub_barcodes'] = implode(', ', $sub_barcodes);
+    }
 
     $this->load->view('b2b/order/parent_delivery_details_popup', $data);
-
 }
 
 

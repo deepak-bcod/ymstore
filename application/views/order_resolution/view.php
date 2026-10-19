@@ -118,10 +118,10 @@
                             <div class="row">
                                 <div class="col-md-3 col-sm-6">
                                     <p><b><?php echo $this->lang->line('merchant_decision') ?: 'Merchant Decision'; ?>:</b><br>
-                                        <?php if (!empty($resolution->merchant_action) && $resolution->merchant_action !== 'none'): ?>
+                                        <?php if (!empty($resolution->merchant_action) && !in_array(strtolower($resolution->merchant_action), ['none', 'n/a'], true)): ?>
                                             <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?></span>
                                         <?php else: ?>
-                                            <span class="text-muted font-weight-bold">N/A</span>
+                                            <span class="label label-warning" style="background-color: #ffc107; color: #212529; font-weight: 600; padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 11px;"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
                                         <?php endif; ?>
                                     </p>
                                 </div>

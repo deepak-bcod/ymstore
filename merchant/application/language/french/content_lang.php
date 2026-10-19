@@ -11,7 +11,7 @@ $lang['sidebar_discounts']       = "Remises";
 $lang['sidebar_payouts']         = "Paiements";
 $lang['sidebar_return_replace']         = "Retours & Remplacement";
 $lang['sidebar_addons_services'] = "Services complémentaires";
-$lang['sidebar_browse_addons'] = 'Parcourir les Suppléments';
+$lang['sidebar_browse_addons'] = 'Modules complémentaires';
 $lang['sidebar_manage_addons'] = 'Gérer le Supplément';
 $lang['sidebar_my_documents']    = "Mes documents";
 //$lang['sidebar_help_desk_list']  = "Liste du service d'assistance";
@@ -1204,3 +1204,15 @@ $lang['escalation_status'] = 'Statut d\'escalade';
 
 
 $lang['sidebar_manage_addons'] = 'Gérer le module complémentaire';
+
+$lang['manage_addon_title'] = 'Gérer le module complémentaire';
+$lang['addon_sr_no'] = 'N° SR';
+$lang['addon_service'] = 'SERVICE COMPLÉMENTAIRE';
+$lang['addon_name'] = 'NOM DU MODULE';
+$lang['addon_date'] = 'DATE';
+$lang['addon_amount'] = 'MONTANT';
+$lang['addon_actions'] = 'ACTIONS';
+$lang['addon_edit'] = 'Modifier';
+$lang['addon_delete'] = 'Supprimer';
+$lang['addon_delete_confirm'] = 'Êtes-vous sûr de vouloir supprimer cet enregistrement ?';
+$lang['addon_no_records'] = 'Aucun enregistrement trouvé';

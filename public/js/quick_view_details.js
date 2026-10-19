@@ -20,7 +20,7 @@ function QuickViewProdDetails(productslug, produrl) {
   });
 }
 $(document).on("click", "#myModal .close", function () {
-    $("#myModal").modal("hide");
+  $("#myModal").modal("hide");
 });
 
 function initImageZoom() {
@@ -246,7 +246,7 @@ function openNotifiedPopup(product_id) {
           product_id: product_id,
         },
 
-        complete: function () {},
+        complete: function () { },
 
         beforeSend: function () {
           $("#notified-keep-inform").prop("disabled", true);
@@ -447,16 +447,16 @@ function _GetVariantProduct() {
 
                     $(".product-price-detail").html(
                       '<span class="discounted-price special-price" id="product_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(simple_price) +
-                        '</span> <span class="special-price" id="discounted_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(special_price) +
-                        "</span>" +
-                        addition_percent_html +
-                        ""
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(simple_price) +
+                      '</span> <span class="special-price" id="discounted_price">' +
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(special_price) +
+                      "</span>" +
+                      addition_percent_html +
+                      ""
                     );
 
                     // }
@@ -471,10 +471,10 @@ function _GetVariantProduct() {
 
                     $(".product-price-detail").html(
                       '<span class="special-price" id="discounted_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(special_price) +
-                        "</span>"
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(special_price) +
+                      "</span>"
                     );
 
                     // }
@@ -490,10 +490,10 @@ function _GetVariantProduct() {
 
                   $(".product-price-detail").html(
                     '<span class="special-price" id="discounted_price">' +
-                      CURRENCY_TYPE +
-                      "&nbsp;" +
-                      numberWithCommas(special_price) +
-                      "</span>"
+                    CURRENCY_TYPE +
+                    "&nbsp;" +
+                    numberWithCommas(special_price) +
+                    "</span>"
                   );
 
                   // }
@@ -509,10 +509,10 @@ function _GetVariantProduct() {
 
                 $(".product-price-detail").html(
                   '<span class="special-price" id="product_price">' +
-                    CURRENCY_TYPE +
-                    "&nbsp;" +
-                    numberWithCommas(simple_price) +
-                    "</span>"
+                  CURRENCY_TYPE +
+                  "&nbsp;" +
+                  numberWithCommas(simple_price) +
+                  "</span>"
                 );
 
                 // }
@@ -687,16 +687,16 @@ function GetVariantProduct() {
 
                     $(".product-price-detail").html(
                       '<span class="discounted-price special-price" id="product_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(simple_price) +
-                        '</span> <span class="special-price" id="discounted_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(special_price) +
-                        "</span>" +
-                        addition_percent_html +
-                        ""
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(simple_price) +
+                      '</span> <span class="special-price" id="discounted_price">' +
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(special_price) +
+                      "</span>" +
+                      addition_percent_html +
+                      ""
                     );
 
                     // }
@@ -711,10 +711,10 @@ function GetVariantProduct() {
 
                     $(".product-price-detail").html(
                       '<span class="special-price" id="discounted_price">' +
-                        CURRENCY_TYPE +
-                        "&nbsp;" +
-                        numberWithCommas(special_price) +
-                        "</span>"
+                      CURRENCY_TYPE +
+                      "&nbsp;" +
+                      numberWithCommas(special_price) +
+                      "</span>"
                     );
 
                     // }
@@ -730,10 +730,10 @@ function GetVariantProduct() {
 
                   $(".product-price-detail").html(
                     '<span class="special-price" id="discounted_price">' +
-                      CURRENCY_TYPE +
-                      "&nbsp;" +
-                      numberWithCommas(special_price) +
-                      "</span>"
+                    CURRENCY_TYPE +
+                    "&nbsp;" +
+                    numberWithCommas(special_price) +
+                    "</span>"
                   );
 
                   // }
@@ -749,10 +749,10 @@ function GetVariantProduct() {
 
                 $(".product-price-detail").html(
                   '<span class="special-price" id="product_price">' +
-                    CURRENCY_TYPE +
-                    "&nbsp;" +
-                    numberWithCommas(simple_price) +
-                    "</span>"
+                  CURRENCY_TYPE +
+                  "&nbsp;" +
+                  numberWithCommas(simple_price) +
+                  "</span>"
                 );
 
                 // }

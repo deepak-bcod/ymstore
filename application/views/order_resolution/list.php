@@ -12,6 +12,7 @@
 .badge-action-approved { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 .badge-action-denied { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 .badge-action-completed { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+.badge-action-pending { background-color: #ffc107 !important; color: #212529 !important; border: 1px solid #e0a800 !important; }
 
 .table-resolution-list > tbody > tr > td { vertical-align: middle !important; }
 </style>
@@ -101,12 +102,21 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <?php if (!empty($res->merchant_action) && $res->merchant_action !== 'none'): ?>
-                                                    <span class="badge-action <?php echo strpos($res->merchant_action, 'approved') !== false ? 'badge-action-approved' : (strpos($res->merchant_action, 'denied') !== false ? 'badge-action-denied' : 'badge-action-completed'); ?>">
-                                                        <?php echo htmlspecialchars($this->lang->line($res->merchant_action) ?: ucwords(str_replace('_', ' ', $res->merchant_action))); ?>
+                                                <?php
+                                                $mAction = trim($res->merchant_action ?? '');
+                                                if (!empty($mAction) && !in_array(strtolower($mAction), ['none', 'n/a'], true)):
+                                                    $bClass = 'badge-action-completed';
+                                                    if (strpos($mAction, 'approved') !== false) {
+                                                        $bClass = 'badge-action-approved';
+                                                    } elseif (strpos($mAction, 'denied') !== false) {
+                                                        $bClass = 'badge-action-denied';
+                                                    }
+                                                ?>
+                                                    <span class="badge-action <?php echo $bClass; ?>">
+                                                        <?php echo htmlspecialchars($this->lang->line($mAction) ?: ucwords(str_replace('_', ' ', $mAction))); ?>
                                                     </span>
                                                 <?php else: ?>
-                                                    <span class="text-muted">N/A</span>
+                                                    <span class="badge-action badge-action-pending label label-warning"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
                                                 <?php endif; ?>
                                             </td>
                                             <td><?php echo date('d M Y', $res->created_at); ?></td>

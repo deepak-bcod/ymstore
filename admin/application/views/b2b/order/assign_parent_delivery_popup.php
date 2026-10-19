@@ -74,7 +74,7 @@ $(document).ready(function(){
 
       })
       .fail(function(){
-        Swal.fire("Error", "Unable to contact server. Please try again.", "error");
+        Swal.fire("rror", "Unable to contact server. Please try again.", "error");
       });
   });
 });

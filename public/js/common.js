@@ -135,7 +135,7 @@ $(document).ready(function () {
   });
 
   var $stateSelect = $("#b_state_dp");
-  var $citySelect  = $("#billing_city");
+  var $citySelect = $("#billing_city");
 
   // Cache original city options (excluding the placeholder)
   var originalCities = [];
@@ -151,7 +151,7 @@ $(document).ready(function () {
   });
 
   // Populate cities for a given stateId (string)
- 
+
 
   /* $(".site-block-top-search").on("keypress", function (e) {
 
@@ -344,10 +344,10 @@ $(document).ready(function () {
     ignore: ":hidden",
 
     rules: {
-        email_subscribe: {
-            required: true,
-            email: true
-        }
+      email_subscribe: {
+        required: true,
+        email: true
+      }
     },
 
     errorElement: "div",
@@ -355,40 +355,40 @@ $(document).ready(function () {
 
     submitHandler: function (form) {
 
-        var newsData = new FormData(form);
-        $("#newsletter-loader").addClass("search-loader");
+      var newsData = new FormData(form);
+      $("#newsletter-loader").addClass("search-loader");
 
-        $.ajax({
-            url: form.action,
-            method: form.method,   // <-- FIXED
-            dataType: "json",
-            data: newsData,
-            processData: false,
-            contentType: false,
+      $.ajax({
+        url: form.action,
+        method: form.method,   // <-- FIXED
+        dataType: "json",
+        data: newsData,
+        processData: false,
+        contentType: false,
 
-            success: function (response) {
-                console.log(response);
+        success: function (response) {
+          console.log(response);
 
-                $("#newsletter-loader").removeClass("search-loader");
+          $("#newsletter-loader").removeClass("search-loader");
 
-                if (!response) {
-                    $("#subscribe_result").html("Invalid server response").fadeIn();
-                    return;
-                }
+          if (!response) {
+            $("#subscribe_result").html("Invalid server response").fadeIn();
+            return;
+          }
 
-                if (response.flag == 1) {
-                    $("#newsletter-subscribe-form")[0].reset();
-                }
+          if (response.flag == 1) {
+            $("#newsletter-subscribe-form")[0].reset();
+          }
 
-                $("#subscribe_result").html(response.msg).fadeIn();
+          $("#subscribe_result").html(response.msg).fadeIn();
 
-                setTimeout(() => $("#subscribe_result").fadeOut("slow"), 2000);
-            },
+          setTimeout(() => $("#subscribe_result").fadeOut("slow"), 2000);
+        },
 
-            error: function (xhr) {
-                console.log("Server Error:", xhr.responseText);
-            }
-        });
+        error: function (xhr) {
+          console.log("Server Error:", xhr.responseText);
+        }
+      });
     }
   });
 
@@ -547,50 +547,50 @@ $(document).ready(function () {
 
 function RemoveCartItem(item_id) {
 
-    if (item_id == "") {
-        return false;
-    }
+  if (item_id == "") {
+    return false;
+  }
 
-    swal({
-        title: LANG.areYouSure,
-        text: LANG.confirmRemoveCartItem,
-        icon: "warning",
-        buttons: {
-            cancel: LANG.cancel,
-            confirm: LANG.yes
-        },
-        dangerMode: true,
-    }).then((willDelete) => {
+  swal({
+    title: LANG.areYouSure,
+    text: LANG.confirmRemoveCartItem,
+    icon: "warning",
+    buttons: {
+      cancel: LANG.cancel,
+      confirm: LANG.yes
+    },
+    dangerMode: true,
+  }).then((willDelete) => {
 
-        if (!willDelete) return;
+    if (!willDelete) return;
 
-        $.ajax({
-            url: BASE_URL + "CartController/removecartitem",
-            type: "POST",
-            dataType: "json",
-            cache: false,
-            headers: { "X-Requested-With": "XMLHttpRequest" },
-            data: {
-                item_id: item_id,
-            },
-            success: function(response) {
+    $.ajax({
+      url: BASE_URL + "CartController/removecartitem",
+      type: "POST",
+      dataType: "json",
+      cache: false,
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+      data: {
+        item_id: item_id,
+      },
+      success: function (response) {
 
-                if (response.status == 200) {
+        if (response.status == 200) {
 
-                    swal(LANG.success, response.message, "success")
-                    .then(function () {
-                        location.reload();
-                    });
+          swal(LANG.success, response.message, "success")
+            .then(function () {
+              location.reload();
+            });
 
-                } else {
+        } else {
 
-                    swal(LANG.error, response.message, "error");
+          swal(LANG.error, response.message, "error");
 
-                }
-            }
-        });
-
+        }
+      }
     });
+
+  });
 
 }
 
@@ -2424,26 +2424,26 @@ $(document).ready(function () {
 // }
 
 function checkPinBaseOnCountry(postal_code, country_code) {
-    postal_code = postal_code.trim(); // remove whitespace
+  postal_code = postal_code.trim(); // remove whitespace
 
-    let postalcode_regex;
+  let postalcode_regex;
 
-    switch (country_code) {
-        case "MU":
-            postalcode_regex = /^\d{5}$/; // 5-digit postal codes
-            break;
+  switch (country_code) {
+    case "MU":
+      postalcode_regex = /^\d{5}$/; // 5-digit postal codes
+      break;
 
-        case "FR":
-            postalcode_regex = /^97.*$/; // example for France overseas
-            break;
+    case "FR":
+      postalcode_regex = /^97.*$/; // example for France overseas
+      break;
 
-        // Add other countries as needed
-        default:
-            postalcode_regex = /.*/; // accept any input if no rule
-            break;
-    }
+    // Add other countries as needed
+    default:
+      postalcode_regex = /.*/; // accept any input if no rule
+      break;
+  }
 
-    return postalcode_regex.test(postal_code);
+  return postalcode_regex.test(postal_code);
 }
 
 
@@ -2510,13 +2510,13 @@ function CheckState(
     if (same_as_biling != "") {
       $(state_dp).val($(billing_state_dp).val());
     }
-    
+
 
     // Bind city fetch on state change
     $(state_dp).off("change").on("change", function () {
       var stateId = $(this).val();
       $.ajax({
-        url: BASE_URL + "CheckoutController/getCities", 
+        url: BASE_URL + "CheckoutController/getCities",
         type: "POST",
         data: { state_id: stateId },
         dataType: "json",
@@ -2531,7 +2531,7 @@ function CheckState(
                 '<option value="' + city.id + '">' + cleanName + '</option>'
               );
             });
-        }
+          }
         },
       });
     });
@@ -2539,7 +2539,7 @@ function CheckState(
     $("#s_state_dp").on("change", function () {
       var stateId = $(this).val();
       $.ajax({
-        url: BASE_URL + "CheckoutController/getCities", 
+        url: BASE_URL + "CheckoutController/getCities",
         type: "POST",
         data: { state_id: stateId },
         dataType: "json",

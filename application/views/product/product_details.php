@@ -246,7 +246,52 @@ $lang = $this->session->userdata('site_lang');
                                         </table>
                                     </div>
 
+                                    <?php
+                                    // LIMITED STOCK and remaining stock indicator for Flash Sale promotion only
+                                    $is_flash_sale_detail = (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1)
+                                        || (!empty($ProductData->offer_type) && $ProductData->offer_type === 'flash_sale')
+                                        || (isset($_GET['type']) && $_GET['type'] === 'flash_sale');
 
+                                    if (!$is_flash_sale_detail && !empty($ProductData->id)) {
+                                        $ci =& get_instance();
+                                        if (isset($ci->db)) {
+                                            $p_fs = $ci->db->select('flash_sale, flash_sale_ends_at')
+                                                ->where('id', $ProductData->id)
+                                                ->get('products')
+                                                ->row();
+                                            if ($p_fs && !empty($p_fs->flash_sale) && $p_fs->flash_sale == 1 && (empty($p_fs->flash_sale_ends_at) || $p_fs->flash_sale_ends_at > time())) {
+                                                $is_flash_sale_detail = true;
+                                            }
+                                        }
+                                    }
+
+                                    $is_out_of_stock_detail = false;
+                                    $product_stock_detail = null;
+                                    if (isset($ProductData->qty) && is_numeric($ProductData->qty)) {
+                                        $product_stock_detail = (float)$ProductData->qty;
+                                    } elseif (isset($ProductData->stock_qty) && is_numeric($ProductData->stock_qty)) {
+                                        $product_stock_detail = (float)$ProductData->stock_qty;
+                                    }
+                                    if ($product_stock_detail !== null && $product_stock_detail <= 0) {
+                                        $is_out_of_stock_detail = true;
+                                    } elseif (isset($ProductData->stock_status) && (strtolower(trim($ProductData->stock_status)) == 'out of stock' || strtolower(trim($ProductData->stock_status)) == 'outofstock')) {
+                                        $is_out_of_stock_detail = true;
+                                    }
+                                    ?>
+                                    <?php if ($is_flash_sale_detail && !$is_out_of_stock_detail) : ?>
+                                        <?php 
+                                        $remaining_stock = null;
+                                        if ($product_stock_detail !== null && $product_stock_detail > 0) {
+                                            $remaining_stock = (int)$product_stock_detail;
+                                        }
+                                        ?>
+                                        <div class="flash-sale-stock" style="margin: 8px 0 12px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                            <span class="badge-limited-stock" style="display: inline-block; background-color: #1b873f; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.3px;">📦 LIMITED STOCK</span>
+                                            <?php if ($remaining_stock !== null) : ?>
+                                                <span class="stock-indicator-text" style="color: #cf1322; font-weight: 700; font-size: 12px;">Only <?= $remaining_stock ?> left in stock</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
 
                                 <?php } ?>
 
@@ -2024,6 +2069,25 @@ $lang = $this->session->userdata('site_lang');
 
 <script>
     $(document).ready(function() {
+
+        var $container = $('.badge-section');
+
+        var imageCount = $container.find('img').length;
+
+
+
+        if (imageCount > 3) {
+
+            $container.removeClass('three-per-row').addClass('two-rows');
+
+        } else {
+
+            $container.removeClass('two-rows').addClass('three-per-row');
+
+        }
+
+    });
+</script>ument).ready(function() {
 
         var $container = $('.badge-section');
 

@@ -12,7 +12,7 @@ $lang['sidebar_discounts']       = "Discounts";
 $lang['sidebar_payouts']         = "Payouts";
 $lang['sidebar_return_replace']         = "Returns & Replacement";
 $lang['sidebar_addons_services'] = "Add-ons Services";
-$lang['sidebar_browse_addons'] = 'Browse Add-Ons';
+$lang['sidebar_browse_addons'] = 'Add-Ons';
 $lang['sidebar_manage_addons'] = 'Manage Addon';
 $lang['sidebar_my_documents']    = "My Documents";
 $lang['sidebar_help_desk_list']  = "Help desk list";
@@ -1249,3 +1249,15 @@ $lang['you_merchant'] = 'You (Merchant)';
 
 
 $lang['sidebar_manage_addons'] = 'Manage Addon';
+
+$lang['manage_addon_title'] = 'Manage Addon';
+$lang['addon_sr_no'] = 'SR NO.';
+$lang['addon_service'] = 'ADDON SERVICE';
+$lang['addon_name'] = 'ADDON NAME';
+$lang['addon_date'] = 'DATE';
+$lang['addon_amount'] = 'AMOUNT';
+$lang['addon_actions'] = 'ACTIONS';
+$lang['addon_edit'] = 'Edit';
+$lang['addon_delete'] = 'Delete';
+$lang['addon_delete_confirm'] = 'Are you sure you want to delete this record?';
+$lang['addon_no_records'] = 'No records found';

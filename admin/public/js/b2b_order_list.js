@@ -657,10 +657,13 @@ function openDeliveryPopup(order_id) {
     });
 }
 
-function openOrderImagesModal(order_id, type) {
+function openOrderImagesModal(order_id, type, es_order_number) {
     if (!order_id) return;
     type = type || 'pickup';
     var titleText = (type === 'pickup') ? 'Pickup Images' : 'Delivery Images';
+    if (es_order_number) {
+        titleText += ' (' + es_order_number + ')';
+    }
 
     $('#orderImagesModalLabel').text(titleText);
     $('#orderImagesModalContent').html(
@@ -674,7 +677,8 @@ function openOrderImagesModal(order_id, type) {
         dataType: 'json',
         data: {
             order_id: order_id,
-            type: type
+            type: type,
+            es_order_number: es_order_number || ''
         },
         success: function (res) {
             if (res && res.flag == 1) {

@@ -200,7 +200,7 @@
                                                 </td>
 
                                                 <td>
-                                                    <a href="javascript:void(0);" class="link-orange" style="color:#f39c12;font-weight:600;" onclick="openOrderImagesModal('<?= !empty($parentDelivery) ? $parent->order_id : $b2b->order_id ?>', 'delivery')">View Image</a>
+                                                    <a href="javascript:void(0);" class="link-orange" style="color:#f39c12;font-weight:600;" onclick="openOrderImagesModal('<?= !empty($parentDelivery) ? $parent->order_id : $b2b->order_id ?>', 'delivery', '<?= !empty($b2b->increment_id) ? $b2b->increment_id : (!empty($b2b->order_barcode) ? $b2b->order_barcode : '') ?>')">View Image</a>
                                                 </td>
 
                                                 <td>
@@ -305,16 +305,16 @@
                                         <button class="btn btn-info btn-sm ml-3"
                                             onclick="openParentDeliveryDetailsPopup('<?= $parent->order_id ?>')">View Group
                                             Delivery</button>
-                                        <button class="btn btn-warning btn-sm ml-1"
-                                            onclick="openOrderImagesModal('<?= $parent->order_id ?>', 'delivery')">View Image</button>
+                                        <!--button class="btn btn-warning btn-sm ml-1"
+                                            onclick="openOrderImagesModal('<?= $parent->order_id ?>', 'delivery')">View Image</button-->
 
                                     <?php elseif ($isDelivered): ?>
                                         <span class="text-success">Delivered</span>
                                         <button class="btn btn-info btn-sm ml-3"
                                             onclick="openParentDeliveryDetailsPopup('<?= $parent->order_id ?>')">View Group
                                             Delivery</button>
-                                        <button class="btn btn-warning btn-sm ml-1"
-                                            onclick="openOrderImagesModal('<?= $parent->order_id ?>', 'delivery')">View Image</button>
+                                        <!--button class="btn btn-warning btn-sm ml-1"
+                                            onclick="openOrderImagesModal('<?= $parent->order_id ?>', 'delivery')">View Image</button-->
 
                                     <?php else: ?>
                                         <?php
@@ -368,8 +368,8 @@
                                         <button class="btn btn-info btn-sm"
                                             onclick="openParentDeliveryDetailsPopup('<?= $parent->order_id ?>')">View Group
                                             Delivery</button>
-                                        <button class="btn btn-warning btn-sm ml-1"
-                                            onclick="openOrderImagesModal('<?= $parent->order_id ?>', 'delivery')">View Image</button>
+                                        <!--button class="btn btn-warning btn-sm ml-1"
+                                            onclick="openOrderImagesModal('<?= $parent->order_id ?>', 'delivery')">View Image</button-->
                                     <?php endif; ?>
                                 </div>
                             <?php } ?>
