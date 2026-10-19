@@ -845,6 +845,7 @@ $route['addons/mytCallback'] = 'addons/mytCallback';
 $route['addons/status/(:any)'] = 'addons/status/$1';
 
 $route['addons/manage'] = 'addons/manage';
+$route['addons/download_invoice/(:num)'] = 'addons/download_invoice/$1';
 
 
 $route['webshop/return-orders'] = 'WebshopOrdersController/returnOrders';

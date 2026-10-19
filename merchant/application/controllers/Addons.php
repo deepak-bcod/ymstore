@@ -741,31 +741,14 @@ public function download_invoice($purchase_id = NULL)
         show_404();
     }
 
-    // Ensure model is loaded
     $this->load->model('Addon_model');
-
-    // Fetch purchase record details from database
     $data['addon_purchase'] = $this->Addon_model->get_purchase_by_id($purchase_id);
 
     if (empty($data['addon_purchase'])) {
         show_404();
     }
 
-    // Load the receipt/invoice view from application/views/addons/invoice_print_view.php
-    $view_path = 'addons/invoice_print_view'; 
-    
-    if (file_exists(APPPATH . 'views/' . $view_path . '.php')) {
-        $this->load->view($view_path, $data);
-    } else {
-        // Fallback: If view doesn't exist yet, render a clean print layout directly
-        echo '<div style="font-family: Arial; padding: 20px;">';
-        echo '<h2>Addon Purchase Invoice #' . $data['addon_purchase']->purchase_id . '</h2>';
-        echo '<p><strong>Service:</strong> ' . (isset($data['addon_purchase']->addon_service_name) ? $data['addon_purchase']->addon_service_name : '') . '</p>';
-        echo '<p><strong>Addon Name:</strong> ' . (isset($data['addon_purchase']->addon_name) ? $data['addon_purchase']->addon_name : '') . '</p>';
-        echo '<p><strong>Date:</strong> ' . (isset($data['addon_purchase']->date) ? $data['addon_purchase']->date : '') . '</p>';
-        echo '<p><strong>Amount:</strong> MUR ' . (isset($data['addon_purchase']->amount) ? $data['addon_purchase']->amount : '') . '</p>';
-        echo '<hr><button onclick="window.print();">Print / Download PDF</button>';
-        echo '</div>';
-    }
+    // Load the newly created invoice print layout view
+    $this->load->view('addons/invoice_print_view', $data);
 }
 }
