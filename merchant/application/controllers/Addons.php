@@ -61,42 +61,42 @@ class Addons extends CI_Controller
 
         $site_lang = $this->session->userdata('site_lang');
 
-		if ($site_lang) {
-			$this->lang->load('content', $site_lang);
-		} else {
-			$this->lang->load('content', 'english'); // default
-		}
+        if ($site_lang) {
+            $this->lang->load('content', $site_lang);
+        } else {
+            $this->lang->load('content', 'english'); // default
+        }
     }
 
     public function index()
-{
-    $addons = $this->Addon_model->get_addons_with_services();
-    $data['addon_data'] = [];
-    $site_lang = $this->session->userdata('site_lang');
+    {
+        $addons = $this->Addon_model->get_addons_with_services();
+        $data['addon_data'] = [];
+        $site_lang = $this->session->userdata('site_lang');
 
-    foreach ($addons as $row) {
-       
-        if ($site_lang == 'french' && !empty($row['category_name_fr'])) {
-            $category_key = $row['category_name_fr'];
-        } else {
-            $category_key = $row['category_name'];
+        foreach ($addons as $row) {
+           
+            if ($site_lang == 'french' && !empty($row['category_name_fr'])) {
+                $category_key = $row['category_name_fr'];
+            } else {
+                $category_key = $row['category_name'];
+            }
+
+           
+            if ($site_lang == 'french') {
+                if (!empty($row['title_fr'])) {
+                    $row['title'] = $row['title_fr'];
+                }
+                if (!empty($row['description_fr'])) {
+                    $row['description'] = $row['description_fr'];
+                }
+            }
+
+            $data['addon_data'][$category_key][] = $row;
         }
 
-       
-        if ($site_lang == 'french') {
-            if (!empty($row['title_fr'])) {
-                $row['title'] = $row['title_fr'];
-            }
-            if (!empty($row['description_fr'])) {
-                $row['description'] = $row['description_fr'];
-            }
-        }
-
-        $data['addon_data'][$category_key][] = $row;
+        $this->load->view('addons/index', $data);
     }
-
-    $this->load->view('addons/index', $data);
-}
 
     public function buy($service_id)
     {
@@ -109,8 +109,7 @@ class Addons extends CI_Controller
             show_error('Invalid service.');
         }
 
-        //$amount = $service['price'] * $qty;
-   $amount = 1;
+        $amount = 1;
         // Save purchase
         $purchase = [
             'merchant_id' => $publisher_id,
@@ -125,24 +124,19 @@ class Addons extends CI_Controller
 
         // Create a transaction
         $site_lang = $this->session->userdata('site_lang');
+        $payment_lang = ($site_lang === 'french') ? 'french' : 'english';
 
-// Make sure we store only english/french
-$payment_lang = ($site_lang === 'french') ? 'french' : 'english';
-
-$transaction = [
-    'purchase_id' => $purchase_id,
-    'merchant_id' => $publisher_id,
-    'amount'      => $amount,
-    'status'      => 'initiated',
-    'lang'        => $payment_lang,
-    'created_at'  => date('Y-m-d H:i:s')
-];
+        $transaction = [
+            'purchase_id' => $purchase_id,
+            'merchant_id' => $publisher_id,
+            'amount'      => $amount,
+            'status'      => 'initiated',
+            'lang'        => $payment_lang,
+            'created_at'  => date('Y-m-d H:i:s')
+        ];
         $this->db->insert('merchant_addon_transactions', $transaction);
         $transaction_id = $this->db->insert_id();
-        log_message(
-    'info',
-    "Addon payment created | Transaction ID: {$transaction_id} | Language: {$payment_lang}"
-);
+        log_message('info', "Addon payment created | Transaction ID: {$transaction_id} | Language: {$payment_lang}");
 
         // Start secure payment
         $this->initiate_payment($transaction_id, $amount);
@@ -221,68 +215,62 @@ $transaction = [
     /**
      * Initiate secure my.t money payment (RSA + HMAC)
      */
-   private function initiate_payment($transaction_id, $amount)
-{
-    $cfg = $this->config->item('myt_money');
+    private function initiate_payment($transaction_id, $amount)
+    {
+        $cfg = $this->config->item('myt_money');
 
-    $merchantAppId = $cfg['app_id'];
-    $apiKey        = $cfg['api_key'];
-    $publicKey     = $cfg['public_key'];
-    $notifyUrl     = base_url('addons/mytNotify');
-    $returnUrl     = base_url('addons/mytCallback');
-    $mode          = $cfg['mode'] ?? 'production';
+        $merchantAppId = $cfg['app_id'];
+        $apiKey        = $cfg['api_key'];
+        $publicKey     = $cfg['public_key'];
+        $notifyUrl     = base_url('addons/mytNotify');
+        $returnUrl     = base_url('addons/mytCallback');
+        $mode          = $cfg['mode'] ?? 'production';
 
+        // Get saved payment language
+        $transaction = $this->db
+            ->get_where(
+                'merchant_addon_transactions',
+                ['id' => $transaction_id]
+            )
+            ->row_array();
 
-    // Get saved payment language
-    $transaction = $this->db
-        ->get_where(
-            'merchant_addon_transactions',
-            ['id' => $transaction_id]
-        )
-        ->row_array();
+        $payment_lang = !empty($transaction['lang'])
+            ? $transaction['lang']
+            : 'english';
 
-    $payment_lang = !empty($transaction['lang'])
-        ? $transaction['lang']
-        : 'english';
+        // Convert to MyT language
+        $gateway_lang = ($payment_lang === 'french')
+            ? 'fr'
+            : 'en';
 
-    // Convert to MyT language
-    $gateway_lang = ($payment_lang === 'french')
-        ? 'fr'
-        : 'en';
+        // Create unique trade number
+        $merTradeNo = (string)(microtime(true) * 1000);
 
+        $this->db
+            ->where('id', $transaction_id)
+            ->update(
+                'merchant_addon_transactions',
+                [
+                    'mer_trade_no' => $merTradeNo,
+                    'updated_at'   => date('Y-m-d H:i:s')
+                ]
+            );
 
-    // Create unique trade number
-    $merTradeNo = (string)(microtime(true) * 1000);
+        // Prepare payload
+        $payload = [
+            "totalPrice" => $amount,
+            "currency"   => "MUR",
+            "merTradeNo" => $merTradeNo,
+            "notifyUrl"  => $notifyUrl,
+            "returnUrl"  => $returnUrl,
+            "remark"     => "Addon Purchase",
+            "lang"       => $gateway_lang
+        ];
 
-    $this->db
-        ->where('id', $transaction_id)
-        ->update(
-            'merchant_addon_transactions',
-            [
-                'mer_trade_no' => $merTradeNo,
-                'updated_at'   => date('Y-m-d H:i:s')
-            ]
-        );
-
-
-    // Prepare payload
-    $payload = [
-        "totalPrice" => $amount,
-        "currency"   => "MUR",
-        "merTradeNo" => $merTradeNo,
-        "notifyUrl"  => $notifyUrl,
-        "returnUrl"  => $returnUrl,
-        "remark"     => "Addon Purchase",
-        "lang"       => $gateway_lang
-    ];
-
-    $payloadJson = json_encode($payload);
-
-    // Continue your existing RSA/HMAC code...
+        $payloadJson = json_encode($payload);
 
         // Encrypt payload using RSA public key
         $rsa = new $this->rsaClass();
-        // Use OAEP if available
         if (defined($this->rsaClass . '::ENCRYPTION_OAEP')) {
             $rsa->setEncryptionMode($this->rsaClass::ENCRYPTION_OAEP);
         }
@@ -317,10 +305,6 @@ $transaction = [
         echo '</body></html>';
     }
 
-    /**
-     * Legacy-ish: callback used previously by code (kept for compatibility)
-     * You may keep or remove this; initiate_payment now points to addons/mytCallback
-     */
     public function payment_callback($transaction_id)
     {
         $response = $this->input->post();
@@ -350,10 +334,6 @@ $transaction = [
         redirect('addons');
     }
 
-    /**
-     * Frontend callback (user redirected here after payment)
-     * Expects merTradeNo in POST/GET from gateway
-     */
     public function mytCallback()
     {
         log_message('info', '=== MyT Addon Callback Called ===');
@@ -378,32 +358,20 @@ $transaction = [
         $this->load->library('encryption');
         $encrypted = $this->encryption->encrypt($transaction['id']);
         $token = rtrim(strtr(base64_encode($encrypted), '+/', '-_'), '=');
-         $frontendUrl = base_url("addons/status/{$token}");
+        $frontendUrl = base_url("addons/status/{$token}");
         redirect($frontendUrl);
     }
 
-    /**
-     * Server-to-server notify endpoint for MyT Money
-     * MyT should call this in your merchant settings
-     */
     public function mytNotify()
     {
         log_message('info', '=== MyT Addon Notify Called ===');
 
-        // GET data from My.T Money notify callback
         $data = $this->input->get();
         log_message('info', 'MyT Addon Notify Data: ' . print_r($data, true));
 
         $this->_handleMytAddonResponse(true, $data);
     }
 
-    /**
-     * Shared handler to process responses from MyT (notify & callback can reuse)
-     *
-     * @param bool $isServerCall
-     * @param array|null $overrideData
-     * @return void|string JSON if server call
-     */
     private function _handleMytAddonResponse($isServerCall = true, $overrideData = null)
     {
         $data = $overrideData ?? array_merge($this->input->get(), $this->input->post());
@@ -422,7 +390,6 @@ $transaction = [
             return;
         }
 
-        // Fetch related transaction
         $transaction = $this->db->get_where('merchant_addon_transactions', ['mer_trade_no' => $merTradeNo])->row_array();
         if (!$transaction) {
             log_message('error', "Addon Transaction not found for merTradeNo: $merTradeNo");
@@ -431,17 +398,13 @@ $transaction = [
         }
 
         $tradeStatus = strtoupper($data['tradeStatus'] ?? '');
-        $errorCode   = $data['errorCode'] ?? '';
-        $timestamp   = $data['timestamp'] ?? '';
 
-        // Determine final payment status
         if ($tradeStatus === 'TRADE_FINISHED' || ($data['resultCode'] ?? '') === '0') {
             $status = 'success';
         } else {
             $status = 'failed';
         }
 
-        // Update transaction table
         $updateData = [
             'status'            => $status,
             'transaction_ref'   => $data['tradeNo'] ?? null,
@@ -450,265 +413,240 @@ $transaction = [
         ];
         $this->db->where('id', $transaction['id'])->update('merchant_addon_transactions', $updateData);
 
-        // Update related purchase record
         $purchaseStatus = ($status === 'success') ? 'paid' : 'cancelled';
         $this->db->where('id', $transaction['purchase_id'])->update('merchant_addon_purchases', ['status' => $purchaseStatus]);
 
         if ($status === 'success') {
             log_message('info', "✅ MyT Addon Payment SUCCESS → Txn ID: {$transaction['id']} | merTradeNo: {$merTradeNo}");
 
-            // Link & confirm Order Resolution if applicable
             $res = $this->db->get_where('order_resolutions', ['addon_purchase_id' => $transaction['purchase_id']])->row();
             if ($res) {
                 $this->load->model('OrderResolutionModel');
                 $this->OrderResolutionModel->confirm_addon_payment($res->ticket_number, $transaction['purchase_id']);
             }
+
+            // ==========================================
+            // INLINE ADMIN NOTIFICATION CODE (NOTIFY)
+            // ==========================================
+            $purchase = $this->db->get_where('merchant_addon_purchases', ['id' => $transaction['purchase_id']])->row_array();
+            if ($purchase) {
+                $service = $this->db->get_where('addon_services', ['id' => $purchase['service_id']])->row_array();
+                $merchant = $this->db->get_where('publisher', ['id' => $purchase['merchant_id']])->row_array();
+
+                $service_title = $service['title'] ?? 'Add-On Service';
+                $merchant_name = $merchant['name'] ?? $merchant['email'] ?? ('Merchant #' . $purchase['merchant_id']);
+                $amount = $transaction['amount'];
+
+                if ($this->db->table_exists('admin_notifications')) {
+                    $exists = $this->db->get_where('admin_notifications', ['type' => 'addon_purchase', 'reference_id' => $purchase['id']])->row();
+                    if (!$exists) {
+                        $this->db->insert('admin_notifications', [
+                            'title'        => 'New Add-On Purchase',
+                            'message'      => "Merchant {$merchant_name} successfully purchased '{$service_title}' for MUR {$amount}.",
+                            'type'         => 'addon_purchase',
+                            'reference_id' => $purchase['id'],
+                            'is_read'      => 0,
+                            'created_at'   => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                }
+
+                $this->load->library('email');
+                $admin_email = $this->config->item('admin_email') ?: 'admin@yellowmarkets.com';
+
+                $this->email->from('no-reply@yellowmarkets.com', 'Yellow Markets System');
+                $this->email->to($admin_email);
+                $this->email->subject("New Add-On Purchased: {$service_title} by {$merchant_name}");
+                
+                $email_message  = "<p>Hello Admin,</p>";
+                $email_message .= "<p>A merchant has successfully purchased and paid for an add-on service:</p>";
+                $email_message .= "<ul>";
+                $email_message .= "<li><strong>Merchant:</strong> {$merchant_name} (ID: {$purchase['merchant_id']})</li>";
+                $email_message .= "<li><strong>Service:</strong> {$service_title}</li>";
+                $email_message .= "<li><strong>Quantity:</strong> {$purchase['qty']}</li>";
+                $email_message .= "<li><strong>Amount Paid:</strong> MUR {$amount}</li>";
+                $email_message .= "<li><strong>Transaction Ref:</strong> " . (!empty($transaction['transaction_ref']) ? $transaction['transaction_ref'] : $transaction['mer_trade_no']) . "</li>";
+                $email_message .= "<li><strong>Date:</strong> " . date('Y-m-d H:i:s') . "</li>";
+                $email_message .= "</ul>";
+
+                $this->email->message($email_message);
+                $this->email->set_mailtype('html');
+                @$this->email->send();
+            }
+
         } else {
             log_message('error', "❌ MyT Addon Payment FAILED → Txn ID: {$transaction['id']} | tradeStatus: {$tradeStatus}");
-        }   
+        }  
 
         if ($isServerCall) return $this->_sendJson(['status' => $status, 'message' => 'Addon payment processed']);
     }
 
-    /**
-     * User-facing status page for addon payment
-     * URL: /addons/status/{token}
-     * token is base64url( encrypted(transaction_id) )
-     */
-    /*public function status($token = null)
+    public function status($token = null)
     {
-        if (!$token) show_error('Invalid request.', 400);
+        if (!$token) {
+            show_error('Invalid request.', 400);
+        }
 
         $this->load->library('encryption');
 
-        // decode token
-        $decoded = base64_decode(strtr($token, '-_', '+/'));
+        $decoded = base64_decode(
+            strtr($token, '-_', '+/')
+        );
+
         if ($decoded === false) {
             show_error('Invalid token.', 400);
             return;
         }
 
         $transaction_id = $this->encryption->decrypt($decoded);
+
         if (!$transaction_id) {
             show_error('Invalid token or expired.', 400);
             return;
         }
 
-        $txn = $this->db->get_where('merchant_addon_transactions', ['id' => $transaction_id])->row_array();
-        if (!$txn) show_error('Transaction not found.');
+        $txn = $this->db
+            ->get_where(
+                'merchant_addon_transactions',
+                ['id' => $transaction_id]
+            )
+            ->row_array();
 
-        $data['transaction'] = $txn;
-        $data['purchase'] = $this->db->get_where('merchant_addon_purchases', ['id' => $txn['purchase_id']])->row_array();
+        if (!$txn) {
+            show_error('Transaction not found.');
+            return;
+        }
 
-        // Load a simple view — create application/views/addons/payment_status.php
-        $this->load->view('addons/payment_status', $data);
-    }*/
+        $purchase = $this->db
+            ->get_where(
+                'merchant_addon_purchases',
+                ['id' => $txn['purchase_id']]
+            )
+            ->row_array();
 
+        $payment_lang = !empty($txn['lang'])
+            ? strtolower(trim($txn['lang']))
+            : 'english';
 
-public function status($token = null)
-{
-    if (!$token) {
-        show_error('Invalid request.', 400);
-    }
-
-    $this->load->library('encryption');
-
-    // ============================================
-    // DECODE TOKEN
-    // ============================================
-
-    $decoded = base64_decode(
-        strtr($token, '-_', '+/')
-    );
-
-    if ($decoded === false) {
-        show_error('Invalid token.', 400);
-        return;
-    }
-
-    $transaction_id = $this->encryption->decrypt($decoded);
-
-    if (!$transaction_id) {
-        show_error('Invalid token or expired.', 400);
-        return;
-    }
-
-
-    // ============================================
-    // GET TRANSACTION
-    // ============================================
-
-    $txn = $this->db
-        ->get_where(
-            'merchant_addon_transactions',
-            ['id' => $transaction_id]
-        )
-        ->row_array();
-
-    if (!$txn) {
-        show_error('Transaction not found.');
-        return;
-    }
-
-
-    // ============================================
-    // GET PURCHASE
-    // ============================================
-
-    $purchase = $this->db
-        ->get_where(
-            'merchant_addon_purchases',
-            ['id' => $txn['purchase_id']]
-        )
-        ->row_array();
-
-
-    // ============================================
-    // RESTORE PAYMENT LANGUAGE
-    // ============================================
-
-    $payment_lang = !empty($txn['lang'])
-        ? strtolower(trim($txn['lang']))
-        : 'english';
-
-    if ($payment_lang === 'french' || $payment_lang === 'fr') {
-
-        $payment_lang = 'french';
-
-        $this->session->set_userdata([
-            'site_lang'            => 'french',
-            'lcode'                => 'fr',
-            'ldisplay_name'        => 'French',
-            'lis_default_language' => 0
-        ]);
-
-    } else {
-
-        $payment_lang = 'english';
-
-        $this->session->set_userdata([
-            'site_lang'            => 'english',
-            'lcode'                => 'en',
-            'ldisplay_name'        => 'English',
-            'lis_default_language' => 0
-        ]);
-    }
-
-    // Load correct language file
-    $this->lang->load('content', $payment_lang);
-
-    log_message(
-        'info',
-        "Addon payment language restored: {$payment_lang} | Transaction ID: {$transaction_id}"
-    );
-
-
-    // ============================================
-    // AUTO LOGIN
-    // ============================================
-
-    $merchant_id = $txn['merchant_id'] ?? null;
-
-    if ($merchant_id && !$this->session->userdata('LoginID')) {
-
-        $publisher = $this->db->get_where(
-            'publisher',
-            [
-                'id' => $merchant_id,
-                'status' => 1
-            ]
-        )->row();
-
-        if ($publisher) {
-
-            $LoginToken = bin2hex(random_bytes(16));
-
+        if ($payment_lang === 'french' || $payment_lang === 'fr') {
+            $payment_lang = 'french';
             $this->session->set_userdata([
-                'LoginID'    => $publisher->id,
-                'LoginToken' => $LoginToken
+                'site_lang'            => 'french',
+                'lcode'                => 'fr',
+                'ldisplay_name'        => 'French',
+                'lis_default_language' => 0
             ]);
+        } else {
+            $payment_lang = 'english';
+            $this->session->set_userdata([
+                'site_lang'            => 'english',
+                'lcode'                => 'en',
+                'ldisplay_name'        => 'English',
+                'lis_default_language' => 0
+            ]);
+        }
 
-            if (method_exists(
-                $this->UserModel,
-                'insertIntoLoginSession'
-            )) {
+        $this->lang->load('content', $payment_lang);
 
-                $this->UserModel->insertIntoLoginSession(
-                    $LoginToken,
-                    $publisher->id
-                );
+        log_message(
+            'info',
+            "Addon payment language restored: {$payment_lang} | Transaction ID: {$transaction_id}"
+        );
+
+        $merchant_id = $txn['merchant_id'] ?? null;
+
+        if ($merchant_id && !$this->session->userdata('LoginID')) {
+            $publisher = $this->db->get_where(
+                'publisher',
+                [
+                    'id' => $merchant_id,
+                    'status' => 1
+                ]
+            )->row();
+
+            if ($publisher) {
+                $LoginToken = bin2hex(random_bytes(16));
+
+                $this->session->set_userdata([
+                    'LoginID'    => $publisher->id,
+                    'LoginToken' => $LoginToken
+                ]);
+
+                if (method_exists($this->UserModel, 'insertIntoLoginSession')) {
+                    $this->UserModel->insertIntoLoginSession(
+                        $LoginToken,
+                        $publisher->id
+                    );
+                }
+
+                $this->db
+                    ->where('id', $publisher->id)
+                    ->update(
+                        'publisher',
+                        [
+                            'last_login_at' => time()
+                        ]
+                    );
             }
-
-            $this->db
-                ->where('id', $publisher->id)
-                ->update(
-                    'publisher',
-                    [
-                        'last_login_at' => time()
-                    ]
-                );
-
-            log_message(
-                'info',
-                "✅ Auto login for publisher ID {$publisher->id} ({$publisher->email}) during Addon status."
-            );
-
-        } else {
-
-            log_message(
-                'error',
-                "❌ Auto login failed for merchant ID {$merchant_id}"
-            );
         }
+
+        $res_ticket = $this->db->get_where('order_resolutions', ['addon_purchase_id' => $txn['purchase_id']])->row();
+        if ($res_ticket) {
+            if ($txn['status'] === 'success') {
+                $service = $this->db->where('id', $purchase['service_id'])->get('addon_services')->row();
+                $service_title = $service ? $service->title : 'YM Delivery';
+                $txn_ref = !empty($txn['transaction_ref']) ? $txn['transaction_ref'] : (!empty($txn['mer_trade_no']) ? $txn['mer_trade_no'] : ('Purchase #' . $purchase['id']));
+
+                // ==========================================
+                // INLINE ADMIN NOTIFICATION CODE (STATUS FALLBACK)
+                // ==========================================
+                $merchant = $this->db->get_where('publisher', ['id' => $purchase['merchant_id']])->row_array();
+                $merchant_name = $merchant['name'] ?? $merchant['email'] ?? ('Merchant #' . $purchase['merchant_id']);
+
+                if ($this->db->table_exists('admin_notifications')) {
+                    $exists = $this->db->get_where('admin_notifications', ['type' => 'addon_purchase', 'reference_id' => $purchase['id']])->row();
+                    if (!$exists) {
+                        $this->db->insert('admin_notifications', [
+                            'title'        => 'New Add-On Purchase',
+                            'message'      => "Merchant {$merchant_name} successfully purchased '{$service_title}' for MUR {$txn['amount']}.",
+                            'type'         => 'addon_purchase',
+                            'reference_id' => $purchase['id'],
+                            'is_read'      => 0,
+                            'created_at'   => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                }
+
+                $this->session->set_flashdata('addon_payment_success', [
+                    'order_number'    => $res_ticket->order_number,
+                    'ticket_number'   => $res_ticket->ticket_number,
+                    'service_name'    => $service_title,
+                    'amount'          => $txn['amount'],
+                    'transaction_ref' => $txn_ref
+                ]);
+                $this->session->set_flashdata('success', 'Your YM Delivery AddOn Service payment has been confirmed. You can now proceed with completing the replacement.');
+                redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=success');
+                return;
+            } else {
+                $this->db->where('id', $txn['id'])->update('merchant_addon_transactions', ['status' => 'failed', 'updated_at' => date('Y-m-d H:i:s')]);
+                $this->db->where('id', $txn['purchase_id'])->update('merchant_addon_purchases', ['status' => 'cancelled']);
+
+                $this->session->set_flashdata('error', 'AddOn Service payment was not completed or failed. Please click "Purchase AddOn Service" to try again.');
+                redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=failed');
+                return;
+            }
+        }
+
+        $data['transaction']  = $txn;
+        $data['purchase']     = $purchase;
+        $data['payment_lang'] = $payment_lang;
+
+        $this->load->view(
+            'addons/payment_status',
+            $data
+        );
     }
 
-
-    // ============================================
-    // LOAD STATUS VIEW OR REDIRECT TO RESOLUTION
-    // ============================================
-
-    $res_ticket = $this->db->get_where('order_resolutions', ['addon_purchase_id' => $txn['purchase_id']])->row();
-    if ($res_ticket) {
-        if ($txn['status'] === 'success') {
-            $service = $this->db->where('id', $purchase['service_id'])->get('addon_services')->row();
-            $service_title = $service ? $service->title : 'YM Delivery';
-            $txn_ref = !empty($txn['transaction_ref']) ? $txn['transaction_ref'] : (!empty($txn['mer_trade_no']) ? $txn['mer_trade_no'] : ('Purchase #' . $purchase['id']));
-
-            $this->session->set_flashdata('addon_payment_success', [
-                'order_number'    => $res_ticket->order_number,
-                'ticket_number'   => $res_ticket->ticket_number,
-                'service_name'    => $service_title,
-                'amount'          => $txn['amount'],
-                'transaction_ref' => $txn_ref
-            ]);
-            $this->session->set_flashdata('success', 'Your YM Delivery AddOn Service payment has been confirmed. You can now proceed with completing the replacement.');
-            redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=success');
-            return;
-        } else {
-            // Ensure transaction and purchase are explicitly marked as failed/cancelled so they do not linger as initiated
-            $this->db->where('id', $txn['id'])->update('merchant_addon_transactions', ['status' => 'failed', 'updated_at' => date('Y-m-d H:i:s')]);
-            $this->db->where('id', $txn['purchase_id'])->update('merchant_addon_purchases', ['status' => 'cancelled']);
-
-            $this->session->set_flashdata('error', 'AddOn Service payment was not completed or failed. Please click "Purchase AddOn Service" to try again.');
-            redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=failed');
-            return;
-        }
-    }
-
-    $data['transaction']  = $txn;
-    $data['purchase']     = $purchase;
-    $data['payment_lang'] = $payment_lang;
-
-    $this->load->view(
-        'addons/payment_status',
-        $data
-    );
-}
-
-
-    /**
-     * Helper for consistent JSON response
-     */
     private function _sendJson($response)
     {
         $this->output
@@ -723,31 +661,30 @@ public function status($token = null)
         $data['service'] = $service;
         $this->load->view('addons/service_details', $data);
     }
-public function manage() {
-    $data['side_menu'] = 'manage_addons';
-    
-    $this->load->model('Addon_model');
-    
-    // Call the correct method
-    $data['manage_addons'] = $this->Addon_model->get_merchant_addons(); 
 
-    $this->load->view('common/fbc-user/header', $data); 
-    $this->load->view('addons/manage_addons_view', $data); 
-    $this->load->view('common/fbc-user/footer');
-}
-public function download_invoice($purchase_id = NULL) 
-{
-    if (empty($purchase_id)) {
-        show_404();
+    public function manage() {
+        $data['side_menu'] = 'manage_addons';
+        $this->load->model('Addon_model');
+        $data['manage_addons'] = $this->Addon_model->get_merchant_addons(); 
+
+        $this->load->view('common/fbc-user/header', $data); 
+        $this->load->view('addons/manage_addons_view', $data); 
+        $this->load->view('common/fbc-user/footer');
     }
 
-    $this->load->model('Addon_model');
-    $data['addon_purchase'] = $this->Addon_model->get_purchase_by_id($purchase_id);
+    public function download_invoice($purchase_id = NULL) 
+    {
+        if (empty($purchase_id)) {
+            show_404();
+        }
 
-    if (empty($data['addon_purchase'])) {
-        show_404();
+        $this->load->model('Addon_model');
+        $data['addon_purchase'] = $this->Addon_model->get_purchase_by_id($purchase_id);
+
+        if (empty($data['addon_purchase'])) {
+            show_404();
+        }
+
+        $this->load->view('addons/invoice_print_view', $data);
     }
-
-    $this->load->view('addons/invoice_print_view', $data);
-}
 }

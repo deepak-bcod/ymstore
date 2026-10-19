@@ -64,13 +64,14 @@
                         <tr>
                             <td><?php echo $sr++; ?></td>
                             <td><?php echo html_escape($row->merchant_name ?? ''); ?></td>
-                            <td><?php echo html_escape($row->service_title ?? ''); ?></td>
+                            <td><?php echo html_escape($row->addon_service_name ?? ''); ?></td>
                             <td><?php echo html_escape($row->addon_name ?? ''); ?></td>
                             <td><?php echo html_escape($row->date ?? ''); ?></td>
                             <td><?php echo number_format($row->amount ?? 0, 2); ?></td>
                             <td>
-                                <a href="<?php echo base_url('addons/manage/edit/' . $row->id); ?>" class="text-primary font-weight-bold mr-2">Edit</a>
-                                <a href="<?php echo base_url('addons/manage/delete/' . $row->id); ?>" class="text-danger font-weight-bold" onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
+                                <a href="<?php echo base_url('merchant/addons/download_invoice/' . $row->purchase_id); ?>" class="text-primary font-weight-bold" target="_blank">
+                                    <i class="fa fa-download"></i> Invoice
+                                </a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
