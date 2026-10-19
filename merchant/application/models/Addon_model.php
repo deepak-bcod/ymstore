@@ -71,7 +71,7 @@ class Addon_model extends CI_Model {
             s.price,
             s.vat_percent,
             s.final_price as amount,
-            pub.company_name as merchant_name,
+            pub.company_name as merchantname,
             pub.email as merchant_email
         ');
         $this->db->from('merchant_addon_purchases p');

@@ -463,13 +463,41 @@ $transaction = [
                 $this->load->model('OrderResolutionModel');
                 $this->OrderResolutionModel->confirm_addon_payment($res->ticket_number, $transaction['purchase_id']);
             }
+
+            // ==========================================
+            // SEND NOTIFICATION TO ADMIN
+            // ==========================================
+            $purchase = $this->db->get_where('merchant_addon_purchases', ['id' => $transaction['purchase_id']])->row_array();
+            $service  = $this->db->get_where('addon_services', ['id' => $purchase['service_id']])->row_array();
+            $merchant = $this->db->get_where('publisher', ['id' => $transaction['merchant_id']])->row_array();
+
+            $service_title = $service['title'] ?? 'Add-on Service';
+            $merchant_name = $merchant['business_name'] ?? $merchant['email'] ?? 'A merchant';
+
+            $admin_notification = [
+                'type'           => 'addon',
+                'subtype'        => 'purchase_success',
+                'recipient_type' => 'admin',
+                'recipient_id'   => null, // or specific admin ID if required
+                'title'          => 'New Add-on Service Purchased',
+                'message'        => "Merchant {$merchant_name} has successfully purchased the add-on service: {$service_title} for MUR {$transaction['amount']}.",
+                'data'           => json_encode([
+                    'purchase_id'    => $transaction['purchase_id'],
+                    'transaction_id' => $transaction['id'],
+                    'merchant_id'    => $transaction['merchant_id'],
+                    'service_id'     => $purchase['service_id']
+                ]),
+                'is_read'        => 0,
+                'created_at'     => date('Y-m-d H:i:s')
+            ];
+
+            $this->db->insert('notifications', $admin_notification);
         } else {
             log_message('error', "❌ MyT Addon Payment FAILED → Txn ID: {$transaction['id']} | tradeStatus: {$tradeStatus}");
         }   
 
         if ($isServerCall) return $this->_sendJson(['status' => $status, 'message' => 'Addon payment processed']);
     }
-
     /**
      * User-facing status page for addon payment
      * URL: /addons/status/{token}
@@ -749,6 +777,6 @@ public function download_invoice($purchase_id = NULL)
     }
 
     // Load the newly created invoice print layout view
-    $this->load->view('addons/invoice_print_view', $data);
+    $this->load->view('addns/invoice_print_view', $data);
 }
 }
