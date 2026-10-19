@@ -3,6 +3,17 @@
         margin-left: 260px; 
         padding: 20px 30px;
         box-sizing: border-box;
+        width: calc(100% - 260px); /* Forces it to fill exact remaining width */
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+    }
+    .table {
+        width: 100% !important;
     }
     .table thead th {
         background-color: #ffc107; 
@@ -18,11 +29,11 @@
         .manage-addons-wrapper {
             margin-left: 0;
             width: 100%;
+            position: relative;
             padding: 10px;
         }
     }
 </style>
-
 <div class="manage-addons-wrapper">
     <div class="main-content w-100">
         
