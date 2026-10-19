@@ -12,38 +12,80 @@
 
 <main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
 
-    <!-- Flash messages -->
+<!-- Flash messages (auto-dismissed) -->
   <?php if($this->input->get('payment') === 'success' || $this->session->flashdata('payment') === 'success' || $this->session->flashdata('payment_status') === 'success'): ?>
-    <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+    <div class="alert alert-success alert-dismissible fade show mt-3 alert-auto-dismiss" role="alert">
         <?php echo lang('payment_success'); ?>
         <button type="button" class="close" data-dismiss="alert">&times;</button>
     </div>
 <?php endif; ?>
 
-<!-- Error Message -->
+<!-- Error Message (auto-dismissed) -->
 <?php if($this->input->get('payment') === 'error' || $this->session->flashdata('payment') === 'error' || $this->session->flashdata('payment_status') === 'error'): ?>
-    <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show mt-3 alert-auto-dismiss" role="alert">
         <?php echo lang('payment_failed'); ?>
         <button type="button" class="close" data-dismiss="alert">&times;</button>
     </div>
 <?php endif; ?>
 
+<?php 
+$days_remaining = null;
+if (!empty($active_plan['end_date'])) {
+    $today_ts = strtotime(date('Y-m-d'));
+    $end_ts   = strtotime(date('Y-m-d', strtotime($active_plan['end_date'])));
+    $days_remaining = (int)round(($end_ts - $today_ts) / 86400);
+}
+$is_fr = ($this->session->userdata('site_lang') == 'french');
+?>
+
+<!-- Static Alerts: Expired or Remaining Expiry Warnings -->
 <?php if(!empty($is_expired)): ?>
-    <div class="alert alert-danger fade show mt-3" role="alert">
+    <div class="alert alert-danger fade show mt-3 alert-static" role="alert">
         <i class="fa fa-exclamation-triangle mr-2"></i>
-        <?= ($this->session->userdata('site_lang') == 'french') 
-            ? "Votre abonnement a expiré et votre boutique a été temporairement désactivée sur la place de marché. Veuillez renouveler votre abonnement ci-dessous pour réactiver votre boutique et restaurer l'accès complet." 
-            : "Your subscription has expired and your shop is currently disabled on the storefront. Please renew your subscription below to reactivate your shop and restore full access."; ?>
+        <?= $is_fr 
+            ? "Votre abonnement a expiré et votre boutique est actuellement désactivée sur le site. Veuillez renouveler votre abonnement ci-dessous afin de réactiver votre boutique et de rétablir un accès complet." 
+            : "Your subscription has expired and your shop is currently disabled on the website. Please renew your subscription below to reactivate your shop and restore full access."; ?>
+    </div>
+<?php elseif($days_remaining !== null && $days_remaining <= 7 && $days_remaining >= 0): ?>
+    <div class="alert alert-danger fade show mt-3 alert-static" role="alert">
+        <i class="fa fa-exclamation-triangle mr-2"></i>
+        <?= $is_fr 
+            ? "Urgent : Votre abonnement Yellow Markets expire dans 1 semaine (" . ($days_remaining == 1 ? "1 jour" : $days_remaining . " jours") . ") le " . date('d M Y', strtotime($active_plan['end_date'])) . ". Veuillez renouveler votre abonnement ci-dessous afin d'assurer la continuité de vos services."
+            : "Urgent: Your Yellow Markets Subscription expires in 1 week (" . ($days_remaining == 1 ? "1 day" : $days_remaining . " days") . ") on " . date('d M Y', strtotime($active_plan['end_date'])) . ". Please renew your subscription below to ensure uninterrupted service."; ?>
+    </div>
+<?php elseif($days_remaining !== null && $days_remaining <= 30 && $days_remaining > 7): ?>
+    <div class="alert alert-warning fade show mt-3 alert-static" role="alert">
+        <i class="fa fa-info-circle mr-2"></i>
+        <?= $is_fr 
+            ? "Action requise : Votre abonnement Yellow Markets expire dans " . $days_remaining . " jours le " . date('d M Y', strtotime($active_plan['end_date'])) . ". Veuillez renouveler votre abonnement ci-dessous afin d'assurer la continuité de vos services."
+            : "Action Required: Your Yellow Markets Subscription expires in " . $days_remaining . " days on " . date('d M Y', strtotime($active_plan['end_date'])) . ". Please renew your subscription below to ensure uninterrupted service."; ?>
     </div>
 <?php endif; ?>
+
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center mt-4 mb-3">
-        <h4 class="mb-0"><?php echo lang('choose_subscription_plan'); ?></h4>
+        <h4 class="mb-0"><?php echo lang('choose_subscription_plan'); ?></h4> 
         <?php if(!empty($is_expired)): ?>
             <div class="text-center flex-grow-1">
                 <span class="font-weight-bold" style="color: red !important; font-size: 16px; text-decoration: underline;">
-                    <?= ($this->session->userdata('site_lang') == 'french') 
+                    <?= $is_fr 
                         ? 'Veuillez renouveler votre compte pour accéder au portail.' 
                         : 'Please Renew your account to access the Portal.'; ?>
+                </span>
+            </div>
+        <?php elseif($days_remaining !== null && $days_remaining <= 7 && $days_remaining >= 0): ?>
+            <div class="text-center flex-grow-1">
+                <span class="font-weight-bold" style="color: #dc3545 !important; font-size: 16px; text-decoration: underline;">
+                    <?= $is_fr 
+                        ? "Urgent : Votre abonnement Yellow Markets expire dans 1 semaine le " . date('d M Y', strtotime($active_plan['end_date'])) . ". Veuillez renouveler votre compte."
+                        : "Urgent: Your Yellow Markets Subscription expires in 1 week on " . date('d M Y', strtotime($active_plan['end_date'])) . ". Please renew your account."; ?>
+                </span>
+            </div>
+        <?php elseif($days_remaining !== null && $days_remaining <= 30 && $days_remaining > 7): ?>
+            <div class="text-center flex-grow-1">
+                <span class="font-weight-bold" style="color: #e67e22 !important; font-size: 16px; text-decoration: underline;">
+                    <?= $is_fr 
+                        ? "Action requise : Votre abonnement Yellow Markets expire le " . date('d M Y', strtotime($active_plan['end_date'])) . ". Veuillez renouveler votre compte."
+                        : "Action Required: Your Yellow Markets Subscription expires on " . date('d M Y', strtotime($active_plan['end_date'])) . ". Please renew your account."; ?>
                 </span>
             </div>
         <?php endif; ?>
@@ -127,9 +169,8 @@
                                 <?php endif; ?>
                                 <?php if($show_renew): ?>
                                     <div class="mt-2">
-                                        <button type="button" class="btn btn-warning btn-sm font-weight-bold px-3 text-dark btn-renew" onclick="renewSubscription(<?= $plan['id']; ?>)">
-                                            <i class="fa fa-refresh"></i> <?php echo lang('renew') ?: 'Renew'; ?>
-                                        </button>
+                                        <input type="radio" name="plan_id" value="<?= $plan['id']; ?>" required>
+                                        <label><?php echo lang('select'); ?></label>
                                     </div>
                                 <?php endif; ?>
                             <?php elseif($has_active_plan && $is_starter): ?>
@@ -178,7 +219,7 @@ if (window.location.search.includes('payment=')) {
 }
 
 setTimeout(() => {
-  document.querySelectorAll('.alert').forEach(a => {
+  document.querySelectorAll('.alert-auto-dismiss').forEach(a => {
     a.classList.remove('show');
   });
 }, 4000);

@@ -226,7 +226,20 @@ class Subscription_model extends CI_Model
                 $data['reminder_week_sent']     = 0;
                 $data['reminder_week_sent_at']  = NULL;
             }
-            $this->db->insert('publisher_subscriptions', $data);
+        }
+
+        // Synchronize end_date to latest subscription_orders record for easy display in subscription list
+        $this->ensure_subscription_invoice_schema();
+        if ($this->db->table_exists('subscription_orders') && $this->db->field_exists('end_date', 'subscription_orders')) {
+            $latest_order = $this->db
+                ->where('publisher_id', $publisher_id)
+                ->order_by('id', 'DESC')
+                ->limit(1)
+                ->get('subscription_orders')
+                ->row_array();
+            if ($latest_order) {
+                $this->db->where('id', $latest_order['id'])->update('subscription_orders', ['end_date' => $end_date]);
+            }
         }
 
         return true;
@@ -251,6 +264,7 @@ class Subscription_model extends CI_Model
 
     public function get_subscription_orders($seller_id)
     {
+        $this->ensure_subscription_invoice_schema();
         return $this->db
             ->select('subscription_orders.*, publisher.publication_name, subscription_plans.name as plan_name')
             ->from('subscription_orders')
@@ -322,129 +336,175 @@ class Subscription_model extends CI_Model
         $has_fr = $this->db->field_exists('subject_fr', 'email_template');
 
         // 1. Template: 1 Month Before Expiry
+        $data_1m = [
+            'email_code' => 'merchant-subscription-renewal-1month',
+            'title'      => 'Merchant Subscription Expiry Reminder (1 Month Before)',
+            'subject'    => 'Action Required: Your Yellow Markets Subscription expires on ##EXPIRY_DATE##',
+            'content'    => '<div style="text-align: left; font-family: Arial, sans-serif; color: #333333; line-height: 1.6;">' .
+                '<p>Dear <strong>##MERCHANT_NAME##</strong>,</p>' .
+                '<p>This is a friendly reminder that your merchant subscription for plan <strong>##PLAN_NAME##</strong> on Yellow Markets will expire in <strong>1 month</strong>, on <strong>##EXPIRY_DATE##</strong>.</p>' .
+                '<p>To ensure uninterrupted access to your shop features, product listings, daily deals, flash sales, and seller tools, please renew your subscription in advance.</p>' .
+                '<div style="text-align: left; margin: 25px 0;">' .
+                '<a href="##RENEWAL_URL##" style="background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Renew Subscription Now</a>' .
+                '</div>' .
+                '<p>If you have already renewed your subscription, please disregard this email.</p>' .
+                '<p>Thank you for partnering with <strong>Yellow Markets</strong>.</p>' .
+                '<p>Best regards,<br>Yellow Markets Support Team</p>' .
+                '</div>',
+            'status'     => 1,
+            'created_by' => 1,
+            'created_at' => time()
+        ];
+        if ($has_fr) {
+            $data_1m['title_fr']   = "Rappel d'expiration de l'abonnement marchand (1 mois avant)";
+            $data_1m['subject_fr'] = "Action requise : Votre abonnement Yellow Markets expire le ##EXPIRY_DATE##";
+            $data_1m['content_fr'] = '<div style="text-align: left; font-family: Arial, sans-serif; color: #333333; line-height: 1.6;">' .
+                "<p>Bonjour <strong>##MERCHANT_NAME##</strong>,</p>" .
+                "<p>Nous vous rappelons que votre abonnement marchand pour le forfait <strong>##PLAN_NAME##</strong> sur Yellow Markets expirera dans <strong>1 mois</strong>, le <strong>##EXPIRY_DATE##</strong>.</p>" .
+                "<p>Afin d'assurer la continuité de vos annonces de boutique, promotions et outils vendeurs, nous vous invitons à renouveler votre forfait à l'avance.</p>" .
+                "<div style=\"text-align: left; margin: 25px 0;\">" .
+                "<a href=\"##RENEWAL_URL##\" style=\"background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;\">Renouveler mon abonnement</a>" .
+                "</div>" .
+                "<p>Si vous avez déjà procédé au renouvellement, veuillez ignorer ce message.</p>" .
+                "<p>Merci pour votre confiance sur <strong>Yellow Markets</strong>.</p>" .
+                "<p>Cordialement,<br>L'équipe support de Yellow Markets</p>" .
+                '</div>';
+        }
+
         $tpl_1m = $this->db->get_where('email_template', ['email_code' => 'merchant-subscription-renewal-1month'])->row_array();
         if (!$tpl_1m) {
-            $data_1m = [
-                'email_code' => 'merchant-subscription-renewal-1month',
-                'title'      => 'Merchant Subscription Expiry Reminder (1 Month Before)',
-                'subject'    => 'Action Required: Your Yellow Markets Subscription expires on ##EXPIRY_DATE##',
-                'content'    => '<p>Dear <strong>##MERCHANT_NAME##</strong>,</p>' .
-                    '<p>This is a friendly reminder that your merchant subscription for plan <strong>##PLAN_NAME##</strong> on Yellow Markets will expire in <strong>1 month</strong>, on <strong>##EXPIRY_DATE##</strong>.</p>' .
-                    '<p>To ensure uninterrupted access to your shop features, product listings, daily deals, flash sales, and seller tools, please renew your subscription in advance.</p>' .
-                    '<div style="text-align: center; margin: 30px 0;">' .
-                    '<a href="##RENEWAL_URL##" style="background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Renew Subscription Now</a>' .
-                    '</div>' .
-                    '<p>If you have already renewed your subscription, please disregard this email.</p>' .
-                    '<p>Thank you for partnering with <strong>Yellow Markets</strong>.</p>' .
-                    '<p>Best regards,<br>Yellow Markets Support Team</p>',
-                'status'     => 1,
-                'created_by' => 1,
-                'created_at' => time()
-            ];
-            if ($has_fr) {
-                $data_1m['title_fr']   = "Rappel d'expiration de l'abonnement marchand (1 mois avant)";
-                $data_1m['subject_fr'] = "Action requise : Votre abonnement Yellow Markets expire le ##EXPIRY_DATE##";
-                $data_1m['content_fr'] = "<p>Bonjour <strong>##MERCHANT_NAME##</strong>,</p>" .
-                    "<p>Nous vous rappelons que votre abonnement marchand pour le forfait <strong>##PLAN_NAME##</strong> sur Yellow Markets expirera dans <strong>1 mois</strong>, le <strong>##EXPIRY_DATE##</strong>.</p>" .
-                    "<p>Afin d'assurer la continuité de vos annonces de boutique, promotions et outils vendeurs, nous vous invitons à renouveler votre forfait à l'avance.</p>" .
-                    "<div style=\"text-align: center; margin: 30px 0;\">" .
-                    "<a href=\"##RENEWAL_URL##\" style=\"background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;\">Renouveler mon abonnement</a>" .
-                    "</div>" .
-                    "<p>Si vous avez déjà procédé au renouvellement, veuillez ignorer ce message.</p>" .
-                    "<p>Merci pour votre confiance sur <strong>Yellow Markets</strong>.</p>" .
-                    "<p>Cordialement,<br>L'équipe support de Yellow Markets</p>";
-            }
             $this->db->insert('email_template', $data_1m);
+        } else {
+            $up1m = [
+                'subject' => $data_1m['subject'],
+                'content' => $data_1m['content']
+            ];
+            if ($has_fr && isset($data_1m['subject_fr'])) {
+                $up1m['subject_fr'] = $data_1m['subject_fr'];
+                $up1m['content_fr'] = $data_1m['content_fr'];
+            }
+            $this->db->where('email_code', 'merchant-subscription-renewal-1month')->update('email_template', $up1m);
         }
 
         // 2. Template: 1 Week Before Expiry
+        $data_1w = [
+            'email_code' => 'merchant-subscription-renewal-1week',
+            'title'      => 'Merchant Subscription Expiry Reminder (1 Week Before)',
+            'subject'    => 'Urgent: Your Yellow Markets Subscription expires in 1 week on ##EXPIRY_DATE##',
+            'content'    => '<div style="text-align: left; font-family: Arial, sans-serif; color: #333333; line-height: 1.6;">' .
+                '<p>Dear <strong>##MERCHANT_NAME##</strong>,</p>' .
+                '<p><span style="color: #d9534f; font-weight: bold;">Important Notice:</span> Your merchant subscription for plan <strong>##PLAN_NAME##</strong> will expire in <strong>1 week</strong>, on <strong>##EXPIRY_DATE##</strong>.</p>' .
+                '<p>Our records show that your subscription has not been renewed yet. Once expired, your shop listings and seller privileges may be restricted.</p>' .
+                '<p>Please renew your subscription today to avoid any disruption to your business on Yellow Markets:</p>' .
+                '<div style="text-align: left; margin: 25px 0;">' .
+                '<a href="##RENEWAL_URL##" style="background-color: #d9534f; color: #fff; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Renew Subscription Immediately</a>' .
+                '</div>' .
+                '<p>If you have already renewed, please disregard this email.</p>' .
+                '<p>Best regards,<br>Yellow Markets Support Team</p>' .
+                '</div>',
+            'status'     => 1,
+            'created_by' => 1,
+            'created_at' => time()
+        ];
+        if ($has_fr) {
+            $data_1w['title_fr']   = "Rappel d'expiration de l'abonnement marchand (1 semaine avant)";
+            $data_1w['subject_fr'] = "Urgent : Votre abonnement Yellow Markets expire dans 1 semaine le ##EXPIRY_DATE##";
+            $data_1w['content_fr'] = '<div style="text-align: left; font-family: Arial, sans-serif; color: #333333; line-height: 1.6;">' .
+                "<p>Bonjour <strong>##MERCHANT_NAME##</strong>,</p>" .
+                "<p><span style=\"color: #d9534f; font-weight: bold;\">Avis important :</span> Votre abonnement marchand pour le forfait <strong>##PLAN_NAME##</strong> expirera dans <strong>1 semaine</strong>, le <strong>##EXPIRY_DATE##</strong>.</p>" .
+                "<p>Nos dossiers indiquent que votre abonnement n'a pas encore été renouvelé. Après expiration, vos annonces et privilèges vendeurs pourraient être suspendus.</p>" .
+                "<p>Veuillez renouveler votre abonnement aujourd'hui pour assurer la continuité de votre activité sur Yellow Markets :</p>" .
+                "<div style=\"text-align: center; margin: 30px 0;\">" .
+                "<div style=\"text-align: left; margin: 25px 0;\">" .
+                "<a href=\"##RENEWAL_URL##\" style=\"background-color: #d9534f; color: #fff; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;\">Renouveler immédiatement mon abonnement</a>" .
+                "</div>" .
+                "<p>Si vous avez déjà procédé au renouvellement, veuillez ignorer ce message.</p>" .
+                "<p>Cordialement,<br>L'équipe support de Yellow Markets</p>" .
+                '</div>';
+        }
+
         $tpl_1w = $this->db->get_where('email_template', ['email_code' => 'merchant-subscription-renewal-1week'])->row_array();
         if (!$tpl_1w) {
-            $data_1w = [
-                'email_code' => 'merchant-subscription-renewal-1week',
-                'title'      => 'Merchant Subscription Expiry Reminder (1 Week Before)',
-                'subject'    => 'Urgent: Your Yellow Markets Subscription expires in 1 week on ##EXPIRY_DATE##',
-                'content'    => '<p>Dear <strong>##MERCHANT_NAME##</strong>,</p>' .
-                    '<p><span style="color: #d9534f; font-weight: bold;">Important Notice:</span> Your merchant subscription for plan <strong>##PLAN_NAME##</strong> will expire in <strong>1 week</strong>, on <strong>##EXPIRY_DATE##</strong>.</p>' .
-                    '<p>Our records show that your subscription has not been renewed yet. Once expired, your shop listings and seller privileges may be restricted.</p>' .
-                    '<p>Please renew your subscription today to avoid any disruption to your business on Yellow Markets:</p>' .
-                    '<div style="text-align: center; margin: 30px 0;">' .
-                    '<a href="##RENEWAL_URL##" style="background-color: #d9534f; color: #fff; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Renew Subscription Immediately</a>' .
-                    '</div>' .
-                    '<p>If you have already renewed, please disregard this email.</p>' .
-                    '<p>Best regards,<br>Yellow Markets Support Team</p>',
-                'status'     => 1,
-                'created_by' => 1,
-                'created_at' => time()
-            ];
-            if ($has_fr) {
-                $data_1w['title_fr']   = "Rappel d'expiration de l'abonnement marchand (1 semaine avant)";
-                $data_1w['subject_fr'] = "Urgent : Votre abonnement Yellow Markets expire dans 1 semaine le ##EXPIRY_DATE##";
-                $data_1w['content_fr'] = "<p>Bonjour <strong>##MERCHANT_NAME##</strong>,</p>" .
-                    "<p><span style=\"color: #d9534f; font-weight: bold;\">Avis important :</span> Votre abonnement marchand pour le forfait <strong>##PLAN_NAME##</strong> expirera dans <strong>1 semaine</strong>, le <strong>##EXPIRY_DATE##</strong>.</p>" .
-                    "<p>Nos dossiers indiquent que votre abonnement n'a pas encore été renouvelé. Après expiration, vos annonces et privilèges vendeurs pourraient être suspendus.</p>" .
-                    "<p>Veuillez renouveler votre abonnement aujourd'hui pour assurer la continuité de votre activité sur Yellow Markets :</p>" .
-                    "<div style=\"text-align: center; margin: 30px 0;\">" .
-                    "<a href=\"##RENEWAL_URL##\" style=\"background-color: #d9534f; color: #fff; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;\">Renouveler immédiatement mon abonnement</a>" .
-                    "</div>" .
-                    "<p>Si vous avez déjà procédé au renouvellement, veuillez ignorer ce message.</p>" .
-                    "<p>Cordialement,<br>L'équipe support de Yellow Markets</p>";
-            }
             $this->db->insert('email_template', $data_1w);
+        } else {
+            $up1w = [
+                'subject' => $data_1w['subject'],
+                'content' => $data_1w['content']
+            ];
+            if ($has_fr && isset($data_1w['subject_fr'])) {
+                $up1w['subject_fr'] = $data_1w['subject_fr'];
+                $up1w['content_fr'] = $data_1w['content_fr'];
+            }
+            $this->db->where('email_code', 'merchant-subscription-renewal-1week')->update('email_template', $up1w);
         }
 
         // 3. Template: Subscription Payment Confirmation & Invoice
+        $data_conf = [
+            'email_code' => 'merchant-subscription-payment-confirmation',
+            'title'      => 'Merchant Subscription Payment Confirmation & Invoice',
+            'subject'    => 'Subscription Renewal : Your Subscription is renewed to ##PLAN_NAME## - Invoice ###INVOICE_ID##',
+            'content'    => '<div style="text-align: left; font-family: Arial, sans-serif; color: #333333; line-height: 1.6;">' .
+                '<p>Dear <strong>##MERCHANT_NAME##</strong>,</p>' .
+                '<p>Thank you for your payment! We are pleased to confirm that your merchant subscription on <strong>Yellow Markets</strong> has been successfully renewed to <strong>##PLAN_NAME##</strong>.</p>' .
+                '<div style="background-color: #f8f9fa; border-left: 4px solid #f7a800; padding: 15px 20px; margin: 20px 0; text-align: left;">' .
+                '<p style="margin: 0 0 8px 0;"><strong>Invoice ID:</strong> ###INVOICE_ID##</p>' .
+                '<p style="margin: 0 0 8px 0;"><strong>Subscription Plan:</strong> ##PLAN_NAME##</p>' .
+                '<p style="margin: 0 0 8px 0;"><strong>Amount Paid:</strong> MUR ##AMOUNT##</p>' .
+                '<p style="margin: 0 0 8px 0;"><strong>Payment Method:</strong> ##PAYMENT_METHOD##</p>' .
+                '<p style="margin: 0 0 8px 0;"><strong>Start Date:</strong> ##START_DATE##</p>' .
+                '<p style="margin: 0;"><strong>Expiry Date:</strong> ##EXPIRY_DATE##</p>' .
+                '</div>' .
+                '<p>Your official subscription invoice has been attached to this email as a PDF document for your records.</p>' .
+                '<p>You can also view and download your invoice at any time from your merchant dashboard:</p>' .
+                '<div style="text-align: left; margin: 25px 0;">' .
+                '<a href="##SUBSCRIPTION_URL##" style="background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">View Subscription & Invoices</a>' .
+                '</div>' .
+                '<p>Thank you for partnering with <strong>Yellow Markets</strong>.</p>' .
+                '<p>Best regards,<br>Yellow Markets Support Team</p>' .
+                '</div>',
+            'status'     => 1,
+            'created_by' => 1,
+            'created_at' => time()
+        ];
+        if ($has_fr) {
+            if ($this->db->field_exists('title_fr', 'email_template')) {
+                $data_conf['title_fr'] = "Confirmation de paiement et facture de l'abonnement marchand";
+            }
+            $data_conf['subject_fr'] = "Renouvellement d'abonnement : Votre abonnement est renouvelé pour ##PLAN_NAME## - Facture ###INVOICE_ID##";
+            $data_conf['content_fr'] = '<div style="text-align: left; font-family: Arial, sans-serif; color: #333333; line-height: 1.6;">' .
+                "<p>Bonjour <strong>##MERCHANT_NAME##</strong>,</p>" .
+                "<p>Merci pour votre paiement ! Nous vous confirmons que votre abonnement marchand sur <strong>Yellow Markets</strong> a bien été renouvelé pour le forfait <strong>##PLAN_NAME##</strong>.</p>" .
+                "<div style=\"background-color: #f8f9fa; border-left: 4px solid #f7a800; padding: 15px 20px; margin: 20px 0; text-align: left;\">" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>N° de Facture :</strong> ###INVOICE_ID##</p>" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>Forfait d'abonnement :</strong> ##PLAN_NAME##</p>" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>Montant payé :</strong> MUR ##AMOUNT##</p>" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>Mode de paiement :</strong> ##PAYMENT_METHOD##</p>" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>Date de début :</strong> ##START_DATE##</p>" .
+                "<p style=\"margin: 0;\"><strong>Date d'expiration :</strong> ##EXPIRY_DATE##</p>" .
+                "</div>" .
+                "<p>Votre facture officielle d'abonnement est jointe à cet email au format PDF pour vos archives.</p>" .
+                "<p>Vous pouvez également consulter et télécharger vos factures à tout moment depuis votre espace marchand :</p>" .
+                "<div style=\"text-align: left; margin: 25px 0;\">" .
+                "<a href=\"##SUBSCRIPTION_URL##\" style=\"background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;\">Gérer mon abonnement</a>" .
+                "</div>" .
+                "<p>Merci pour votre confiance sur <strong>Yellow Markets</strong>.</p>" .
+                "<p>Cordialement,<br>L'équipe support de Yellow Markets</p>" .
+                '</div>';
+        }
+
         $tpl_conf = $this->db->get_where('email_template', ['email_code' => 'merchant-subscription-payment-confirmation'])->row_array();
         if (!$tpl_conf) {
-            $data_conf = [
-                'email_code' => 'merchant-subscription-payment-confirmation',
-                'title'      => 'Merchant Subscription Payment Confirmation & Invoice',
-                'subject'    => 'Payment Confirmation: Your Yellow Markets Subscription Invoice ###INVOICE_ID##',
-                'content'    => '<p>Dear <strong>##MERCHANT_NAME##</strong>,</p>' .
-                    '<p>Thank you for your payment! We are pleased to confirm that your merchant subscription on <strong>Yellow Markets</strong> has been successfully processed.</p>' .
-                    '<div style="background-color: #f8f9fa; border-left: 4px solid #f7a800; padding: 15px 20px; margin: 20px 0;">' .
-                    '<p style="margin: 0 0 8px 0;"><strong>Invoice ID:</strong> ###INVOICE_ID##</p>' .
-                    '<p style="margin: 0 0 8px 0;"><strong>Subscription Plan:</strong> ##PLAN_NAME##</p>' .
-                    '<p style="margin: 0 0 8px 0;"><strong>Amount Paid:</strong> MUR ##AMOUNT##</p>' .
-                    '<p style="margin: 0 0 8px 0;"><strong>Payment Method:</strong> ##PAYMENT_METHOD##</p>' .
-                    '<p style="margin: 0 0 8px 0;"><strong>Start Date:</strong> ##START_DATE##</p>' .
-                    '<p style="margin: 0;"><strong>Expiry Date:</strong> ##EXPIRY_DATE##</p>' .
-                    '</div>' .
-                    '<p>Your official subscription invoice has been attached to this email as a PDF document for your records.</p>' .
-                    '<p>You can also view and download your invoice at any time from your merchant dashboard:</p>' .
-                    '<div style="text-align: center; margin: 25px 0;">' .
-                    '<a href="##SUBSCRIPTION_URL##" style="background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">View Subscription & Invoices</a>' .
-                    '</div>' .
-                    '<p>Thank you for partnering with <strong>Yellow Markets</strong>.</p>' .
-                    '<p>Best regards,<br>Yellow Markets Support Team</p>',
-                'status'     => 1,
-                'created_by' => 1,
-                'created_at' => time()
-            ];
-            if ($has_fr) {
-                if ($this->db->field_exists('title_fr', 'email_template')) {
-                    $data_conf['title_fr'] = "Confirmation de paiement et facture de l'abonnement marchand";
-                }
-                $data_conf['subject_fr'] = "Confirmation de paiement : Votre facture d'abonnement Yellow Markets ###INVOICE_ID##";
-                $data_conf['content_fr'] = "<p>Bonjour <strong>##MERCHANT_NAME##</strong>,</p>" .
-                    "<p>Merci pour votre paiement ! Nous vous confirmons que votre abonnement marchand sur <strong>Yellow Markets</strong> a bien été activé.</p>" .
-                    "<div style=\"background-color: #f8f9fa; border-left: 4px solid #f7a800; padding: 15px 20px; margin: 20px 0;\">" .
-                    "<p style=\"margin: 0 0 8px 0;\"><strong>N° de Facture :</strong> ###INVOICE_ID##</p>" .
-                    "<p style=\"margin: 0 0 8px 0;\"><strong>Forfait d'abonnement :</strong> ##PLAN_NAME##</p>" .
-                    "<p style=\"margin: 0 0 8px 0;\"><strong>Montant payé :</strong> MUR ##AMOUNT##</p>" .
-                    "<p style=\"margin: 0 0 8px 0;\"><strong>Mode de paiement :</strong> ##PAYMENT_METHOD##</p>" .
-                    "<p style=\"margin: 0 0 8px 0;\"><strong>Date de début :</strong> ##START_DATE##</p>" .
-                    "<p style=\"margin: 0;\"><strong>Date d'expiration :</strong> ##EXPIRY_DATE##</p>" .
-                    "</div>" .
-                    "<p>Votre facture officielle d'abonnement est jointe à cet email au format PDF pour vos archives.</p>" .
-                    "<p>Vous pouvez également consulter et télécharger vos factures à tout moment depuis votre espace marchand :</p>" .
-                    "<div style=\"text-align: center; margin: 25px 0;\">" .
-                    "<a href=\"##SUBSCRIPTION_URL##\" style=\"background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;\">Gérer mon abonnement</a>" .
-                    "</div>" .
-                    "<p>Merci pour votre confiance sur <strong>Yellow Markets</strong>.</p>" .
-                    "<p>Cordialement,<br>L'équipe support de Yellow Markets</p>";
-            }
             $this->db->insert('email_template', $data_conf);
+        } else {
+            $upconf = [
+                'subject' => $data_conf['subject'],
+                'content' => $data_conf['content']
+            ];
+            if ($has_fr && isset($data_conf['subject_fr'])) {
+                $upconf['subject_fr'] = $data_conf['subject_fr'];
+                $upconf['content_fr'] = $data_conf['content_fr'];
+            }
+            $this->db->where('email_code', 'merchant-subscription-payment-confirmation')->update('email_template', $upconf);
         }
     }
 
@@ -514,15 +574,15 @@ class Subscription_model extends CI_Model
             return false;
         }
 
-        $now = time();
+        $today_date = date('Y-m-d');
+        $expiry_date_str = date('Y-m-d', $end_timestamp);
+        $days_left = (int)round((strtotime($expiry_date_str) - strtotime($today_date)) / 86400);
+
         // If already expired, do not send "before expiry" reminders
-        if ($end_timestamp <= $now) {
+        if ($days_left < 0) {
             $this->last_expiry_error = 'Subscription end_date is in the past (already expired)';
             return false;
         }
-
-        $diff_seconds = $end_timestamp - $now;
-        $days_left = (int)ceil($diff_seconds / 86400);
 
         // If more than 30 days away, not in reminder window
         if ($days_left > 30) {
@@ -546,8 +606,8 @@ class Subscription_model extends CI_Model
         $reminder_type = null;
         $template_code = null;
 
-        // Window 1: 1 week before expiry (1 to 7 days left)
-        if ($days_left <= 7 && $days_left > 0) {
+        // Window 1: 1 week before expiry (0 to 7 days left)
+        if ($days_left <= 7 && $days_left >= 0) {
             if (empty($sub_record['reminder_week_sent'])) {
                 $reminder_type = '1_week';
                 $template_code = 'merchant-subscription-renewal-1week';
@@ -602,7 +662,7 @@ class Subscription_model extends CI_Model
         }
 
         $expiry_date_formatted = date('d M Y', $end_timestamp);
-        $renewal_url = 'https://pay.mytmoney.mu/Mt/web/payments';
+        $renewal_url = (defined('BASE_URL') ? rtrim(BASE_URL, '/') : base_url()) . '/subscription';
 
         $tempVars = [
             '##MERCHANT_NAME##',
@@ -711,6 +771,52 @@ class Subscription_model extends CI_Model
     }
 
     /**
+     * Check if 3:20 PM (15:20) daily expiry reminder check is due, and execute without requiring login
+     */
+    public function maybe_run_scheduled_daily_reminders()
+    {
+        // Only run at or after 15:20 (3:20 PM)
+        $current_time = (int)date('Hi');
+        if ($current_time < 1520) {
+            return false;
+        }
+
+        $today = date('Y-m-d');
+        $this->ensure_reminder_logs_table();
+
+        // Check if daily batch has already run today
+        $already_run = $this->db
+            ->where('reminder_type', 'daily_cron_batch')
+            ->where('DATE(sent_at)', $today)
+            ->get('subscription_reminder_logs')
+            ->row_array();
+
+        if ($already_run) {
+            return false;
+        }
+
+        // Lock for today
+        $this->db->insert('subscription_reminder_logs', [
+            'subscription_id' => 0,
+            'publisher_id'    => 0,
+            'reminder_type'   => 'daily_cron_batch',
+            'email_to'        => 'system',
+            'end_date'        => null,
+            'sent_at'         => date('Y-m-d H:i:s'),
+            'status'          => 'running'
+        ]);
+        $batch_log_id = $this->db->insert_id();
+
+        $res = $this->check_and_send_all_expiry_reminders();
+
+        $this->db->where('id', $batch_log_id)->update('subscription_reminder_logs', [
+            'status' => 'completed: ' . json_encode($res)
+        ]);
+
+        return $res;
+    }
+
+    /**
      * Ensure invoice columns in subscription_orders exist
      */
     public function ensure_subscription_invoice_schema()
@@ -721,6 +827,9 @@ class Subscription_model extends CI_Model
 
         if (!$this->db->field_exists('invoice_file', 'subscription_orders')) {
             $this->db->query("ALTER TABLE `subscription_orders` ADD COLUMN `invoice_file` VARCHAR(255) NULL DEFAULT NULL AFTER `payment_timestamp`");
+        }
+        if (!$this->db->field_exists('end_date', 'subscription_orders')) {
+            $this->db->query("ALTER TABLE `subscription_orders` ADD COLUMN `end_date` DATETIME NULL DEFAULT NULL AFTER `payment_timestamp`");
         }
     }
 
@@ -895,9 +1004,10 @@ class Subscription_model extends CI_Model
         ];
 
         $custom_subject = ($lang_code === 'fr')
-            ? "Confirmation de paiement : Votre facture d'abonnement Yellow Markets #{$order['id']}"
-            : "Payment Confirmation: Your Yellow Markets Subscription Invoice #{$order['id']}";
+            ? "Renouvellement d'abonnement : Votre abonnement est renouvelé pour {$plan_name} - Facture #{$order['id']}"
+            : "Subscription Renewal : Your Subscription is renewed to {$plan_name} - Invoice #{$order['id']}";
 
+        // Send confirmation email + invoice PDF to Merchant
         $mailSent = $CI->CommonModel->sendCommonHTMLEmail(
             $to_email,
             'merchant-subscription-payment-confirmation',
@@ -906,9 +1016,80 @@ class Subscription_model extends CI_Model
             $lang_code,
             $custom_subject,
             '', // custom_content fallback
-            $attachment_path, // attachment
-            $admin_email // CC to admin
+            $attachment_path
         );
+
+        // 6. Notifications for Admin and Merchant (In-App and Email)
+        try {
+            $CI->load->model('Notification_model');
+
+            // In-app Notification to Admin
+            $admin_notif_title = 'Subscription Renewal';
+            $admin_notif_msg   = "Merchant {$merchant_name} has renewed his subscription plan to {$plan_name}";
+            $CI->Notification_model->insert([
+                'recipient_type' => 'admin',
+                'recipient_id'   => null,
+                'title'          => $admin_notif_title,
+                'message'        => $admin_notif_msg,
+                'data'           => [
+                    'order_id'       => $order['id'],
+                    'publisher_id'   => $order['publisher_id'],
+                    'merchant_name'  => $merchant_name,
+                    'plan_name'      => $plan_name,
+                    'type'           => 'subscription_renewal'
+                ],
+                'is_read'        => 0
+            ]);
+
+            // In-app Notification to Merchant
+            $merchant_notif_title = ($lang_code === 'fr') ? "Renouvellement d'abonnement" : "Subscription Renewal";
+            $merchant_notif_msg   = ($lang_code === 'fr') 
+                ? "Votre abonnement est renouvelé pour {$plan_name}" 
+                : "Your Subscription is renewed to {$plan_name}";
+
+            $CI->Notification_model->insert([
+                'recipient_type' => 'merchant',
+                'recipient_id'   => (int)$order['publisher_id'],
+                'title'          => $merchant_notif_title,
+                'message'        => $merchant_notif_msg,
+                'data'           => [
+                    'order_id'       => $order['id'],
+                    'publisher_id'   => $order['publisher_id'],
+                    'plan_name'      => $plan_name,
+                    'type'           => 'subscription_renewal'
+                ],
+                'is_read'        => 0
+            ]);
+
+            // Email Notification to Admin
+            $admin_email_subject = "Subscription Renewal : Merchant {$merchant_name} has renewed his subscription plan to {$plan_name}";
+            $admin_email_content = '<div style="text-align: left; font-family: Arial, sans-serif; color: #333333; line-height: 1.6;">' .
+                '<p>Dear Admin,</p>' .
+                "<p>Merchant <strong>{$merchant_name}</strong> has renewed his subscription plan to <strong>{$plan_name}</strong>.</p>" .
+                "<div style=\"background-color: #f8f9fa; border-left: 4px solid #f7a800; padding: 15px 20px; margin: 20px 0; text-align: left;\">" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>Merchant:</strong> {$merchant_name}</p>" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>Order ID:</strong> #{$order['id']}</p>" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>New Plan:</strong> {$plan_name}</p>" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>Amount Paid:</strong> MUR {$amount_formatted}</p>" .
+                "<p style=\"margin: 0 0 8px 0;\"><strong>Renewal Date:</strong> {$start_date_formatted}</p>" .
+                "<p style=\"margin: 0;\"><strong>New Expiry Date:</strong> {$expiry_date_formatted}</p>" .
+                "</div>" .
+                '<p>Yellow Markets System Notification</p>' .
+                '</div>';
+
+            $CI->CommonModel->sendCommonHTMLEmail(
+                $admin_email,
+                'admin-subscription-renewal-notification',
+                [],
+                [],
+                'en',
+                $admin_email_subject,
+                $admin_email_content,
+                $attachment_path
+            );
+        } catch (\Throwable $e) {
+            log_message('error', 'Error creating/sending subscription renewal notifications: ' . $e->getMessage());
+        }
 
         if ($mailSent) {
             log_message('info', "Subscription payment confirmation email and invoice sent for Order ID: {$order['id']} | To: {$to_email} | CC: {$admin_email}");

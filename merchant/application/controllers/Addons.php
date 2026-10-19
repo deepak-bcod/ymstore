@@ -57,6 +57,18 @@ class Addons extends CI_Controller
             if (!$this->session->userdata('LoginID')) {
                 redirect(BASE_URL);
             }
+
+            // Disable Add-on services if merchant subscription is expired
+            $this->load->model('Subscription_model');
+            if ($this->Subscription_model->is_subscription_expired($this->session->userdata('LoginID'))) {
+                $site_lang = $this->session->userdata('site_lang');
+                $error_msg = ($site_lang === 'french')
+                    ? "Votre abonnement a expiré et votre boutique est actuellement désactivée. Veuillez renouveler votre abonnement afin d'accéder aux services Add-on."
+                    : "Your subscription has expired and your shop is currently disabled. Please renew your subscription below to access Add-on services.";
+                $this->session->set_flashdata('error', $error_msg);
+                redirect('subscription');
+                return;
+            }
         }
 
         $site_lang = $this->session->userdata('site_lang');
