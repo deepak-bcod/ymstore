@@ -928,34 +928,30 @@ class CommonModel extends CI_Model
             }
 
             $orderDetailsJson = [];
-            $parentDeliveryRow = $this->db
+            $query = $this->db
                 ->select('order_json')
                 ->where('order_id', $order_id)
                 ->order_by('id', 'DESC')
                 ->limit(1)
                 ->get('b2b_orders_delivery_details');
 
-            //echo $this->db->last_query();exit;
+            echo '<pre>';
+            echo $this->db->last_query();
 
             $parentDeliveryRow = $query->row_array();
 
-            echo "<pre>";print_r($parentDeliveryRow);die;
-            
-            
-            
+            print_r($parentDeliveryRow);
+            die;
 
-            if (
-                !empty($parentDeliveryRow['order_json'])
-            ) {
+            $orderDetailsJson = [];
+
+            if (!empty($parentDeliveryRow['order_json'])) {
                 $decodedJson = json_decode(
                     $parentDeliveryRow['order_json'],
                     true
                 );
 
-                if (
-                    json_last_error() === JSON_ERROR_NONE &&
-                    is_array($decodedJson)
-                ) {
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decodedJson)) {
                     $orderDetailsJson = $decodedJson;
                 }
             }
