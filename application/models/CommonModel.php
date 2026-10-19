@@ -931,13 +931,11 @@ class CommonModel extends CI_Model
             $parentDeliveryRow = $this->db
                 ->select('order_json')
                 ->where('order_id', $order_id)
-                ->where('is_parent_level', 1)
                 ->order_by('id', 'DESC')
                 ->limit(1)
                 ->get('b2b_orders_delivery_details');
 
-            echo $this->db->last_query();
-            exit;
+            //echo $this->db->last_query();exit;
 
             $parentDeliveryRow = $query->row_array();
             
