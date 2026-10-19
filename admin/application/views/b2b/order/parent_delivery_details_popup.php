@@ -10,30 +10,24 @@
       <thead>
         <tr>
           <th>Attempt #</th>
+          <th>Sub Order Id's</th>
           <th>Delivery Type</th>
           <th>Driver / Person</th>
           <th>Status</th>
           <th>Date</th>
           <th>Remarks</th>
-          <th>Images</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach ($attempts as $a): ?>
           <tr>
             <td><?= $a->delivery_attempt_no ?></td>
+            <td><?= $sub_barcodes ?></td>
             <td><?= ($a->delivery_type == 1) ? 'Own' : 'YM' ?></td>
             <td><?= ($a->delivery_type == 1) ? $a->own_delivery_person_name : $this->CommonModel->getDriverName($a->driver_id) ?></td>
             <td><?= $this->CommonModel->getDeliveryStatusLabel($a->delivery_status) ?></td>
             <td><?= date('d-M-Y H:i', strtotime($a->delivery_date)) ?></td>
             <td><?= $a->remarks ?></td>
-            <td>
-              <?php if (!empty($a->image)): ?>
-                <a href="javascript:void(0);" class="link-orange font-weight-bold" style="color:#f39c12;" onclick="$('#deliveryPopupModal').modal('hide'); openOrderImagesModal('<?= $a->webshop_order_id ?>', 'delivery');">View Image</a>
-              <?php else: ?>
-                <span class="text-muted">No Image</span>
-              <?php endif; ?>
-            </td>
           </tr>
         <?php endforeach; ?>
       </tbody>

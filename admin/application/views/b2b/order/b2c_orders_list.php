@@ -305,8 +305,8 @@
                                         <button class="btn btn-info btn-sm ml-3"
                                             onclick="openParentDeliveryDetailsPopup('<?= $parent->order_id ?>')">View Group
                                             Delivery</button>
-                                        <button class="btn btn-warning btn-sm ml-1"
-                                            onclick="openOrderImagesModal('<?= $parent->order_id ?>', 'delivery')">View Image</button>
+                                        <!--button class="btn btn-warning btn-sm ml-1"
+                                            onclick="openOrderImagesModal('<?= $parent->order_id ?>', 'delivery')">View Image</button-->
 
                                     <?php elseif ($isDelivered): ?>
                                         <span class="text-success">Delivered</span>
