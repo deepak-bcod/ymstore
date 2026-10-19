@@ -1261,19 +1261,26 @@ Class DbOrders{
 	 }
 	 public function get_total_replacement_orders_by_order($order_id)
 	{
+		// $query = $this->dbl->dbl_conn->rawQueryOne(
+		// 	"SELECT COUNT(*) as total FROM sales_order_replacement 
+		// 	WHERE replacement_order_increment_id LIKE ?",
+		// 	array("REPLACE-" . $order_inc_id . "-%")
+		// );
+		// return $query['total'] ?? 0;
+
 		$total_count=0;
 
-		$sql =  "SELECT count(*) as total_count FROM sales_order_replacement where order_id=" . intval($order_id) . " AND status NOT IN (0,1)  ";
-		$row  = $this->dbl->dbl_conn->rawQueryOne($sql);
+		 $sql =  "SELECT count(*) as total_count FROM sales_order_replacement where replacement_order_increment_id=$order_id AND status NOT IN (0,1)  ";
+		 $row  = $this->dbl->dbl_conn->rawQueryOne($sql);
 		if ($this->dbl->dbl_conn->getLastErrno() === 0){
 			if ($this->dbl->dbl_conn->count > 0){
-				$total_count = $row['total_count'];
+				$total_count =$row['total_count'];
 				return $total_count;
 			}else{
-				return 0;
+				return false;
 			}
 		}else{
-			return 0;
+			return false;
 		}
 	}
 
@@ -1376,7 +1383,7 @@ Class DbOrders{
 	{
 		$status = 0;
 		$created_at = time();
-		$ip = !empty($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1';
+		$ip = $_SERVER['REMOTE_ADDR'];
 
 		$replacement_order_increment_id = $this->generate_replacement_order_transaction_id($order_id, $increment_id);
 		$replacement_order_barcode = $replacement_order_increment_id;
@@ -1397,6 +1404,15 @@ Class DbOrders{
 				customer_id, status, replacement_request_due_date, created_at, ip,
 				order_amount, order_discount, order_grandtotal)
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0.00, 0.00, 0.00)";
+		// echo "<pre>";
+		// print_r($sql);
+		// die;
+		// 🟢 Debug SQL Query with real values before execution
+		// $debugSql = $sql;
+		// foreach ($params as $param) {
+		// 	$debugSql = preg_replace('/\?/', "'" . addslashes($param) . "'", $debugSql, 1);
+		// }
+		// error_log("DEBUG SQL: " . $debugSql);
 
 		// Execute
 		$this->dbl->dbl_conn->rawQuery($sql, $params);
@@ -1414,7 +1430,6 @@ Class DbOrders{
 	// INSERT INTO sales_order_replacement_items table
 	public function add_to_sales_order_replacement_items($order_id, $replacement_order_id, $order_item_id, $qty_order, $qty_replacement, $price, $total_price, $barcode, $discount_amount = 0, $total_discount_amount = 0)
 	{
-		$ip = !empty($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1';
 		$params = array(
 			$order_id,
 			$replacement_order_id,
@@ -1427,7 +1442,7 @@ Class DbOrders{
 			$discount_amount,
 			$total_discount_amount,
 			time(),
-			$ip
+			$_SERVER['REMOTE_ADDR']
 		);
 
 		$sql = "INSERT INTO sales_order_replacement_items 
