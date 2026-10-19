@@ -1256,10 +1256,7 @@ class CommonModel extends CI_Model
                 'product_id' => $productId,
 
                 // ES order information
-                'es_order_id' => $esOrderId,
-                'es_order_item_id' => $row['es_order_item_id'],
-                'order_barcode' => $row['es_order_barcode'],
-                'order_increment_id' => $row['es_order_increment_id'],
+                'es_order_id' => $row['es_order_barcode'],
 
                 // Product information
                 'product_name' => $row['product_name'],
