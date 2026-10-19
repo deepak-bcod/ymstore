@@ -18561,7 +18561,6 @@ public function markDelivered()
     if ($this->input->post('order_id')) {
 
         $order_id = $this->input->post('order_id');
-
         $User_id = $this->session->userdata('LoginID');
 
         // ==========================================
@@ -18640,7 +18639,7 @@ public function markDelivered()
 
 
                 // ==========================================
-                // GET SHOPPER CUSTOMER ID
+                // GET SHOPPER CUSTOMER ID & EMAIL
                 // ==========================================
 
                 $salesOrder = $this->db
@@ -18653,6 +18652,13 @@ public function markDelivered()
                 if ($salesOrder) {
 
                     $customerId = $salesOrder->customer_id;
+
+                    // Fetch customer email from customers/users table (adjust table & column name if different)
+                    $customerData = $this->db
+                        ->select('email')
+                        ->where('customer_id', $customerId) // or 'id' depending on your schema
+                        ->get('customers') 
+                        ->row();
 
 
                     // ==========================================
@@ -18672,7 +18678,7 @@ public function markDelivered()
 
 
                         // ==========================================
-                        // SHOPPER NOTIFICATION - ORDER DELIVERED
+                        // SHOPPER NOTIFICATION - DATABASE
                         // ==========================================
 
                         $notif_sql = "INSERT INTO notifications
@@ -18696,34 +18702,47 @@ public function markDelivered()
                             'order_delivered',
                             'shopper',
                             $customerId,
-
                             'Order delivered',
-
-                            // ONLY B2B ORDER NUMBER
                             'Your order no. ' . $b2bOrderNumber . ' is delivered.',
-
                             json_encode([
                                 'order_id'      => $webshop_order_id,
                                 'b2b_order_id'  => $order_id,
                                 'b2b_order_no'  => $b2bOrderNumber,
                                 'status'        => 8
                             ]),
-
                             0,
                             date('Y-m-d H:i:s'),
                             date('Y-m-d H:i:s')
                         ];
 
+                        $this->db->query($notif_sql, $notif_params);
 
-                        // Insert notification
-                        $this->db->query(
-                            $notif_sql,
-                            $notif_params
-                        );
+
+                        // ==========================================
+                        // SHOPPER NOTIFICATION - EMAIL
+                        // ==========================================
+
+                        if ($customerData && !empty($customerData->email)) {
+                            
+                            $this->load->library('email');
+
+                            $this->email->from('no-reply@yellowmarkets.com', 'Yellow Markets');
+                            $this->email->to($customerData->email);
+                            $this->email->subject('Order Delivered - ' . $b2bOrderNumber);
+                            
+                            $emailMessage = "<p>Hello,</p>";
+                            $emailMessage .= "<p>Your order no. <b>" . $b2bOrderNumber . "</b> has been delivered successfully.</p>";
+                            $emailMessage .= "<p>Thank you for shopping with us!</p>";
+                            
+                            $this->email->message($emailMessage);
+                            $this->email->set_mailtype('html');
+
+                            // Send email
+                            $this->email->send();
+                        }
                     }
                 }
             }
-
 
             // ==========================================
             // SUCCESS RESPONSE
@@ -18731,7 +18750,7 @@ public function markDelivered()
 
             echo json_encode([
                 'status'  => 200,
-                'message' => 'Order marked as delivered successfully.'
+                'message' => 'Order marked as delivered and notifications sent successfully.'
             ]);
 
         } else {
