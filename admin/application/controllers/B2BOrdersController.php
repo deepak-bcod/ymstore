@@ -19221,11 +19221,39 @@ public function getParentDeliveryDetailsPopup()
                                  ->get('b2b_orders_delivery_details')
 
                                  ->result();
+	
+	$associated_orders = $this->db
+		->select('order_barcode, increment_id')
+		->where('webshop_order_id', $webshop_order_id)
+		->order_by('order_id', 'ASC')
+		->get('b2b_orders')
+		->result_array();
 
+	$sub_barcodes = [];
 
+	foreach ($associated_orders as $ao) {
+
+		$val = !empty($ao['order_barcode'])
+			? trim($ao['order_barcode'])
+			: (
+				!empty($ao['increment_id'])
+					? trim($ao['increment_id'])
+					: ''
+			);
+
+		if (
+			$val !== '' &&
+			!in_array($val, $sub_barcodes, true)
+		) {
+			$sub_barcodes[] = $val;
+		}
+	}
+
+	if (!empty($sub_barcodes)) {
+        $data['sub_barcodes'] = implode(', ', $sub_barcodes);
+    }
 
     $this->load->view('b2b/order/parent_delivery_details_popup', $data);
-
 }
 
 
