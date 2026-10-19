@@ -19224,7 +19224,7 @@ public function getParentDeliveryDetailsPopup()
 	
 	$associated_orders = $this->db
 		->select('order_barcode, increment_id')
-		->where('webshop_order_id', $order_id)
+		->where('webshop_order_id', $webshop_order_id)
 		->order_by('order_id', 'ASC')
 		->get('b2b_orders')
 		->result_array();
