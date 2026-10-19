@@ -149,6 +149,39 @@ $menu_disabled = ($profile_incomplete || $subscription_expired);
             </a>
          </li>
 
+         <li class="nav-item">
+            <!-- Main Add-On Services Menu with Submenu Toggle & Arrow Icon -->
+            <a class="nav-link d-flex justify-content-between align-items-center <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'has-submenu show' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
+                href="javascript:void(0);" 
+                <?php if(!$menu_disabled): ?>
+                data-toggle="collapse" 
+                data-target="#addonsSubmenu" 
+                aria-expanded="<?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons'])) ? 'true' : 'false'; ?>"
+                <?php endif; ?>>
+                <span><?= $this->lang->line('sidebar_addons_services') ?></span>
+                <i class="fa fa-angle-down"></i>
+            </a>
+            
+            <!-- Submenu List -->
+            <div id="addonsSubmenu" class="collapse <?php echo (isset($side_menu) && in_array($side_menu, ['addons', 'manage_addons']) && !$menu_disabled) ? 'show' : ''; ?>">
+                <ul class="nav flex-column sub-menu pl-3">
+                    <!-- Link to Browse Add-ons -->
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'addons') ? 'active' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
+                            href="<?php echo !$menu_disabled ? base_url('addons') : 'javascript:void(0);'; ?>">
+                            <?= $this->lang->line('sidebar_browse_addons') ?>
+                        </a>
+                    </li>
+                    <!-- Link to Manage Addon -->
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo (isset($side_menu) && $side_menu == 'manage_addons') ? 'active' : ''; ?> <?php echo $menu_disabled ? ' link-disabled' : ''; ?>" 
+                            href="<?php echo !$menu_disabled ? base_url('addons/manage') : 'javascript:void(0);'; ?>">
+                            <?= $this->lang->line('sidebar_manage_addons') ?>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+         </li>
        
 <li class="nav-item">
     <!-- Main Add-On Services Menu with Submenu Toggle & Arrow Icon -->

@@ -46,8 +46,17 @@
                             <td><?= ucfirst($order['status']); ?></td>
                             <td><?= date("d-m-Y", strtotime($order['created_at'])); ?></td>
 
-                            <!-- End date = created_at + 1 year (example) -->
-                            <td><?= date("d-m-Y", strtotime($order['created_at'] . " +1 year")); ?></td>
+                            <?php 
+                                $expiry_date = 'N/A';
+                                if ($order['status'] === 'paid') {
+                                    if (!empty($order['end_date'])) {
+                                        $expiry_date = date('d-m-Y', strtotime($order['end_date']));
+                                    } elseif (!empty($order['created_at'])) {
+                                        $expiry_date = date('d-m-Y', strtotime($order['created_at'] . ' +1 year'));
+                                    }
+                                }
+                            ?>
+                            <td><?= $expiry_date; ?></td>
 
                             <td><?= number_format($order['amount'], 2); ?></td>
                               <td>

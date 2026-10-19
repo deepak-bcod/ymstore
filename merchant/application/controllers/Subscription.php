@@ -41,6 +41,7 @@ class Subscription extends CI_Controller
         // Check and send subscription renewal reminders if near expiry and not renewed
         try {
             $this->Subscription_model->check_and_send_expiry_reminders($publisher_id);
+            $this->Subscription_model->maybe_run_scheduled_daily_reminders();
         } catch (Exception $e) {
             log_message('error', 'Subscription expiry check error on subscription page: ' . $e->getMessage());
         }

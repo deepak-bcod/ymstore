@@ -46,7 +46,7 @@ body{font-family: 'Roboto', sans-serif; background:#b3bbdb; padding-top:5%;}
 
     background: #fff;
 
-    text-align: center;
+    text-align: left;
 
     padding: 30px;
 
