@@ -236,7 +236,7 @@
                                 </div>
 
                                 <!-- Shopper Resolution Escalation Action -->
-                                <?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested'): ?>
+                                <?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested' && $resolution->category == 'Refund'): ?>
                                     <div class="panel panel-default" style="border-radius: 6px; margin-bottom: 20px; border: 1px solid #bce8f1; background-color: #f4fbfd;">
                                         <div class="panel-body" style="padding: 15px; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap;">
                                             <button type="button" class="btn btn-info" data-toggle="modal" data-target="#resolutionRequestModal" style="margin-right: 15px;">

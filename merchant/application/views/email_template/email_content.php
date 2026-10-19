@@ -8,7 +8,7 @@
 
 				<tr>
 
-					<td class="white-sec" style="background: #fff; padding: 30px;"><?php echo $content;?></td>
+					<td class="white-sec" style="background: #fff; padding: 30px; text-align: left;"><?php echo $content;?></td>
 
 				</tr>
 
