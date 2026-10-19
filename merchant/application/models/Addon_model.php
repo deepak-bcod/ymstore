@@ -68,11 +68,11 @@ class Addon_model extends CI_Model {
             p.status,
             c.name as addon_service_name,
             s.title as addon_name,
-            s.price,
-            s.vat_percent,
             s.final_price as amount,
-            pub.company_name as merchantname,
-            pub.email as merchant_email
+            pub.company_name as merchant_name,
+            pub.email as merchant_email,
+            pub.phone as merchant_phone,
+            pub.address as merchant_address
         ');
         $this->db->from('merchant_addon_purchases p');
         $this->db->join('addon_services s', 's.id = p.service_id', 'left');
