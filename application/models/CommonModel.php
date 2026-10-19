@@ -842,7 +842,6 @@ class CommonModel extends CI_Model
             b2bodd.image,
             b2bodd.thumbnail,
             b2bodd.product_details,
-            b2bodd.order_json,
             b2bodd.remarks,
             b.order_barcode,
             {$grandTotal} AS grand_total,
@@ -877,16 +876,7 @@ class CommonModel extends CI_Model
             $productDetailsJson = [];
         }
 
-        // Decode delivery product details JSON
-        $orderDetailsJson = json_decode(
-            $result[0]['order_json'] ?? '',
-            true
-        );
-
-        if (!is_array($orderDetailsJson)) {
-            $orderDetailsJson = [];
-        }
-
+        
         // Order-level data
         $order = [
             'order_id' => $result[0]['order_id'],
@@ -935,6 +925,32 @@ class CommonModel extends CI_Model
                 $order['order_barcode'] = implode(', ', $sub_barcodes);
                 $order['order_numbers'] = $order['order_barcode'];
                 $order['associated_order_numbers'] = $order['order_barcode'];
+            }
+
+            $orderDetailsJson = [];
+            $parentDeliveryRow = $this->db
+                ->select('order_json')
+                ->where('order_id', $order_id)
+                ->where('is_parent_level', 1)
+                ->order_by('id', 'DESC')
+                ->limit(1)
+                ->get('b2b_orders_delivery_details')
+                ->row_array();
+
+            if (
+                !empty($parentDeliveryRow['order_json'])
+            ) {
+                $decodedJson = json_decode(
+                    $parentDeliveryRow['order_json'],
+                    true
+                );
+
+                if (
+                    json_last_error() === JSON_ERROR_NONE &&
+                    is_array($decodedJson)
+                ) {
+                    $orderDetailsJson = $decodedJson;
+                }
             }
 
             $order['es_orders'] = $orderDetailsJson;
