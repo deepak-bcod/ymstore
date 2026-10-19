@@ -16,8 +16,6 @@
             margin: auto;
             background: #fff;
             padding: 30px;
-            border: 1px solid #eee;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
         }
         .header-section {
             display: flex;
@@ -28,40 +26,40 @@
         .brand-logo {
             background: #2b2b2b;
             color: #ffc107;
-            padding: 10px 20px;
+            padding: 8px 15px;
             font-weight: bold;
-            font-size: 16px;
-            letter-spacing: 0.5px;
+            font-size: 15px;
+            display: inline-block;
         }
         .invoice-heading {
-            font-size: 20px;
+            font-size: 14px;
             font-weight: bold;
-            color: #333;
+            color: #555;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
         .section-title {
             font-size: 16px;
             font-weight: bold;
-            color: #222;
+            color: #333;
             margin-bottom: 15px;
-            border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 8px;
         }
         .details-table {
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
             border-collapse: collapse;
         }
         .details-table td {
-            padding: 6px 0;
+            padding: 5px 0;
             vertical-align: top;
             font-size: 14px;
         }
         .details-table td.col-label {
-            color: #555;
-            width: 120px;
+            color: #333;
+            width: 110px;
         }
         .details-table td.col-val {
-            font-weight: bold;
+            font-weight: normal;
             color: #111;
         }
         .table {
@@ -75,9 +73,10 @@
             color: #000;
             text-align: center;
             padding: 12px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             border: 1px solid #dee2e6;
+            letter-spacing: 0.5px;
         }
         .table td {
             padding: 12px;
@@ -110,21 +109,16 @@
             body {
                 padding: 0;
             }
-            .invoice-box {
-                border: none;
-                box-shadow: none;
-                padding: 0;
-            }
         }
     </style>
 </head>
 <body>
 
 <div class="invoice-box">
-    <!-- Top Header Banner -->
+    <!-- Top Header Banner matching reference design -->
     <div class="header-section">
         <div class="brand-logo">🛒 Yellow Markets</div>
-        <div class="invoice-heading">Add-on Invoice</div>
+        <div class="invoice-heading">INVOICE</div>
     </div>
 
     <!-- Details Section Header -->
@@ -148,7 +142,7 @@
             <td class="col-label"></td>
             <td class="col-val"></td>
             <td class="col-label">Status</td>
-            <td class="col-val">: <span style="text-transform: capitalize; color: #28a745;"><?php echo $addon_purchase->status; ?></span></td>
+            <td class="col-val">: <span style="text-transform: capitalize; color: #28a745; font-weight: bold;"><?php echo $addon_purchase->status; ?></span></td>
         </tr>
     </table>
 
