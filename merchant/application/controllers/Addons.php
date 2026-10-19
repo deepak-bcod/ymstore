@@ -776,7 +776,6 @@ public function download_invoice($purchase_id = NULL)
         show_404();
     }
 
-    // Load the newly created invoice print layout view
-    $this->load->view('addns/invoice_print_view', $data);
+    $this->load->view('addons/invoice_print_view', $data);
 }
 }
