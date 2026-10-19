@@ -141,8 +141,8 @@
         <tr>
             <td class="col-label"></td>
             <td class="col-val"></td>
-            <td class="col-label">Status</td>
-            <td class="col-val">: <span style="text-transform: capitalize; color: #28a745; font-weight: bold;"><?php echo $addon_purchase->status; ?></span></td>
+            <!-- <td class="col-label">Status</td>
+            <td class="col-val">: <span style="text-transform: capitalize; color: #28a745; font-weight: bold;"><?php echo $addon_purchase->status; ?></span></td> -->
         </tr>
     </table>
 
