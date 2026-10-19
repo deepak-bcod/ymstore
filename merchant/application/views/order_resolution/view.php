@@ -110,7 +110,11 @@ $this->load->view('common/fbc-user/header');
                         <div class="row align-items-center">
                             <div class="col-md-4 col-sm-6">
                                 <strong><?= $this->lang->line('merchant_action') ?: 'Merchant Action'; ?>:</strong> 
-                                <span class="text-primary font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
+                                <?php if (!empty($resolution->merchant_action) && !in_array(strtolower($resolution->merchant_action), ['none', 'n/a'], true)): ?>
+                                    <span class="text-primary font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
+                                <?php else: ?>
+                                    <span class="badge badge-warning" style="background-color: #ffc107; color: #212529; font-weight: 600; padding: 4px 8px; border-radius: 4px;"><?= htmlspecialchars($this->lang->line('pending') ?: 'Pending'); ?></span>
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-4 col-sm-6">
                                 <strong><?= $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</strong> 
