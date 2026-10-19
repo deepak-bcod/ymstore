@@ -97,15 +97,17 @@ class Addon_model extends CI_Model {
     public function get_all_manage_addons() {
     $this->db->select('
         merchant_addon_purchases.*, 
-        users.name as merchant_name, 
+        your_actual_table_name.name as merchant_name, 
         addon_services.title as service_title, 
         merchant_addon_purchases.addon_name, 
         merchant_addon_purchases.created_at as date, 
         merchant_addon_purchases.final_price as amount
     ');
     $this->db->from('merchant_addon_purchases');
-    // Change 'users' below to whatever your actual table name is (e.g., 'tbl_users', 'merchant', etc.)
-    $this->db->join('users', 'users.id = merchant_addon_purchases.merchant_id', 'left'); 
+    
+    // Replace 'your_actual_table_name' with your real table name (e.g., admin, vendors, accounts, etc.)
+    $this->db->join('your_actual_table_name', 'your_actual_table_name.id = merchant_addon_purchases.merchant_id', 'left'); 
+    
     $this->db->join('addon_services', 'addon_services.id = merchant_addon_purchases.addon_service_id', 'left');
     $this->db->order_by('merchant_addon_purchases.id', 'DESC');
     return $this->db->get()->result();
