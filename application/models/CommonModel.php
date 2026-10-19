@@ -1087,12 +1087,10 @@ class CommonModel extends CI_Model
 
             b.order_id AS es_order_id,
             b.order_barcode AS es_order_barcode,
-            b.increment_id AS es_order_increment_id,
 
             {$grandTotal} AS grand_total,
 
             oi.product_id,
-            oi.order_id AS es_order_item_id,
             oi.product_name,
             oi.qty_ordered,
             oi.price,
