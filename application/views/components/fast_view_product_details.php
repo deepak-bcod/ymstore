@@ -8,9 +8,6 @@
                         <div class="col-md-12">
                             <h1 class="product-name">
                                 <?php echo (($lang == "french" && isset($ProductData->lang_title) && $ProductData->lang_title != '') ? $ProductData->lang_title : $ProductData->name); ?>
-                                <?php if (is_product_out_of_stock($ProductData)): ?>
-                                    <span class="out-of-stock-badge" style="display: inline-block; background: #dc3545; color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 13px; font-weight: 600; vertical-align: middle; margin-left: 10px;"><?= lang('out_of_stock') ?: 'Out of Stock' ?></span>
-                                <?php endif; ?>
                             </h1>
                         </div>
                         <div class="col-md-4 col-sm-4">
@@ -112,13 +109,11 @@
                                 <?php } ?>
 
                                 <div class="subscribe-deli">
-                                    <?php 
-                                    $is_out_of_stock_quick = is_product_out_of_stock($ProductData);
-                                    if (!$is_out_of_stock_quick && isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (float)$ProductData->total_qty > 0) && (!isset($ProductData->qty) || (float)$ProductData->qty > 0) && (!isset($ProductData->stock_qty) || (float)$ProductData->stock_qty > 0)) { ?>
+                                    <?php if (isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (float)$ProductData->total_qty > 0) && (!isset($ProductData->qty) || (float)$ProductData->qty > 0) && (!isset($ProductData->stock_qty) || (float)$ProductData->stock_qty > 0)) { ?>
                                         <?php if ($restricted_access == "yes" && $customer_id == 0) { ?>
                                             <button type="button" class="btn btn-primary subscr-now pull-left as" <?php echo isset($ProductData->stock_status) &&
                                                                                                                         ($ProductData->stock_status == "Instock" &&
-                                                                                                                             $ProductData->product_type == "simple")
+                                                                                                                            $ProductData->product_type == "simple")
                                                                                                                         ? ""
                                                                                                                         : "disabled"; ?> onclick="openRestrictedAccessPopup()" class="add-to-cart-btn">
                                                 <?= lang('add_to_cart_btn') ?>
@@ -137,9 +132,7 @@
                                             <?php } ?>
                                         <?php } ?>
                                     <?php } else { ?>
-                                        <button class="btn btn-secondary subscr-now pull-left" id="add_to_cart" type="button" disabled style="background-color: #6c757d; border-color: #6c757d; cursor: not-allowed; opacity: 0.65;"><?= lang('out_of_stock') ?: 'Out of Stock' ?></button>
-                                        <a href="<?php echo $productLink; ?>" class="btn btn-default subscr-moredet pull-left" target="Parent"><?= lang('more_details') ?></a>
-                                        <div class="clearfix"></div>
+                                        <button class="btn btn-primary subscr-now pull-left" id="add_to_cart" type="submit" disabled><?= lang('out_of_stock') ?></button>
                                     <?php } ?>
                                     <div id="addtocart-message" class="addtocart-message"></div>
                                 </div>

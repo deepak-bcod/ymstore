@@ -13,9 +13,24 @@ if (!($prod instanceof ProductPresenter) && is_object($prod)) {
 $promo = isset($active_promotion) ? $active_promotion : (is_object($prod) && method_exists($prod, 'get_active_promotion') ? $prod->get_active_promotion() : null);
 $stock = isset($stock_badge) ? $stock_badge : (is_object($prod) && method_exists($prod, 'get_stock_badge') ? $prod->get_stock_badge() : null);
 
-// Stock check: if stock is 0 or less, or status is out of stock
-$is_out_of_stock = is_product_out_of_stock($prod);
-$product_stock = get_product_available_stock($prod);
+// Stock check: if stock is less than 0 or out of stock
+$is_out_of_stock = false;
+$product_stock = null;
+if (isset($prod->qty) && is_numeric($prod->qty)) {
+    $product_stock = (float)$prod->qty;
+} elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty)) {
+    $product_stock = (float)$prod->stock_qty;
+} elseif (isset($prod->total_qty) && is_numeric($prod->total_qty)) {
+    $product_stock = (float)$prod->total_qty;
+} elseif (isset($prod->quantity) && is_numeric($prod->quantity)) {
+    $product_stock = (float)$prod->quantity;
+}
+
+if ($product_stock !== null && $product_stock <= 0) {
+    $is_out_of_stock = true;
+} elseif (isset($prod->stock_status) && (strtolower(trim($prod->stock_status)) == 'out of stock' || strtolower(trim($prod->stock_status)) == 'outofstock')) {
+    $is_out_of_stock = true;
+}
 
 // Promotion detection for Daily Deals, Flash Sales, New Arrivals, and Trending Products
 $is_flash_sale = ($promo && $promo->type === 'flash_sale') 
