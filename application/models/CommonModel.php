@@ -1194,7 +1194,7 @@ class CommonModel extends CI_Model
             $parentDeliveryRow = $this->db
                 ->select('order_json')
                 ->where('order_id', $order_id)
-                ->where('is_parent_level', 1)
+                ->where('driver_id', $driver_id)
                 ->order_by('id', 'DESC')
                 ->limit(1)
                 ->get('b2b_orders_delivery_details')
