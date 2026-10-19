@@ -18624,120 +18624,130 @@ public function markDelivered()
 
             $orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
 
-            if ($orderData && !empty($orderData->webshop_order_id)) {
+            // ==========================================
+            // GET B2B ORDER DETAILS & BARCODE
+            // ==========================================
 
+            $b2bOrder = $this->db
+                ->where('order_id', $order_id)
+                ->get('b2b_orders')
+                ->row();
+
+            $salesOrder = null;
+            if ($orderData && !empty($orderData->webshop_order_id)) {
                 $webshop_order_id = $orderData->webshop_order_id;
 
-
-                // ==========================================
                 // UPDATE MAIN SALES ORDER STATUS
-                // ==========================================
+                $this->CommonModel->checkAndUpdateMainOrderStatus($webshop_order_id);
 
-                $this->CommonModel->checkAndUpdateMainOrderStatus(
-                    $webshop_order_id
-                );
-
-
-                // ==========================================
-                // GET SALES ORDER & CUSTOMER INFO
-                // ==========================================
-
+                // GET SALES ORDER INFO
                 $salesOrder = $this->db
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
+            }
+
+            if ($b2bOrder) {
+                $b2bOrderNumber = $b2bOrder->order_barcode ?? $b2bOrder->increment_id;
+                
+                $customerName = trim(
+                    ($b2bOrder->customer_firstname ?? '') . ' ' .
+                    ($b2bOrder->customer_lastname ?? '')
+                );
+
+                // ==========================================
+                // FIND CUSTOMER EMAIL (Fallback across tables)
+                // ==========================================
+                $customerEmail = '';
+                
+                if (!empty($salesOrder) && !empty($salesOrder->customer_email)) {
+                    $customerEmail = $salesOrder->customer_email;
+                } elseif (!empty($b2bOrder->customer_email)) {
+                    $customerEmail = $b2bOrder->customer_email;
+                } else {
+                    // Try fetching from customers table if customer_id exists
+                    $customerId = $salesOrder->customer_id ?? $b2bOrder->customer_id ?? null;
+                    if ($customerId) {
+                        $customerRec = $this->db->where('customer_id', $customerId)->get('customers')->row();
+                        if ($customerRec && !empty($customerRec->email)) {
+                            $customerEmail = $customerRec->email;
+                        }
+                    }
+                }
 
 
                 // ==========================================
-                // GET B2B ORDER DETAILS & BARCODE
+                // 1. SEND DELIVERED EMAIL TO SHOPPER
                 // ==========================================
 
-                $b2bOrder = $this->db
-                    ->where('order_id', $order_id)
-                    ->get('b2b_orders')
-                    ->row();
+                if (!empty($customerEmail)) {
 
+                    $TempVars = [
+                        '##CUSTOMERNAME##',
+                        '##ORDERNO##'
+                    ];
 
-                if ($b2bOrder && !empty($b2bOrder->order_barcode)) {
+                    $DynamicVars = [
+                        $customerName,
+                        $b2bOrder->increment_id ?? $b2bOrderNumber
+                    ];
 
-                    $b2bOrderNumber = $b2bOrder->order_barcode;
-                    
-                    $customerName = trim(
-                        ($b2bOrder->customer_firstname ?? '') . ' ' .
-                        ($b2bOrder->customer_lastname ?? '')
+                    // Send Order Delivered email template 
+                    // Note: Ensure 'order-delivered' matches your email template slug/code in DB
+                    $this->CommonModel->sendCommonHTMLEmail(
+                        $customerEmail,
+                        'order-delivered', 
+                        $TempVars,
+                        $DynamicVars
                     );
+                }
 
 
-                    // ==========================================
-                    // 1. SEND DELIVERED EMAIL TO SHOPPER
-                    // ==========================================
+                // ==========================================
+                // 2. ADD SHOPPER NOTIFICATION (DATABASE)
+                // ==========================================
 
-                    if (!empty($salesOrder) && !empty($salesOrder->customer_email)) {
+                $recipientId = $salesOrder->customer_id ?? $b2bOrder->customer_id ?? null;
 
-                        $TempVars = [
-                            '##CUSTOMERNAME##',
-                            '##ORDERNO##'
-                        ];
+                if (!empty($recipientId)) {
 
-                        $DynamicVars = [
-                            $customerName,
-                            $b2bOrder->increment_id
-                        ];
-
-                        // Send Order Delivered email template
-                        $this->CommonModel->sendCommonHTMLEmail(
-                            $salesOrder->customer_email,
-                            'order-delivered', // Make sure this template exists in your email templates configuration/db
-                            $TempVars,
-                            $DynamicVars
-                        );
-                    }
+                    $notif_sql = "INSERT INTO notifications
+                        (
+                            type,
+                            subtype,
+                            recipient_type,
+                            recipient_id,
+                            title,
+                            message,
+                            data,
+                            is_read,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 
-                    // ==========================================
-                    // 2. ADD SHOPPER NOTIFICATION (DATABASE)
-                    // ==========================================
+                    $notif_params = [
+                        'order',
+                        'order_delivered',
+                        'shopper',
+                        $recipientId,
+                        'Order delivered',
+                        'Your order no. ' . $b2bOrderNumber . ' is delivered.',
+                        json_encode([
+                            'order_id'         => $webshop_order_id ?? null,
+                            'b2b_order_id'     => $order_id,
+                            'b2b_order_no'     => $b2bOrderNumber,
+                            'increment_id'     => $b2bOrder->increment_id ?? '',
+                            'status'           => 8
+                        ]),
+                        0,
+                        date('Y-m-d H:i:s'),
+                        date('Y-m-d H:i:s')
+                    ];
 
-                    if (!empty($salesOrder) && !empty($salesOrder->customer_id)) {
-
-                        $notif_sql = "INSERT INTO notifications
-                            (
-                                type,
-                                subtype,
-                                recipient_type,
-                                recipient_id,
-                                title,
-                                message,
-                                data,
-                                is_read,
-                                created_at,
-                                updated_at
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-
-                        $notif_params = [
-                            'order',
-                            'order_delivered',
-                            'shopper',
-                            $salesOrder->customer_id,
-                            'Order delivered',
-                            'Your order no. ' . $b2bOrderNumber . ' is delivered.',
-                            json_encode([
-                                'order_id'         => $webshop_order_id,
-                                'b2b_order_id'     => $order_id,
-                                'b2b_order_no'     => $b2bOrderNumber,
-                                'increment_id'     => $b2bOrder->increment_id,
-                                'status'           => 8
-                            ]),
-                            0,
-                            date('Y-m-d H:i:s'),
-                            date('Y-m-d H:i:s')
-                        ];
-
-                        // Insert notification
-                        $this->db->query($notif_sql, $notif_params);
-                    }
+                    // Insert notification
+                    $this->db->query($notif_sql, $notif_params);
                 }
             }
 
@@ -18775,8 +18785,6 @@ public function markDelivered()
         ]);
     }
 }
-
-
 
 
 
