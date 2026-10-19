@@ -110,8 +110,7 @@ class Addon_model extends CI_Model {
     $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
     $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
     
-    // No merchant_id filter here because admin wants to see ALL merchants
-    
+  
     $this->db->order_by('p.id', 'DESC');
     $query = $this->db->get();
     return $query->result();

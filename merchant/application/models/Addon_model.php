@@ -57,9 +57,6 @@ class Addon_model extends CI_Model {
         return $query->result();
     }
 
-    /**
-     * Fetch a single addon purchase record by its ID for invoices / receipts
-     */
     public function get_purchase_by_id($purchase_id) 
 {
     $this->db->select('

@@ -136,17 +136,19 @@ $is_fr = ($this->session->userdata('site_lang') == 'french');
                     foreach($plans as $plan): 
                         $is_active = (isset($active_plan['plan_id']) && $active_plan['plan_id'] == $plan['id']);
                         
-                        // Identify the Starter plan specifically (adjust 'Starter' if your database name/slug is different)
-                        $is_starter = (strtolower($plan['name']) === 'starter');
+                        // Identify the Starter plan specifically
+                        $plan_name_clean = strtolower(trim($plan['name'] ?? ''));
+                        $is_starter = ($plan_name_clean === 'starter' || strpos($plan_name_clean, 'starter') !== false);
                         
                         // Check if user has an active higher plan (e.g., Growth is active, and current loop is Starter)
                         $has_active_plan = !empty($active_plan['plan_id']);
 
-                        // Renew button should only show 30 days prior before expiry date (or if expired)
+                        // Renew option should only show 30 days prior before expiry date (or if expired)
                         $show_renew = false;
                         if ($is_active) {
                             if (!empty($is_expired)) {
-                                $show_renew = true;
+                                // Do not show renew/select radio for Starter plan when expired
+                                $show_renew = !$is_starter;
                             } elseif (!empty($active_plan['end_date'])) {
                                 $end_ts = strtotime($active_plan['end_date']);
                                 $days_remaining = ($end_ts - time()) / 86400;
@@ -167,7 +169,7 @@ $is_fr = ($this->session->userdata('site_lang') == 'french');
                                 <?php if(!empty($active_plan['end_date'])): ?>
                                     <br><small><?php echo lang('expires'); ?>: <?= date('d M Y', strtotime($active_plan['end_date'])); ?></small>
                                 <?php endif; ?>
-                                <?php if($show_renew): ?>
+                                <?php if($show_renew && !($is_starter && !empty($is_expired))): ?>
                                     <div class="mt-2">
                                         <input type="radio" name="plan_id" value="<?= $plan['id']; ?>" required>
                                         <label><?php echo lang('select'); ?></label>
@@ -175,6 +177,9 @@ $is_fr = ($this->session->userdata('site_lang') == 'french');
                                 <?php endif; ?>
                             <?php elseif($has_active_plan && $is_starter): ?>
                                 <!-- Hide select option only for the Starter plan when any plan is already active -->
+                                <span class="text-muted">-</span>
+                            <?php elseif($is_starter && !empty($is_expired)): ?>
+                                <!-- Hide select option for Starter plan when subscription is expired -->
                                 <span class="text-muted">-</span>
                             <?php else: ?>
                                 <input type="radio" name="plan_id" value="<?= $plan['id']; ?>" required>

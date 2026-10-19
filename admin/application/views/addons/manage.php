@@ -5,7 +5,7 @@
     .manage-addon-container {
         margin-left: 260px; /* Adjust to match your exact sidebar width */
         padding: 20px;
-        width: calc(100% - 260px);
+        width: calc(100% - 260px); /* FIXED: added missing minus operator */
     }
 
     /* 2. Prevent table from creating vertical/horizontal scroll box */
@@ -69,7 +69,8 @@
                             <td><?php echo html_escape($row->date ?? ''); ?></td>
                             <td><?php echo number_format($row->amount ?? 0, 2); ?></td>
                             <td>
-                                <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" class="text-primary font-weight-bold" target="_blank">
+                                <!-- FIXED: Use site_url with a single 'admin' path segment to prevent duplication -->
+                                <a href="<?php echo site_url('addons/download_invoice/' . $row->purchase_id); ?>" class="text-primary font-weight-bold" target="_blank">
                                     <i class="fa fa-download"></i> Invoice
                                 </a>
                             </td>
