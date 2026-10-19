@@ -2623,4 +2623,22 @@ class CronController extends CI_Controller
 		]);
 	}
 
+	public function subscription_expiry_reminders()
+	{
+		$merchant_model_file = FCPATH . 'merchant/application/models/Subscription_model.php';
+		if (file_exists($merchant_model_file)) {
+			require_once $merchant_model_file;
+			$sub_model = new Subscription_model();
+			$result = $sub_model->check_and_send_all_expiry_reminders();
+			echo json_encode([
+				'flag' => 1,
+				'msg' => 'Subscription reminders checked and processed',
+				'result' => $result,
+				'timestamp' => date('Y-m-d H:i:s')
+			]);
+		} else {
+			echo json_encode(['flag' => 0, 'msg' => 'Subscription_model not found']);
+		}
+	}
+
 }
