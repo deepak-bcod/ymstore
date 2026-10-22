@@ -6,4 +6,13 @@ REM Sends 30-day and 7-day prior expiration reminders to merchants without login
 REM =======================================================================
 
 cd /d "c:\xampp\htdocs\ymstore"
-php index.php CronController subscription_expiry_reminders
+echo [%date% %time%] Running daily subscription expiry reminder cron... >> cron_subscription_reminders.log
+
+if exist "c:\xampp\php\php.exe" (
+    "c:\xampp\php\php.exe" index.php CronController subscription_expiry_reminders >> cron_subscription_reminders.log 2>&1
+) else (
+    php index.php CronController subscription_expiry_reminders >> cron_subscription_reminders.log 2>&1
+)
+
+echo [%date% %time%] Finished. >> cron_subscription_reminders.log
+
