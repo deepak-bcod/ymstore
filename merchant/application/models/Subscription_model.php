@@ -515,12 +515,18 @@ class Subscription_model extends CI_Model
      */
     public function has_merchant_renewed($publisher_id, $current_sub_id, $current_end_date)
     {
-        $now = time();
+        $today_date = date('Y-m-d');
         $current_end_ts = strtotime($current_end_date);
+        if (!$current_end_ts) {
+            return false;
+        }
 
-        // 1. If current end_date is more than 30 days away, it has already been extended / renewed
-        if ($current_end_ts && ($current_end_ts - $now) > (30 * 86400)) {
-            $this->last_expiry_error = "Renewal check: end_date is more than 30 days away (" . round(($current_end_ts - $now)/86400, 1) . " days left)";
+        $expiry_date_str = date('Y-m-d', $current_end_ts);
+        $days_left = (int)round((strtotime($expiry_date_str) - strtotime($today_date)) / 86400);
+
+        // 1. If current end_date is more than 30 days away, it has already been renewed / extended
+        if ($days_left > 30) {
+            $this->last_expiry_error = "Renewal check: end_date is {$days_left} days away (more than 30 days away, plan is active/renewed)";
             return true;
         }
 
@@ -541,16 +547,17 @@ class Subscription_model extends CI_Model
     }
 
     /**
-     * Check active subscription expiry and send reminder email upon merchant login
+     * Check active subscription expiry and send reminder email via daily 3:20 PM cron
      *
      * Rules:
-     * - Send 1 month before expiry (between 8 and 30 days remaining)
-     * - Send 1 week before expiry (between 1 and 7 days remaining)
+     * - Sent ONLY 2 times before expiry:
+     *   1) On the 30th day before end date (1-month reminder)
+     *   2) On the 7th day before end date (1-week reminder)
      * - Send only if merchant has not renewed subscription
      * - If merchant renewed, do not send email
      * - Uses email_template table templates
      */
-    public function check_and_send_expiry_reminders($publisher_id)
+    public function check_and_send_expiry_reminders($publisher_id, $force_reminder_type = null)
     {
         if (empty($publisher_id)) {
             return false;
@@ -580,13 +587,7 @@ class Subscription_model extends CI_Model
 
         // If already expired, do not send "before expiry" reminders
         if ($days_left < 0) {
-            $this->last_expiry_error = 'Subscription end_date is in the past (already expired)';
-            return false;
-        }
-
-        // If more than 30 days away, not in reminder window
-        if ($days_left > 30) {
-            $this->last_expiry_error = "Subscription expires in {$days_left} days (more than 30 days away)";
+            $this->last_expiry_error = "Subscription end_date is in the past (already expired {$days_left} days ago)";
             return false;
         }
 
@@ -606,18 +607,37 @@ class Subscription_model extends CI_Model
         $reminder_type = null;
         $template_code = null;
 
-        // Window 1: 1 week before expiry (0 to 7 days left)
-        if ($days_left <= 7 && $days_left >= 0) {
-            if (empty($sub_record['reminder_week_sent'])) {
-                $reminder_type = '1_week';
-                $template_code = 'merchant-subscription-renewal-1week';
+        // Manual force testing parameter
+        if ($force_reminder_type === '1_month') {
+            $reminder_type = '1_month';
+            $template_code = 'merchant-subscription-renewal-1month';
+        } else if ($force_reminder_type === '1_week') {
+            $reminder_type = '1_week';
+            $template_code = 'merchant-subscription-renewal-1week';
+        } else {
+            // Trigger 1: Exactly on the 30th day before end date
+            if ($days_left === 30) {
+                if (empty($sub_record['reminder_month_sent'])) {
+                    $reminder_type = '1_month';
+                    $template_code = 'merchant-subscription-renewal-1month';
+                } else {
+                    $this->last_expiry_error = "30-day reminder already sent on " . ($sub_record['reminder_month_sent_at'] ?? 'earlier');
+                    return false;
+                }
             }
-        }
-        // Window 2: 1 month before expiry (8 to 30 days left)
-        else if ($days_left <= 30 && $days_left > 7) {
-            if (empty($sub_record['reminder_month_sent'])) {
-                $reminder_type = '1_month';
-                $template_code = 'merchant-subscription-renewal-1month';
+            // Trigger 2: Exactly on the 7th day before end date
+            else if ($days_left === 7) {
+                if (empty($sub_record['reminder_week_sent'])) {
+                    $reminder_type = '1_week';
+                    $template_code = 'merchant-subscription-renewal-1week';
+                } else {
+                    $this->last_expiry_error = "7-day reminder already sent on " . ($sub_record['reminder_week_sent_at'] ?? 'earlier');
+                    return false;
+                }
+            }
+            else {
+                $this->last_expiry_error = "Subscription expires in {$days_left} days. Reminders only trigger on 30th day and 7th day before expiry.";
+                return false;
             }
         }
 
@@ -746,7 +766,7 @@ class Subscription_model extends CI_Model
     /**
      * Batch check and send expiry reminders for all active merchant subscriptions (cron / batch helper)
      */
-    public function check_and_send_all_expiry_reminders()
+    public function check_and_send_all_expiry_reminders($force = null)
     {
         $active_subs = $this->db
             ->where('status', 'active')
@@ -755,18 +775,28 @@ class Subscription_model extends CI_Model
             ->result_array();
 
         $sent_count = 0;
+        $details = [];
         foreach ($active_subs as $sub) {
             if (!empty($sub['publisher_id'])) {
-                if ($this->check_and_send_expiry_reminders($sub['publisher_id'])) {
+                $sent = $this->check_and_send_expiry_reminders($sub['publisher_id'], $force);
+                if ($sent) {
                     $sent_count++;
                 }
+                $details[] = [
+                    'sub_id'       => $sub['id'],
+                    'publisher_id' => $sub['publisher_id'],
+                    'end_date'     => $sub['end_date'],
+                    'sent'         => $sent,
+                    'note'         => $this->last_expiry_error
+                ];
             }
         }
 
         return [
             'status'     => 'success',
             'checked'    => count($active_subs),
-            'sent_count' => $sent_count
+            'sent_count' => $sent_count,
+            'details'    => $details
         ];
     }
 

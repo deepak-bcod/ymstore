@@ -19,15 +19,17 @@ class SubscriptionCron extends CI_Controller
      */
     public function send_reminders()
     {
-        $result = $this->Subscription_model->check_and_send_all_expiry_reminders();
+        $force = $this->input->get('force'); // '1_month' or '1_week' for instant manual testing
+        $result = $this->Subscription_model->check_and_send_all_expiry_reminders($force);
 
         $this->output
             ->set_content_type('application/json')
             ->set_output(json_encode([
                 'status'    => 'success',
                 'executed'  => date('Y-m-d H:i:s'),
+                'force'     => $force ?: 'none (normal 30-day and 7-day schedule)',
                 'result'    => $result
-            ]));
+            ], JSON_PRETTY_PRINT));
     }
 
     /**

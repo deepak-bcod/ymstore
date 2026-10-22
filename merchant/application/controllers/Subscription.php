@@ -38,9 +38,8 @@ class Subscription extends CI_Controller
         $data['active_plan'] = $this->Subscription_model->get_active_plan($publisher_id);
         $data['is_expired']  = $this->Subscription_model->is_subscription_expired($publisher_id);
 
-        // Check and send subscription renewal reminders if near expiry and not renewed
+        // Run scheduled daily batch if at or after 3:20 PM and not run today
         try {
-            $this->Subscription_model->check_and_send_expiry_reminders($publisher_id);
             $this->Subscription_model->maybe_run_scheduled_daily_reminders();
         } catch (Exception $e) {
             log_message('error', 'Subscription expiry check error on subscription page: ' . $e->getMessage());
@@ -74,22 +73,22 @@ class Subscription extends CI_Controller
             redirect('subscription');
         }
 
-        // Prevent renewing or selecting Starter plan when subscription is expired
-        $plan_name_clean = strtolower(trim($plan['name'] ?? ''));
+        // Prevent renewing or selecting Starter plan when subscription is expired or active
+        $plan_name_clean = strtolower(trim(($plan['name'] ?? '') . ' ' . ($plan['name_fr'] ?? '')));
         $is_starter = ($plan_name_clean === 'starter' || strpos($plan_name_clean, 'starter') !== false);
+        $active_plan = $this->Subscription_model->get_active_plan($publisher_id);
         $is_expired = $this->Subscription_model->is_subscription_expired($publisher_id);
-        if ($is_starter && $is_expired) {
+        if ($is_starter && ($is_expired || !empty($active_plan['plan_id']))) {
             $is_fr = ($this->session->userdata('site_lang') == 'french');
             $msg = $is_fr 
-                ? "Le forfait Starter ne peut pas être renouvelé une fois expiré. Veuillez choisir un autre forfait."
-                : "The Starter plan cannot be renewed once expired. Please select a different plan.";
+                ? "Le forfait Starter ne peut pas être renouvelé. Veuillez choisir un autre forfait."
+                : "The Starter plan cannot be renewed. Please select a different plan.";
             $this->session->set_flashdata('error', $msg);
             redirect('subscription');
             return;
         }
 
         // If renewing currently active plan, ensure it is within 30 days prior to expiry
-        $active_plan = $this->Subscription_model->get_active_plan($publisher_id);
         if ($active_plan && $active_plan['plan_id'] == $plan_id && !empty($active_plan['end_date'])) {
             $days_remaining = (strtotime($active_plan['end_date']) - time()) / 86400;
             if ($days_remaining > 30) {
@@ -213,15 +212,17 @@ class Subscription extends CI_Controller
             return;
         }
 
-        $result = $this->Subscription_model->check_and_send_expiry_reminders($publisher_id);
+        $force = $this->input->get('force'); // '1_month' or '1_week'
+        $result = $this->Subscription_model->check_and_send_expiry_reminders($publisher_id, $force);
         $active_sub = $this->Subscription_model->get_active_plan($publisher_id);
 
         $this->output->set_content_type('application/json')->set_output(json_encode([
             'status'       => 'success',
             'email_sent'   => $result,
+            'force'        => $force ?: 'none',
             'reason'       => $this->Subscription_model->last_expiry_error,
             'publisher_id' => $publisher_id,
             'active_sub'   => $active_sub
-        ]));
+        ], JSON_PRETTY_PRINT));
     }
 }

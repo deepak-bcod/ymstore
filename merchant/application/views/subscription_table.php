@@ -137,23 +137,26 @@ $is_fr = ($this->session->userdata('site_lang') == 'french');
                         $is_active = (isset($active_plan['plan_id']) && $active_plan['plan_id'] == $plan['id']);
                         
                         // Identify the Starter plan specifically
-                        $plan_name_clean = strtolower(trim($plan['name'] ?? ''));
+                        $plan_name_clean = strtolower(trim(($plan['name'] ?? '') . ' ' . ($plan['name_fr'] ?? '')));
                         $is_starter = ($plan_name_clean === 'starter' || strpos($plan_name_clean, 'starter') !== false);
                         
                         // Check if user has an active higher plan (e.g., Growth is active, and current loop is Starter)
                         $has_active_plan = !empty($active_plan['plan_id']);
 
+                        // Check if subscription is expired
+                        $is_plan_expired = (!empty($is_expired) || (!empty($active_plan['end_date']) && strtotime($active_plan['end_date']) < time()));
+
                         // Renew option should only show 30 days prior before expiry date (or if expired)
+                        // Do not show renew/select radio for Starter plan when expired or active
                         $show_renew = false;
-                        if ($is_active) {
-                            if (!empty($is_expired)) {
-                                // Do not show renew/select radio for Starter plan when expired
-                                $show_renew = !$is_starter;
+                        if ($is_active && !$is_starter) {
+                            if ($is_plan_expired) {
+                                $show_renew = true;
                             } elseif (!empty($active_plan['end_date'])) {
                                 $end_ts = strtotime($active_plan['end_date']);
-                                $days_remaining = ($end_ts - time()) / 86400;
+                                $plan_days_remaining = ($end_ts - time()) / 86400;
                                 // Show only if 30 days or fewer remaining before expiry
-                                if ($days_remaining <= 30) {
+                                if ($plan_days_remaining <= 30) {
                                     $show_renew = true;
                                 }
                             }
@@ -161,7 +164,7 @@ $is_fr = ($this->session->userdata('site_lang') == 'french');
                     ?>
                         <td>
                             <?php if($is_active): ?>
-                                <?php if(!empty($is_expired)): ?>
+                                <?php if($is_plan_expired): ?>
                                     <span class="badge badge-danger"><?php echo lang('expired') ?: 'Expired'; ?></span>
                                 <?php else: ?>
                                     <span class="badge badge-success"><?php echo lang('active'); ?></span>
@@ -169,7 +172,7 @@ $is_fr = ($this->session->userdata('site_lang') == 'french');
                                 <?php if(!empty($active_plan['end_date'])): ?>
                                     <br><small><?php echo lang('expires'); ?>: <?= date('d M Y', strtotime($active_plan['end_date'])); ?></small>
                                 <?php endif; ?>
-                                <?php if($show_renew && !($is_starter && !empty($is_expired))): ?>
+                                <?php if($show_renew && !$is_starter): ?>
                                     <div class="mt-2">
                                         <input type="radio" name="plan_id" value="<?= $plan['id']; ?>" required>
                                         <label><?php echo lang('select'); ?></label>
@@ -178,7 +181,7 @@ $is_fr = ($this->session->userdata('site_lang') == 'french');
                             <?php elseif($has_active_plan && $is_starter): ?>
                                 <!-- Hide select option only for the Starter plan when any plan is already active -->
                                 <span class="text-muted">-</span>
-                            <?php elseif($is_starter && !empty($is_expired)): ?>
+                            <?php elseif($is_starter && $is_plan_expired): ?>
                                 <!-- Hide select option for Starter plan when subscription is expired -->
                                 <span class="text-muted">-</span>
                             <?php else: ?>
