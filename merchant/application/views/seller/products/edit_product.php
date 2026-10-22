@@ -320,6 +320,25 @@
 
 				</small>
 
+				<?php
+					$dd_start_ts = !empty($ProductData->daily_deal_starts_at) ? $ProductData->daily_deal_starts_at : (!empty($ProductData->special_price_from) ? $ProductData->special_price_from : null);
+					$dd_end_ts   = !empty($ProductData->daily_deal_ends_at) ? $ProductData->daily_deal_ends_at : (!empty($ProductData->special_price_to) ? $ProductData->special_price_to : null);
+					$dd_start_val = $dd_start_ts ? date('Y-m-d\TH:i', is_numeric($dd_start_ts) ? (int)$dd_start_ts : strtotime($dd_start_ts)) : '';
+					$dd_end_val   = $dd_end_ts ? date('Y-m-d\TH:i', is_numeric($dd_end_ts) ? (int)$dd_end_ts : strtotime($dd_end_ts)) : '';
+				?>
+				<div id="daily_deals_datetime_box" style="<?php echo ($ProductData->daily_deals == 1) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
+					<div class="row">
+						<div class="col-sm-6">
+							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time</label>
+							<input type="datetime-local" class="form-control" name="daily_deal_starts_at" id="daily_deal_starts_at" value="<?php echo $dd_start_val; ?>">
+						</div>
+						<div class="col-sm-6">
+							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time</label>
+							<input type="datetime-local" class="form-control" name="daily_deal_ends_at" id="daily_deal_ends_at" value="<?php echo $dd_end_val; ?>">
+						</div>
+					</div>
+				</div>
+
 				<br>
 
 			</div>
@@ -354,6 +373,26 @@
 						<?php echo lang('used'); ?>: <?php echo $current_flash_count; ?>
 
 					</small>
+
+					<?php
+						$fs_start_ts = !empty($ProductData->flash_sale_starts_at) ? $ProductData->flash_sale_starts_at : (!empty($ProductData->special_price_from) ? $ProductData->special_price_from : null);
+						$fs_end_ts   = !empty($ProductData->flash_sale_ends_at) ? $ProductData->flash_sale_ends_at : (!empty($ProductData->special_price_to) ? $ProductData->special_price_to : null);
+						$fs_start_val = $fs_start_ts ? date('Y-m-d\TH:i', is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts)) : '';
+						$fs_end_val   = $fs_end_ts ? date('Y-m-d\TH:i', is_numeric($fs_end_ts) ? (int)$fs_end_ts : strtotime($fs_end_ts)) : '';
+					?>
+					<div id="flash_sale_datetime_box" style="<?php echo ($ProductData->flash_sale == 1) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
+						<div class="row">
+							<div class="col-sm-6">
+								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time</label>
+								<input type="datetime-local" class="form-control" name="flash_sale_starts_at" id="flash_sale_starts_at" value="<?php echo $fs_start_val; ?>">
+							</div>
+							<div class="col-sm-6">
+								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time</label>
+								<input type="datetime-local" class="form-control" name="flash_sale_ends_at" id="flash_sale_ends_at" value="<?php echo $fs_end_val; ?>">
+							</div>
+						</div>
+					</div>
+
 				<?php endif; ?>
 
 				<br>
@@ -1168,6 +1207,8 @@
 
 					<th><?php echo $this->lang->line('sku'); ?> </th>
 
+					<th>Special Price</th>
+
 					<th><?php echo $this->lang->line('action'); ?></th>
 
 
@@ -1251,6 +1292,8 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 
 					  <!-- <th>WEIGHT (KG)  </th> -->
 						<th><?php echo $this->lang->line('sku'); ?> </th>
+
+						<th>Special Price</th>
 
 						<th><?php echo $this->lang->line('inventory'); ?></th>
 
@@ -1336,6 +1379,18 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 					<!-- <td> <?php //echo ucwords($ProductData->product_inv_type) ; ?></td> -->
 
 					<td><input type="text" class="form-control input-sm " name="sku" id="sku" value="<?php echo $ProductData->sku; ?>" ></td>
+
+					<td>
+						<?php
+							$simple_sp = '';
+							if (!empty($SpecialPriceData->special_price) && $SpecialPriceData->special_price > 0) {
+								$simple_sp = $SpecialPriceData->special_price;
+							} elseif (!empty($ProductData->special_price) && $ProductData->special_price > 0) {
+								$simple_sp = $ProductData->special_price;
+							}
+						?>
+						<input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" value="<?php echo $simple_sp; ?>" placeholder="0.00">
+					</td>
 
                       <!-- <td><input type="text" class="form-control input-sm" name="barcode" id="barcode" maxlength="48" value="<?php //echo $ProductData->barcode; ?>"></td> -->
 
@@ -1947,6 +2002,22 @@ $('.required-field').each(function() {
     }, "Duplicate entry found for this column.");
 
 
+
+	$('#daily_deals').on('change', function() {
+		if ($(this).val() == '1') {
+			$('#daily_deals_datetime_box').slideDown();
+		} else {
+			$('#daily_deals_datetime_box').slideUp();
+		}
+	});
+
+	$('#flash_sale').on('change', function() {
+		if ($(this).val() == '1') {
+			$('#flash_sale_datetime_box').slideDown();
+		} else {
+			$('#flash_sale_datetime_box').slideUp();
+		}
+	});
 
 });
 

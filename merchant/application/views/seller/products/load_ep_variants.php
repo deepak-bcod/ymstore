@@ -138,6 +138,17 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
     <td>
         <input type="text" name="variant_sku[]" class="form-control" value="<?php echo $variant['sku']; ?>">
     </td>
+    <td>
+        <?php
+            $v_sp = '';
+            if (!empty($variant['promo_special_price']) && $variant['promo_special_price'] > 0) {
+                $v_sp = $variant['promo_special_price'];
+            } elseif (!empty($variant['special_price']) && $variant['special_price'] > 0) {
+                $v_sp = $variant['special_price'];
+            }
+        ?>
+        <input type="number" step="0.01" min="0" name="variant_special_price[]" class="form-control" value="<?php echo $v_sp; ?>" placeholder="0.00">
+    </td>
 
     <!-- <td>
         <select class="form-control" name="gifts[]">
