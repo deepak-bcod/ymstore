@@ -250,7 +250,8 @@ $lang = $this->session->userdata('site_lang');
                                     $now = time();
                                     $is_flash_sale_detail = false;
                                     $is_daily_deal_detail = false;
-                                    $ends_at_detail = 0;
+                                    $fs_ends_at_detail = 0;
+                                    $dd_ends_at_detail = 0;
 
                                     if (!empty($ProductData->id)) {
                                         $ci =& get_instance();
@@ -262,14 +263,14 @@ $lang = $this->session->userdata('site_lang');
                                             if ($p_promo_data) {
                                                 if (!empty($p_promo_data->flash_sale) && $p_promo_data->flash_sale == 1 && (empty($p_promo_data->flash_sale_ends_at) || (int)$p_promo_data->flash_sale_ends_at > $now)) {
                                                     $is_flash_sale_detail = true;
-                                                    if (!empty($p_promo_data->flash_sale_ends_at) && (int)$p_promo_data->flash_sale_ends_at > $now) {
-                                                        $ends_at_detail = (int)$p_promo_data->flash_sale_ends_at;
+                                                    if (!empty($p_promo_data->flash_sale_ends_at)) {
+                                                        $fs_ends_at_detail = (int)$p_promo_data->flash_sale_ends_at;
                                                     }
                                                 }
-                                                if (!$is_flash_sale_detail && !empty($p_promo_data->daily_deals) && $p_promo_data->daily_deals == 1 && (empty($p_promo_data->daily_deal_ends_at) || (int)$p_promo_data->daily_deal_ends_at > $now)) {
+                                                if (!empty($p_promo_data->daily_deals) && $p_promo_data->daily_deals == 1 && (empty($p_promo_data->daily_deal_ends_at) || (int)$p_promo_data->daily_deal_ends_at > $now)) {
                                                     $is_daily_deal_detail = true;
-                                                    if (!empty($p_promo_data->daily_deal_ends_at) && (int)$p_promo_data->daily_deal_ends_at > $now) {
-                                                        $ends_at_detail = (int)$p_promo_data->daily_deal_ends_at;
+                                                    if (!empty($p_promo_data->daily_deal_ends_at)) {
+                                                        $dd_ends_at_detail = (int)$p_promo_data->daily_deal_ends_at;
                                                     }
                                                 }
                                             }
@@ -279,25 +280,38 @@ $lang = $this->session->userdata('site_lang');
                                     if (!$is_flash_sale_detail) {
                                         if (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1 && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
                                             $is_flash_sale_detail = true;
-                                            if (!empty($ProductData->flash_sale_ends_at) && (int)$ProductData->flash_sale_ends_at > $now) {
-                                                $ends_at_detail = (int)$ProductData->flash_sale_ends_at;
+                                            if (!empty($ProductData->flash_sale_ends_at)) {
+                                                $fs_ends_at_detail = (int)$ProductData->flash_sale_ends_at;
                                             }
                                         } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'flash_sale' && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
                                             $is_flash_sale_detail = true;
-                                            if (!empty($ProductData->flash_sale_ends_at) && (int)$ProductData->flash_sale_ends_at > $now) {
-                                                $ends_at_detail = (int)$ProductData->flash_sale_ends_at;
+                                            if (!empty($ProductData->flash_sale_ends_at)) {
+                                                $fs_ends_at_detail = (int)$ProductData->flash_sale_ends_at;
                                             }
                                         }
                                     }
 
-                                    if (!$is_flash_sale_detail && !$is_daily_deal_detail) {
+                                    if (!$is_daily_deal_detail) {
                                         if (!empty($ProductData->daily_deals) && $ProductData->daily_deals == 1 && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
                                             $is_daily_deal_detail = true;
-                                            if (!empty($ProductData->daily_deal_ends_at) && (int)$ProductData->daily_deal_ends_at > $now) {
-                                                $ends_at_detail = (int)$ProductData->daily_deal_ends_at;
+                                            if (!empty($ProductData->daily_deal_ends_at)) {
+                                                $dd_ends_at_detail = (int)$ProductData->daily_deal_ends_at;
+                                            }
+                                        } elseif (!empty($ProductData->daily_deal) && $ProductData->daily_deal == 1 && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+                                            $is_daily_deal_detail = true;
+                                            if (!empty($ProductData->daily_deal_ends_at)) {
+                                                $dd_ends_at_detail = (int)$ProductData->daily_deal_ends_at;
+                                            }
+                                        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'daily_deal' && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+                                            $is_daily_deal_detail = true;
+                                            if (!empty($ProductData->daily_deal_ends_at)) {
+                                                $dd_ends_at_detail = (int)$ProductData->daily_deal_ends_at;
                                             }
                                         }
                                     }
+
+                                    $ends_at_candidates_d = array_filter([$fs_ends_at_detail, $dd_ends_at_detail], function($ts) use ($now) { return $ts > $now; });
+                                    $ends_at_detail = !empty($ends_at_candidates_d) ? min($ends_at_candidates_d) : 0;
 
                                     $is_out_of_stock_detail = false;
                                     $product_stock_detail = null;
