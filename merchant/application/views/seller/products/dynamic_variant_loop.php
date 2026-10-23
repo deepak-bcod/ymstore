@@ -17,6 +17,7 @@
 		  <th>SELLING PRICE </th>
 		  <th>TAX (%) </th>
 		  <th>ESHOP PRICE </th>
+		  <th>Special Price</th>
 		  <th>SKU </th>
 		  <!-- <th>BARCODE </th> -->
 		  <!-- <th>WEIGHT (KG) </th> -->

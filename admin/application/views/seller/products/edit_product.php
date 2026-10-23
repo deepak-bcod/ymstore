@@ -1287,9 +1287,9 @@
 
 													<th>ESHOP PRICE </th>
 
-													<th>SKU </th>
-
 													<th>SPECIAL PRICE</th>
+
+													<th>SKU </th>
 
 													<!-- <th>BARCODE </th> -->
 
@@ -1367,8 +1367,6 @@
 
 													<th>SKU </th>
 
-													<th>SPECIAL PRICE</th>
-
 													<!-- <th>BARCODE </th> -->
 
 													<!-- <th>WEIGHT (KG)  </th> -->
@@ -1382,6 +1380,8 @@
 													<th>VAT (%) </th>
 
 													<th>ESHOP PRICE </th>
+
+													<th>SPECIAL PRICE</th>
 
 													<!-- <th>GIFTS</th>
 
@@ -1461,18 +1461,6 @@
 
 													<td><input type="text" class="form-control input-sm " name="sku" id="sku" value="<?php echo $ProductData->sku; ?>"></td>
 
-													<td>
-														<?php
-															$simple_sp = '';
-															if (!empty($SpecialPriceData->special_price) && $SpecialPriceData->special_price > 0) {
-																$simple_sp = $SpecialPriceData->special_price;
-															} elseif (!empty($ProductData->special_price) && $ProductData->special_price > 0) {
-																$simple_sp = $ProductData->special_price;
-															}
-														?>
-														<input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" value="<?php echo $simple_sp; ?>" placeholder="0.00">
-													</td>
-
 													<!-- <td><input type="text" class="form-control input-sm" name="barcode" id="barcode" maxlength="48" value="<?php //echo $ProductData->barcode; 
 
 																																								?>"></td> -->
@@ -1500,6 +1488,18 @@
 </td>
 
 													<td><input type="number" class="form-control input-sm" onkeypress="return isNumberKey(event);" name="webshop_price" id="webshop_price" value="<?php echo $ProductData->webshop_price; ?>"></td>
+
+													<td>
+														<?php
+															$simple_sp = '';
+															if (!empty($SpecialPriceData->special_price) && $SpecialPriceData->special_price > 0) {
+																$simple_sp = $SpecialPriceData->special_price;
+															} elseif (!empty($ProductData->special_price) && $ProductData->special_price > 0) {
+																$simple_sp = $ProductData->special_price;
+															}
+														?>
+														<input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" value="<?php echo $simple_sp; ?>" placeholder="0.00">
+													</td>
 
 
 

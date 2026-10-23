@@ -125,8 +125,6 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
 
 				<td><input type="number" class="form-control tax-percent" onkeypress="return isNumberKey(event);" name="variant_tax_percent[]" max="100" min="0" oninput="validateTax(this)" value="<?php echo ($variant['tax_percent']>0)?$variant['tax_percent']:''; ?>" onblur="calculate_webshop_price(<?php echo $Rounded_price_flag?>,<?php echo $random_id; ?>);" id="variant_tax_percent_<?php echo $random_id; ?>"></td>
 				  <td><input type="number" class="form-control required-field webshop-price" onkeypress="return isNumberKey(event);" name="variant_webshop_price[]"  id="variant_webshop_price_<?php echo $random_id; ?>" value="<?php echo $variant['webshop_price']; ?>"  ></td>
-				  <td><input type="hidden" name="conf_simple[]" class="form-control "  value="<?php echo $variant['id']; ?>" >
-				  <input type="text" name="variant_sku[]" onblur="skudbcompare(this,<?php echo $variant['id']; ?>);"  class="form-control required-field unique-sku valid-sku" value="<?php echo $variant['sku']; ?>" placeholder="Enter Value"></td>
 				  <td>
 					<?php
 						$v_sp = '';
@@ -138,6 +136,8 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
 					?>
 					<input type="number" step="0.01" min="0" name="variant_special_price[]" class="form-control" value="<?php echo $v_sp; ?>" placeholder="0.00">
 				  </td>
+				  <td><input type="hidden" name="conf_simple[]" class="form-control "  value="<?php echo $variant['id']; ?>" >
+				  <input type="text" name="variant_sku[]" onblur="skudbcompare(this,<?php echo $variant['id']; ?>);"  class="form-control required-field unique-sku valid-sku" value="<?php echo $variant['sku']; ?>" placeholder="Enter Value"></td>
 				  <!-- <td ><input type="text" name="variant_barcode[]" onblur="barcodedbcompare(this,<?php //echo $variant['id']; ?>);" class="form-control "  value="<?php //echo $variant['barcode']; ?>" placeholder="Enter Value"></td> -->
 				  <!-- <td><input type="text" class="form-control input-sm" name="variant_weight[]"  value="<?php //echo $variant['weight']; ?>" onkeypress="return isNumberKey(event);"></td> -->
 				  <!-- <td><select class="form-control required-field webshop-gifts input-sm" name="gifts[]">

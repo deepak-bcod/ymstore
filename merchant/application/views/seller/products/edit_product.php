@@ -1205,9 +1205,9 @@
 
 					<th><?php echo $this->lang->line('eshop_price'); ?> </th>
 
-					<th><?php echo $this->lang->line('sku'); ?> </th>
-
 					<th>Special Price</th>
+
+					<th><?php echo $this->lang->line('sku'); ?> </th>
 
 					<th><?php echo $this->lang->line('action'); ?></th>
 
@@ -1293,8 +1293,6 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 					  <!-- <th>WEIGHT (KG)  </th> -->
 						<th><?php echo $this->lang->line('sku'); ?> </th>
 
-						<th>Special Price</th>
-
 						<th><?php echo $this->lang->line('inventory'); ?></th>
 
 						<th><?php echo $this->lang->line('cost_price'); ?> </th>
@@ -1304,6 +1302,8 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 						<th><?php echo $this->lang->line('vat_percent'); ?> </th>
 
 						<th><?php echo $this->lang->line('eshop_price'); ?> </th>
+
+						<th>Special Price</th>
 
 
 					  <!-- <th>GIFTS</th>
@@ -1380,18 +1380,6 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 
 					<td><input type="text" class="form-control input-sm " name="sku" id="sku" value="<?php echo $ProductData->sku; ?>" ></td>
 
-					<td>
-						<?php
-							$simple_sp = '';
-							if (!empty($SpecialPriceData->special_price) && $SpecialPriceData->special_price > 0) {
-								$simple_sp = $SpecialPriceData->special_price;
-							} elseif (!empty($ProductData->special_price) && $ProductData->special_price > 0) {
-								$simple_sp = $ProductData->special_price;
-							}
-						?>
-						<input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" value="<?php echo $simple_sp; ?>" placeholder="0.00">
-					</td>
-
                       <!-- <td><input type="text" class="form-control input-sm" name="barcode" id="barcode" maxlength="48" value="<?php //echo $ProductData->barcode; ?>"></td> -->
 
 					  <!-- <td><input type="text" class="form-control input-sm" name="weight" id="weight"  value="<?php //echo $ProductData->weight; ?>" onkeypress="return isNumberKey(event);"></td> -->
@@ -1416,6 +1404,18 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 </td>
 	   
 					  <td><input type="number" class="form-control input-sm" onkeypress="return isNumberKey(event);" name="webshop_price" id="webshop_price" value="<?php echo $ProductData->webshop_price; ?>"></td>
+
+					<td>
+						<?php
+							$simple_sp = '';
+							if (!empty($SpecialPriceData->special_price) && $SpecialPriceData->special_price > 0) {
+								$simple_sp = $SpecialPriceData->special_price;
+							} elseif (!empty($ProductData->special_price) && $ProductData->special_price > 0) {
+								$simple_sp = $ProductData->special_price;
+							}
+						?>
+						<input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" value="<?php echo $simple_sp; ?>" placeholder="0.00">
+					</td>
 
 					  <!-- <td><select class="form-control input-sm" name="gifts_to" id="gifts_to">
 
