@@ -134,10 +134,6 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
         <input type="number" name="variant_webshop_price[]" id="variant_webshop_price_<?php echo $random_id; ?>" 
                class="form-control" value="<?php echo $variant['webshop_price']; ?>" readonly>
     </td>
-    <input type="hidden" name="conf_simple[]" class="form-control "  value="<?php echo $variant['id']; ?>" >
-    <td>
-        <input type="text" name="variant_sku[]" class="form-control" value="<?php echo $variant['sku']; ?>">
-    </td>
     <td>
         <?php
             $v_sp = '';
@@ -148,6 +144,10 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
             }
         ?>
         <input type="number" step="0.01" min="0" name="variant_special_price[]" class="form-control" value="<?php echo $v_sp; ?>" placeholder="0.00">
+    </td>
+    <input type="hidden" name="conf_simple[]" class="form-control "  value="<?php echo $variant['id']; ?>" >
+    <td>
+        <input type="text" name="variant_sku[]" class="form-control" value="<?php echo $variant['sku']; ?>">
     </td>
 
     <!-- <td>

@@ -17,8 +17,8 @@
 		  <th>SELLING PRICE </th>
 		  <th>VAT (%) </th>
 		  <th>ESHOP PRICE </th>
-		  <th>SKU </th>
 		  <th>SPECIAL PRICE</th>
+		  <th>SKU </th>
 		  <!-- <th>BARCODE </th> -->
 		  <!-- <th>WEIGHT (KG) </th> -->
       <!-- <th>GIFTS</th>
