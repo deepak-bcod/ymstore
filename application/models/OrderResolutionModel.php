@@ -17,6 +17,9 @@ class OrderResolutionModel extends CI_Model
     public function ensure_schema()
     {
         try {
+            if (empty($this->db) || empty($this->db->conn_id)) {
+                return;
+            }
             if ($this->db && $this->db->table_exists('order_resolution_messages')) {
                 if (!$this->db->field_exists('conversion_type', 'order_resolution_messages')) {
                     $this->db->query("ALTER TABLE `order_resolution_messages` ADD COLUMN `conversion_type` enum('shopper_merchant','shopper_admin','merchant_admin') NOT NULL DEFAULT 'shopper_merchant' AFTER `ticket_number`");
@@ -410,7 +413,7 @@ class OrderResolutionModel extends CI_Model
      */
     public function get_escalation_status_for_order_items(array $order_ids)
     {
-        if (empty($order_ids)) {
+        if (empty($order_ids) || empty($this->db) || empty($this->db->conn_id)) {
             return [];
         }
 
@@ -470,6 +473,9 @@ class OrderResolutionModel extends CI_Model
      */
     public function get_item_escalation_status($order_id, $product_id = 0, $b2b_order_id = 0)
     {
+        if (empty($this->db) || empty($this->db->conn_id)) {
+            return null;
+        }
         $res = $this->get_latest_resolution_for_item($order_id, $product_id);
         if (!$res && !empty($b2b_order_id)) {
             $res = $this->db->select('*')

@@ -207,7 +207,7 @@ function getSubOrderStatusText($status) {
                             </div>
                         </div>
                         <?php 
-                            if (isset($order->order_items)  && count($order->order_items) > 0) {
+                            if (!empty($order->order_items) && (is_countable($order->order_items) ? count($order->order_items) > 0 : !empty((array)$order->order_items))) {
                                 //echo "<pre>";print_r($order);die; 
                         ?>
 
@@ -226,7 +226,7 @@ function getSubOrderStatusText($status) {
                                         $delivery_status = $order->delivery_status ?? '';
                                         $delivery_status_no = $order->delivery_status_no ?? 0;
                                         
-                                        if (isset($order->b2b_orders) && count($order->b2b_orders) > 0) {
+                                        if (!empty($order->b2b_orders) && (is_countable($order->b2b_orders) ? count($order->b2b_orders) > 0 : !empty((array)$order->b2b_orders))) {
                                             foreach ($order->b2b_orders as $b2b) {
 
                                                 // Determine sub-order status text & CSS class
@@ -414,11 +414,17 @@ function getSubOrderStatusText($status) {
                                                                             $esc_state = $escalation_status_map[(string)$o_id];
                                                                         }
                                                                     } else {
-                                                                        $CI =& get_instance();
-                                                                        if (!isset($CI->OrderResolutionModel)) {
-                                                                            $CI->load->model('OrderResolutionModel');
+                                                                        try {
+                                                                            $CI =& get_instance();
+                                                                            if (!empty($CI->db) && !empty($CI->db->conn_id)) {
+                                                                                if (!isset($CI->OrderResolutionModel)) {
+                                                                                    $CI->load->model('OrderResolutionModel');
+                                                                                }
+                                                                                $esc_state = $CI->OrderResolutionModel->get_item_escalation_status($o_id, $p_id, $b2b_id);
+                                                                            }
+                                                                        } catch (\Throwable $e) {
+                                                                            $esc_state = null;
                                                                         }
-                                                                        $esc_state = $CI->OrderResolutionModel->get_item_escalation_status($o_id, $p_id, $b2b_id);
                                                                     }
 
                                                                     if ($esc_state === 'init') {
@@ -532,7 +538,7 @@ function getSubOrderStatusText($status) {
                                     <?php foreach ($order->b2b_orders as $b2b_sub): 
                                         $m_display_name = !empty($b2b_sub->increment_id) ? $b2b_sub->increment_id : $b2b_sub->order_id;
 
-                                        $btn_text = (count($order->b2b_orders) > 1)
+                                        $btn_text = (!empty($order->b2b_orders) && (is_countable($order->b2b_orders) ? count($order->b2b_orders) : count((array)$order->b2b_orders)) > 1)
                                             ? ($this->lang->line('invoice') ?: 'Invoice') . ' (' . $m_display_name . ')'
                                             : ($this->lang->line('merchant_invoice') ?: 'Merchant Invoice');
                                     ?>
