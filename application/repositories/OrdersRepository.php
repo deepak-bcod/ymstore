@@ -6,17 +6,14 @@ class OrdersRepository
     use UsesRestAPI;
     public static function my_orders_listing($LoginID, $limit, $offset)
     {
+        if (empty($LoginID)) {
+            return null;
+        }
         static $result;
         if (isset($result)) {
             return $result;
         }
-        // echo "<pre>";
-        // print_r($result);
-        // exit;
 		$result = self::get_method('/webshop/my_orders_listing_new/'.$LoginID.'/'.$limit.'/'.$offset);
-        /*echo "<pre>";
-         var_dump($result);
-         exit;*/
 		return $result;
     }
 

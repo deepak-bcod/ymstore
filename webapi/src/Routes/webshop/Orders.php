@@ -542,7 +542,10 @@ $app->get('/webshop/my_orders_listing_new/{customer_id}/{limit}/{offset}', funct
 
 		$custom_variables_data = $webshop_obj->get_custom_variables();
 
-		$custom_variables = array_combine(array_column($custom_variables_data, 'identifier'), $custom_variables_data);
+		$custom_variables = [];
+		if (!empty($custom_variables_data) && is_array($custom_variables_data)) {
+			$custom_variables = array_combine(array_column($custom_variables_data, 'identifier'), $custom_variables_data);
+		}
 
 		$product_return_duration = $custom_variables[$identifier]['value'] ?? 0;
 			// echo "<pre>"; print_r($product_return_duration);die;
@@ -569,7 +572,7 @@ $app->get('/webshop/my_orders_listing_new/{customer_id}/{limit}/{offset}', funct
 			$OrderItemsMultidata=$order_obj->getOrderItemsMultiids($order_ids);
 			
 
-			$this->order_products = array_group($OrderItemsMultidata, 'order_id');
+			$this->order_products = !empty($OrderItemsMultidata) && is_array($OrderItemsMultidata) ? array_group($OrderItemsMultidata, 'order_id') : [];
 
 			// $b2bShopsIds=$ch_obj->getShopsForBTwoBOrdersMultiple($order_ids);
 
@@ -634,7 +637,7 @@ $app->get('/webshop/my_orders_listing_new/{customer_id}/{limit}/{offset}', funct
 
 					$order_id  = $order['order_id'];
 					$status    = $order['status'];
-					$order['order_items'] = $this->order_products[$order_id];
+					$order['order_items'] = $this->order_products[$order_id] ?? [];
 					$tracking_complete_date = $order['tracking_complete_date'];
 
 					/* ----------------------------------------------------
@@ -793,9 +796,9 @@ $app->get('/webshop/my_orders_listing_new/{customer_id}/{limit}/{offset}', funct
 
 					
 
-					$attempt_no      = $delivery_arr['delivery_attempt_no'] ?? 0;
-					$delivery_status = $delivery_arr['delivery_status'] ?? null;
-					$b2b_status      = $b2b->status ?? null;
+					$attempt_no      = (is_array($delivery_arr) && isset($delivery_arr['delivery_attempt_no'])) ? $delivery_arr['delivery_attempt_no'] : 0;
+					$delivery_status = (is_array($delivery_arr) && isset($delivery_arr['delivery_status'])) ? $delivery_arr['delivery_status'] : null;
+					$b2b_status      = !empty($b2b_orders) ? reset($b2b_orders)['status'] : null;
 
 					switch (true) {
 

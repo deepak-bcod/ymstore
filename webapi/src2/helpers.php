@@ -20,8 +20,16 @@ function array_group($input_array, $column_name) : array
 {
 	$output_array = [];
 
+	if (empty($input_array) || (!is_array($input_array) && !is_object($input_array))) {
+		return $output_array;
+	}
+
 	foreach ($input_array as $array_element) {
-		$output_array[$array_element[$column_name]][] = $array_element;
+		if (is_array($array_element) && isset($array_element[$column_name])) {
+			$output_array[$array_element[$column_name]][] = $array_element;
+		} elseif (is_object($array_element) && isset($array_element->$column_name)) {
+			$output_array[$array_element->$column_name][] = $array_element;
+		}
 	}
 
 	return $output_array;
@@ -31,8 +39,16 @@ function array_key_by($input_array, $column_name) : array
 {
 	$output_array = [];
 
+	if (empty($input_array) || (!is_array($input_array) && !is_object($input_array))) {
+		return $output_array;
+	}
+
 	foreach ($input_array as $array_element) {
-		$output_array[$array_element[$column_name]] = $array_element;
+		if (is_array($array_element) && isset($array_element[$column_name])) {
+			$output_array[$array_element[$column_name]] = $array_element;
+		} elseif (is_object($array_element) && isset($array_element->$column_name)) {
+			$output_array[$array_element->$column_name] = $array_element;
+		}
 	}
 
 	return $output_array;
