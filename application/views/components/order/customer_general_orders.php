@@ -52,7 +52,7 @@ function getSubOrderStatusText($status) {
                 $order_total_voucher_amount = 0;
 
                 foreach ($OrderList as $order) {
-                    $order_items = count($order->order_items);
+                    $order_items = (!empty($order->order_items) && is_countable($order->order_items)) ? count($order->order_items) : 0;
                     $order_total_shipping = $order->shipping_amount;
                     $order_total_voucher_amount = $order->voucher_amount; 
                     //echo "<pre>";print_r($order);die;
@@ -223,8 +223,8 @@ function getSubOrderStatusText($status) {
                                     <div class="col-md-8">
                                         <?php
                                         $total_active_item = 0;
-                                        $delivery_status = $order->delivery_status;
-                                        $delivery_status_no = $order->delivery_status_no;
+                                        $delivery_status = $order->delivery_status ?? '';
+                                        $delivery_status_no = $order->delivery_status_no ?? 0;
                                         
                                         if (isset($order->b2b_orders) && count($order->b2b_orders) > 0) {
                                             foreach ($order->b2b_orders as $b2b) {
@@ -270,6 +270,7 @@ function getSubOrderStatusText($status) {
                                                 // echo "<pre>";print_r($b2b->status);exit;
                                                 // $b2b_status_info = isset($status_map[$b2b->status]) ? $status_map[$b2b->status] : ['text'=>$this->lang->line('unknown'),'class'=>'green-text completed'];
 
+                                                if (!empty($b2b->sub_order_items) && (is_array($b2b->sub_order_items) || is_object($b2b->sub_order_items))) {
                                                 foreach ($b2b->sub_order_items as $sub_item) {
 
                                                     // Determine sub-item status per product/item individually
@@ -362,9 +363,11 @@ function getSubOrderStatusText($status) {
                                                     $parent_item = null;
                                                     if (isset($sub_item->product_name)) {
                                                         $matches = [];
-                                                        foreach ($order->order_items as $idx => $oitem) {
-                                                            if ($oitem->product_name == $sub_item->product_name) {
-                                                                $matches[] = $oitem;
+                                                        if (!empty($order->order_items) && (is_array($order->order_items) || is_object($order->order_items))) {
+                                                            foreach ($order->order_items as $idx => $oitem) {
+                                                                if (isset($oitem->product_name) && $oitem->product_name == $sub_item->product_name) {
+                                                                    $matches[] = $oitem;
+                                                                }
                                                             }
                                                         }
                                                         // Use sequential matching for duplicates
@@ -476,6 +479,7 @@ function getSubOrderStatusText($status) {
                                                 <?php
                                                     $total_active_item++;
                                                 }
+                                                }
 
                                             }
                                         }
@@ -486,7 +490,7 @@ function getSubOrderStatusText($status) {
                                     <div class="col-md-4">
                                         <div class="shpcart-ship-details">
                                             <div class="shpcart-ship-details-wrap">
-                                                <p><?php echo $this->lang->line('price_items'); ?> (<?php echo count($order->order_items) ?> Items)<br>(<?php echo $this->lang->line('inclusive_taxes'); ?>)</p>
+                                                <p><?php echo $this->lang->line('price_items'); ?> (<?php echo (!empty($order->order_items) && is_countable($order->order_items)) ? count($order->order_items) : 0; ?> Items)<br>(<?php echo $this->lang->line('inclusive_taxes'); ?>)</p>
                                                 <p><?php echo CURRENCY_TYPE . ' ' . number_format($order->base_subtotal, 2); ?></p>
                                             </div>
                                             <div class="shpcart-ship-details-wrap">

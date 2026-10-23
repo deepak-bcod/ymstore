@@ -668,210 +668,233 @@ Class DbOrders{
 
 	 public function getOrderItemsMultiids($order_ids)
 	 {
-
-		// $shop_db =  DB_NAME_SHOP_PRE.$shopcode; // constant variable
-		// $main_db = DB_NAME; //Constant variable
-		$order_ids_string = implode(',',$order_ids);
-		$sql =  "SELECT item_id,order_id,product_id,parent_product_id,parent_item_id,product_type,product_name,product_code,product_variants,estimate_delivery_time,qty_ordered,qty_scanned,price,total_price,tax_amount,discount_amount,total_discount_amount,can_be_returned,sub_start_date,sub_end_date FROM sales_order_items where `order_id` IN ($order_ids_string) AND `product_type`!= 'bundle' order by item_id ASC";
-		$Result  = $this->dbl->dbl_conn->rawQuery($sql);
-
-		if ($this->dbl->dbl_conn->getLastErrno() === 0){
-			if ($this->dbl->dbl_conn->count > 0){
-				$OrderItems=array();
-				$product_ids = array_column($Result, 'product_id');
-				$parent_product_ids = array_column($Result, 'parent_product_id');
-				$item_ids = array_column($Result, 'item_id');
-				$item_ids_string = implode(',',$item_ids);
-				// multi product data
-				$product_ids_string = implode(',',$product_ids);
-				$parent_product_ids_string = implode(',',$parent_product_ids);
-				$sql2 = "SELECT id,media_variant_id, base_image, estimate_delivery_time, url_key FROM products WHERE `id` IN ($product_ids_string) OR `id` IN ($parent_product_ids_string)";
-				$Result_product_id  = $this->dbl->dbl_conn->rawQuery($sql2);
-				$item_products = array_group($Result_product_id, 'id');
-
-				// end multi product data
-				//start
-				$sqlb2b =  "SELECT SUM(oi.qty_return) as qty_return, oi.order_id,oi.order_item_id FROM sales_order_return_items oi LEFT JOIN sales_order_return  as sor ON oi.return_order_id = sor.return_order_id where  oi.order_id IN ($order_ids_string) AND oi.order_item_id IN ($item_ids_string) AND sor.status NOT IN (0,1)";
-				$rowb2b  = $this->dbl->dbl_conn->rawQuery($sqlb2b);
-				$item_products_return = array_group($rowb2b, 'order_item_id');
-				//end
-
-				// print_R($item_products);
-				foreach($Result as $value){
-						//addition added
-							if($value['product_type'] == 'conf-simple'){
-								$parent_id = $value['parent_product_id'];
-								$product_id = $value['product_id'];
-								$productData=(isset($item_products[$parent_id]) && isset($item_products[$parent_id][0]) ? $item_products[$parent_id][0]  : '' );
-								if(isset($productData['media_variant_id']) &&  $productData['media_variant_id'] > 0){
-									$param3 = array($parent_id,1,$parent_id,$product_id,$productData['media_variant_id']);
-									$query3 = "SELECT image FROM products_media_gallery WHERE product_id = ? AND is_default_variant = ? AND attr_option_id = (SELECT attr_value from products_variants where parent_id = ? and product_id = ? and attr_id = ? )";
-									$productMedia = $this->dbl->dbl_conn->rawQueryOne($query3,$param3);
-								}else{
-									$param3 = array($parent_id,$product_id);
-									// print_R($param3);
-									$query3 = "SELECT image FROM products_media_gallery WHERE product_id = ? AND child_id = ? ORDER BY id LIMIT 1";
-									$productMedia = $this->dbl->dbl_conn->rawQueryOne($query3,$param3);
-								}
-								
-								if ($this->dbl->dbl_conn->getLastErrno() === 0){
-									
-									if ($this->dbl->dbl_conn->count > 0){
-										
-										$value['base_image']= $productMedia['image'];
-									}else{
-										$value['base_image']= (isset($productData['base_image']) ? $productData['base_image'] :'' );
-									}
-								} else {
-									$value['base_image']= (isset($productData['base_image']) ? : '');
-								}
-
-
-								$value['estimate_delivery_time']= (isset($productData['estimate_delivery_time'])? $productData['estimate_delivery_time'] : '');
-								$value['url_key']= (isset($productData['url_key']) ? $productData['url_key'] : '');
-
-							}else{
-								$product_id = $value['product_id'];
-								$productData=$item_products[$product_id][0];
-								$value['base_image']= $productData['base_image'];
-								$value['estimate_delivery_time']= $productData['estimate_delivery_time'];
-								$value['url_key']= $productData['url_key'];
-
-							}
-
-							$IsReturnedItem=0;
-							if(isset($item_products_return[$value['item_id']])){
-								if(isset($item_products_return[$value['item_id']][0]) && isset($item_products_return[$value['item_id']][0][$value['order_id']])){
-									$IsReturnedItem=$item_products_return[$value['item_id']][0]['qty_return'];
-								}
-							}
-
-							if($IsReturnedItem==0){
-								$value['item_display_status']=1;   // display
-							}else{
-								if($value['qty_ordered']>$IsReturnedItem)
-								{
-									$value['item_display_status']=1;   // display
-									$value['qty_return']=$IsReturnedItem;  // for reference
-									$value['qty_ordered']=$value['qty_ordered']-$IsReturnedItem;   // update qty_order as per rule
-								}else{
-									$value['item_display_status']=2;   // skip  for item display
-									$value['qty_return']=$IsReturnedItem;  // for reference
-								}
-							}
-
-							$OrderItems[] = $value;
-						}
-						// print_R($OrderItems);die();
-				return $OrderItems;
-
-			}else{
-				return false;
-			}
-		}else{
+		if (empty($order_ids) || !is_array($order_ids)) {
 			return false;
 		}
 
+		$valid_order_ids = array_values(array_unique(array_filter(array_map('intval', $order_ids))));
+		if (empty($valid_order_ids)) {
+			return false;
+		}
+
+		$order_ids_string = implode(',', $valid_order_ids);
+		$sql = "SELECT item_id,order_id,product_id,parent_product_id,parent_item_id,product_type,product_name,product_code,product_variants,estimate_delivery_time,qty_ordered,qty_scanned,price,total_price,tax_amount,discount_amount,total_discount_amount,can_be_returned,sub_start_date,sub_end_date FROM sales_order_items WHERE `order_id` IN ($order_ids_string) AND `product_type`!= 'bundle' ORDER BY item_id ASC";
+		$Result = $this->dbl->dbl_conn->rawQuery($sql);
+
+		if ($this->dbl->dbl_conn->getLastErrno() === 0 && !empty($Result) && is_array($Result)) {
+			$OrderItems = array();
+			$product_ids = array_column($Result, 'product_id');
+			$parent_product_ids = array_column($Result, 'parent_product_id');
+			$item_ids = array_column($Result, 'item_id');
+
+			// Collect all valid positive product IDs (both direct and parent)
+			$all_product_ids = array_values(array_unique(array_filter(array_merge($product_ids, $parent_product_ids), function($id) {
+				return !empty($id) && is_numeric($id) && (int)$id > 0;
+			})));
+
+			$item_products = [];
+			if (!empty($all_product_ids)) {
+				$all_product_ids_string = implode(',', array_map('intval', $all_product_ids));
+				$sql2 = "SELECT id, media_variant_id, base_image, estimate_delivery_time, url_key FROM products WHERE `id` IN ($all_product_ids_string)";
+				$Result_product_id = $this->dbl->dbl_conn->rawQuery($sql2);
+				if ($this->dbl->dbl_conn->getLastErrno() === 0 && !empty($Result_product_id) && is_array($Result_product_id)) {
+					$item_products = array_group($Result_product_id, 'id');
+				}
+			}
+
+			// Return items query with GROUP BY to support ONLY_FULL_GROUP_BY and avoid errors
+			$valid_item_ids = array_values(array_unique(array_filter(array_map('intval', $item_ids))));
+			$item_products_return = [];
+			if (!empty($valid_item_ids)) {
+				$item_ids_string = implode(',', $valid_item_ids);
+				$sqlb2b = "SELECT SUM(oi.qty_return) as qty_return, oi.order_id, oi.order_item_id 
+						   FROM sales_order_return_items oi 
+						   LEFT JOIN sales_order_return as sor ON oi.return_order_id = sor.return_order_id 
+						   WHERE oi.order_id IN ($order_ids_string) AND oi.order_item_id IN ($item_ids_string) AND sor.status NOT IN (0,1)
+						   GROUP BY oi.order_id, oi.order_item_id";
+				$rowb2b = $this->dbl->dbl_conn->rawQuery($sqlb2b);
+				if ($this->dbl->dbl_conn->getLastErrno() === 0 && !empty($rowb2b) && is_array($rowb2b)) {
+					$item_products_return = array_group($rowb2b, 'order_item_id');
+				}
+			}
+
+			foreach ($Result as $value) {
+				if ($value['product_type'] == 'conf-simple') {
+					$parent_id = $value['parent_product_id'];
+					$product_id = $value['product_id'];
+					$productData = (isset($item_products[$parent_id]) && isset($item_products[$parent_id][0])) ? $item_products[$parent_id][0] : [];
+					
+					$productMedia = null;
+					if (!empty($productData['media_variant_id']) && $productData['media_variant_id'] > 0) {
+						$param3 = array($parent_id, 1, $parent_id, $product_id, $productData['media_variant_id']);
+						$query3 = "SELECT image FROM products_media_gallery WHERE product_id = ? AND is_default_variant = ? AND attr_option_id = (SELECT attr_value from products_variants where parent_id = ? and product_id = ? and attr_id = ? )";
+						$productMedia = $this->dbl->dbl_conn->rawQueryOne($query3, $param3);
+					} else {
+						$param3 = array($parent_id, $product_id);
+						$query3 = "SELECT image FROM products_media_gallery WHERE product_id = ? AND child_id = ? ORDER BY id LIMIT 1";
+						$productMedia = $this->dbl->dbl_conn->rawQueryOne($query3, $param3);
+					}
+
+					if (!empty($productMedia['image'])) {
+						$value['base_image'] = $productMedia['image'];
+					} else {
+						$value['base_image'] = $productData['base_image'] ?? '';
+					}
+
+					$value['estimate_delivery_time'] = $productData['estimate_delivery_time'] ?? '';
+					$value['url_key'] = $productData['url_key'] ?? '';
+				} else {
+					$product_id = $value['product_id'];
+					$productData = (isset($item_products[$product_id]) && isset($item_products[$product_id][0])) ? $item_products[$product_id][0] : [];
+					$value['base_image'] = $productData['base_image'] ?? '';
+					$value['estimate_delivery_time'] = $productData['estimate_delivery_time'] ?? '';
+					$value['url_key'] = $productData['url_key'] ?? '';
+				}
+
+				$IsReturnedItem = 0;
+				if (!empty($item_products_return[$value['item_id']])) {
+					$returnRow = reset($item_products_return[$value['item_id']]);
+					if (!empty($returnRow['qty_return'])) {
+						$IsReturnedItem = (float)$returnRow['qty_return'];
+					}
+				}
+
+				if ($IsReturnedItem == 0) {
+					$value['item_display_status'] = 1; // display
+				} else {
+					if ($value['qty_ordered'] > $IsReturnedItem) {
+						$value['item_display_status'] = 1; // display
+						$value['qty_return'] = $IsReturnedItem; // for reference
+						$value['qty_ordered'] = $value['qty_ordered'] - $IsReturnedItem; // update qty_order as per rule
+					} else {
+						$value['item_display_status'] = 2; // skip for item display
+						$value['qty_return'] = $IsReturnedItem; // for reference
+					}
+				}
+
+				$OrderItems[] = $value;
+			}
+
+			return $OrderItems;
+		} else {
+			return false;
+		}
 	 }
 
 	// new
 	public function getOrderItemsMultiidsReturnOrder($shopcode,$shopid, $order_ids)
 	{
+		if (empty($order_ids) || !is_array($order_ids)) {
+			return false;
+		}
 
-	//    $shop_db =  DB_NAME_SHOP_PRE.$shopcode; // constant variable
-	//    $main_db = DB_NAME; //Constant variable
-	   $order_ids_string = implode(',',$order_ids);
+		$valid_order_ids = array_values(array_unique(array_filter(array_map('intval', $order_ids))));
+		if (empty($valid_order_ids)) {
+			return false;
+		}
 
-		$sql =  "SELECT * FROM sales_order_items where `order_id` IN ($order_ids_string) AND `product_type`!= 'bundle' order by item_id ASC";
-		$Result  = $this->dbl->dbl_conn->rawQuery($sql);
+		$order_ids_string = implode(',', $valid_order_ids);
+		$sql = "SELECT * FROM sales_order_items WHERE `order_id` IN ($order_ids_string) AND `product_type`!= 'bundle' ORDER BY item_id ASC";
+		$Result = $this->dbl->dbl_conn->rawQuery($sql);
 
-	   if ($this->dbl->dbl_conn->getLastErrno() === 0){
-		   if ($this->dbl->dbl_conn->count > 0){
-			   $OrderItems=array();
-			   $product_ids = array_column($Result, 'product_id');
-			   $parent_product_ids = array_column($Result, 'parent_product_id');
-			   $item_ids = array_column($Result, 'item_id');
-			   $item_ids_string = implode(',',$item_ids);
-			   // multi product data
-			   $product_ids_string = implode(',',$product_ids);
-			   $parent_product_ids_string = implode(',',$parent_product_ids);
-			   $sql2 = "SELECT id,media_variant_id, base_image, estimate_delivery_time, url_key FROM products WHERE `id` IN ($product_ids_string) OR `id` IN ($parent_product_ids_string)";
-			   $Result_product_id  = $this->dbl->dbl_conn->rawQuery($sql2);
-			   $item_products = array_group($Result_product_id, 'id');
-			   //start
-			   $sqlb2b =  "SELECT SUM(oi.qty_return) as qty_return, oi.order_id,oi.order_item_id FROM sales_order_return_items oi LEFT JOIN sales_order_return  as sor ON oi.return_order_id = sor.return_order_id where  oi.order_id IN ($order_ids_string) AND oi.order_item_id IN ($item_ids_string) AND sor.status NOT IN (0,1)";
-			   $rowb2b  = $this->dbl->dbl_conn->rawQuery($sqlb2b);
-			   $item_products_return = array_group($rowb2b, 'order_item_id');
+		if ($this->dbl->dbl_conn->getLastErrno() === 0 && !empty($Result) && is_array($Result)) {
+			$OrderItems = array();
+			$product_ids = array_column($Result, 'product_id');
+			$parent_product_ids = array_column($Result, 'parent_product_id');
+			$item_ids = array_column($Result, 'item_id');
 
-			   foreach($Result as $value){
-						   if($value['product_type'] == 'conf-simple'){
-							   $parent_id = $value['parent_product_id'];
-							   $product_id = $value['product_id'];
-							   $productData=$item_products[$parent_id][0];
-							   if($productData['media_variant_id'] > 0){
-								   $param3 = array($parent_id,1,$parent_id,$product_id,$productData['media_variant_id']);
-								   $query3 = "SELECT image FROM products_media_gallery WHERE product_id = ? AND is_default_variant = ? AND attr_option_id = (SELECT attr_value from products_variants where parent_id = ? and product_id = ? and attr_id = ? )";
-								   $productMedia = $this->dbl->dbl_conn->rawQueryOne($query3,$param3);
-							   }else{
-								   $param3 = array($parent_id,$product_id);
-								   $query3 = "SELECT image FROM products_media_gallery WHERE product_id = ? AND child_id = ? ORDER BY id LIMIT 1";
-								   $productMedia = $this->dbl->dbl_conn->rawQueryOne($query3,$param3);
-							   }
-							   if ($this->dbl->dbl_conn->getLastErrno() === 0){
-								   if ($this->dbl->dbl_conn->count > 0){
-									   $value['base_image']= $productMedia['image'];
-								   }else{
-									   $value['base_image']= $productData['base_image'];
-								   }
-							   } else {
-								   $value['base_image']= $productData['base_image'];
-							   }
+			$all_product_ids = array_values(array_unique(array_filter(array_merge($product_ids, $parent_product_ids), function($id) {
+				return !empty($id) && is_numeric($id) && (int)$id > 0;
+			})));
 
-							   $value['estimate_delivery_time']= $productData['estimate_delivery_time'];
-							   $value['url_key']= $productData['url_key'];
+			$item_products = [];
+			if (!empty($all_product_ids)) {
+				$all_product_ids_string = implode(',', array_map('intval', $all_product_ids));
+				$sql2 = "SELECT id, media_variant_id, base_image, estimate_delivery_time, url_key FROM products WHERE `id` IN ($all_product_ids_string)";
+				$Result_product_id = $this->dbl->dbl_conn->rawQuery($sql2);
+				if ($this->dbl->dbl_conn->getLastErrno() === 0 && !empty($Result_product_id) && is_array($Result_product_id)) {
+					$item_products = array_group($Result_product_id, 'id');
+				}
+			}
 
-						   }else{
-							   $product_id = $value['product_id'];
-							   $productData=$item_products[$product_id][0];
-							   $value['base_image']= $productData['base_image'];
-							   $value['estimate_delivery_time']= $productData['estimate_delivery_time'];
-							   $value['url_key']= $productData['url_key'];
-						   }
+			$valid_item_ids = array_values(array_unique(array_filter(array_map('intval', $item_ids))));
+			$item_products_return = [];
+			if (!empty($valid_item_ids)) {
+				$item_ids_string = implode(',', $valid_item_ids);
+				$sqlb2b = "SELECT SUM(oi.qty_return) as qty_return, oi.order_id, oi.order_item_id 
+						   FROM sales_order_return_items oi 
+						   LEFT JOIN sales_order_return as sor ON oi.return_order_id = sor.return_order_id 
+						   WHERE oi.order_id IN ($order_ids_string) AND oi.order_item_id IN ($item_ids_string) AND sor.status NOT IN (0,1)
+						   GROUP BY oi.order_id, oi.order_item_id";
+				$rowb2b = $this->dbl->dbl_conn->rawQuery($sqlb2b);
+				if ($this->dbl->dbl_conn->getLastErrno() === 0 && !empty($rowb2b) && is_array($rowb2b)) {
+					$item_products_return = array_group($rowb2b, 'order_item_id');
+				}
+			}
 
-						  	$IsReturnedItem=0;
-						   if(isset($item_products_return[$value['item_id']])){
-							   if(isset($item_products_return[$value['item_id']][0]) && isset($item_products_return[$value['item_id']][0][$value['order_id']])){
-								   $IsReturnedItem=$item_products_return[$value['item_id']][0]['qty_return'];
-							   }
-						   }
+			foreach ($Result as $value) {
+				if ($value['product_type'] == 'conf-simple') {
+					$parent_id = $value['parent_product_id'];
+					$product_id = $value['product_id'];
+					$productData = (isset($item_products[$parent_id]) && isset($item_products[$parent_id][0])) ? $item_products[$parent_id][0] : [];
+					
+					$productMedia = null;
+					if (!empty($productData['media_variant_id']) && $productData['media_variant_id'] > 0) {
+						$param3 = array($parent_id, 1, $parent_id, $product_id, $productData['media_variant_id']);
+						$query3 = "SELECT image FROM products_media_gallery WHERE product_id = ? AND is_default_variant = ? AND attr_option_id = (SELECT attr_value from products_variants where parent_id = ? and product_id = ? and attr_id = ? )";
+						$productMedia = $this->dbl->dbl_conn->rawQueryOne($query3, $param3);
+					} else {
+						$param3 = array($parent_id, $product_id);
+						$query3 = "SELECT image FROM products_media_gallery WHERE product_id = ? AND child_id = ? ORDER BY id LIMIT 1";
+						$productMedia = $this->dbl->dbl_conn->rawQueryOne($query3, $param3);
+					}
 
-						   if($IsReturnedItem==0){
-							   $value['item_display_status']=1;   // display
-						   }else{
-							   if($value['qty_ordered']>$IsReturnedItem)
-							   {
-								   $value['item_display_status']=1;   // display
-								   $value['qty_return']=$IsReturnedItem;  // for reference
-								   $value['qty_ordered']=$value['qty_ordered']-$IsReturnedItem;   // update qty_order as per rule
-							   }else{
-								   $value['item_display_status']=2;   // skip  for item display
-								   $value['qty_return']=$IsReturnedItem;  // for reference
-							   }
-						   }
+					if (!empty($productMedia['image'])) {
+						$value['base_image'] = $productMedia['image'];
+					} else {
+						$value['base_image'] = $productData['base_image'] ?? '';
+					}
 
-						   $OrderItems[] = $value;
-					   }
+					$value['estimate_delivery_time'] = $productData['estimate_delivery_time'] ?? '';
+					$value['url_key'] = $productData['url_key'] ?? '';
+				} else {
+					$product_id = $value['product_id'];
+					$productData = (isset($item_products[$product_id]) && isset($item_products[$product_id][0])) ? $item_products[$product_id][0] : [];
+					$value['base_image'] = $productData['base_image'] ?? '';
+					$value['estimate_delivery_time'] = $productData['estimate_delivery_time'] ?? '';
+					$value['url_key'] = $productData['url_key'] ?? '';
+				}
 
-			   return $OrderItems;
+				$IsReturnedItem = 0;
+				if (!empty($item_products_return[$value['item_id']])) {
+					$returnRow = reset($item_products_return[$value['item_id']]);
+					if (!empty($returnRow['qty_return'])) {
+						$IsReturnedItem = (float)$returnRow['qty_return'];
+					}
+				}
 
-		   }else{
-			   return false;
-		   }
-	   }else{
-		   return false;
-	   }
+				if ($IsReturnedItem == 0) {
+					$value['item_display_status'] = 1; // display
+				} else {
+					if ($value['qty_ordered'] > $IsReturnedItem) {
+						$value['item_display_status'] = 1; // display
+						$value['qty_return'] = $IsReturnedItem; // for reference
+						$value['qty_ordered'] = $value['qty_ordered'] - $IsReturnedItem; // update qty_order as per rule
+					} else {
+						$value['item_display_status'] = 2; // skip for item display
+						$value['qty_return'] = $IsReturnedItem; // for reference
+					}
+				}
 
+				$OrderItems[] = $value;
+			}
+
+			return $OrderItems;
+		} else {
+			return false;
+		}
 	}
+
 	public function getOrderProductMultiids($shopcode, $order_ids) // check used or not
 	{
 
