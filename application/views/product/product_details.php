@@ -246,21 +246,55 @@ $lang = $this->session->userdata('site_lang');
                                         </table>
                                     </div>
 
-                                    <?php
-                                    // LIMITED STOCK and remaining stock indicator for Flash Sale promotion only
-                                    $is_flash_sale_detail = (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1)
-                                        || (!empty($ProductData->offer_type) && $ProductData->offer_type === 'flash_sale')
-                                        || (isset($_GET['type']) && $_GET['type'] === 'flash_sale');
+                                    <?php                                    // Promotion countdown and stock indicator for Flash Sale & Daily Deals
+                                    $now = time();
+                                    $is_flash_sale_detail = false;
+                                    $is_daily_deal_detail = false;
+                                    $ends_at_detail = 0;
 
-                                    if (!$is_flash_sale_detail && !empty($ProductData->id)) {
+                                    if (!empty($ProductData->id)) {
                                         $ci =& get_instance();
                                         if (isset($ci->db)) {
-                                            $p_fs = $ci->db->select('flash_sale, flash_sale_ends_at')
+                                            $p_promo_data = $ci->db->select('daily_deals, daily_deal_ends_at, flash_sale, flash_sale_ends_at')
                                                 ->where('id', $ProductData->id)
                                                 ->get('products')
                                                 ->row();
-                                            if ($p_fs && !empty($p_fs->flash_sale) && $p_fs->flash_sale == 1 && (empty($p_fs->flash_sale_ends_at) || $p_fs->flash_sale_ends_at > time())) {
-                                                $is_flash_sale_detail = true;
+                                            if ($p_promo_data) {
+                                                if (!empty($p_promo_data->flash_sale) && $p_promo_data->flash_sale == 1 && (empty($p_promo_data->flash_sale_ends_at) || (int)$p_promo_data->flash_sale_ends_at > $now)) {
+                                                    $is_flash_sale_detail = true;
+                                                    if (!empty($p_promo_data->flash_sale_ends_at) && (int)$p_promo_data->flash_sale_ends_at > $now) {
+                                                        $ends_at_detail = (int)$p_promo_data->flash_sale_ends_at;
+                                                    }
+                                                }
+                                                if (!$is_flash_sale_detail && !empty($p_promo_data->daily_deals) && $p_promo_data->daily_deals == 1 && (empty($p_promo_data->daily_deal_ends_at) || (int)$p_promo_data->daily_deal_ends_at > $now)) {
+                                                    $is_daily_deal_detail = true;
+                                                    if (!empty($p_promo_data->daily_deal_ends_at) && (int)$p_promo_data->daily_deal_ends_at > $now) {
+                                                        $ends_at_detail = (int)$p_promo_data->daily_deal_ends_at;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (!$is_flash_sale_detail) {
+                                        if (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1 && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
+                                            $is_flash_sale_detail = true;
+                                            if (!empty($ProductData->flash_sale_ends_at) && (int)$ProductData->flash_sale_ends_at > $now) {
+                                                $ends_at_detail = (int)$ProductData->flash_sale_ends_at;
+                                            }
+                                        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'flash_sale' && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
+                                            $is_flash_sale_detail = true;
+                                            if (!empty($ProductData->flash_sale_ends_at) && (int)$ProductData->flash_sale_ends_at > $now) {
+                                                $ends_at_detail = (int)$ProductData->flash_sale_ends_at;
+                                            }
+                                        }
+                                    }
+
+                                    if (!$is_flash_sale_detail && !$is_daily_deal_detail) {
+                                        if (!empty($ProductData->daily_deals) && $ProductData->daily_deals == 1 && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+                                            $is_daily_deal_detail = true;
+                                            if (!empty($ProductData->daily_deal_ends_at) && (int)$ProductData->daily_deal_ends_at > $now) {
+                                                $ends_at_detail = (int)$ProductData->daily_deal_ends_at;
                                             }
                                         }
                                     }
@@ -277,19 +311,25 @@ $lang = $this->session->userdata('site_lang');
                                     } elseif (isset($ProductData->stock_status) && (strtolower(trim($ProductData->stock_status)) == 'out of stock' || strtolower(trim($ProductData->stock_status)) == 'outofstock')) {
                                         $is_out_of_stock_detail = true;
                                     }
+
+                                    $remaining_stock = null;
+                                    if ($product_stock_detail !== null && $product_stock_detail > 0) {
+                                        $remaining_stock = (int)$product_stock_detail;
+                                    }
                                     ?>
-                                    <?php if ($is_flash_sale_detail && !$is_out_of_stock_detail) : ?>
-                                        <?php 
-                                        $remaining_stock = null;
-                                        if ($product_stock_detail !== null && $product_stock_detail > 0) {
-                                            $remaining_stock = (int)$product_stock_detail;
-                                        }
-                                        ?>
-                                        <div class="flash-sale-stock" style="margin: 8px 0 12px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                            <span class="badge-limited-stock" style="display: inline-block; background-color: #1b873f; color: #ffffff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.3px;">📦 LIMITED STOCK</span>
-                                            <?php if ($remaining_stock !== null) : ?>
-                                                <span class="stock-indicator-text" style="color: #cf1322; font-weight: 700; font-size: 12px;">Only <?= $remaining_stock ?> left in stock</span>
-                                            <?php endif; ?>
+                                    <?php if ($ends_at_detail > $now) : 
+                                        $diff_d = $ends_at_detail - $now;
+                                        $countdown_str = sprintf('%02d:%02d:%02d', floor($diff_d / 3600), floor(($diff_d % 3600) / 60), $diff_d % 60);
+                                    ?>
+                                        <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 13.5px !important; font-weight: 600 !important; margin: 4px 0 8px 0 !important; display: flex !important; align-items: center !important; gap: 5px !important;">
+                                            <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 14px !important;"></i>
+                                            <span>Ends in <span class="live-countdown" data-ends-at="<?= $ends_at_detail ?>"><?= $countdown_str ?></span></span>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale_detail || $remaining_stock <= 10) && !$is_out_of_stock_detail) : ?>
+                                        <div class="promo-stock-wrapper" style="color: #cf1322 !important; font-size: 12.5px !important; font-weight: 700 !important; margin: 4px 0 8px 0 !important; display: flex !important; align-items: center !important; gap: 5px !important;">
+                                            <i class="fa fa-exclamation-triangle" style="color: #cf1322 !important; font-size: 12px !important;"></i>
+                                            <span>Only <?= $remaining_stock ?> left</span>
                                         </div>
                                     <?php endif; ?>
 
@@ -2069,41 +2109,45 @@ $lang = $this->session->userdata('site_lang');
 
 <script>
     $(document).ready(function() {
-
         var $container = $('.badge-section');
-
         var imageCount = $container.find('img').length;
 
-
-
         if (imageCount > 3) {
-
             $container.removeClass('three-per-row').addClass('two-rows');
-
         } else {
-
             $container.removeClass('two-rows').addClass('three-per-row');
-
         }
-
     });
-</script>ument).ready(function() {
 
-        var $container = $('.badge-section');
-
-        var imageCount = $container.find('img').length;
-
-
-
-        if (imageCount > 3) {
-
-            $container.removeClass('three-per-row').addClass('two-rows');
-
-        } else {
-
-            $container.removeClass('two-rows').addClass('three-per-row');
-
-        }
-
-    });
+    if (typeof window.hasLiveCountdownInit === 'undefined') {
+        window.hasLiveCountdownInit = true;
+        (function() {
+            function tickCountdowns() {
+                var now = Math.floor(Date.now() / 1000);
+                var els = document.querySelectorAll('.live-countdown[data-ends-at]');
+                for (var i = 0; i < els.length; i++) {
+                    var el = els[i];
+                    var endsAt = parseInt(el.getAttribute('data-ends-at'), 10);
+                    if (!endsAt || isNaN(endsAt)) continue;
+                    var diff = endsAt - now;
+                    if (diff <= 0) {
+                        var wrap = el.closest('.promo-countdown-wrapper');
+                        if (wrap) wrap.style.display = 'none';
+                        continue;
+                    }
+                    var h = Math.floor(diff / 3600);
+                    var m = Math.floor((diff % 3600) / 60);
+                    var s = diff % 60;
+                    var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+                    el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+                }
+            }
+            setInterval(tickCountdowns, 1000);
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', tickCountdowns);
+            } else {
+                tickCountdowns();
+            }
+        })();
+    }
 </script>

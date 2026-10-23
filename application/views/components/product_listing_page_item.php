@@ -32,16 +32,135 @@ if ($product_stock !== null && $product_stock <= 0) {
     $is_out_of_stock = true;
 }
 
-// Promotion detection for Daily Deals, Flash Sales, New Arrivals, and Trending Products
-$is_flash_sale = ($promo && $promo->type === 'flash_sale') 
-    || ($type === 'FlashSaleListing') 
-    || (!empty($prod->flash_sale) && $prod->flash_sale == 1) 
-    || (!empty($prod->offer_type) && $prod->offer_type === 'flash_sale');
+// Request-level cache for active Daily Deals and Flash Sales across the site
+static $active_promos_cache = null;
+$now = time();
 
-$is_daily_deal = ($promo && $promo->type === 'daily_deal') 
-    || ($type === 'DailyDealsListing') 
-    || (!empty($prod->daily_deals) && $prod->daily_deals == 1) 
-    || (!empty($prod->offer_type) && $prod->offer_type === 'daily_deal');
+if ($active_promos_cache === null) {
+    $active_promos_cache = [];
+    $ci =& get_instance();
+    if (isset($ci->db)) {
+        // Auto-expire deals in DB so expired deals are cleaned up
+        $ci->db->where('daily_deals', 1)->where('daily_deal_ends_at >', 0)->where('daily_deal_ends_at <=', $now)->update('products', ['daily_deals' => 0]);
+        $ci->db->where('flash_sale', 1)->where('flash_sale_ends_at >', 0)->where('flash_sale_ends_at <=', $now)->update('products', ['flash_sale' => 0]);
+
+        $query = $ci->db->select('id, daily_deals, daily_deal_starts_at, daily_deal_ends_at, flash_sale, flash_sale_starts_at, flash_sale_ends_at, stock_qty, qty, webshop_price, special_price')
+            ->group_start()
+                ->group_start()
+                    ->where('daily_deals', 1)
+                    ->where('daily_deal_ends_at >', $now)
+                ->group_end()
+                ->or_group_start()
+                    ->where('flash_sale', 1)
+                    ->where('flash_sale_ends_at >', $now)
+                ->group_end()
+            ->group_end()
+            ->get('products');
+
+        if ($query) {
+            foreach ($query->result() as $row) {
+                $active_promos_cache[$row->id] = $row;
+            }
+        }
+    }
+}
+
+$prod_id = isset($prod->id) ? (int)$prod->id : (isset($prod->product_id) ? (int)$prod->product_id : 0);
+$promo_db = ($prod_id > 0 && isset($active_promos_cache[$prod_id])) ? $active_promos_cache[$prod_id] : null;
+
+// Determine if Flash Sale is active (strictly checking expiration)
+$is_flash_sale = false;
+if ($promo_db && !empty($promo_db->flash_sale)) {
+    if (empty($promo_db->flash_sale_ends_at) || (int)$promo_db->flash_sale_ends_at > $now) {
+        $is_flash_sale = true;
+    }
+} elseif (!empty($prod->flash_sale) && $prod->flash_sale == 1) {
+    if (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now) {
+        $is_flash_sale = true;
+    }
+} elseif ($type === 'FlashSaleListing') {
+    if (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now) {
+        $is_flash_sale = true;
+    }
+} elseif ($promo && $promo->type === 'flash_sale') {
+    if (empty($promo->ends_at) || (int)$promo->ends_at > $now) {
+        $is_flash_sale = true;
+    }
+} elseif (!empty($prod->offer_type) && $prod->offer_type === 'flash_sale') {
+    if (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now) {
+        $is_flash_sale = true;
+    }
+}
+
+// Determine if Daily Deal is active (strictly checking expiration)
+$is_daily_deal = false;
+if (!$is_flash_sale) {
+    if ($promo_db && !empty($promo_db->daily_deals)) {
+        if (empty($promo_db->daily_deal_ends_at) || (int)$promo_db->daily_deal_ends_at > $now) {
+            $is_daily_deal = true;
+        }
+    } elseif (!empty($prod->daily_deals) && $prod->daily_deals == 1) {
+        if (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now) {
+            $is_daily_deal = true;
+        }
+    } elseif ($type === 'DailyDealsListing') {
+        if (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now) {
+            $is_daily_deal = true;
+        }
+    } elseif ($promo && $promo->type === 'daily_deal') {
+        if (empty($promo->ends_at) || (int)$promo->ends_at > $now) {
+            $is_daily_deal = true;
+        }
+    } elseif (!empty($prod->offer_type) && $prod->offer_type === 'daily_deal') {
+        if (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now) {
+            $is_daily_deal = true;
+        }
+    }
+}
+
+// Stock extraction for Limited Stock detection
+$remaining_stock = null;
+if ($stock && !empty($stock->qty) && is_numeric($stock->qty)) {
+    $remaining_stock = (int)$stock->qty;
+} elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty) && $prod->stock_qty > 0) {
+    $remaining_stock = (int)$prod->stock_qty;
+} elseif (isset($prod->qty) && is_numeric($prod->qty) && $prod->qty > 0) {
+    $remaining_stock = (int)$prod->qty;
+} elseif ($promo_db && isset($promo_db->stock_qty) && is_numeric($promo_db->stock_qty) && $promo_db->stock_qty > 0) {
+    $remaining_stock = (int)$promo_db->stock_qty;
+} elseif ($promo_db && isset($promo_db->qty) && is_numeric($promo_db->qty) && $promo_db->qty > 0) {
+    $remaining_stock = (int)$promo_db->qty;
+}
+
+// Limited stock condition (stock <= 10 when not in flash sale or daily deal)
+$is_limited_stock = (!$is_flash_sale && !$is_daily_deal && !$is_out_of_stock && $remaining_stock !== null && $remaining_stock > 0 && $remaining_stock <= 10);
+
+// End timestamp for countdown timer
+$ends_at_timestamp = 0;
+if ($promo && !empty($promo->ends_at) && (int)$promo->ends_at > $now) {
+    $ends_at_timestamp = (int)$promo->ends_at;
+} elseif ($is_flash_sale) {
+    if (!empty($prod->flash_sale_ends_at) && (int)$prod->flash_sale_ends_at > $now) {
+        $ends_at_timestamp = (int)$prod->flash_sale_ends_at;
+    } elseif ($promo_db && !empty($promo_db->flash_sale_ends_at) && (int)$promo_db->flash_sale_ends_at > $now) {
+        $ends_at_timestamp = (int)$promo_db->flash_sale_ends_at;
+    }
+} elseif ($is_daily_deal) {
+    if (!empty($prod->daily_deal_ends_at) && (int)$prod->daily_deal_ends_at > $now) {
+        $ends_at_timestamp = (int)$prod->daily_deal_ends_at;
+    } elseif ($promo_db && !empty($promo_db->daily_deal_ends_at) && (int)$promo_db->daily_deal_ends_at > $now) {
+        $ends_at_timestamp = (int)$promo_db->daily_deal_ends_at;
+    }
+}
+
+$initial_countdown_str = '';
+if ($ends_at_timestamp > $now) {
+    $diff = $ends_at_timestamp - $now;
+    $hours = floor($diff / 3600);
+    $mins = floor(($diff % 3600) / 60);
+    $secs = $diff % 60;
+    $initial_countdown_str = sprintf('%02d:%02d:%02d', $hours, $mins, $secs);
+}
 
 // Price determination
 $price_options = [
@@ -67,6 +186,8 @@ if ($promo && !empty($promo->special_price)) {
     }
 } elseif (!empty($prod->special_price) && (float)$prod->special_price > 0 && $price_to_show > (float)$prod->special_price) {
     $special_price_to_show = (float)$prod->special_price;
+} elseif ($promo_db && !empty($promo_db->special_price) && (float)$promo_db->special_price > 0 && $price_to_show > (float)$promo_db->special_price) {
+    $special_price_to_show = (float)$promo_db->special_price;
 }
 
 // Discount percentage calculation
@@ -90,22 +211,24 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
             <img src="<?php echo $prod_image; ?>" class="img-responsive" title="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $display_name, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars((isset($prod->other_lang_name) && $prod->other_lang_name != '') ? $prod->other_lang_name : $display_name, ENT_QUOTES, 'UTF-8'); ?>">
         </a>
 
-        <!-- Badges inside product image at bottom (Daily Deals, New Arrivals, Trending, Flash Sales, Out of Stock) -->
-        <?php if ($is_out_of_stock || $is_daily_deal || $is_flash_sale || $discount_percent > 0): ?>
-            <span class="pi-img-bottom-badges" style="position: absolute !important; bottom: 8px !important; left: 8px !important; right: 8px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 4px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 16px) !important; background: transparent !important;">
+        <!-- Badges inside product image at TOP (Daily Deals, Flash Sales, Limited Stock, Out of Stock, Discount Pill) -->
+        <?php if ($is_out_of_stock || $is_daily_deal || $is_flash_sale || $is_limited_stock || ($discount_percent > 0 && !$is_out_of_stock)): ?>
+            <span class="pi-img-top-badges" style="position: absolute !important; top: 6px !important; left: 6px !important; right: 6px !important; display: flex !important; align-items: flex-start !important; justify-content: space-between !important; gap: 4px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 12px) !important; background: transparent !important;">
                 <span style="display: flex !important; align-items: center !important; gap: 4px !important;">
                     <?php if ($is_out_of_stock): ?>
-                        <span class="badge-out-of-stock" style="background-color: #dc3545 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 9px !important; border-radius: 12px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">OUT OF STOCK</span>
+                        <span class="badge-out-of-stock" style="background-color: #dc3545 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-block !important;">OUT OF STOCK</span>
                     <?php elseif ($is_flash_sale): ?>
-                        <span class="badge-deal-flash" style="background-color: #e52525 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 9px !important; border-radius: 12px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">⚡ FLASH SALE</span>
+                        <span class="badge-deal-flash" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-bolt" style="color: #ffd200 !important; font-size: 11px !important;"></i> FLASH SALE</span>
                     <?php elseif ($is_daily_deal): ?>
-                        <span class="badge-deal-daily" style="background-color: #f7b928 !important; color: #1a1a1a !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 9px !important; border-radius: 12px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">★ DAILY DEAL</span>
+                        <span class="badge-deal-daily" style="background-color: #ffd200 !important; color: #000000 !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-star" style="color: #000000 !important; font-size: 10px !important;"></i> DAILY DEAL</span>
+                    <?php elseif ($is_limited_stock): ?>
+                        <span class="badge-limited-stock" style="background-color: #28a745 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-archive" style="color: #ffffff !important; font-size: 10px !important;"></i> LIMITED STOCK</span>
                     <?php endif; ?>
                 </span>
 
                 <?php if ($discount_percent > 0 && !$is_out_of_stock): ?>
                     <span style="margin-left: auto !important; display: inline-block !important;">
-                        <span class="badge-discount-pill" style="background-color: #e52525 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 8px !important; border-radius: 12px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">-<?= $discount_percent ?>%</span>
+                        <span class="badge-discount-pill" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 11px !important; font-weight: 800 !important; padding: 2px 7px !important; border-radius: 12px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-block !important;">-<?= $discount_percent ?>%</span>
                     </span>
                 <?php endif; ?>
             </span>
@@ -130,83 +253,48 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
         </h3>
 
         <!-- Pricing -->
-        <div class="pi-price">
+        <div class="pi-price" style="margin: 2px 0 4px 0; line-height: 1.25;">
             <?php 
             if ($special_price_to_show > 0 && $price_to_show > 0) {
-                // Show EShop price with strikethrough
-                echo '<div style="color: #999; font-size: 0.85em;"><del>MUR ' . number_format($price_to_show, 2) . '</del></div>'; 
-                
-                // Show Special price below
-                echo '<div style="color: #ff9e0c; font-size: 1.1em; font-weight: 600;">MUR ' . number_format($special_price_to_show, 2) . '</div>';
+                // Show Regular price with strikethrough in grey, Special price in bold orange
+                echo '<div style="color: #8c9196; font-size: 12px; margin-bottom: 2px;"><del>MUR ' . number_format($price_to_show, 2) . '</del></div>'; 
+                echo '<div style="color: #ff9e0c; font-size: 15px; font-weight: 700;">MUR ' . number_format($special_price_to_show, 2) . '</div>';
             } else {
-                // Fallback: Show only EShop price if no special price exists
-                echo '<div>' . (($price_to_show > 0) ? '<span>MUR ' . number_format($price_to_show, 2) . '</span>' : '<span>Price on request</span>') . '</div>';
+                echo '<div style="color: #ff9e0c; font-size: 15px; font-weight: 700;">' . (($price_to_show > 0) ? 'MUR ' . number_format($price_to_show, 2) : 'Price on request') . '</div>';
             }
             ?>
         </div>
 
-        <!-- LIMITED STOCK & remaining stock indicator for Flash Sale promotion only -->
-        <?php if ($is_flash_sale && !$is_out_of_stock) : ?>
-            <?php 
-            $remaining_stock = null;
-            if ($stock && !empty($stock->qty)) {
-                $remaining_stock = $stock->qty;
-            } elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty) && $prod->stock_qty > 0) {
-                $remaining_stock = (int)$prod->stock_qty;
-            } elseif (isset($prod->qty) && is_numeric($prod->qty) && $prod->qty > 0) {
-                $remaining_stock = (int)$prod->qty;
-            }
-            ?>
-            <div class="flash-sale-stock" style="margin: 4px 0 6px 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                <span class="badge-limited-stock" style="display: inline-block; background-color: #1b873f; color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.3px;">📦 LIMITED STOCK</span>
-                <?php if ($remaining_stock !== null) : ?>
-                    <span class="stock-indicator-text" style="color: #cf1322; font-weight: 700; font-size: 11px;">Only <?= $remaining_stock ?> left</span>
-                <?php endif; ?>
+        <!-- Countdown Timer -->
+        <?php if ($ends_at_timestamp > $now): ?>
+            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: 600 !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; gap: 4px !important;">
+                <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
+                <span>Ends in <span class="live-countdown" data-ends-at="<?= $ends_at_timestamp ?>"><?= $initial_countdown_str ?></span></span>
             </div>
         <?php endif; ?>
 
-        <!-- Deal Ends / Countdown -->
-        <?php if ($promo && !empty($promo->ends_at) && $promo->ends_at > time()): ?>
-            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;">
-                <span class="pi-countdown-timer" data-promo-ends-at="<?php echo $promo->ends_at; ?>" data-countdown-prefix="Ends in ">
-                    <span class="countdown-time">Ends in ...</span>
-                </span>
-            </p>
-        <?php elseif ($type === 'DailyDealsListing' && !empty($prod->daily_deal_ends_at)) : ?>
-            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('deal_ends') ? $this->lang->line('deal_ends') : 'Deal ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->daily_deal_ends_at) ? (int)$prod->daily_deal_ends_at : strtotime($prod->daily_deal_ends_at)); ?></p>
-        <?php elseif ($type === 'FlashSaleListing' && !empty($prod->flash_sale_ends_at)) : ?>
-            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('sale_ends') ? $this->lang->line('sale_ends') : 'Sale ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->flash_sale_ends_at) ? (int)$prod->flash_sale_ends_at : strtotime($prod->flash_sale_ends_at)); ?></p>
-        <?php elseif (!empty($prod->daily_deal_ends_at) && $is_daily_deal) : ?>
-            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('deal_ends') ? $this->lang->line('deal_ends') : 'Deal ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->daily_deal_ends_at) ? (int)$prod->daily_deal_ends_at : strtotime($prod->daily_deal_ends_at)); ?></p>
-        <?php elseif (!empty($prod->flash_sale_ends_at) && $is_flash_sale) : ?>
-            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #555; margin-bottom: 8px;"><?php echo $this->lang->line('sale_ends') ? $this->lang->line('sale_ends') : 'Sale ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->flash_sale_ends_at) ? (int)$prod->flash_sale_ends_at : strtotime($prod->flash_sale_ends_at)); ?></p>
+        <!-- Stock Indicator -->
+        <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale || $remaining_stock <= 10) && !$is_out_of_stock): ?>
+            <div class="promo-stock-wrapper" style="color: #cf1322 !important; font-size: 11.5px !important; font-weight: 700 !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; gap: 4px !important;">
+                <i class="fa fa-exclamation-triangle" style="color: #cf1322 !important; font-size: 11px !important;"></i>
+                <span>Only <?= $remaining_stock ?> left</span>
+            </div>
         <?php endif; ?>
 
-        <?php if ($is_out_of_stock) : ?>
-            <a href="<?= $product_url ?>" class="btn btn-default add2cart" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: pointer;"><?= $this->lang->line('out_of_stock_btn') ? $this->lang->line('out_of_stock_btn') : ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'); ?></a>
-        <?php elseif ($type === 'PrelaunchListing') : ?>
-            <?php if ($prod->product_type === 'simple') { ?>
-                <a href="<?= $product_url ?>" data-prelaunch="yes" <?php echo $prod->product_type; ?> data-product-id="<?php echo $prod->id; ?>" data-qty="1" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
-            <?php } else { ?>
-                <a href="javascript:;" onclick="gotoLocation('<?php echo BASE_URL . 'product-detail/' . $prod->url_key . '?type=prelaunch'; ?>');" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
-            <?php } ?>
-        <?php else : ?>
-            <?php if (isset($prod->stock_status)) { ?>
-                <?php if ($prod->stock_status == 'Instock' && ($prod->product_type == 'simple' || $prod->product_type == 'conf-simple')) { ?>
-                    <?php if (isset($restricted_access) && $restricted_access == 'yes' && $customer_id == 0) { ?>
-                        <a href="javascript:;" id="add_to_cart" onclick="openRestrictedAccessPopup()" class="btn btn-default add2cart"><?= lang('add_to_cart') ?></a>
-                    <?php } else { ?>
-                        <a href="<?= $product_url ?>" <?php echo $prod->product_type; ?> data-product-id="<?php echo $prod->id; ?>" data-qty="1" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
-                    <?php } ?>
-                <?php } elseif ($prod->stock_status == 'Instock' && ($prod->product_type == 'configurable' || $prod->product_type == 'bundle')) { ?>
-                    <a href="<?= $product_url ?>" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
+        <!-- Action Button -->
+        <div style="margin-top: 4px;">
+            <?php if ($is_out_of_stock) : ?>
+                <a href="<?= $product_url ?>" class="btn btn-default add2cart" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: pointer;"><?= $this->lang->line('out_of_stock_btn') ? $this->lang->line('out_of_stock_btn') : ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'); ?></a>
+            <?php elseif ($type === 'PrelaunchListing') : ?>
+                <?php if ($prod->product_type === 'simple') { ?>
+                    <a href="<?= $product_url ?>" data-prelaunch="yes" <?php echo $prod->product_type; ?> data-product-id="<?php echo $prod->id; ?>" data-qty="1" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
                 <?php } else { ?>
-                    <a href="<?= $product_url ?>" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
+                    <a href="javascript:;" onclick="gotoLocation('<?php echo BASE_URL . 'product-detail/' . $prod->url_key . '?type=prelaunch'; ?>');" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
                 <?php } ?>
-            <?php } else { ?>
-                <a href="<?= $product_url ?>" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
-            <?php } ?>
-        <?php endif; ?>
+            <?php else : ?>
+                <a href="<?= $product_url ?>" class="btn btn-primary add2cart" style="background-color: #0d6efd !important; border-color: #0d6efd !important; color: #ffffff !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 4px !important; text-transform: capitalize !important; line-height: 1.35 !important; display: inline-block !important; width: fit-content !important;"><?= lang('view_details') ?></a>
+            <?php endif; ?>
+        </div>
 
         <div id="addtocart-message-<?php echo $prod->id; ?>" class="addtocart-message addtocart-message-<?php echo $prod->id; ?>"></div>
 
@@ -217,3 +305,49 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
 <?php if (isset($check) && $check == 'owlView') {
     echo "</div>";
 } ?>
+
+<script>
+if (typeof window.hasLiveCountdownInit === 'undefined') {
+    window.hasLiveCountdownInit = true;
+    (function() {
+        function tickCountdowns() {
+            var now = Math.floor(Date.now() / 1000);
+            var els = document.querySelectorAll('.live-countdown[data-ends-at]');
+            for (var i = 0; i < els.length; i++) {
+                var el = els[i];
+                var endsAt = parseInt(el.getAttribute('data-ends-at'), 10);
+                if (!endsAt || isNaN(endsAt)) continue;
+                var diff = endsAt - now;
+                if (diff <= 0) {
+                    var wrap = el.closest('.promo-countdown-wrapper');
+                    if (wrap) wrap.style.display = 'none';
+                    var prodItem = el.closest('.product-item');
+                    if (prodItem) {
+                        var dealBadge = prodItem.querySelector('.badge-deal-flash, .badge-deal-daily');
+                        if (dealBadge) dealBadge.remove();
+                        var discountPill = prodItem.querySelector('.badge-discount-pill');
+                        if (discountPill) discountPill.remove();
+                        var dealSection = el.closest('#sm_filterproducts_daily_deals, #sm_filterproducts_flash_sales');
+                        if (dealSection) {
+                            var owlItem = el.closest('.owl-item') || prodItem;
+                            owlItem.style.display = 'none';
+                        }
+                    }
+                    continue;
+                }
+                var h = Math.floor(diff / 3600);
+                var m = Math.floor((diff % 3600) / 60);
+                var s = diff % 60;
+                var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+                el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+            }
+        }
+        setInterval(tickCountdowns, 1000);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', tickCountdowns);
+        } else {
+            tickCountdowns();
+        }
+    })();
+}
+</script>

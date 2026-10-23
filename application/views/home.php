@@ -138,7 +138,19 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                     <!-- second-section -->
 
                     <!-- Daily Deals Section -->
-                    <?php if (!empty($daily_deals_products)) : ?>
+                    <?php 
+                    $active_daily_deals = [];
+                    if (!empty($daily_deals_products)) {
+                        $now = time();
+                        foreach ($daily_deals_products as $dp) {
+                            if (!empty($dp->daily_deal_ends_at) && (int)$dp->daily_deal_ends_at <= $now) {
+                                continue;
+                            }
+                            $active_daily_deals[] = $dp;
+                        }
+                    }
+                    ?>
+                    <?php if (!empty($active_daily_deals)) : ?>
                         <div class="product-slider product-slider-1 home-products-section">
                             <div class="title-block">
                                 <h2><?= $this->lang->line('daily_deals') ?></h2>
@@ -150,8 +162,8 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                                         <div class="owl-stage" style="transform: translate3d(0px, 0px, 0px); transition: all; width: 1715px;">
                                             <?php 
                                             $count = 0; 
-                                            foreach ($daily_deals_products as $deal_prod) :
-                                                if ($count >= 3) break;
+                                            foreach ($active_daily_deals as $deal_prod) :
+                                                if ($count >= 6) break;
                                                 $deal_prod = ProductPresenter::from($deal_prod);
                                                 $feat_image = $deal_prod->product_image('thumb');
                                                 (new ProductList())->productListData($deal_prod, $feat_image, 'DailyDealsListing', '', '');
@@ -173,7 +185,19 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                     <?php endif; ?>
 
                     <!-- Flash Sales Section -->
-                    <!-- <?php if (!empty($flash_sale_products)) : ?>
+                    <?php 
+                    $active_flash_sales = [];
+                    if (!empty($flash_sale_products)) {
+                        $now = time();
+                        foreach ($flash_sale_products as $fp) {
+                            if (!empty($fp->flash_sale_ends_at) && (int)$fp->flash_sale_ends_at <= $now) {
+                                continue;
+                            }
+                            $active_flash_sales[] = $fp;
+                        }
+                    }
+                    ?>
+                    <?php if (!empty($active_flash_sales)) : ?>
                         <div class="product-slider product-slider-1 home-products-section">
                             <div class="title-block">
                                 <h2><?= $this->lang->line('flash_sales') ?></h2>
@@ -185,8 +209,8 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                                         <div class="owl-stage">
                                             <?php 
                                             $count = 0; 
-                                            foreach ($flash_sale_products as $flash_sale) :
-                                                if ($count >= 3) break;
+                                            foreach ($active_flash_sales as $flash_sale) :
+                                                if ($count >= 6) break;
                                                 $flash_sale = ProductPresenter::from($flash_sale);
                                                 $feat_image = $flash_sale->product_image('thumb');
                                                 (new ProductList())->productListData($flash_sale, $feat_image, 'FlashSaleListing', '', '');
@@ -205,7 +229,7 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                             </div>
 
                         </div>
-                    <?php endif; ?> -->
+                    <?php endif; ?>
 
                     <!-- New Arrivals Section -->
                     <div class="product-slider product-slider-1 home-products-section">

@@ -408,7 +408,11 @@ function buildCategoryTree($categories, $parent_id = 0)
                         <?php if (!empty($products)): ?>
 
 
-                            <?php foreach ($products as $p): ?>
+                            <?php foreach ($products as $p): 
+                                if (!empty($p->flash_sale_ends_at) && (int)$p->flash_sale_ends_at <= time()) {
+                                    continue; // Expired, remove from Flash Sales section
+                                }
+                            ?>
 
 
                                 <div class="col-md-4 col-sm-6 mb-4">
@@ -520,21 +524,22 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             if ($special_price > 0 && $regular_price > $special_price) {
                                                 $discount_percent = (int)round((($regular_price - $special_price) / $regular_price) * 100);
                                             }
+                                            $is_sale_active = (!empty($p->flash_sale) && $p->flash_sale == 1 && (empty($p->flash_sale_ends_at) || (int)$p->flash_sale_ends_at > time()));
                                             ?>
 
-                                            <!-- Badges inside product image at bottom (Flash Sale, Discount Pill, Out of Stock) -->
-                                            <span class="pi-img-bottom-badges" style="position: absolute !important; bottom: 8px !important; left: 8px !important; right: 8px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 4px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 16px) !important; background: transparent !important;">
+                                            <!-- Badges inside product image at TOP (Flash Sale, Discount Pill, Out of Stock) -->
+                                            <span class="pi-img-top-badges" style="position: absolute !important; top: 6px !important; left: 6px !important; right: 6px !important; display: flex !important; align-items: flex-start !important; justify-content: space-between !important; gap: 4px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 12px) !important; background: transparent !important;">
                                                 <span style="display: flex !important; align-items: center !important; gap: 4px !important;">
                                                     <?php if ($is_out_of_stock): ?>
-                                                        <span class="badge-out-of-stock" style="background-color: #dc3545 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 9px !important; border-radius: 12px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">OUT OF STOCK</span>
-                                                    <?php else: ?>
-                                                        <span class="badge-deal-flash" style="background-color: #e52525 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 9px !important; border-radius: 12px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">⚡ FLASH SALE</span>
+                                                        <span class="badge-out-of-stock" style="background-color: #dc3545 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-block !important;">OUT OF STOCK</span>
+                                                    <?php elseif ($is_sale_active): ?>
+                                                        <span class="badge-deal-flash" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 3px !important;">⚡ FLASH SALE</span>
                                                     <?php endif; ?>
                                                 </span>
 
                                                 <?php if ($discount_percent > 0 && !$is_out_of_stock): ?>
                                                     <span style="margin-left: auto !important; display: inline-block !important;">
-                                                        <span class="badge-discount-pill" style="background-color: #e52525 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 3px 8px !important; border-radius: 12px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; white-space: nowrap !important; display: inline-block !important;">-<?= $discount_percent ?>%</span>
+                                                        <span class="badge-discount-pill" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 11px !important; font-weight: 800 !important; padding: 2px 7px !important; border-radius: 12px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-block !important;">-<?= $discount_percent ?>%</span>
                                                     </span>
                                                 <?php endif; ?>
                                             </span>
@@ -627,7 +632,7 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </div>
 
                                             <!-- LIMITED STOCK & remaining stock indicator for Flash Sale promotion only -->
-                                            <?php if (!$is_out_of_stock) : ?>
+                                            <?php if (!$is_out_of_stock && $is_sale_active) : ?>
                                                 <?php 
                                                 $remaining_stock = null;
                                                 if (isset($p->stock_qty) && is_numeric($p->stock_qty) && $p->stock_qty > 0) {
