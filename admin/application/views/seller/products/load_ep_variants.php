@@ -127,6 +127,17 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
 				  <td><input type="number" class="form-control required-field webshop-price" onkeypress="return isNumberKey(event);" name="variant_webshop_price[]"  id="variant_webshop_price_<?php echo $random_id; ?>" value="<?php echo $variant['webshop_price']; ?>"  ></td>
 				  <td><input type="hidden" name="conf_simple[]" class="form-control "  value="<?php echo $variant['id']; ?>" >
 				  <input type="text" name="variant_sku[]" onblur="skudbcompare(this,<?php echo $variant['id']; ?>);"  class="form-control required-field unique-sku valid-sku" value="<?php echo $variant['sku']; ?>" placeholder="Enter Value"></td>
+				  <td>
+					<?php
+						$v_sp = '';
+						if (!empty($variant['promo_special_price']) && $variant['promo_special_price'] > 0) {
+							$v_sp = $variant['promo_special_price'];
+						} elseif (!empty($variant['special_price']) && $variant['special_price'] > 0) {
+							$v_sp = $variant['special_price'];
+						}
+					?>
+					<input type="number" step="0.01" min="0" name="variant_special_price[]" class="form-control" value="<?php echo $v_sp; ?>" placeholder="0.00">
+				  </td>
 				  <!-- <td ><input type="text" name="variant_barcode[]" onblur="barcodedbcompare(this,<?php //echo $variant['id']; ?>);" class="form-control "  value="<?php //echo $variant['barcode']; ?>" placeholder="Enter Value"></td> -->
 				  <!-- <td><input type="text" class="form-control input-sm" name="variant_weight[]"  value="<?php //echo $variant['weight']; ?>" onkeypress="return isNumberKey(event);"></td> -->
 				  <!-- <td><select class="form-control required-field webshop-gifts input-sm" name="gifts[]">
