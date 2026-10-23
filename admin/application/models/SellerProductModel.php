@@ -370,9 +370,10 @@ function get_datatables_products($price, $inventory, $supplier, $fromDate, $toDa
 	function getVariantProductsByIds($product_ids)
 	{
 
-		$this->db->select('p.*,pi.qty,pi.available_qty');
+		$this->db->select('p.*,pi.qty,pi.available_qty,psp.special_price as promo_special_price');
 		$this->db->from('products as p');
 		$this->db->join('products_inventory as pi', 'p.id = pi.product_id', 'LEFT');
+		$this->db->join('products_special_prices as psp', 'psp.product_id = p.id', 'LEFT');
 		$this->db->where_in('p.id', $product_ids);
 		$query = $this->db->get();
 		$resultArr = $query->result_array();

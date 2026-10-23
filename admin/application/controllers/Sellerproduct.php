@@ -3230,31 +3230,14 @@ class Sellerproduct extends CI_Controller
 						$promo_end_ts = !empty($to_date_in) ? (strlen($to_date_in) <= 10 ? strtotime($to_date_in . ' 23:59:59') : strtotime($to_date_in)) : null;
 
 						if ($promo_special_price > 0) {
-							if ($promo_type_in === 'flash_sale') {
-								$updatedata['flash_sale'] = 1;
-								$updatedata['flash_sale_starts_at'] = $promo_start_ts;
-								$updatedata['flash_sale_ends_at'] = $promo_end_ts;
-								$updatedata['daily_deals'] = 0;
-								$updatedata['daily_deal_starts_at'] = null;
-								$updatedata['daily_deal_ends_at'] = null;
-							} else {
-								$updatedata['daily_deals'] = 1;
-								$updatedata['daily_deal_starts_at'] = $promo_start_ts;
-								$updatedata['daily_deal_ends_at'] = $promo_end_ts;
-								$updatedata['flash_sale'] = 0;
-								$updatedata['flash_sale_starts_at'] = null;
-								$updatedata['flash_sale_ends_at'] = null;
-							}
 							$updatedata['special_price'] = $promo_special_price;
-							$updatedata['special_price_from'] = $promo_start_ts;
-							$updatedata['special_price_to'] = $promo_end_ts;
+							if (!empty($promo_start_ts)) {
+								$updatedata['special_price_from'] = $promo_start_ts;
+							}
+							if (!empty($promo_end_ts)) {
+								$updatedata['special_price_to'] = $promo_end_ts;
+							}
 						} else {
-							$updatedata['daily_deals'] = 0;
-							$updatedata['daily_deal_starts_at'] = null;
-							$updatedata['daily_deal_ends_at'] = null;
-							$updatedata['flash_sale'] = 0;
-							$updatedata['flash_sale_starts_at'] = null;
-							$updatedata['flash_sale_ends_at'] = null;
 							$updatedata['special_price'] = null;
 							$updatedata['special_price_from'] = null;
 							$updatedata['special_price_to'] = null;
@@ -3284,7 +3267,7 @@ class Sellerproduct extends CI_Controller
 								$this->SellerProductModel->insertData('products_special_prices', $sp_data);
 							}
 						} elseif (!empty($existing_sp)) {
-							$this->SellerProductModel->deleteData('products_special_prices', array('product_id' => $product_id));
+							$this->SellerProductModel->deleteDataById('products_special_prices', array('product_id' => $product_id));
 						}
 
 						// ── Merchant Approval Notification (same as updateStatuses) ──
@@ -3790,6 +3773,7 @@ class Sellerproduct extends CI_Controller
 									//$variant_weight_arr=isset($_POST['variant_weight'])?$_POST['variant_weight']:array();
 									// shipping charge
 									$variant_shipping_charge_arr = isset($_POST['variant_shipping_charge']) ? $_POST['variant_shipping_charge'] : array();
+									$variant_special_price_arr = isset($_POST['variant_special_price']) ? $_POST['variant_special_price'] : array();
 
 									//Gifts to and Subissues
 									$gifts_to_arr = isset($_POST['gifts']) ? $_POST['gifts'] : array();
@@ -3853,12 +3837,13 @@ class Sellerproduct extends CI_Controller
 
 											if (isset($simple_product_id) && $simple_product_id > 0) {
 
-
+												$simple_special_price = (isset($variant_special_price_arr[$key]) && is_numeric($variant_special_price_arr[$key]) && floatval($variant_special_price_arr[$key]) > 0) ? floatval($variant_special_price_arr[$key]) : null;
 
 												$updatesimpleproduct = array(
 													'name' => $product_name,
 													'parent_id' => $product_id,
 													'sku' => $simple_sku,
+													'special_price' => $simple_special_price,
 													'cost_price' => $simple_cost_price,
 													'price' => $simple_price,
 													'tax_percent' => $simple_tax_percent,
@@ -3879,6 +3864,26 @@ class Sellerproduct extends CI_Controller
 												$conf_where = array('id' => $simple_product_id);
 
 												$this->SellerProductModel->updateData('products', $conf_where, $updatesimpleproduct);
+
+												// Synchronize products_special_prices for variant
+												$existing_var_sp = $this->SellerProductModel->getSingleDataByID('products_special_prices', array('product_id' => $simple_product_id), '*');
+												if (!empty($simple_special_price) && $simple_special_price > 0) {
+													$var_sp_data = array(
+														'product_id' => $simple_product_id,
+														'special_price' => $simple_special_price,
+														'updated_at' => time(),
+														'ip' => $_SERVER['REMOTE_ADDR']
+													);
+													if (!empty($existing_var_sp)) {
+														$this->SellerProductModel->updateData('products_special_prices', array('id' => $existing_var_sp->id), $var_sp_data);
+													} else {
+														$var_sp_data['created_by'] = $this->session->userdata('LoginID');
+														$var_sp_data['created_at'] = time();
+														$this->SellerProductModel->insertData('products_special_prices', $var_sp_data);
+													}
+												} elseif (!empty($existing_var_sp)) {
+													$this->SellerProductModel->deleteDataById('products_special_prices', array('product_id' => $simple_product_id));
+												}
 
 
 												$OldProductQtyData = $this->SellerProductModel->getSingleDataByID('products_inventory', array('product_id' => $simple_product_id), 'qty,available_qty');
@@ -3975,6 +3980,7 @@ class Sellerproduct extends CI_Controller
 													//'barcode'=>$simple_barcode,
 													//'weight'=>$simple_weight,
 													'product_type' => 'conf-simple',
+													'special_price' => $simple_special_price,
 													'product_inv_type' => 'buy',
 													'status' => $status,
 													'can_be_returned' => $product_returnable,
@@ -3984,6 +3990,18 @@ class Sellerproduct extends CI_Controller
 													'ip' => $_SERVER['REMOTE_ADDR']
 												);
 												$simple_product_id = $this->SellerProductModel->insertData('products', $insertsimpleproduct);
+
+												if (!empty($simple_special_price) && $simple_special_price > 0) {
+													$var_sp_data = array(
+														'product_id' => $simple_product_id,
+														'special_price' => $simple_special_price,
+														'created_by' => $this->session->userdata('LoginID'),
+														'created_at' => time(),
+														'updated_at' => time(),
+														'ip' => $_SERVER['REMOTE_ADDR']
+													);
+													$this->SellerProductModel->insertData('products_special_prices', $var_sp_data);
+												}
 
 												$stock_insert2 = array('product_id' => $simple_product_id, 'qty' => $simple_stock, 'available_qty' => $simple_stock, 'min_qty' => 0, 'is_in_stock' => 1);
 												$this->SellerProductModel->insertData('products_inventory', $stock_insert2);
