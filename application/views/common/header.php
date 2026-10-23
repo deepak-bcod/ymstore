@@ -146,21 +146,23 @@ if (location.pathname === '/daily-deals') {
       <div class="container">
 		<?php
                 $CI =& get_instance();
-
-                $CI->load->database();
-
                 $current_lang = $CI->session->userdata('site_lang') ?? 'english';
-
-                $sticker = $CI->db
-                    ->get_where('sticker_text', ['id' => 1])
-                    ->row();
-
                 $sticker_text = '';
+                try {
+                    $CI->load->database();
+                    if (!empty($CI->db) && !empty($CI->db->conn_id)) {
+                        $sticker = $CI->db
+                            ->get_where('sticker_text', ['id' => 1])
+                            ->row();
 
-                if ($sticker) {
-                    $sticker_text = ($current_lang === 'french' && !empty($sticker->text_fr))
-                        ? $sticker->text_fr
-                        : $sticker->text;
+                        if ($sticker) {
+                            $sticker_text = ($current_lang === 'french' && !empty($sticker->text_fr))
+                                ? $sticker->text_fr
+                                : $sticker->text;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    log_message('error', 'Header sticker_text DB error: ' . $e->getMessage());
                 }
                 ?>
 	  <div class="row row-topmarquee">
