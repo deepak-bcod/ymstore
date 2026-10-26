@@ -64,8 +64,8 @@ if(isset($Combinations) && count($Combinations)>0){ ?>
 		 
 		  <td><input type="number" class="form-control required-field webshop-price" onkeypress="return isNumberKey(event);" name="variant_webshop_price[]" id="variant_webshop_price_<?php echo $random_id; ?>"></td>
 		  <td><input type="number" step="0.01" min="0" name="variant_special_price[]" class="form-control" value="" placeholder="0.00"></td>
-		  <td><input type="date" name="variant_special_price_from[]" class="form-control" value=""></td>
-		  <td><input type="date" name="variant_special_price_to[]" class="form-control" value=""></td>
+		  <td><input type="date" name="variant_special_price_from[]" class="form-control" value="" min="<?php echo date('Y-m-d'); ?>"></td>
+		  <td><input type="date" name="variant_special_price_to[]" class="form-control" value="" min="<?php echo date('Y-m-d'); ?>"></td>
 		  <td><?php if(isset($flag) && $flag=='edit'){?><input type="hidden" name="conf_simple[]" class="form-control"  value="" ><?php } ?><input type="text" name="variant_sku[]" class="form-control required-field unique-sku valid-sku"  onblur="skudbcompare(this);" value="<?php echo $pro_code; ?>-" placeholder="Enter Value"></td>
 		  <!-- <td><input type="text" name="variant_barcode[]" class="form-control  " value="" placeholder="Enter Value" onblur="barcodedbcompare(this);"></td> -->
 		  <!-- <td><input type="text" class="form-control input-sm" name="variant_weight[]"   value="" onkeypress="return isNumberKey(event);"></td> -->

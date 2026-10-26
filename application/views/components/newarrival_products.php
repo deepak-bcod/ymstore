@@ -23,6 +23,43 @@
                         <h2><?= $this->lang->line('new_arrivals'); ?></h2>
                     </div>
                 </div>
+<style>
+.products-list-full .newarrival-view-btn,
+.products-list-full .add2cart {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 40px !important;
+    padding: 10px 15px !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    border: 1px solid #777777 !important;
+    border-radius: 3px !important;
+    color: #555555 !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    line-height: 20px !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.products-list-full .newarrival-view-btn:hover,
+.products-list-full .newarrival-view-btn:focus,
+.products-list-full .add2cart:hover,
+.products-list-full .add2cart:focus {
+    background: #1261d5 !important;
+    border-color: #1261d5 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    outline: none !important;
+}
+</style>
+
                 <!-- BEGIN PRODUCT LIST -->
                 <div class="products-list-full grid-view">
                     <div class="row">

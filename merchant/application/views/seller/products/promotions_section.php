@@ -259,6 +259,40 @@ if (isset($SpecialPriceData) && is_object($SpecialPriceData)) {
         specialPriceInput.addEventListener('input', updatePreview);
     }
 
+    var todayStr = '<?php echo date("Y-m-d"); ?>';
+    if (fromDateInput) {
+        fromDateInput.setAttribute('min', todayStr);
+        fromDateInput.addEventListener('change', function() {
+            var fromVal = this.value;
+            if (fromVal) {
+                if (fromVal < todayStr) {
+                    alert('Start date cannot be in the past. Please select today or a future date.');
+                    this.value = todayStr;
+                    fromVal = todayStr;
+                }
+                if (toDateInput) {
+                    toDateInput.setAttribute('min', fromVal);
+                    if (toDateInput.value && toDateInput.value < fromVal) {
+                        toDateInput.value = fromVal;
+                    }
+                }
+            }
+        });
+    }
+
+    if (toDateInput) {
+        var minTo = (fromDateInput && fromDateInput.value && fromDateInput.value > todayStr) ? fromDateInput.value : todayStr;
+        toDateInput.setAttribute('min', minTo);
+        toDateInput.addEventListener('change', function() {
+            var toVal = this.value;
+            var currentMin = (fromDateInput && fromDateInput.value && fromDateInput.value > todayStr) ? fromDateInput.value : todayStr;
+            if (toVal && toVal < currentMin) {
+                alert('End date cannot be earlier than start date or in the past.');
+                this.value = currentMin;
+            }
+        });
+    }
+
     // Discard button resets inputs to initial loaded state without modifying saved pricing
     if (discardBtn) {
         discardBtn.addEventListener('click', function(e) {

@@ -327,7 +327,11 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
                     <a href="javascript:;" onclick="gotoLocation('<?php echo BASE_URL . 'product-detail/' . $prod->url_key . '?type=prelaunch'; ?>');" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
                 <?php } ?>
             <?php else : ?>
-                <a href="<?= $product_url ?>" class="btn btn-primary add2cart" style="background-color: #0d6efd !important; border-color: #0d6efd !important; color: #ffffff !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 4px !important; text-transform: capitalize !important; line-height: 1.35 !important; display: inline-block !important; width: fit-content !important;"><?= lang('view_details') ?></a>
+                <?php if ($type === 'NewArrivalListing') : ?>
+                    <a href="<?= $product_url ?>" class="btn view-product-btn newarrival-view-btn" style="display: block !important; width: 100% !important; min-height: 40px !important; padding: 10px 15px !important; margin: 0 !important; background: #ffffff !important; border: 1px solid #777777 !important; border-radius: 3px !important; color: #555555 !important; font-size: 15px !important; font-weight: 500 !important; line-height: 20px !important; text-align: center !important; text-decoration: none !important; box-sizing: border-box !important; cursor: pointer !important; transition: all 0.2s ease-in-out !important;"><?= lang('view_details') ?></a>
+                <?php else : ?>
+                    <a href="<?= $product_url ?>" class="btn btn-primary add2cart" style="background-color: #0d6efd !important; border-color: #0d6efd !important; color: #ffffff !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 4px !important; text-transform: capitalize !important; line-height: 1.35 !important; display: inline-block !important; width: fit-content !important;"><?= lang('view_details') ?></a>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
 

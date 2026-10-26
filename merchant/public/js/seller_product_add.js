@@ -423,3 +423,59 @@ $(document).on("change", "input[type=radio][name=type-of-commission]", function 
 		});
 	}
 });
+
+// Datepicker validation: Prevent past dates and ensure end date >= start date
+$(document).ready(function() {
+	var todayDateOnlyStr = new Date().toISOString().split('T')[0];
+
+	$(document).on('change input', '#special_price_from', function() {
+		var val = $(this).val();
+		if (val && val < todayDateOnlyStr) {
+			alert('Start date cannot be in the past. Please select today or a future date.');
+			$(this).val(todayDateOnlyStr);
+			val = todayDateOnlyStr;
+		}
+		if (val) {
+			$('#special_price_to').attr('min', val);
+			if ($('#special_price_to').val() && $('#special_price_to').val() < val) {
+				$('#special_price_to').val(val);
+			}
+		}
+	});
+
+	$(document).on('change input', '#special_price_to', function() {
+		var val = $(this).val();
+		var currentMin = $('#special_price_from').val() || todayDateOnlyStr;
+		if (val && val < currentMin) {
+			alert('End date cannot be earlier than start date or in the past.');
+			$(this).val(currentMin);
+		}
+	});
+
+	$(document).on('change input', 'input[name="variant_special_price_from[]"]', function() {
+		var tr = $(this).closest('tr');
+		var val = $(this).val();
+		if (val && val < todayDateOnlyStr) {
+			alert('Start date cannot be in the past. Please select today or a future date.');
+			$(this).val(todayDateOnlyStr);
+			val = todayDateOnlyStr;
+		}
+		var toInput = tr.find('input[name="variant_special_price_to[]"]');
+		if (val && toInput.length) {
+			toInput.attr('min', val);
+			if (toInput.val() && toInput.val() < val) {
+				toInput.val(val);
+			}
+		}
+	});
+
+	$(document).on('change input', 'input[name="variant_special_price_to[]"]', function() {
+		var tr = $(this).closest('tr');
+		var val = $(this).val();
+		var currentMin = tr.find('input[name="variant_special_price_from[]"]').val() || todayDateOnlyStr;
+		if (val && val < currentMin) {
+			alert('End date cannot be earlier than start date or in the past.');
+			$(this).val(currentMin);
+		}
+	});
+});

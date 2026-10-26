@@ -624,6 +624,14 @@ class Sellerproduct extends CI_Controller {
 
 					$webshop_price=isset($_POST['webshop_price'])?$this->CommonModel->custom_filter_input($_POST['webshop_price']):'';
 
+					// Special pricing inputs for simple products
+					$special_price_in = isset($_POST['special_price']) ? $_POST['special_price'] : (isset($_POST['promo_special_price']) ? $_POST['promo_special_price'] : '');
+					$promo_special_price = (is_numeric($special_price_in) && floatval($special_price_in) > 0) ? floatval($special_price_in) : null;
+					$from_val = !empty($_POST['special_price_from']) ? $_POST['special_price_from'] : (!empty($_POST['from_date']) ? $_POST['from_date'] : '');
+					$to_val   = !empty($_POST['special_price_to']) ? $_POST['special_price_to'] : (!empty($_POST['to_date']) ? $_POST['to_date'] : '');
+					$sp_start_ts = !empty($from_val) ? (is_numeric($from_val) ? (int)$from_val : strtotime($from_val . ' 00:00:00')) : null;
+					$sp_end_ts   = !empty($to_val) ? (is_numeric($to_val) ? (int)$to_val : (strlen($to_val) <= 10 ? strtotime($to_val . ' 23:59:59') : strtotime($to_val))) : null;
+
 				}
 
 
@@ -921,6 +929,14 @@ class Sellerproduct extends CI_Controller {
 
 									'price'=>$price,  //selling price
 
+									'special_price' => $promo_special_price,
+
+									'default_special_price' => $promo_special_price,
+
+									'special_price_from' => $sp_start_ts,
+
+									'special_price_to' => $sp_end_ts,
+
 									'tax_percent'=>$tax_percent,
 
 									'tax_amount'=>$tax_amount,
@@ -978,6 +994,21 @@ class Sellerproduct extends CI_Controller {
 							);
 
 							$product_id=$this->SellerProductModel->insertData('products',$insertdata);
+
+							if ($product_id && $promo_special_price > 0) {
+								$sp_data = array(
+									'product_id' => $product_id,
+									'special_price' => $promo_special_price,
+									'special_price_from' => $sp_start_ts,
+									'special_price_to' => $sp_end_ts,
+									'display_original' => isset($_POST['display_original']) ? 1 : 0,
+									'offer_type' => 'general',
+									'created_by' => $this->session->userdata('LoginID'),
+									'created_at' => time(),
+									'ip' => $_SERVER['REMOTE_ADDR']
+								);
+								$this->SellerProductModel->insertData('products_special_prices', $sp_data);
+							}
 
 							// ================================
 							// ADD NOTIFICATION
@@ -1319,6 +1350,10 @@ class Sellerproduct extends CI_Controller {
 
 									$variant_webshop_price_arr=isset($_POST['variant_webshop_price'])?$_POST['variant_webshop_price']:array();
 
+									$variant_special_price_arr = isset($_POST['variant_special_price']) ? $_POST['variant_special_price'] : array();
+									$variant_special_price_from_arr = isset($_POST['variant_special_price_from']) ? $_POST['variant_special_price_from'] : array();
+									$variant_special_price_to_arr = isset($_POST['variant_special_price_to']) ? $_POST['variant_special_price_to'] : array();
+
 									//$variant_barcode_arr=isset($_POST['variant_barcode'])?$_POST['variant_barcode']:array();
 
 									//$variant_weight_arr=isset($_POST['variant_weight'])?$_POST['variant_weight']:array();
@@ -1350,6 +1385,12 @@ class Sellerproduct extends CI_Controller {
 											$simple_cost_price=$variant_cost_price_arr[$key];
 
 											$simple_price=$variant_price_arr[$key];
+
+											$simple_special_price = (isset($variant_special_price_arr[$key]) && is_numeric($variant_special_price_arr[$key]) && floatval($variant_special_price_arr[$key]) > 0) ? floatval($variant_special_price_arr[$key]) : null;
+											$raw_sp_from = isset($variant_special_price_from_arr[$key]) ? trim($variant_special_price_from_arr[$key]) : '';
+											$raw_sp_to = isset($variant_special_price_to_arr[$key]) ? trim($variant_special_price_to_arr[$key]) : '';
+											$simple_special_price_from = !empty($raw_sp_from) ? (is_numeric($raw_sp_from) ? (int)$raw_sp_from : strtotime($raw_sp_from . ' 00:00:00')) : null;
+											$simple_special_price_to = !empty($raw_sp_to) ? (is_numeric($raw_sp_to) ? (int)$raw_sp_to : (strlen($raw_sp_to) <= 10 ? strtotime($raw_sp_to . ' 23:59:59') : strtotime($raw_sp_to))) : null;
 
 											//$simple_barcode=$variant_barcode_arr[$key];
 
@@ -1405,6 +1446,14 @@ class Sellerproduct extends CI_Controller {
 
 													'price'=>$simple_price,
 
+													'special_price' => $simple_special_price,
+
+													'default_special_price' => $simple_special_price,
+
+													'special_price_from' => $simple_special_price_from,
+
+													'special_price_to' => $simple_special_price_to,
+
 													'cost_price'=>$simple_cost_price,
 
 													'tax_percent'=>$simple_tax_percent,
@@ -1447,9 +1496,18 @@ class Sellerproduct extends CI_Controller {
 
 											if($simple_product_id){
 
-
-
-
+												if(!empty($simple_special_price) && $simple_special_price > 0){
+													$var_sp_data = array(
+														'product_id' => $simple_product_id,
+														'special_price' => $simple_special_price,
+														'special_price_from' => $simple_special_price_from,
+														'special_price_to' => $simple_special_price_to,
+														'created_by' => $this->session->userdata('LoginID'),
+														'created_at' => time(),
+														'ip' => $_SERVER['REMOTE_ADDR']
+													);
+													$this->SellerProductModel->insertData('products_special_prices', $var_sp_data);
+												}
 
 												$stock_insert2=array('product_id'=>$simple_product_id,'qty'=>$simple_stock,'available_qty'=>$simple_stock,'min_qty'=>0,'is_in_stock'=>1);
 
@@ -10566,13 +10624,15 @@ class Sellerproduct extends CI_Controller {
 
 							if ($daily_deals == 1) {
 								if (!empty($_POST['daily_deal_starts_at'])) {
-									$daily_deal_starts_at = strtotime($_POST['daily_deal_starts_at']);
+									$dd_str = trim($_POST['daily_deal_starts_at']);
+									$daily_deal_starts_at = strtotime($dd_str . (stripos($dd_str, 'Z') === false && stripos($dd_str, 'UTC') === false ? ' UTC' : ''));
 								} else {
 									$daily_deal_starts_at = $now;
 								}
 
 								if (!empty($_POST['daily_deal_ends_at'])) {
-									$daily_deal_ends_at = strtotime($_POST['daily_deal_ends_at']);
+									$dd_end_str = trim($_POST['daily_deal_ends_at']);
+									$daily_deal_ends_at = strtotime($dd_end_str . (stripos($dd_end_str, 'Z') === false && stripos($dd_end_str, 'UTC') === false ? ' UTC' : ''));
 								} else {
 									$daily_deal_ends_at = $daily_deal_starts_at + 86400;
 								}
@@ -10746,13 +10806,15 @@ class Sellerproduct extends CI_Controller {
 
 							if ($flash_sale == 1) {
 								if (!empty($_POST['flash_sale_starts_at'])) {
-									$flash_sale_starts_at = strtotime($_POST['flash_sale_starts_at']);
+									$fs_str = trim($_POST['flash_sale_starts_at']);
+									$flash_sale_starts_at = strtotime($fs_str . (stripos($fs_str, 'Z') === false && stripos($fs_str, 'UTC') === false ? ' UTC' : ''));
 								} else {
 									$flash_sale_starts_at = $now;
 								}
 
 								if (!empty($_POST['flash_sale_ends_at'])) {
-									$flash_sale_ends_at = strtotime($_POST['flash_sale_ends_at']);
+									$fs_end_str = trim($_POST['flash_sale_ends_at']);
+									$flash_sale_ends_at = strtotime($fs_end_str . (stripos($fs_end_str, 'Z') === false && stripos($fs_end_str, 'UTC') === false ? ' UTC' : ''));
 								} else {
 									$flash_sale_ends_at = $flash_sale_starts_at + 86400;
 								}

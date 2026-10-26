@@ -321,23 +321,23 @@
 				</small>
 
 				<?php
-					$today_min_dt = date('Y-m-d\TH:i');
+					$today_min_dt = gmdate('Y-m-d\TH:i');
 					$dd_start_ts = !empty($ProductData->daily_deal_starts_at) ? $ProductData->daily_deal_starts_at : null;
 					$dd_end_ts   = !empty($ProductData->daily_deal_ends_at) ? $ProductData->daily_deal_ends_at : null;
-					$dd_start_val = $dd_start_ts ? date('Y-m-d\TH:i', is_numeric($dd_start_ts) ? (int)$dd_start_ts : strtotime($dd_start_ts)) : '';
+					$dd_start_val = $dd_start_ts ? gmdate('Y-m-d\TH:i', is_numeric($dd_start_ts) ? (int)$dd_start_ts : strtotime($dd_start_ts . ' UTC')) : '';
 					if (!empty($dd_start_val) && empty($dd_end_ts)) {
-						$dd_end_ts = strtotime('+24 hours', strtotime($dd_start_val));
+						$dd_end_ts = (is_numeric($dd_start_ts) ? (int)$dd_start_ts : strtotime($dd_start_ts . ' UTC')) + 86400;
 					}
-					$dd_end_val   = $dd_end_ts ? date('Y-m-d\TH:i', is_numeric($dd_end_ts) ? (int)$dd_end_ts : strtotime($dd_end_ts)) : '';
+					$dd_end_val   = $dd_end_ts ? gmdate('Y-m-d\TH:i', is_numeric($dd_end_ts) ? (int)$dd_end_ts : strtotime($dd_end_ts . ' UTC')) : '';
 				?>
 				<div id="daily_deals_datetime_box" style="<?php echo ($ProductData->daily_deals == 1) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
 					<div class="row">
 						<div class="col-sm-6">
-							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time <span class="text-danger">*</span></label>
+							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (UTC) <span class="text-danger">*</span></label>
 							<input type="datetime-local" class="form-control" name="daily_deal_starts_at" id="daily_deal_starts_at" value="<?php echo $dd_start_val; ?>" min="<?php echo $today_min_dt; ?>" <?php echo ($ProductData->daily_deals == 1 ? 'required' : ''); ?>>
 						</div>
 						<div class="col-sm-6">
-							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time</label>
+							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (UTC)</label>
 							<input type="datetime-local" class="form-control" name="daily_deal_ends_at" id="daily_deal_ends_at" value="<?php echo $dd_end_val; ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
 						</div>
 					</div>
@@ -381,20 +381,20 @@
 					<?php
 						$fs_start_ts = !empty($ProductData->flash_sale_starts_at) ? $ProductData->flash_sale_starts_at : null;
 						$fs_end_ts   = !empty($ProductData->flash_sale_ends_at) ? $ProductData->flash_sale_ends_at : null;
-						$fs_start_val = $fs_start_ts ? date('Y-m-d\TH:i', is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts)) : '';
+						$fs_start_val = $fs_start_ts ? gmdate('Y-m-d\TH:i', is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts . ' UTC')) : '';
 						if (!empty($fs_start_val) && empty($fs_end_ts)) {
-							$fs_end_ts = strtotime('+24 hours', strtotime($fs_start_val));
+							$fs_end_ts = (is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts . ' UTC')) + 86400;
 						}
-						$fs_end_val   = $fs_end_ts ? date('Y-m-d\TH:i', is_numeric($fs_end_ts) ? (int)$fs_end_ts : strtotime($fs_end_ts)) : '';
+						$fs_end_val   = $fs_end_ts ? gmdate('Y-m-d\TH:i', is_numeric($fs_end_ts) ? (int)$fs_end_ts : strtotime($fs_end_ts . ' UTC')) : '';
 					?>
 					<div id="flash_sale_datetime_box" style="<?php echo ($ProductData->flash_sale == 1) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
 						<div class="row">
 							<div class="col-sm-6">
-								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time <span class="text-danger">*</span></label>
+								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (UTC) <span class="text-danger">*</span></label>
 								<input type="datetime-local" class="form-control" name="flash_sale_starts_at" id="flash_sale_starts_at" value="<?php echo $fs_start_val; ?>" min="<?php echo $today_min_dt; ?>" <?php echo ($ProductData->flash_sale == 1 ? 'required' : ''); ?>>
 							</div>
 							<div class="col-sm-6">
-								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time</label>
+								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (UTC)</label>
 								<input type="datetime-local" class="form-control" name="flash_sale_ends_at" id="flash_sale_ends_at" value="<?php echo $fs_end_val; ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
 							</div>
 						</div>
@@ -2046,34 +2046,38 @@ $('.required-field').each(function() {
 
 
 
-	var currentDateTimeStr = '<?php echo date("Y-m-d\TH:i"); ?>';
+	var currentDateTimeStr = '<?php echo gmdate("Y-m-d\TH:i"); ?>';
 
-	function formatDateTimeLocal(d) {
-		var y = d.getFullYear();
-		var m = String(d.getMonth() + 1).padStart(2, '0');
-		var day = String(d.getDate()).padStart(2, '0');
-		var h = String(d.getHours()).padStart(2, '0');
-		var min = String(d.getMinutes()).padStart(2, '0');
+	function formatDateTimeUTC(d) {
+		var y = d.getUTCFullYear();
+		var m = String(d.getUTCMonth() + 1).padStart(2, '0');
+		var day = String(d.getUTCDate()).padStart(2, '0');
+		var h = String(d.getUTCHours()).padStart(2, '0');
+		var min = String(d.getUTCMinutes()).padStart(2, '0');
 		return y + '-' + m + '-' + day + 'T' + h + ':' + min;
 	}
 
-	function addHoursToDateTimeString(dtStr, hours) {
+	function addHoursToDateTimeStringUTC(dtStr, hours) {
 		if (!dtStr) return '';
-		var d = new Date(dtStr);
+		var isoStr = dtStr;
+		if (isoStr.indexOf('Z') === -1) {
+			isoStr = (isoStr.length === 16 ? isoStr + ':00' : isoStr) + 'Z';
+		}
+		var d = new Date(isoStr);
 		if (isNaN(d.getTime())) return '';
 		d.setTime(d.getTime() + (hours * 3600 * 1000));
-		return formatDateTimeLocal(d);
+		return formatDateTimeUTC(d);
 	}
 
 	$('#daily_deal_starts_at').on('change input', function() {
 		var startVal = $(this).val();
 		if (startVal) {
 			if (startVal < currentDateTimeStr) {
-				alert('Start date & time cannot be in the past.');
+				alert('Start date & time (UTC) cannot be in the past.');
 				$(this).val(currentDateTimeStr);
 				startVal = currentDateTimeStr;
 			}
-			var endVal = addHoursToDateTimeString(startVal, 24);
+			var endVal = addHoursToDateTimeStringUTC(startVal, 24);
 			$('#daily_deal_ends_at').val(endVal).attr('min', startVal);
 		} else {
 			$('#daily_deal_ends_at').val('');
@@ -2084,11 +2088,11 @@ $('.required-field').each(function() {
 		var startVal = $(this).val();
 		if (startVal) {
 			if (startVal < currentDateTimeStr) {
-				alert('Start date & time cannot be in the past.');
+				alert('Start date & time (UTC) cannot be in the past.');
 				$(this).val(currentDateTimeStr);
 				startVal = currentDateTimeStr;
 			}
-			var endVal = addHoursToDateTimeString(startVal, 24);
+			var endVal = addHoursToDateTimeStringUTC(startVal, 24);
 			$('#flash_sale_ends_at').val(endVal).attr('min', startVal);
 		} else {
 			$('#flash_sale_ends_at').val('');
@@ -2100,7 +2104,7 @@ $('.required-field').each(function() {
 			$('#daily_deals_datetime_box').slideDown();
 			$('#daily_deal_starts_at').prop('required', true);
 			if (!$('#daily_deal_starts_at').val()) {
-				var nowStr = formatDateTimeLocal(new Date());
+				var nowStr = formatDateTimeUTC(new Date());
 				$('#daily_deal_starts_at').val(nowStr).trigger('change');
 			}
 		} else {
@@ -2114,12 +2118,63 @@ $('.required-field').each(function() {
 			$('#flash_sale_datetime_box').slideDown();
 			$('#flash_sale_starts_at').prop('required', true);
 			if (!$('#flash_sale_starts_at').val()) {
-				var nowStr = formatDateTimeLocal(new Date());
+				var nowStr = formatDateTimeUTC(new Date());
 				$('#flash_sale_starts_at').val(nowStr).trigger('change');
 			}
 		} else {
 			$('#flash_sale_datetime_box').slideUp();
 			$('#flash_sale_starts_at').prop('required', false);
+		}
+	});
+
+	var todayDateOnlyStr = '<?php echo date("Y-m-d"); ?>';
+
+	$('#special_price_from').attr('min', todayDateOnlyStr).on('change input', function() {
+		var fromVal = $(this).val();
+		if (fromVal) {
+			if (fromVal < todayDateOnlyStr) {
+				alert('Special price start date cannot be in the past.');
+				$(this).val(todayDateOnlyStr);
+				fromVal = todayDateOnlyStr;
+			}
+			$('#special_price_to').attr('min', fromVal);
+			if ($('#special_price_to').val() && $('#special_price_to').val() < fromVal) {
+				$('#special_price_to').val(fromVal);
+			}
+		}
+	});
+
+	$('#special_price_to').on('change input', function() {
+		var toVal = $(this).val();
+		var currentMin = $('#special_price_from').val() || todayDateOnlyStr;
+		if (toVal && toVal < currentMin) {
+			alert('Special price end date cannot be earlier than start date or in the past.');
+			$(this).val(currentMin);
+		}
+	});
+
+	$(document).on('change input', 'input[name="variant_special_price_from[]"]', function() {
+		var fromVal = $(this).val();
+		if (fromVal && fromVal < todayDateOnlyStr) {
+			alert('Special price start date cannot be in the past.');
+			$(this).val(todayDateOnlyStr);
+			fromVal = todayDateOnlyStr;
+		}
+		var tr = $(this).closest('tr');
+		var toInput = tr.find('input[name="variant_special_price_to[]"]');
+		toInput.attr('min', fromVal || todayDateOnlyStr);
+		if (toInput.val() && toInput.val() < fromVal) {
+			toInput.val(fromVal);
+		}
+	});
+
+	$(document).on('change input', 'input[name="variant_special_price_to[]"]', function() {
+		var toVal = $(this).val();
+		var tr = $(this).closest('tr');
+		var currentMin = tr.find('input[name="variant_special_price_from[]"]').val() || todayDateOnlyStr;
+		if (toVal && toVal < currentMin) {
+			alert('Special price end date cannot be earlier than start date or in the past.');
+			$(this).val(currentMin);
 		}
 	});
 
