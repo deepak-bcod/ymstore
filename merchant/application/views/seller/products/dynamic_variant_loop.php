@@ -18,6 +18,8 @@
 		  <th>TAX (%) </th>
 		  <th>ESHOP PRICE </th>
 		  <th>Special Price</th>
+		  <th><?php echo !empty($this->lang->line('start_date')) ? $this->lang->line('start_date') : 'Start date'; ?></th>
+		  <th><?php echo !empty($this->lang->line('end_date')) ? $this->lang->line('end_date') : 'End date'; ?></th>
 		  <th>SKU </th>
 		  <!-- <th>BARCODE </th> -->
 		  <!-- <th>WEIGHT (KG) </th> -->

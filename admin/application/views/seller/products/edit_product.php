@@ -1289,6 +1289,10 @@
 
 													<th>SPECIAL PRICE</th>
 
+													<th>START DATE</th>
+
+													<th>END DATE</th>
+
 													<th>SKU </th>
 
 													<!-- <th>BARCODE </th> -->
@@ -1382,6 +1386,10 @@
 													<th>ESHOP PRICE </th>
 
 													<th>SPECIAL PRICE</th>
+
+													<th>START DATE</th>
+
+													<th>END DATE</th>
 
 													<!-- <th>GIFTS</th>
 
@@ -1499,6 +1507,34 @@
 															}
 														?>
 														<input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" value="<?php echo $simple_sp; ?>" placeholder="0.00">
+													</td>
+
+													<td>
+														<?php
+															$simple_sp_from = '';
+															$from_ts = !empty($SpecialPriceData->special_price_from) ? $SpecialPriceData->special_price_from : (!empty($ProductData->special_price_from) ? $ProductData->special_price_from : null);
+															if (!empty($from_ts)) {
+																$ts = is_numeric($from_ts) ? (int)$from_ts : strtotime($from_ts);
+																if ($ts > 0) {
+																	$simple_sp_from = date('Y-m-d', $ts);
+																}
+															}
+														?>
+														<input type="date" class="form-control input-sm" name="special_price_from" id="special_price_from" value="<?php echo $simple_sp_from; ?>">
+													</td>
+
+													<td>
+														<?php
+															$simple_sp_to = '';
+															$to_ts = !empty($SpecialPriceData->special_price_to) ? $SpecialPriceData->special_price_to : (!empty($ProductData->special_price_to) ? $ProductData->special_price_to : null);
+															if (!empty($to_ts)) {
+																$ts = is_numeric($to_ts) ? (int)$to_ts : strtotime($to_ts);
+																if ($ts > 0) {
+																	$simple_sp_to = date('Y-m-d', $ts);
+																}
+															}
+														?>
+														<input type="date" class="form-control input-sm" name="special_price_to" id="special_price_to" value="<?php echo $simple_sp_to; ?>">
 													</td>
 
 
