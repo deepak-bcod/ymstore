@@ -10566,17 +10566,15 @@ class Sellerproduct extends CI_Controller {
 
 							if ($daily_deals == 1) {
 								if (!empty($_POST['daily_deal_starts_at'])) {
-									$dd_input_str = $_POST['daily_deal_starts_at'];
-									if ($dd_input_str == date('Y-m-d')) {
-										$daily_deal_starts_at = $now;
-										$daily_deal_ends_at = $now + 86400;
-									} else {
-										$daily_deal_starts_at = strtotime($dd_input_str . ' 00:00:00');
-										$daily_deal_ends_at = $daily_deal_starts_at + 86400;
-									}
+									$daily_deal_starts_at = strtotime($_POST['daily_deal_starts_at']);
 								} else {
 									$daily_deal_starts_at = $now;
-									$daily_deal_ends_at = $now + 86400;
+								}
+
+								if (!empty($_POST['daily_deal_ends_at'])) {
+									$daily_deal_ends_at = strtotime($_POST['daily_deal_ends_at']);
+								} else {
+									$daily_deal_ends_at = $daily_deal_starts_at + 86400;
 								}
 							} else {
 								$daily_deal_starts_at = null;
@@ -10748,17 +10746,15 @@ class Sellerproduct extends CI_Controller {
 
 							if ($flash_sale == 1) {
 								if (!empty($_POST['flash_sale_starts_at'])) {
-									$fs_input_str = $_POST['flash_sale_starts_at'];
-									if ($fs_input_str == date('Y-m-d')) {
-										$flash_sale_starts_at = $now;
-										$flash_sale_ends_at = $now + (7 * 86400);
-									} else {
-										$flash_sale_starts_at = strtotime($fs_input_str . ' 00:00:00');
-										$flash_sale_ends_at = $flash_sale_starts_at + (7 * 86400);
-									}
+									$flash_sale_starts_at = strtotime($_POST['flash_sale_starts_at']);
 								} else {
 									$flash_sale_starts_at = $now;
-									$flash_sale_ends_at = $now + (7 * 86400);
+								}
+
+								if (!empty($_POST['flash_sale_ends_at'])) {
+									$flash_sale_ends_at = strtotime($_POST['flash_sale_ends_at']);
+								} else {
+									$flash_sale_ends_at = $flash_sale_starts_at + 86400;
 								}
 							} else {
 								$flash_sale_starts_at = null;
