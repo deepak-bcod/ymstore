@@ -19,8 +19,8 @@ if (isset($ProductData) && is_object($ProductData)) {
         $special_price_val = number_format((float)$ProductData->special_price, 2, '.', '');
     }
 
-    $starts_ts = !empty($ProductData->special_price_from) ? $ProductData->special_price_from : (!empty($ProductData->daily_deal_starts_at) ? $ProductData->daily_deal_starts_at : (!empty($ProductData->flash_sale_starts_at) ? $ProductData->flash_sale_starts_at : null));
-    $ends_ts = !empty($ProductData->special_price_to) ? $ProductData->special_price_to : (!empty($ProductData->daily_deal_ends_at) ? $ProductData->daily_deal_ends_at : (!empty($ProductData->flash_sale_ends_at) ? $ProductData->flash_sale_ends_at : null));
+    $starts_ts = !empty($ProductData->special_price_from) ? $ProductData->special_price_from : null;
+    $ends_ts = !empty($ProductData->special_price_to) ? $ProductData->special_price_to : null;
 
     if (!empty($starts_ts)) {
         $from_date_val = date('Y-m-d', is_numeric($starts_ts) ? (int)$starts_ts : strtotime($starts_ts));
@@ -85,7 +85,7 @@ if (isset($SpecialPriceData) && is_object($SpecialPriceData)) {
             <!-- From Date -->
             <div class="form-group" style="margin-bottom: 24px;">
                 <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 6px; display: block;">From</label>
-                <input type="date" class="form-control" name="from_date" id="sp_from_date" value="<?php echo $from_date_val; ?>" placeholder="mm/dd/yyyy" style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; height: 40px; box-shadow: none; font-size: 13.5px;">
+                <input type="date" class="form-control" name="from_date" id="sp_from_date" value="<?php echo $from_date_val; ?>" min="<?php echo date('Y-m-d'); ?>" placeholder="mm/dd/yyyy" style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; height: 40px; box-shadow: none; font-size: 13.5px;">
             </div>
 
             <!-- Display Original Toggle -->
@@ -115,7 +115,7 @@ if (isset($SpecialPriceData) && is_object($SpecialPriceData)) {
             <!-- To Date -->
             <div class="form-group" style="margin-bottom: 24px;">
                 <label style="font-size: 13px; font-weight: 600; color: #495057; margin-bottom: 6px; display: block;">To</label>
-                <input type="date" class="form-control" name="to_date" id="sp_to_date" value="<?php echo $to_date_val; ?>" placeholder="mm/dd/yyyy" style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; height: 40px; box-shadow: none; font-size: 13.5px;">
+                <input type="date" class="form-control" name="to_date" id="sp_to_date" value="<?php echo $to_date_val; ?>" min="<?php echo date('Y-m-d'); ?>" placeholder="mm/dd/yyyy" style="background: #ffffff; border: 1px solid #ced4da; border-radius: 4px; height: 40px; box-shadow: none; font-size: 13.5px;">
             </div>
 
             <!-- Promotion Type Selection (Daily Deal vs Flash Sale integration) -->

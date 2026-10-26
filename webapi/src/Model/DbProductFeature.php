@@ -2281,11 +2281,9 @@ class DbProductFeature
 		//same item as normal item in cart
 		$normal_quantity = 0;
 
-		if ($bundle_product_id != '') {
-			$checkItemExist = $cart_obj->checkQuoteItemDataExistById($QuoteId, $product_id, $product_parent_id);
-			if ($checkItemExist != false) {
-				$normal_quantity += $checkItemExist['qty_ordered'];
-			}
+		$checkItemExist = $cart_obj->checkQuoteItemDataExistById($QuoteId, $product_id, $product_parent_id);
+		if ($checkItemExist != false && isset($checkItemExist['qty_ordered'])) {
+			$normal_quantity += (int)$checkItemExist['qty_ordered'];
 		}
 		//same item exists in another bundle in cart
 		$otherbundlechild_quantity = 0;

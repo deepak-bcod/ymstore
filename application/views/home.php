@@ -143,6 +143,9 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                     if (!empty($daily_deals_products)) {
                         $now = time();
                         foreach ($daily_deals_products as $dp) {
+                            if (!empty($dp->daily_deal_starts_at) && (int)$dp->daily_deal_starts_at > $now) {
+                                continue;
+                            }
                             if (!empty($dp->daily_deal_ends_at) && (int)$dp->daily_deal_ends_at <= $now) {
                                 continue;
                             }
@@ -190,6 +193,9 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                     if (!empty($flash_sale_products)) {
                         $now = time();
                         foreach ($flash_sale_products as $fp) {
+                            if (!empty($fp->flash_sale_starts_at) && (int)$fp->flash_sale_starts_at > $now) {
+                                continue;
+                            }
                             if (!empty($fp->flash_sale_ends_at) && (int)$fp->flash_sale_ends_at <= $now) {
                                 continue;
                             }

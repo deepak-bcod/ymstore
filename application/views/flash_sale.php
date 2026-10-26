@@ -176,7 +176,8 @@
 
 .deal-ends {
     font-size: 13px;
-    font-weight: 700;
+    font-weight: normal !important;
+    color: #e52525 !important;
     margin-bottom: 10px;
 }
 
@@ -648,9 +649,8 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                 }
                                                 ?>
                                                 <div class="flash-sale-stock" style="margin: 4px 0 6px 0; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;">
-                                                    <span class="badge-limited-stock" style="display: inline-block; background-color: #1b873f; color: #ffffff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.3px;">📦 LIMITED STOCK</span>
-                                                    <?php if ($remaining_stock !== null) : ?>
-                                                        <span class="stock-indicator-text" style="color: #cf1322; font-weight: 700; font-size: 11px;">Only <?= $remaining_stock ?> left</span>
+                                                    <?php if ($remaining_stock !== null && $remaining_stock > 0) : ?>
+                                                        <span class="stock-indicator-text" style="color: #e52525; font-weight: normal; font-size: 11.5px;"><i class="fa fa-fire" style="color: #e52525;"></i> Only <?= $remaining_stock ?> left</span>
                                                     <?php endif; ?>
                                                 </div>
                                             <?php endif; ?>

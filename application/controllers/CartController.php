@@ -141,6 +141,79 @@ class CartController extends CI_Controller
                         exit;
                     }
 
+                    $quantity = (int)$_POST['quantity'];
+                    if ($quantity <= 0) $quantity = 1;
+                    $target_product_id = $product_id;
+                    if ($ProductData->product_type == 'configurable' && !empty($_POST['conf_simple_pid'])) {
+                        $target_product_id = $_POST['conf_simple_pid'];
+                    }
+
+                    // Check available stock from products_inventory / products
+                    $available_stock = null;
+                    if (isset($this->db)) {
+                        $inv = $this->db->select('available_qty, qty')
+                            ->where('product_id', $target_product_id)
+                            ->get('products_inventory')
+                            ->row();
+                        if ($inv) {
+                            if (isset($inv->available_qty) && is_numeric($inv->available_qty)) {
+                                $available_stock = (int)$inv->available_qty;
+                            } elseif (isset($inv->qty) && is_numeric($inv->qty)) {
+                                $available_stock = (int)$inv->qty;
+                            }
+                        }
+                        if ($available_stock === null) {
+                            $p_row = $this->db->select('stock_qty, qty, total_qty')
+                                ->where('id', $target_product_id)
+                                ->get('products')
+                                ->row();
+                            if ($p_row) {
+                                if (isset($p_row->stock_qty) && is_numeric($p_row->stock_qty)) {
+                                    $available_stock = (int)$p_row->stock_qty;
+                                } elseif (isset($p_row->total_qty) && is_numeric($p_row->total_qty)) {
+                                    $available_stock = (int)$p_row->total_qty;
+                                } elseif (isset($p_row->qty) && is_numeric($p_row->qty)) {
+                                    $available_stock = (int)$p_row->qty;
+                                }
+                            }
+                        }
+                    }
+                    if ($available_stock === null && isset($ProductData->total_qty) && is_numeric($ProductData->total_qty)) {
+                        $available_stock = (int)$ProductData->total_qty;
+                    }
+
+                    // Check quantity already in cart for this product
+                    $already_in_cart = 0;
+                    if (!empty($quote_id) && isset($this->db)) {
+                        $cart_item_row = $this->db->select_sum('qty_ordered')
+                            ->where('quote_id', $quote_id)
+                            ->group_start()
+                                ->where('product_id', $target_product_id)
+                                ->or_where('parent_product_id', $target_product_id)
+                            ->group_end()
+                            ->get('sales_quote_items')
+                            ->row();
+                        if ($cart_item_row && !empty($cart_item_row->qty_ordered)) {
+                            $already_in_cart = (int)$cart_item_row->qty_ordered;
+                        }
+                    }
+
+                    if ($available_stock !== null) {
+                        if ($available_stock <= 0) {
+                            echo json_encode(array('status'=>403, 'message'=>"Product is Out of Stock."));
+                            exit;
+                        }
+                        if (($already_in_cart + $quantity) > $available_stock) {
+                            $allowed_more = max(0, $available_stock - $already_in_cart);
+                            if ($allowed_more <= 0) {
+                                echo json_encode(array('status'=>403, 'message'=>"You already have the maximum available stock ({$available_stock}) in your cart."));
+                            } else {
+                                echo json_encode(array('status'=>403, 'message'=>"Only {$available_stock} item(s) available in stock. You can only add {$allowed_more} more to your cart."));
+                            }
+                            exit;
+                        }
+                    }
+
                     if ($ProductData->product_type=='configurable') {
                         $conf_simple_pid=$_POST['conf_simple_pid'];
 
@@ -340,6 +413,31 @@ class CartController extends CI_Controller
 					echo json_encode(array('flag'=>0, 'exceed_flag'=>1, 'previous_qty'=> $previous_qty, 'price'=> $price, 'msg'=>"The requested quantity exceeds the maximum quantity allowed in shopping cart."));
                     exit;
 				}
+
+				$quote_id=$this->session->userdata('QuoteId');
+				$cart_item_id = (isset($_POST['item_id']))?$_POST['item_id']:'';
+				$quantity = (isset($_POST['quantity']) && $_POST['quantity'] > 0)?(int)$_POST['quantity']:1;
+
+				if (isset($this->db) && !empty($cart_item_id) && !empty($quote_id)) {
+					$cart_item = $this->db->where('item_id', $cart_item_id)->where('quote_id', $quote_id)->get('sales_quote_items')->row();
+					if ($cart_item) {
+						$target_pid = !empty($cart_item->product_id) ? $cart_item->product_id : 0;
+						$inv_row = $this->db->select('available_qty, qty')->where('product_id', $target_pid)->get('products_inventory')->row();
+						$db_stock = null;
+						if ($inv_row) {
+							$db_stock = isset($inv_row->available_qty) && is_numeric($inv_row->available_qty) ? (int)$inv_row->available_qty : (int)$inv_row->qty;
+						}
+						if ($db_stock !== null && $quantity > $db_stock) {
+							$previous_qty = (isset($_POST['previous_qty'])) ? $_POST['previous_qty'] : 1;
+							$price = floatval(preg_replace('/[^\d.]/', '', $price_main));
+							$total_price = $price * $previous_qty;
+							$price = (($this->session->userdata('currency_code_session') && $default_currency_flag != 1) ? convert_currency_website($total_price, $currency_conversion_rate, $currency_symbol) : CURRENCY_TYPE . number_format($total_price, 2));
+							echo json_encode(array('flag' => 0, 'exceed_flag' => 1, 'previous_qty' => $previous_qty, 'price' => $price, 'msg' => "Only {$db_stock} item(s) available in stock. The requested quantity exceeds available stock."));
+							exit;
+						}
+					}
+				}
+
                 $shopcode = SHOPCODE;
                 $shop_id = SHOP_ID;
 
@@ -351,10 +449,6 @@ class CartController extends CI_Controller
                     $session_id=$this->session->userdata('sis_session_id');
                 }
 
-                $quote_id=$this->session->userdata('QuoteId');
-                $cart_item_id = (isset($_POST['item_id']))?$_POST['item_id']:'';
-
-                $quantity = (isset($_POST['quantity']) && $_POST['quantity'] > 0)?$_POST['quantity']:1;
                 $postArr=array('session_id'=>$session_id,'quote_id'=>$quote_id,'cart_item_id'=>$cart_item_id,'qty'=>$quantity);
                 // echo "<pre>";
                 // print_R($postArr);

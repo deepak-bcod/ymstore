@@ -2602,21 +2602,70 @@ class CronController extends CI_Controller
 	public function expire_daily_deals()
 	{
 		$now = time();
-		$this->db->where('daily_deals', 1);
-		$this->db->where('daily_deal_ends_at >', 0);
-		$this->db->where('daily_deal_ends_at <=', $now);
-		$this->db->update('products', ['daily_deals' => 0]);
-		$affected_dd = $this->db->affected_rows();
 
-		$this->db->where('flash_sale', 1);
-		$this->db->where('flash_sale_ends_at >', 0);
-		$this->db->where('flash_sale_ends_at <=', $now);
-		$this->db->update('products', ['flash_sale' => 0]);
-		$affected_fs = $this->db->affected_rows();
+		if (!$this->db->field_exists('default_special_price', 'products')) {
+			@$this->db->query("ALTER TABLE products ADD COLUMN default_special_price DECIMAL(12,2) NULL DEFAULT NULL AFTER special_price");
+		}
+
+		$affected_dd = 0;
+		$exp_dd = $this->db->select('id, special_price, default_special_price')
+			->from('products')
+			->where('daily_deals', 1)
+			->where('daily_deal_ends_at >', 0)
+			->where('daily_deal_ends_at <=', $now)
+			->get()->result();
+
+		foreach ($exp_dd as $p) {
+			if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
+				$this->db->where('id', $p->id)->update('products', [
+					'daily_deals' => 0,
+					'special_price' => (float)$p->default_special_price
+				]);
+				$this->db->where('product_id', $p->id)->update('products_special_prices', [
+					'special_price' => (float)$p->default_special_price,
+					'offer_type' => 'general'
+				]);
+			} else {
+				$this->db->where('id', $p->id)->update('products', [
+					'daily_deals' => 0,
+					'special_price' => null
+				]);
+				$this->db->where('product_id', $p->id)->delete('products_special_prices');
+			}
+			$affected_dd++;
+		}
+
+		$affected_fs = 0;
+		$exp_fs = $this->db->select('id, special_price, default_special_price')
+			->from('products')
+			->where('flash_sale', 1)
+			->where('flash_sale_ends_at >', 0)
+			->where('flash_sale_ends_at <=', $now)
+			->get()->result();
+
+		foreach ($exp_fs as $p) {
+			if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
+				$this->db->where('id', $p->id)->update('products', [
+					'flash_sale' => 0,
+					'special_price' => (float)$p->default_special_price
+				]);
+				$this->db->where('product_id', $p->id)->update('products_special_prices', [
+					'special_price' => (float)$p->default_special_price,
+					'offer_type' => 'general'
+				]);
+			} else {
+				$this->db->where('id', $p->id)->update('products', [
+					'flash_sale' => 0,
+					'special_price' => null
+				]);
+				$this->db->where('product_id', $p->id)->delete('products_special_prices');
+			}
+			$affected_fs++;
+		}
 
 		echo json_encode([
 			'flag' => 1,
-			'msg' => 'Deals expired successfully',
+			'msg' => 'Deals expired successfully and default special prices restored',
 			'daily_deals_expired' => $affected_dd,
 			'flash_sales_expired' => $affected_fs,
 			'timestamp' => $now
