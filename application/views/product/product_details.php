@@ -256,18 +256,18 @@ $lang = $this->session->userdata('site_lang');
                                     if (!empty($ProductData->id)) {
                                         $ci =& get_instance();
                                         if (isset($ci->db)) {
-                                            $p_promo_data = $ci->db->select('daily_deals, daily_deal_ends_at, flash_sale, flash_sale_ends_at')
+                                            $p_promo_data = $ci->db->select('daily_deals, daily_deal_starts_at, daily_deal_ends_at, flash_sale, flash_sale_starts_at, flash_sale_ends_at')
                                                 ->where('id', $ProductData->id)
                                                 ->get('products')
                                                 ->row();
                                             if ($p_promo_data) {
-                                                if (!empty($p_promo_data->flash_sale) && $p_promo_data->flash_sale == 1 && (empty($p_promo_data->flash_sale_ends_at) || (int)$p_promo_data->flash_sale_ends_at > $now)) {
+                                                if (!empty($p_promo_data->flash_sale) && $p_promo_data->flash_sale == 1 && (empty($p_promo_data->flash_sale_starts_at) || (int)$p_promo_data->flash_sale_starts_at <= $now) && (empty($p_promo_data->flash_sale_ends_at) || (int)$p_promo_data->flash_sale_ends_at > $now)) {
                                                     $is_flash_sale_detail = true;
                                                     if (!empty($p_promo_data->flash_sale_ends_at)) {
                                                         $fs_ends_at_detail = (int)$p_promo_data->flash_sale_ends_at;
                                                     }
                                                 }
-                                                if (!empty($p_promo_data->daily_deals) && $p_promo_data->daily_deals == 1 && (empty($p_promo_data->daily_deal_ends_at) || (int)$p_promo_data->daily_deal_ends_at > $now)) {
+                                                if (!empty($p_promo_data->daily_deals) && $p_promo_data->daily_deals == 1 && (empty($p_promo_data->daily_deal_starts_at) || (int)$p_promo_data->daily_deal_starts_at <= $now) && (empty($p_promo_data->daily_deal_ends_at) || (int)$p_promo_data->daily_deal_ends_at > $now)) {
                                                     $is_daily_deal_detail = true;
                                                     if (!empty($p_promo_data->daily_deal_ends_at)) {
                                                         $dd_ends_at_detail = (int)$p_promo_data->daily_deal_ends_at;
@@ -278,12 +278,12 @@ $lang = $this->session->userdata('site_lang');
                                     }
 
                                     if (!$is_flash_sale_detail) {
-                                        if (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1 && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
+                                        if (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1 && (empty($ProductData->flash_sale_starts_at) || (int)$ProductData->flash_sale_starts_at <= $now) && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
                                             $is_flash_sale_detail = true;
                                             if (!empty($ProductData->flash_sale_ends_at)) {
                                                 $fs_ends_at_detail = (int)$ProductData->flash_sale_ends_at;
                                             }
-                                        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'flash_sale' && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
+                                        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'flash_sale' && (empty($ProductData->flash_sale_starts_at) || (int)$ProductData->flash_sale_starts_at <= $now) && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
                                             $is_flash_sale_detail = true;
                                             if (!empty($ProductData->flash_sale_ends_at)) {
                                                 $fs_ends_at_detail = (int)$ProductData->flash_sale_ends_at;
@@ -292,17 +292,17 @@ $lang = $this->session->userdata('site_lang');
                                     }
 
                                     if (!$is_daily_deal_detail) {
-                                        if (!empty($ProductData->daily_deals) && $ProductData->daily_deals == 1 && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+                                        if (!empty($ProductData->daily_deals) && $ProductData->daily_deals == 1 && (empty($ProductData->daily_deal_starts_at) || (int)$ProductData->daily_deal_starts_at <= $now) && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
                                             $is_daily_deal_detail = true;
                                             if (!empty($ProductData->daily_deal_ends_at)) {
                                                 $dd_ends_at_detail = (int)$ProductData->daily_deal_ends_at;
                                             }
-                                        } elseif (!empty($ProductData->daily_deal) && $ProductData->daily_deal == 1 && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+                                        } elseif (!empty($ProductData->daily_deal) && $ProductData->daily_deal == 1 && (empty($ProductData->daily_deal_starts_at) || (int)$ProductData->daily_deal_starts_at <= $now) && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
                                             $is_daily_deal_detail = true;
                                             if (!empty($ProductData->daily_deal_ends_at)) {
                                                 $dd_ends_at_detail = (int)$ProductData->daily_deal_ends_at;
                                             }
-                                        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'daily_deal' && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+                                        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'daily_deal' && (empty($ProductData->daily_deal_starts_at) || (int)$ProductData->daily_deal_starts_at <= $now) && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
                                             $is_daily_deal_detail = true;
                                             if (!empty($ProductData->daily_deal_ends_at)) {
                                                 $dd_ends_at_detail = (int)$ProductData->daily_deal_ends_at;
@@ -330,20 +330,29 @@ $lang = $this->session->userdata('site_lang');
                                     if ($product_stock_detail !== null && $product_stock_detail > 0) {
                                         $remaining_stock = (int)$product_stock_detail;
                                     }
+                                    if ($remaining_stock === null && !empty($ProductData->id) && isset($ci->db)) {
+                                        $p_inv_row = $ci->db->select('available_qty, qty')->where('product_id', $ProductData->id)->get('products_inventory')->row();
+                                        if ($p_inv_row) {
+                                            if (isset($p_inv_row->available_qty) && is_numeric($p_inv_row->available_qty) && $p_inv_row->available_qty > 0) {
+                                                $remaining_stock = (int)$p_inv_row->available_qty;
+                                            } elseif (isset($p_inv_row->qty) && is_numeric($p_inv_row->qty) && $p_inv_row->qty > 0) {
+                                                $remaining_stock = (int)$p_inv_row->qty;
+                                            }
+                                        }
+                                    }
                                     ?>
                                     <?php if ($ends_at_detail > $now) : 
                                         $diff_d = $ends_at_detail - $now;
-                                        $countdown_str = sprintf('%02d:%02d:%02d', floor($diff_d / 3600), floor(($diff_d % 3600) / 60), $diff_d % 60);
+                                        if ($diff_d >= 86400) {
+                                            $days_d = floor($diff_d / 86400);
+                                            $countdown_str = $days_d . ($days_d == 1 ? ' day' : ' days');
+                                        } else {
+                                            $countdown_str = sprintf('%02d:%02d:%02d', floor($diff_d / 3600), floor(($diff_d % 3600) / 60), $diff_d % 60);
+                                        }
                                     ?>
-                                        <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 13.5px !important; font-weight: 600 !important; margin: 4px 0 8px 0 !important; display: flex !important; align-items: center !important; gap: 5px !important;">
+                                        <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 13.5px !important; font-weight: normal !important; margin: 4px 0 8px 0 !important; display: flex !important; align-items: center !important; gap: 5px !important;">
                                             <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 14px !important;"></i>
                                             <span>Ends in <span class="live-countdown" data-ends-at="<?= $ends_at_detail ?>"><?= $countdown_str ?></span></span>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale_detail || $remaining_stock <= 10) && !$is_out_of_stock_detail) : ?>
-                                        <div class="promo-stock-wrapper" style="color: #cf1322 !important; font-size: 12.5px !important; font-weight: 700 !important; margin: 4px 0 8px 0 !important; display: flex !important; align-items: center !important; gap: 5px !important;">
-                                            <i class="fa fa-exclamation-triangle" style="color: #cf1322 !important; font-size: 12px !important;"></i>
-                                            <span>Only <?= $remaining_stock ?> left</span>
                                         </div>
                                     <?php endif; ?>
 
@@ -435,6 +444,17 @@ $lang = $this->session->userdata('site_lang');
                                         </button>
                                     <?php } ?>
                                     <div id="addtocart-message" class="addtocart-message"></div>
+                                    <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale_detail || $is_daily_deal_detail || $remaining_stock <= 10) && !$is_out_of_stock_detail): ?>
+                                        <div id="details-stock-left" class="promo-stock-wrapper" style="clear: both; padding-top: 10px !important; color: #e52525 !important; font-size: 13px !important; font-weight: normal !important; display: flex !important; align-items: center !important; gap: 5px !important;">
+                                            <i class="fa fa-fire" style="color: #e52525 !important; font-size: 13px !important;"></i>
+                                            <span>Only <strong id="details-stock-qty" style="font-weight: 600;"><?= $remaining_stock ?></strong> left</span>
+                                        </div>
+                                    <?php else: ?>
+                                        <div id="details-stock-left" class="promo-stock-wrapper" style="display: none; clear: both; padding-top: 10px !important; color: #e52525 !important; font-size: 13px !important; font-weight: normal !important; align-items: center !important; gap: 5px !important;">
+                                            <i class="fa fa-fire" style="color: #e52525 !important; font-size: 13px !important;"></i>
+                                            <span>Only <strong id="details-stock-qty" style="font-weight: 600;"></strong> left</span>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
 
                                 <ul id="myTab" class="nav nav-tabs">
@@ -1099,6 +1119,12 @@ $lang = $this->session->userdata('site_lang');
 
 
                                 $("#conf_simple_qty").val(simple_qty);
+                                if (parseInt(simple_qty) > 0) {
+                                    $("#details-stock-qty").text(simple_qty);
+                                    $("#details-stock-left").show().css("display", "flex");
+                                } else {
+                                    $("#details-stock-left").hide();
+                                }
 
 
 
@@ -2149,11 +2175,16 @@ $lang = $this->session->userdata('site_lang');
                         if (wrap) wrap.style.display = 'none';
                         continue;
                     }
-                    var h = Math.floor(diff / 3600);
-                    var m = Math.floor((diff % 3600) / 60);
-                    var s = diff % 60;
-                    var pad = function(n) { return (n < 10 ? '0' : '') + n; };
-                    el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+                    if (diff >= 86400) {
+                        var days = Math.floor(diff / 86400);
+                        el.textContent = days + (days === 1 ? ' day' : ' days');
+                    } else {
+                        var h = Math.floor(diff / 3600);
+                        var m = Math.floor((diff % 3600) / 60);
+                        var s = diff % 60;
+                        var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+                        el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+                    }
                 }
             }
             setInterval(tickCountdowns, 1000);

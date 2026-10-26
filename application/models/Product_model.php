@@ -22,20 +22,70 @@ class Product_model extends CI_Model {
 
        ========================== */
 
-    // Auto-expire deals that have passed end time
+    // Auto-expire deals that have passed end time and restore default special price
     public function auto_expire_deals($current_time = null) {
         if (!$current_time) {
             $current_time = time();
         }
-        $this->db->where('daily_deals', 1);
-        $this->db->where('daily_deal_ends_at >', 0);
-        $this->db->where('daily_deal_ends_at <=', $current_time);
-        $this->db->update('products', ['daily_deals' => 0]);
 
-        $this->db->where('flash_sale', 1);
-        $this->db->where('flash_sale_ends_at >', 0);
-        $this->db->where('flash_sale_ends_at <=', $current_time);
-        $this->db->update('products', ['flash_sale' => 0]);
+        // Ensure default_special_price column exists safely
+        if (!$this->db->field_exists('default_special_price', 'products')) {
+            @$this->db->query("ALTER TABLE products ADD COLUMN default_special_price DECIMAL(12,2) NULL DEFAULT NULL AFTER special_price");
+        }
+
+        // 1. Expire daily deals
+        $exp_dd = $this->db->select('id, special_price, default_special_price')
+            ->from('products')
+            ->where('daily_deals', 1)
+            ->where('daily_deal_ends_at >', 0)
+            ->where('daily_deal_ends_at <=', $current_time)
+            ->get()->result();
+
+        foreach ($exp_dd as $p) {
+            if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
+                $this->db->where('id', $p->id)->update('products', [
+                    'daily_deals' => 0,
+                    'special_price' => (float)$p->default_special_price
+                ]);
+                $this->db->where('product_id', $p->id)->update('products_special_prices', [
+                    'special_price' => (float)$p->default_special_price,
+                    'offer_type' => 'general'
+                ]);
+            } else {
+                $this->db->where('id', $p->id)->update('products', [
+                    'daily_deals' => 0,
+                    'special_price' => null
+                ]);
+                $this->db->where('product_id', $p->id)->delete('products_special_prices');
+            }
+        }
+
+        // 2. Expire flash sales
+        $exp_fs = $this->db->select('id, special_price, default_special_price')
+            ->from('products')
+            ->where('flash_sale', 1)
+            ->where('flash_sale_ends_at >', 0)
+            ->where('flash_sale_ends_at <=', $current_time)
+            ->get()->result();
+
+        foreach ($exp_fs as $p) {
+            if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
+                $this->db->where('id', $p->id)->update('products', [
+                    'flash_sale' => 0,
+                    'special_price' => (float)$p->default_special_price
+                ]);
+                $this->db->where('product_id', $p->id)->update('products_special_prices', [
+                    'special_price' => (float)$p->default_special_price,
+                    'offer_type' => 'general'
+                ]);
+            } else {
+                $this->db->where('id', $p->id)->update('products', [
+                    'flash_sale' => 0,
+                    'special_price' => null
+                ]);
+                $this->db->where('product_id', $p->id)->delete('products_special_prices');
+            }
+        }
     }
 
     // ✅ Get daily deals products
@@ -67,8 +117,12 @@ class Product_model extends CI_Model {
             $this->db->where('pc.category_ids', $category_id);
         }
 
-        // Daily deal active check - strictly active (> current_time)
+        // Daily deal active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.daily_deals', 1);
+        $this->db->group_start();
+            $this->db->where('p.daily_deal_starts_at IS NULL', null, false);
+            $this->db->or_where('p.daily_deal_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.daily_deal_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -91,8 +145,12 @@ class Product_model extends CI_Model {
             $this->db->where('pc.category_ids', $category_id);
         }
 
-        // Daily deal active check - strictly active (> current_time)
+        // Daily deal active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.daily_deals', 1);
+        $this->db->group_start();
+            $this->db->where('p.daily_deal_starts_at IS NULL', null, false);
+            $this->db->or_where('p.daily_deal_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.daily_deal_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -111,8 +169,12 @@ class Product_model extends CI_Model {
         $this->db->join('products_category pc', 'pc.category_ids = c.id', 'inner');
         $this->db->join('products p', 'p.id = pc.product_id', 'inner');
 
-        // Daily deal active check - strictly active (> current_time)
+        // Daily deal active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.daily_deals', 1);
+        $this->db->group_start();
+            $this->db->where('p.daily_deal_starts_at IS NULL', null, false);
+            $this->db->or_where('p.daily_deal_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.daily_deal_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -157,8 +219,12 @@ class Product_model extends CI_Model {
             $this->db->where('pc.category_ids', $category_id);
         }
 
-        // Flash sale active check - strictly active (> current_time)
+        // Flash sale active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.flash_sale', 1);
+        $this->db->group_start();
+            $this->db->where('p.flash_sale_starts_at IS NULL', null, false);
+            $this->db->or_where('p.flash_sale_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.flash_sale_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -181,8 +247,12 @@ class Product_model extends CI_Model {
             $this->db->where('pc.category_ids', $category_id);
         }
 
-        // Flash sale active check - strictly active (> current_time)
+        // Flash sale active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.flash_sale', 1);
+        $this->db->group_start();
+            $this->db->where('p.flash_sale_starts_at IS NULL', null, false);
+            $this->db->or_where('p.flash_sale_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.flash_sale_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
@@ -201,8 +271,12 @@ class Product_model extends CI_Model {
         $this->db->join('products_category pc', 'pc.category_ids = c.id', 'inner');
         $this->db->join('products p', 'p.id = pc.product_id', 'inner');
 
-        // Flash sale active check - strictly active (> current_time)
+        // Flash sale active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.flash_sale', 1);
+        $this->db->group_start();
+            $this->db->where('p.flash_sale_starts_at IS NULL', null, false);
+            $this->db->or_where('p.flash_sale_starts_at <=', $current_time);
+        $this->db->group_end();
         $this->db->where('p.flash_sale_ends_at >', $current_time);
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);

@@ -2736,16 +2736,12 @@ $app->post('/webshop/getSimpleValidateQty', function (Request $request, Response
 		$cart_obj = new DbCart();
 		$productData = $webshop_obj->getproductDetailsById($product_id);
 
-		if ($productData['product_inv_type'] == 'buy') {
-			$product_inv = $webshop_obj->getAvailableInventory($productData['id']);
-			if (is_numeric($product_inv['available_qty'])) {
-				if ($product_inv['available_qty'] > 0) {
-					$product_quantity = $product_inv['available_qty'];
-				} else {
-
-					$product_quantity = 0;
-				}
-			}
+		$product_inv = $webshop_obj->getAvailableInventory($productData['id']);
+		$product_quantity = 0;
+		if (is_array($product_inv) && isset($product_inv['available_qty']) && is_numeric($product_inv['available_qty'])) {
+			$product_quantity = max(0, (int)$product_inv['available_qty']);
+		} elseif (is_array($product_inv) && isset($product_inv['qty']) && is_numeric($product_inv['qty'])) {
+			$product_quantity = max(0, (int)$product_inv['qty']);
 		}
 
 		$total_bundle_qty = 0;

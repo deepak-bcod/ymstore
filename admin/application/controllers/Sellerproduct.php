@@ -2752,12 +2752,62 @@ class Sellerproduct extends CI_Controller
 		}
 	}
 
+	private function auto_expire_product_deal($product_id = null, $now = null)
+	{
+		if (!$now) $now = time();
+		if (!$this->db->field_exists('default_special_price', 'products')) {
+			@$this->db->query("ALTER TABLE products ADD COLUMN default_special_price DECIMAL(12,2) NULL DEFAULT NULL AFTER special_price");
+		}
+
+		$this->db->select('id, special_price, default_special_price, daily_deals, daily_deal_ends_at, flash_sale, flash_sale_ends_at');
+		$this->db->from('products');
+		if ($product_id) {
+			$this->db->where('id', $product_id);
+		}
+		$this->db->group_start();
+			$this->db->group_start();
+				$this->db->where('daily_deals', 1);
+				$this->db->where('daily_deal_ends_at >', 0);
+				$this->db->where('daily_deal_ends_at <=', $now);
+			$this->db->group_end();
+			$this->db->or_group_start();
+				$this->db->where('flash_sale', 1);
+				$this->db->where('flash_sale_ends_at >', 0);
+				$this->db->where('flash_sale_ends_at <=', $now);
+			$this->db->group_end();
+		$this->db->group_end();
+
+		$exp_prods = $this->db->get()->result();
+		foreach ($exp_prods as $p) {
+			$update_p = [];
+			if ($p->daily_deals == 1 && $p->daily_deal_ends_at > 0 && $p->daily_deal_ends_at <= $now) {
+				$update_p['daily_deals'] = 0;
+			}
+			if ($p->flash_sale == 1 && $p->flash_sale_ends_at > 0 && $p->flash_sale_ends_at <= $now) {
+				$update_p['flash_sale'] = 0;
+			}
+			if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
+				$update_p['special_price'] = (float)$p->default_special_price;
+				$this->db->where('product_id', $p->id)->update('products_special_prices', [
+					'special_price' => (float)$p->default_special_price,
+					'offer_type' => 'general'
+				]);
+			} else {
+				$update_p['special_price'] = null;
+				$this->db->where('product_id', $p->id)->delete('products_special_prices');
+			}
+			$this->db->where('id', $p->id)->update('products', $update_p);
+		}
+	}
+
 	function editproduct()
 	{
 
 
 
 		$product_id = $this->uri->segment(4);
+
+		$this->auto_expire_product_deal($product_id);
 
 		$ProductData = $this->SellerProductModel->getSingleDataByID('products', array('id' => $product_id), '');
 		if ($ProductData == '') {
@@ -3218,6 +3268,11 @@ class Sellerproduct extends CI_Controller
 						);
 
 
+						// Ensure default_special_price column exists
+						if (!$this->db->field_exists('default_special_price', 'products')) {
+							@$this->db->query("ALTER TABLE products ADD COLUMN default_special_price DECIMAL(12,2) NULL DEFAULT NULL AFTER special_price");
+						}
+
 						// Special Pricing processing
 						$special_price_in = isset($_POST['special_price']) ? $_POST['special_price'] : (isset($_POST['promo_special_price']) ? $_POST['promo_special_price'] : '');
 						$from_date_in = isset($_POST['special_price_from']) ? $_POST['special_price_from'] : (isset($_POST['from_date']) ? $_POST['from_date'] : (isset($_POST['promo_start_date']) ? $_POST['promo_start_date'] : ''));
@@ -3226,17 +3281,79 @@ class Sellerproduct extends CI_Controller
 						$promo_type_in = (isset($_POST['promo_type']) && $_POST['promo_type'] === 'flash_sale') ? 'flash_sale' : 'daily_deal';
 
 						$promo_special_price = (is_numeric($special_price_in) && floatval($special_price_in) > 0) ? floatval($special_price_in) : 0.00;
-						$promo_start_ts = !empty($from_date_in) ? (is_numeric($from_date_in) ? (int)$from_date_in : strtotime($from_date_in)) : null;
-						$promo_end_ts = !empty($to_date_in) ? (is_numeric($to_date_in) ? (int)$to_date_in : (strlen($to_date_in) <= 10 ? strtotime($to_date_in . ' 23:59:59') : strtotime($to_date_in))) : null;
+						$promo_start_ts = !empty($from_date_in) ? (is_numeric($from_date_in) ? (int)$from_date_in : strtotime($from_date_in . ' 00:00:00')) : (!empty($OldProductData->special_price_from) ? (int)$OldProductData->special_price_from : null);
+						$promo_end_ts = !empty($to_date_in) ? (is_numeric($to_date_in) ? (int)$to_date_in : (strlen($to_date_in) <= 10 ? strtotime($to_date_in . ' 23:59:59') : strtotime($to_date_in))) : (!empty($OldProductData->special_price_to) ? (int)$OldProductData->special_price_to : null);
+
+						$is_dd_admin = (isset($_POST['daily_deals']) && $_POST['daily_deals'] == 1);
+						$is_fs_admin = (isset($_POST['flash_sale']) && $_POST['flash_sale'] == 1);
 
 						if ($promo_special_price > 0) {
-							$updatedata['special_price'] = $promo_special_price;
-							$updatedata['special_price_from'] = $promo_start_ts;
-							$updatedata['special_price_to'] = $promo_end_ts;
+							if ($is_dd_admin || $is_fs_admin) {
+								if (!empty($OldProductData->default_special_price) && (float)$OldProductData->default_special_price > 0) {
+									$default_sp_to_save = (float)$OldProductData->default_special_price;
+								} elseif (!empty($OldProductData->special_price) && (float)$OldProductData->special_price > 0) {
+									$default_sp_to_save = (float)$OldProductData->special_price;
+								} else {
+									$default_sp_to_save = null;
+								}
+								$updatedata['special_price'] = $promo_special_price;
+								$updatedata['default_special_price'] = $default_sp_to_save;
+								$updatedata['special_price_from'] = $promo_start_ts;
+								$updatedata['special_price_to'] = $promo_end_ts;
+							} else {
+								$updatedata['special_price'] = $promo_special_price;
+								$updatedata['default_special_price'] = $promo_special_price;
+								$updatedata['special_price_from'] = $promo_start_ts;
+								$updatedata['special_price_to'] = $promo_end_ts;
+							}
 						} else {
 							$updatedata['special_price'] = null;
+							$updatedata['default_special_price'] = null;
 							$updatedata['special_price_from'] = null;
 							$updatedata['special_price_to'] = null;
+						}
+
+						if (isset($_POST['daily_deals'])) {
+							$updatedata['daily_deals'] = (int)$_POST['daily_deals'];
+							if ($updatedata['daily_deals'] == 1) {
+								if (!empty($_POST['daily_deal_starts_at'])) {
+									$dd_str = $_POST['daily_deal_starts_at'];
+									if ($dd_str == date('Y-m-d')) {
+										$updatedata['daily_deal_starts_at'] = time();
+										$updatedata['daily_deal_ends_at'] = time() + 86400;
+									} else {
+										$updatedata['daily_deal_starts_at'] = strtotime($dd_str . ' 00:00:00');
+										$updatedata['daily_deal_ends_at'] = $updatedata['daily_deal_starts_at'] + 86400;
+									}
+								} else {
+									$updatedata['daily_deal_starts_at'] = time();
+									$updatedata['daily_deal_ends_at'] = time() + 86400;
+								}
+							} else {
+								$updatedata['daily_deal_starts_at'] = null;
+								$updatedata['daily_deal_ends_at'] = 0;
+							}
+						}
+						if (isset($_POST['flash_sale'])) {
+							$updatedata['flash_sale'] = (int)$_POST['flash_sale'];
+							if ($updatedata['flash_sale'] == 1) {
+								if (!empty($_POST['flash_sale_starts_at'])) {
+									$fs_str = $_POST['flash_sale_starts_at'];
+									if ($fs_str == date('Y-m-d')) {
+										$updatedata['flash_sale_starts_at'] = time();
+										$updatedata['flash_sale_ends_at'] = time() + (7 * 86400);
+									} else {
+										$updatedata['flash_sale_starts_at'] = strtotime($fs_str . ' 00:00:00');
+										$updatedata['flash_sale_ends_at'] = $updatedata['flash_sale_starts_at'] + (7 * 86400);
+									}
+								} else {
+									$updatedata['flash_sale_starts_at'] = time();
+									$updatedata['flash_sale_ends_at'] = time() + (7 * 86400);
+								}
+							} else {
+								$updatedata['flash_sale_starts_at'] = null;
+								$updatedata['flash_sale_ends_at'] = 0;
+							}
 						}
 
 						$where_arr = array('id' => $product_id);

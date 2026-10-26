@@ -40,22 +40,34 @@ if ($active_promos_cache === null) {
     $active_promos_cache = [];
     $ci =& get_instance();
     if (isset($ci->db)) {
-        // Auto-expire deals in DB so expired deals are cleaned up
-        $ci->db->where('daily_deals', 1)->where('daily_deal_ends_at >', 0)->where('daily_deal_ends_at <=', $now)->update('products', ['daily_deals' => 0]);
-        $ci->db->where('flash_sale', 1)->where('flash_sale_ends_at >', 0)->where('flash_sale_ends_at <=', $now)->update('products', ['flash_sale' => 0]);
+        // Auto-expire deals in DB so expired deals are cleaned up and default special prices restored
+        if (!isset($ci->Product_model)) {
+            $ci->load->model('Product_model');
+        }
+        $ci->Product_model->auto_expire_deals($now);
 
-        $query = $ci->db->select('id, daily_deals, daily_deal_starts_at, daily_deal_ends_at, flash_sale, flash_sale_starts_at, flash_sale_ends_at, stock_qty, qty, webshop_price, special_price')
+        $query = $ci->db->select('p.id, p.daily_deals, p.daily_deal_starts_at, p.daily_deal_ends_at, p.flash_sale, p.flash_sale_starts_at, p.flash_sale_ends_at, p.stock_qty, p.qty, p.webshop_price, p.special_price, inv.available_qty as inv_available_qty, inv.qty as inv_qty')
+            ->from('products p')
+            ->join('products_inventory inv', 'inv.product_id = p.id', 'left')
             ->group_start()
                 ->group_start()
-                    ->where('daily_deals', 1)
-                    ->where('daily_deal_ends_at >', $now)
+                    ->where('p.daily_deals', 1)
+                    ->group_start()
+                        ->where('p.daily_deal_starts_at IS NULL', null, false)
+                        ->or_where('p.daily_deal_starts_at <=', $now)
+                    ->group_end()
+                    ->where('p.daily_deal_ends_at >', $now)
                 ->group_end()
                 ->or_group_start()
-                    ->where('flash_sale', 1)
-                    ->where('flash_sale_ends_at >', $now)
+                    ->where('p.flash_sale', 1)
+                    ->group_start()
+                        ->where('p.flash_sale_starts_at IS NULL', null, false)
+                        ->or_where('p.flash_sale_starts_at <=', $now)
+                    ->group_end()
+                    ->where('p.flash_sale_ends_at >', $now)
                 ->group_end()
             ->group_end()
-            ->get('products');
+            ->get();
 
         if ($query) {
             foreach ($query->result() as $row) {
@@ -68,61 +80,61 @@ if ($active_promos_cache === null) {
 $prod_id = isset($prod->id) ? (int)$prod->id : (isset($prod->product_id) ? (int)$prod->product_id : 0);
 $promo_db = ($prod_id > 0 && isset($active_promos_cache[$prod_id])) ? $active_promos_cache[$prod_id] : null;
 
-// Determine if Flash Sale is active (strictly checking expiration)
+// Determine if Flash Sale is active (strictly checking start and expiration)
 $is_flash_sale = false;
 $fs_ends_at = 0;
 if ($promo_db && !empty($promo_db->flash_sale)) {
-    if (empty($promo_db->flash_sale_ends_at) || (int)$promo_db->flash_sale_ends_at > $now) {
+    if ((empty($promo_db->flash_sale_starts_at) || (int)$promo_db->flash_sale_starts_at <= $now) && (empty($promo_db->flash_sale_ends_at) || (int)$promo_db->flash_sale_ends_at > $now)) {
         $is_flash_sale = true;
         if (!empty($promo_db->flash_sale_ends_at)) $fs_ends_at = (int)$promo_db->flash_sale_ends_at;
     }
 } elseif (!empty($prod->flash_sale) && $prod->flash_sale == 1) {
-    if (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now) {
+    if ((empty($prod->flash_sale_starts_at) || (int)$prod->flash_sale_starts_at <= $now) && (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now)) {
         $is_flash_sale = true;
         if (!empty($prod->flash_sale_ends_at)) $fs_ends_at = (int)$prod->flash_sale_ends_at;
     }
 } elseif ($type === 'FlashSaleListing') {
-    if (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now) {
+    if ((empty($prod->flash_sale_starts_at) || (int)$prod->flash_sale_starts_at <= $now) && (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now)) {
         $is_flash_sale = true;
         if (!empty($prod->flash_sale_ends_at)) $fs_ends_at = (int)$prod->flash_sale_ends_at;
     }
 } elseif ($promo && $promo->type === 'flash_sale') {
-    if (empty($promo->ends_at) || (int)$promo->ends_at > $now) {
+    if ((empty($promo->starts_at) || (int)$promo->starts_at <= $now) && (empty($promo->ends_at) || (int)$promo->ends_at > $now)) {
         $is_flash_sale = true;
         if (!empty($promo->ends_at)) $fs_ends_at = (int)$promo->ends_at;
     }
 } elseif (!empty($prod->offer_type) && $prod->offer_type === 'flash_sale') {
-    if (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now) {
+    if ((empty($prod->flash_sale_starts_at) || (int)$prod->flash_sale_starts_at <= $now) && (empty($prod->flash_sale_ends_at) || (int)$prod->flash_sale_ends_at > $now)) {
         $is_flash_sale = true;
         if (!empty($prod->flash_sale_ends_at)) $fs_ends_at = (int)$prod->flash_sale_ends_at;
     }
 }
 
-// Determine if Daily Deal is active (strictly checking expiration) - evaluated independently so BOTH can show if active
+// Determine if Daily Deal is active (strictly checking start and expiration)
 $is_daily_deal = false;
 $dd_ends_at = 0;
 if ($promo_db && !empty($promo_db->daily_deals)) {
-    if (empty($promo_db->daily_deal_ends_at) || (int)$promo_db->daily_deal_ends_at > $now) {
+    if ((empty($promo_db->daily_deal_starts_at) || (int)$promo_db->daily_deal_starts_at <= $now) && (empty($promo_db->daily_deal_ends_at) || (int)$promo_db->daily_deal_ends_at > $now)) {
         $is_daily_deal = true;
         if (!empty($promo_db->daily_deal_ends_at)) $dd_ends_at = (int)$promo_db->daily_deal_ends_at;
     }
 } elseif (!empty($prod->daily_deals) && $prod->daily_deals == 1) {
-    if (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now) {
+    if ((empty($prod->daily_deal_starts_at) || (int)$prod->daily_deal_starts_at <= $now) && (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now)) {
         $is_daily_deal = true;
         if (!empty($prod->daily_deal_ends_at)) $dd_ends_at = (int)$prod->daily_deal_ends_at;
     }
 } elseif ($type === 'DailyDealsListing') {
-    if (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now) {
+    if ((empty($prod->daily_deal_starts_at) || (int)$prod->daily_deal_starts_at <= $now) && (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now)) {
         $is_daily_deal = true;
         if (!empty($prod->daily_deal_ends_at)) $dd_ends_at = (int)$prod->daily_deal_ends_at;
     }
 } elseif ($promo && $promo->type === 'daily_deal') {
-    if (empty($promo->ends_at) || (int)$promo->ends_at > $now) {
+    if ((empty($promo->starts_at) || (int)$promo->starts_at <= $now) && (empty($promo->ends_at) || (int)$promo->ends_at > $now)) {
         $is_daily_deal = true;
         if (!empty($promo->ends_at)) $dd_ends_at = (int)$promo->ends_at;
     }
 } elseif (!empty($prod->offer_type) && $prod->offer_type === 'daily_deal') {
-    if (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now) {
+    if ((empty($prod->daily_deal_starts_at) || (int)$prod->daily_deal_starts_at <= $now) && (empty($prod->daily_deal_ends_at) || (int)$prod->daily_deal_ends_at > $now)) {
         $is_daily_deal = true;
         if (!empty($prod->daily_deal_ends_at)) $dd_ends_at = (int)$prod->daily_deal_ends_at;
     }
@@ -130,7 +142,11 @@ if ($promo_db && !empty($promo_db->daily_deals)) {
 
 // Stock extraction for Limited Stock detection
 $remaining_stock = null;
-if ($stock && !empty($stock->qty) && is_numeric($stock->qty)) {
+if ($promo_db && isset($promo_db->inv_available_qty) && is_numeric($promo_db->inv_available_qty) && $promo_db->inv_available_qty > 0) {
+    $remaining_stock = (int)$promo_db->inv_available_qty;
+} elseif ($promo_db && isset($promo_db->inv_qty) && is_numeric($promo_db->inv_qty) && $promo_db->inv_qty > 0) {
+    $remaining_stock = (int)$promo_db->inv_qty;
+} elseif ($stock && !empty($stock->qty) && is_numeric($stock->qty)) {
     $remaining_stock = (int)$stock->qty;
 } elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty) && $prod->stock_qty > 0) {
     $remaining_stock = (int)$prod->stock_qty;
@@ -140,6 +156,17 @@ if ($stock && !empty($stock->qty) && is_numeric($stock->qty)) {
     $remaining_stock = (int)$promo_db->stock_qty;
 } elseif ($promo_db && isset($promo_db->qty) && is_numeric($promo_db->qty) && $promo_db->qty > 0) {
     $remaining_stock = (int)$promo_db->qty;
+}
+
+if ($remaining_stock === null && $prod_id > 0 && isset($ci->db)) {
+    $single_inv = $ci->db->select('available_qty, qty')->where('product_id', $prod_id)->get('products_inventory')->row();
+    if ($single_inv) {
+        if (isset($single_inv->available_qty) && is_numeric($single_inv->available_qty) && $single_inv->available_qty > 0) {
+            $remaining_stock = (int)$single_inv->available_qty;
+        } elseif (isset($single_inv->qty) && is_numeric($single_inv->qty) && $single_inv->qty > 0) {
+            $remaining_stock = (int)$single_inv->qty;
+        }
+    }
 }
 
 // Limited stock condition (stock <= 10 when not in flash sale or daily deal)
@@ -155,10 +182,15 @@ if ($ends_at_timestamp == 0 && $promo && !empty($promo->ends_at) && (int)$promo-
 $initial_countdown_str = '';
 if ($ends_at_timestamp > $now) {
     $diff = $ends_at_timestamp - $now;
-    $hours = floor($diff / 3600);
-    $mins = floor(($diff % 3600) / 60);
-    $secs = $diff % 60;
-    $initial_countdown_str = sprintf('%02d:%02d:%02d', $hours, $mins, $secs);
+    if ($diff >= 86400) {
+        $days = floor($diff / 86400);
+        $initial_countdown_str = $days . ($days == 1 ? ' day' : ' days');
+    } else {
+        $hours = floor($diff / 3600);
+        $mins = floor(($diff % 3600) / 60);
+        $secs = $diff % 60;
+        $initial_countdown_str = sprintf('%02d:%02d:%02d', $hours, $mins, $secs);
+    }
 }
 
 // Price determination
@@ -270,16 +302,16 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
 
         <!-- Countdown Timer -->
         <?php if ($ends_at_timestamp > $now): ?>
-            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: 600 !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; gap: 4px !important;">
+            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: normal !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; gap: 4px !important;">
                 <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
                 <span>Ends in <span class="live-countdown" data-ends-at="<?= $ends_at_timestamp ?>"><?= $initial_countdown_str ?></span></span>
             </div>
         <?php endif; ?>
 
-        <!-- Stock Indicator -->
-        <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale || $remaining_stock <= 10) && !$is_out_of_stock): ?>
-            <div class="promo-stock-wrapper" style="color: #cf1322 !important; font-size: 11.5px !important; font-weight: 700 !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; gap: 4px !important;">
-                <i class="fa fa-exclamation-triangle" style="color: #cf1322 !important; font-size: 11px !important;"></i>
+        <!-- Stock Indicator under deal ends in time -->
+        <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale || $is_daily_deal || $remaining_stock <= 10) && !$is_out_of_stock): ?>
+            <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; gap: 4px !important;">
+                <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
                 <span>Only <?= $remaining_stock ?> left</span>
             </div>
         <?php endif; ?>
@@ -351,11 +383,16 @@ if (typeof window.hasLiveCountdownInit === 'undefined') {
                     if (wrap) wrap.style.display = 'none';
                     continue;
                 }
-                var h = Math.floor(diff / 3600);
-                var m = Math.floor((diff % 3600) / 60);
-                var s = diff % 60;
-                var pad = function(n) { return (n < 10 ? '0' : '') + n; };
-                el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+                if (diff >= 86400) {
+                    var days = Math.floor(diff / 86400);
+                    el.textContent = days + (days === 1 ? ' day' : ' days');
+                } else {
+                    var h = Math.floor(diff / 3600);
+                    var m = Math.floor((diff % 3600) / 60);
+                    var s = diff % 60;
+                    var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+                    el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+                }
             }
         }
         setInterval(tickCountdowns, 1000);

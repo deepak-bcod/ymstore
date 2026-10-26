@@ -33,19 +33,19 @@
     $is_daily_deal = false;
     $is_flash_sale = false;
 
-    // Check directly in database for current promo status and end times
+    // Check directly in database for current promo status, start times and end times
     if (!empty($ProductData->id)) {
         $ci =& get_instance();
         if (isset($ci->db)) {
-            $p_promo = $ci->db->select('daily_deals, daily_deal_ends_at, flash_sale, flash_sale_ends_at')
+            $p_promo = $ci->db->select('daily_deals, daily_deal_starts_at, daily_deal_ends_at, flash_sale, flash_sale_starts_at, flash_sale_ends_at')
                 ->where('id', $ProductData->id)
                 ->get('products')
                 ->row();
             if ($p_promo) {
-                if (!empty($p_promo->flash_sale) && $p_promo->flash_sale == 1 && (empty($p_promo->flash_sale_ends_at) || (int)$p_promo->flash_sale_ends_at > $now)) {
+                if (!empty($p_promo->flash_sale) && $p_promo->flash_sale == 1 && (empty($p_promo->flash_sale_starts_at) || (int)$p_promo->flash_sale_starts_at <= $now) && (empty($p_promo->flash_sale_ends_at) || (int)$p_promo->flash_sale_ends_at > $now)) {
                     $is_flash_sale = true;
                 }
-                if (!empty($p_promo->daily_deals) && $p_promo->daily_deals == 1 && (empty($p_promo->daily_deal_ends_at) || (int)$p_promo->daily_deal_ends_at > $now)) {
+                if (!empty($p_promo->daily_deals) && $p_promo->daily_deals == 1 && (empty($p_promo->daily_deal_starts_at) || (int)$p_promo->daily_deal_starts_at <= $now) && (empty($p_promo->daily_deal_ends_at) || (int)$p_promo->daily_deal_ends_at > $now)) {
                     $is_daily_deal = true;
                 }
             }
@@ -53,19 +53,19 @@
     }
 
     if (!$is_flash_sale) {
-        if (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1 && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
+        if (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1 && (empty($ProductData->flash_sale_starts_at) || (int)$ProductData->flash_sale_starts_at <= $now) && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
             $is_flash_sale = true;
-        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'flash_sale' && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
+        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'flash_sale' && (empty($ProductData->flash_sale_starts_at) || (int)$ProductData->flash_sale_starts_at <= $now) && (empty($ProductData->flash_sale_ends_at) || (int)$ProductData->flash_sale_ends_at > $now)) {
             $is_flash_sale = true;
         }
     }
 
     if (!$is_daily_deal) {
-        if (!empty($ProductData->daily_deals) && $ProductData->daily_deals == 1 && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+        if (!empty($ProductData->daily_deals) && $ProductData->daily_deals == 1 && (empty($ProductData->daily_deal_starts_at) || (int)$ProductData->daily_deal_starts_at <= $now) && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
             $is_daily_deal = true;
-        } elseif (!empty($ProductData->daily_deal) && $ProductData->daily_deal == 1 && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+        } elseif (!empty($ProductData->daily_deal) && $ProductData->daily_deal == 1 && (empty($ProductData->daily_deal_starts_at) || (int)$ProductData->daily_deal_starts_at <= $now) && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
             $is_daily_deal = true;
-        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'daily_deal' && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
+        } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'daily_deal' && (empty($ProductData->daily_deal_starts_at) || (int)$ProductData->daily_deal_starts_at <= $now) && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
             $is_daily_deal = true;
         }
     }
@@ -78,24 +78,31 @@
     }
     ?>
 
-    <!-- Badges inside product image at TOP (Daily Deals, Flash Sales, Discount Pill, Out of Stock) -->
+    <!-- Badges inside product image at TOP (Daily Deals, Flash Sales in CENTER, Discount Pill on RIGHT, Out of Stock on LEFT) -->
     <?php if ($is_out_of_stock || $is_daily_deal || $is_flash_sale || $discount_percent > 0): ?>
         <span class="pi-img-top-badges" style="position: absolute !important; top: 12px !important; left: 12px !important; right: 12px !important; display: flex !important; align-items: flex-start !important; justify-content: space-between !important; gap: 6px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 24px) !important; background: transparent !important;">
-            <span style="display: flex !important; align-items: center !important; gap: 6px !important; flex-wrap: wrap !important;">
+            <!-- Left badge: Out of Stock -->
+            <span style="display: flex !important; align-items: center !important; gap: 6px !important; z-index: 9 !important;">
                 <?php if ($is_out_of_stock): ?>
                     <span class="badge-out-of-stock" style="background-color: #dc3545 !important; color: #ffffff !important; font-size: 11px !important; font-weight: 800 !important; padding: 3px 8px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-block !important;">OUT OF STOCK</span>
-                <?php else: ?>
-                    <?php if ($is_flash_sale): ?>
-                        <span class="badge-deal-flash" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 11px !important; font-weight: 800 !important; padding: 3px 8px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-bolt" style="color: #ffd200 !important; font-size: 11px !important;"></i> FLASH SALE</span>
-                    <?php endif; ?>
-                    <?php if ($is_daily_deal): ?>
-                        <span class="badge-deal-daily" style="background-color: #ffd200 !important; color: #000000 !important; font-size: 11px !important; font-weight: 800 !important; padding: 3px 8px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-star" style="color: #000000 !important; font-size: 10px !important;"></i> DAILY DEAL</span>
-                    <?php endif; ?>
                 <?php endif; ?>
             </span>
 
+            <!-- Center badges: Flash Sale & Daily Deal (Horizontally Centered) -->
+            <?php if (!$is_out_of_stock && ($is_flash_sale || $is_daily_deal)): ?>
+                <span class="pi-deal-badges-center" style="position: absolute !important; left: 50% !important; top: 0 !important; transform: translateX(-50%) !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important; z-index: 10 !important; white-space: nowrap !important;">
+                    <?php if ($is_flash_sale): ?>
+                        <span class="badge-deal-flash" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 11px !important; font-weight: 800 !important; padding: 4px 10px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-bolt" style="color: #ffd200 !important; font-size: 11px !important;"></i> FLASH SALE</span>
+                    <?php endif; ?>
+                    <?php if ($is_daily_deal): ?>
+                        <span class="badge-deal-daily" style="background-color: #ffd200 !important; color: #000000 !important; font-size: 11px !important; font-weight: 800 !important; padding: 4px 10px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-star" style="color: #000000 !important; font-size: 10px !important;"></i> DAILY DEAL</span>
+                    <?php endif; ?>
+                </span>
+            <?php endif; ?>
+
+            <!-- Right badge: Discount Pill -->
             <?php if ($discount_percent > 0 && !$is_out_of_stock): ?>
-                <span style="margin-left: auto !important; display: inline-block !important;">
+                <span style="margin-left: auto !important; display: inline-block !important; z-index: 9 !important;">
                     <span class="badge-discount-pill" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 11px !important; font-weight: 800 !important; padding: 3px 8px !important; border-radius: 12px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-block !important;">-<?= $discount_percent ?>%</span>
                 </span>
             <?php endif; ?>

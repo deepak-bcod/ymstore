@@ -138,7 +138,8 @@
 
 .deal-ends {
     font-size: 13px;
-    font-weight: 700;
+    font-weight: normal !important;
+    color: #e52525 !important;
     margin-bottom: 10px;
 }
 
