@@ -338,7 +338,7 @@
 						</div>
 						<div class="col-sm-6">
 							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time</label>
-							<input type="datetime-local" class="form-control" name="daily_deal_ends_at" id="daily_deal_ends_at" value="<?php echo $dd_end_val; ?>" min="<?php echo $dd_start_val ?: $today_min_dt; ?>">
+							<input type="datetime-local" class="form-control" name="daily_deal_ends_at" id="daily_deal_ends_at" value="<?php echo $dd_end_val; ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
 						</div>
 					</div>
 				</div>
@@ -395,7 +395,7 @@
 							</div>
 							<div class="col-sm-6">
 								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time</label>
-								<input type="datetime-local" class="form-control" name="flash_sale_ends_at" id="flash_sale_ends_at" value="<?php echo $fs_end_val; ?>" min="<?php echo $fs_start_val ?: $today_min_dt; ?>">
+								<input type="datetime-local" class="form-control" name="flash_sale_ends_at" id="flash_sale_ends_at" value="<?php echo $fs_end_val; ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
 							</div>
 						</div>
 					</div>
