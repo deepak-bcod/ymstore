@@ -145,6 +145,32 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
         ?>
         <input type="number" step="0.01" min="0" name="variant_special_price[]" class="form-control" value="<?php echo $v_sp; ?>" placeholder="0.00">
     </td>
+    <td>
+        <?php
+            $v_sp_from = '';
+            $from_ts = !empty($variant['promo_special_price_from']) ? $variant['promo_special_price_from'] : (!empty($variant['special_price_from']) ? $variant['special_price_from'] : null);
+            if (!empty($from_ts)) {
+                $ts = is_numeric($from_ts) ? (int)$from_ts : strtotime($from_ts);
+                if ($ts > 0) {
+                    $v_sp_from = date('Y-m-d', $ts);
+                }
+            }
+        ?>
+        <input type="date" name="variant_special_price_from[]" class="form-control" value="<?php echo $v_sp_from; ?>">
+    </td>
+    <td>
+        <?php
+            $v_sp_to = '';
+            $to_ts = !empty($variant['promo_special_price_to']) ? $variant['promo_special_price_to'] : (!empty($variant['special_price_to']) ? $variant['special_price_to'] : null);
+            if (!empty($to_ts)) {
+                $ts = is_numeric($to_ts) ? (int)$to_ts : strtotime($to_ts);
+                if ($ts > 0) {
+                    $v_sp_to = date('Y-m-d', $ts);
+                }
+            }
+        ?>
+        <input type="date" name="variant_special_price_to[]" class="form-control" value="<?php echo $v_sp_to; ?>">
+    </td>
     <input type="hidden" name="conf_simple[]" class="form-control "  value="<?php echo $variant['id']; ?>" >
     <td>
         <input type="text" name="variant_sku[]" class="form-control" value="<?php echo $variant['sku']; ?>">

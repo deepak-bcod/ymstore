@@ -10964,19 +10964,20 @@ class Sellerproduct extends CI_Controller {
 							$promo_type_in = 'flash_sale';
 							$promo_start_ts = !empty($_POST['flash_sale_starts_at']) ? strtotime($_POST['flash_sale_starts_at']) : time();
 							$promo_end_ts   = !empty($_POST['flash_sale_ends_at']) ? strtotime($_POST['flash_sale_ends_at']) : time() + (7 * 86400);
-						} elseif (!empty($_POST['from_date'])) {
-							$promo_start_ts = strtotime($_POST['from_date']);
-							$promo_end_ts   = !empty($_POST['to_date']) ? strtotime($_POST['to_date']) : null;
+						} elseif (!empty($_POST['special_price_from']) || !empty($_POST['from_date'])) {
+							$from_val = !empty($_POST['special_price_from']) ? $_POST['special_price_from'] : $_POST['from_date'];
+							$to_val   = !empty($_POST['special_price_to']) ? $_POST['special_price_to'] : (!empty($_POST['to_date']) ? $_POST['to_date'] : '');
+							$promo_start_ts = (is_numeric($from_val) ? (int)$from_val : strtotime($from_val));
+							$promo_end_ts   = !empty($to_val) ? (is_numeric($to_val) ? (int)$to_val : (strlen($to_val) <= 10 ? strtotime($to_val . ' 23:59:59') : strtotime($to_val))) : null;
+						} elseif (!empty($_POST['special_price_to']) || !empty($_POST['to_date'])) {
+							$to_val = !empty($_POST['special_price_to']) ? $_POST['special_price_to'] : $_POST['to_date'];
+							$promo_end_ts   = !empty($to_val) ? (is_numeric($to_val) ? (int)$to_val : (strlen($to_val) <= 10 ? strtotime($to_val . ' 23:59:59') : strtotime($to_val))) : null;
 						}
 
 						if ($promo_special_price > 0) {
 							$updatedata['special_price'] = $promo_special_price;
-							if ($promo_start_ts) {
-								$updatedata['special_price_from'] = $promo_start_ts;
-							}
-							if ($promo_end_ts) {
-								$updatedata['special_price_to'] = $promo_end_ts;
-							}
+							$updatedata['special_price_from'] = $promo_start_ts;
+							$updatedata['special_price_to'] = $promo_end_ts;
 						} else {
 							$updatedata['special_price'] = null;
 							$updatedata['special_price_from'] = null;
@@ -11689,6 +11690,8 @@ class Sellerproduct extends CI_Controller {
 									$variant_shipping_charge_arr = isset($_POST['variant_shipping_charge']) ? $_POST['variant_shipping_charge'] : array();
 
 									$variant_special_price_arr = isset($_POST['variant_special_price']) ? $_POST['variant_special_price'] : array();
+									$variant_special_price_from_arr = isset($_POST['variant_special_price_from']) ? $_POST['variant_special_price_from'] : array();
+									$variant_special_price_to_arr = isset($_POST['variant_special_price_to']) ? $_POST['variant_special_price_to'] : array();
 
 
 
@@ -11821,6 +11824,10 @@ class Sellerproduct extends CI_Controller {
 
 
 												$simple_special_price = (isset($variant_special_price_arr[$key]) && is_numeric($variant_special_price_arr[$key]) && floatval($variant_special_price_arr[$key]) > 0) ? floatval($variant_special_price_arr[$key]) : null;
+												$raw_sp_from = isset($variant_special_price_from_arr[$key]) ? trim($variant_special_price_from_arr[$key]) : '';
+												$raw_sp_to = isset($variant_special_price_to_arr[$key]) ? trim($variant_special_price_to_arr[$key]) : '';
+												$simple_special_price_from = !empty($raw_sp_from) ? (is_numeric($raw_sp_from) ? (int)$raw_sp_from : strtotime($raw_sp_from)) : null;
+												$simple_special_price_to = !empty($raw_sp_to) ? (is_numeric($raw_sp_to) ? (int)$raw_sp_to : (strlen($raw_sp_to) <= 10 ? strtotime($raw_sp_to . ' 23:59:59') : strtotime($raw_sp_to))) : null;
 
 												$updatesimpleproduct = array(
 
@@ -11831,6 +11838,8 @@ class Sellerproduct extends CI_Controller {
 													'sku' => $simple_sku,
 
 													'special_price' => $simple_special_price,
+													'special_price_from' => $simple_special_price_from,
+													'special_price_to' => $simple_special_price_to,
 
 													'cost_price' => $simple_cost_price,
 
@@ -11878,6 +11887,8 @@ class Sellerproduct extends CI_Controller {
 													$var_sp_data = array(
 														'product_id' => $simple_product_id,
 														'special_price' => $simple_special_price,
+														'special_price_from' => $simple_special_price_from,
+														'special_price_to' => $simple_special_price_to,
 														'updated_at' => time(),
 														'ip' => $_SERVER['REMOTE_ADDR']
 													);
@@ -12080,6 +12091,8 @@ class Sellerproduct extends CI_Controller {
 													//'weight'=>$simple_weight,
 
 													'special_price' => $simple_special_price,
+													'special_price_from' => $simple_special_price_from,
+													'special_price_to' => $simple_special_price_to,
 
 													'product_type' => 'conf-simple',
 
@@ -12105,6 +12118,8 @@ class Sellerproduct extends CI_Controller {
 													$var_sp_data = array(
 														'product_id' => $simple_product_id,
 														'special_price' => $simple_special_price,
+														'special_price_from' => $simple_special_price_from,
+														'special_price_to' => $simple_special_price_to,
 														'created_by' => $this->session->userdata('LoginID'),
 														'created_at' => time(),
 														'updated_at' => time(),

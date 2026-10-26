@@ -18,6 +18,8 @@
 		  <th>VAT (%) </th>
 		  <th>ESHOP PRICE </th>
 		  <th>SPECIAL PRICE</th>
+		  <th>START DATE</th>
+		  <th>END DATE</th>
 		  <th>SKU </th>
 		  <!-- <th>BARCODE </th> -->
 		  <!-- <th>WEIGHT (KG) </th> -->

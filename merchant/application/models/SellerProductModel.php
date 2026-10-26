@@ -400,7 +400,7 @@ class SellerProductModel extends CI_Model
 	function getVariantProductsByIds($product_ids)
     {
 
-		$this->db->select('p.*,pi.qty,pi.available_qty,psp.special_price as promo_special_price');
+		$this->db->select('p.*,pi.qty,pi.available_qty,psp.special_price as promo_special_price,psp.special_price_from as promo_special_price_from,psp.special_price_to as promo_special_price_to');
 		$this->db->from('products as p');
 		$this->db->join('products_inventory as pi','p.id = pi.product_id','LEFT');
 		$this->db->join('products_special_prices as psp','p.id = psp.product_id','LEFT');
