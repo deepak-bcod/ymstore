@@ -496,13 +496,17 @@ function SaveProductType() {
 			+ '<td><input type="number" class="form-control input-sm" onkeypress="return isNumberKey(event);" name="webshop_price" id="webshop_price"></td>'
 			+ '</tr></tbody></table>';*/
 
-		let single_product_tbl = '<table class="table table-bordered table-style"><thead><tr><th>SKU </th><th>INVENTORY</th><th>COST PRICE </th><th>SELLING PRICE </th><th>VAT (%) </th><th>ESHOP PRICE </th></tr></thead><tbody><tr>'
+		var todayMinDate = new Date().toISOString().split('T')[0];
+		let single_product_tbl = '<table class="table table-bordered table-style"><thead><tr><th>SKU </th><th>INVENTORY</th><th>COST PRICE </th><th>SELLING PRICE </th><th>VAT (%) </th><th>ESHOP PRICE </th><th>Special Price</th><th>Start date</th><th>End date</th></tr></thead><tbody><tr>'
 			+ '<td><input type="text" class="form-control input-sm" name="sku" id="sku" value="' + pro_code + '"></td>'
 			+ '<td><input type="number" class="form-control input-sm" onkeypress="return isNumberKey(event);" maxlength="10" name="stock_qty" id="stock_qty" placeholder="40000"></td>'
 			+ '<td><input type="number" class="form-control input-sm" onkeypress="return isNumberKey(event);" name="cost_price" id="cost_price"></td>'
 			+ '<td><input type="number" class="form-control input-sm" onkeypress="return isNumberKey(event);" name="price" id="price" onblur="calculate_webshop_price(' + Rounded_price_flag + ');"></td>'
 			+ '<td><input type="number" class="form-control input-sm" onkeypress="return isNumberKey(event);" name="tax_percent" id="tax_percent" max="100" min="0" oninput="validateTax(this)" value="15" onblur="calculate_webshop_price(' + Rounded_price_flag + ');"></td>'
 			+ '<td><input type="number" class="form-control input-sm" onkeypress="return isNumberKey(event);" name="webshop_price" id="webshop_price"></td>'
+			+ '<td><input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" placeholder="0.00"></td>'
+			+ '<td><input type="date" class="form-control input-sm" name="special_price_from" id="special_price_from" min="' + todayMinDate + '"></td>'
+			+ '<td><input type="date" class="form-control input-sm" name="special_price_to" id="special_price_to" min="' + todayMinDate + '"></td>'
 			+ '</tr></tbody></table>';
 
 		$('#single_info').html(single_product_tbl);

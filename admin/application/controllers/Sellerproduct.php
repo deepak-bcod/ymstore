@@ -498,6 +498,14 @@ class Sellerproduct extends CI_Controller
 					$cost_price = isset($_POST['cost_price']) ? $this->CommonModel->custom_filter_input($_POST['cost_price']) : '';
 					$tax_percent = isset($_POST['tax_percent']) ? $this->CommonModel->custom_filter_input($_POST['tax_percent']) : '';
 					$webshop_price = isset($_POST['webshop_price']) ? $this->CommonModel->custom_filter_input($_POST['webshop_price']) : '';
+
+					// Special pricing inputs for simple products
+					$special_price_in = isset($_POST['special_price']) ? $_POST['special_price'] : (isset($_POST['promo_special_price']) ? $_POST['promo_special_price'] : '');
+					$promo_special_price = (is_numeric($special_price_in) && floatval($special_price_in) > 0) ? floatval($special_price_in) : null;
+					$from_val = !empty($_POST['special_price_from']) ? $_POST['special_price_from'] : (!empty($_POST['from_date']) ? $_POST['from_date'] : '');
+					$to_val   = !empty($_POST['special_price_to']) ? $_POST['special_price_to'] : (!empty($_POST['to_date']) ? $_POST['to_date'] : '');
+					$sp_start_ts = !empty($from_val) ? (is_numeric($from_val) ? (int)$from_val : strtotime($from_val . ' 00:00:00')) : null;
+					$sp_end_ts   = !empty($to_val) ? (is_numeric($to_val) ? (int)$to_val : (strlen($to_val) <= 10 ? strtotime($to_val . ' 23:59:59') : strtotime($to_val))) : null;
 				}
 
 				$status = $_POST['status'] ?? '1';
@@ -702,6 +710,10 @@ class Sellerproduct extends CI_Controller
 						//'weight'=>$weight,
 						'sku' => $sku,
 						'price' => $price,  //selling price
+						'special_price' => $promo_special_price,
+						'default_special_price' => $promo_special_price,
+						'special_price_from' => $sp_start_ts,
+						'special_price_to' => $sp_end_ts,
 						 'shipping_amount' => $shipping_amount,
 						'tax_percent' => $tax_percent,
 						'tax_amount' => $tax_amount,
@@ -737,6 +749,20 @@ class Sellerproduct extends CI_Controller
 						'ip' => $_SERVER['REMOTE_ADDR']
 					);
 					$product_id = $this->SellerProductModel->insertData('products', $insertdata);
+					if ($product_id && $promo_special_price > 0) {
+						$sp_data = array(
+							'product_id' => $product_id,
+							'special_price' => $promo_special_price,
+							'special_price_from' => $sp_start_ts,
+							'special_price_to' => $sp_end_ts,
+							'display_original' => isset($_POST['display_original']) ? 1 : 0,
+							'offer_type' => 'general',
+							'created_by' => $this->session->userdata('LoginID'),
+							'created_at' => time(),
+							'ip' => $_SERVER['REMOTE_ADDR']
+						);
+						$this->SellerProductModel->insertData('products_special_prices', $sp_data);
+					}
 					if ($product_id) {
 						if (isset($product_type) && $product_type == 'bundle') {
 							/*-------------------Insert products_bundles :start--------------------------------------*/
@@ -892,6 +918,9 @@ class Sellerproduct extends CI_Controller
 								$variant_price_arr = isset($_POST['variant_price']) ? $_POST['variant_price'] : array();
 								$variant_tax_percent_arr = isset($_POST['variant_tax_percent']) ? $_POST['variant_tax_percent'] : array();
 								$variant_webshop_price_arr = isset($_POST['variant_webshop_price']) ? $_POST['variant_webshop_price'] : array();
+								$variant_special_price_arr = isset($_POST['variant_special_price']) ? $_POST['variant_special_price'] : array();
+								$variant_special_price_from_arr = isset($_POST['variant_special_price_from']) ? $_POST['variant_special_price_from'] : array();
+								$variant_special_price_to_arr = isset($_POST['variant_special_price_to']) ? $_POST['variant_special_price_to'] : array();
 								//$variant_barcode_arr=isset($_POST['variant_barcode'])?$_POST['variant_barcode']:array();
 								//$variant_weight_arr=isset($_POST['variant_weight'])?$_POST['variant_weight']:array();
 								$variant_gifts_arr = isset($_POST['gifts']) ? $_POST['gifts'] : array();
@@ -909,6 +938,11 @@ class Sellerproduct extends CI_Controller
 										$simple_stock = $variant_stock_arr[$key];
 										$simple_cost_price = $variant_cost_price_arr[$key];
 										$simple_price = $variant_price_arr[$key];
+										$simple_special_price = (isset($variant_special_price_arr[$key]) && is_numeric($variant_special_price_arr[$key]) && floatval($variant_special_price_arr[$key]) > 0) ? floatval($variant_special_price_arr[$key]) : null;
+										$raw_sp_from = isset($variant_special_price_from_arr[$key]) ? trim($variant_special_price_from_arr[$key]) : '';
+										$raw_sp_to = isset($variant_special_price_to_arr[$key]) ? trim($variant_special_price_to_arr[$key]) : '';
+										$simple_special_price_from = !empty($raw_sp_from) ? (is_numeric($raw_sp_from) ? (int)$raw_sp_from : strtotime($raw_sp_from . ' 00:00:00')) : null;
+										$simple_special_price_to = !empty($raw_sp_to) ? (is_numeric($raw_sp_to) ? (int)$raw_sp_to : (strlen($raw_sp_to) <= 10 ? strtotime($raw_sp_to . ' 23:59:59') : strtotime($raw_sp_to))) : null;
 										//$simple_barcode=$variant_barcode_arr[$key];
 
 										$simple_tax_percent = $variant_tax_percent_arr[$key];
@@ -937,6 +971,10 @@ class Sellerproduct extends CI_Controller
 											'parent_id' => $product_id,
 											'sku' => $simple_sku,
 											'price' => $simple_price,
+											'special_price' => $simple_special_price,
+											'default_special_price' => $simple_special_price,
+											'special_price_from' => $simple_special_price_from,
+											'special_price_to' => $simple_special_price_to,
 											'cost_price' => $simple_cost_price,
 											'tax_percent' => $simple_tax_percent,
 											'tax_amount' => $simple_tax_amount,
@@ -960,7 +998,18 @@ class Sellerproduct extends CI_Controller
 
 
 										if ($simple_product_id) {
-
+											if (!empty($simple_special_price) && $simple_special_price > 0) {
+												$var_sp_data = array(
+													'product_id' => $simple_product_id,
+													'special_price' => $simple_special_price,
+													'special_price_from' => $simple_special_price_from,
+													'special_price_to' => $simple_special_price_to,
+													'created_by' => $this->session->userdata('LoginID'),
+													'created_at' => time(),
+													'ip' => $_SERVER['REMOTE_ADDR']
+												);
+												$this->SellerProductModel->insertData('products_special_prices', $var_sp_data);
+											}
 
 											$stock_insert2 = array('product_id' => $simple_product_id, 'qty' => $simple_stock, 'available_qty' => $simple_stock, 'min_qty' => 0, 'is_in_stock' => 1);
 											$this->SellerProductModel->insertData('products_inventory', $stock_insert2);
@@ -3317,14 +3366,9 @@ class Sellerproduct extends CI_Controller
 							$updatedata['daily_deals'] = (int)$_POST['daily_deals'];
 							if ($updatedata['daily_deals'] == 1) {
 								if (!empty($_POST['daily_deal_starts_at'])) {
-									$dd_str = $_POST['daily_deal_starts_at'];
-									if ($dd_str == date('Y-m-d')) {
-										$updatedata['daily_deal_starts_at'] = time();
-										$updatedata['daily_deal_ends_at'] = time() + 86400;
-									} else {
-										$updatedata['daily_deal_starts_at'] = strtotime($dd_str . ' 00:00:00');
-										$updatedata['daily_deal_ends_at'] = $updatedata['daily_deal_starts_at'] + 86400;
-									}
+									$dd_str = trim($_POST['daily_deal_starts_at']);
+									$updatedata['daily_deal_starts_at'] = strtotime($dd_str . (stripos($dd_str, 'Z') === false && stripos($dd_str, 'UTC') === false ? ' UTC' : ''));
+									$updatedata['daily_deal_ends_at'] = $updatedata['daily_deal_starts_at'] + 86400;
 								} else {
 									$updatedata['daily_deal_starts_at'] = time();
 									$updatedata['daily_deal_ends_at'] = time() + 86400;
@@ -3338,14 +3382,9 @@ class Sellerproduct extends CI_Controller
 							$updatedata['flash_sale'] = (int)$_POST['flash_sale'];
 							if ($updatedata['flash_sale'] == 1) {
 								if (!empty($_POST['flash_sale_starts_at'])) {
-									$fs_str = $_POST['flash_sale_starts_at'];
-									if ($fs_str == date('Y-m-d')) {
-										$updatedata['flash_sale_starts_at'] = time();
-										$updatedata['flash_sale_ends_at'] = time() + (7 * 86400);
-									} else {
-										$updatedata['flash_sale_starts_at'] = strtotime($fs_str . ' 00:00:00');
-										$updatedata['flash_sale_ends_at'] = $updatedata['flash_sale_starts_at'] + (7 * 86400);
-									}
+									$fs_str = trim($_POST['flash_sale_starts_at']);
+									$updatedata['flash_sale_starts_at'] = strtotime($fs_str . (stripos($fs_str, 'Z') === false && stripos($fs_str, 'UTC') === false ? ' UTC' : ''));
+									$updatedata['flash_sale_ends_at'] = $updatedata['flash_sale_starts_at'] + (7 * 86400);
 								} else {
 									$updatedata['flash_sale_starts_at'] = time();
 									$updatedata['flash_sale_ends_at'] = time() + (7 * 86400);
