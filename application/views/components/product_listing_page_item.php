@@ -16,13 +16,17 @@ $stock = isset($stock_badge) ? $stock_badge : (is_object($prod) && method_exists
 // Stock check: if stock is less than 0 or out of stock
 $is_out_of_stock = false;
 $product_stock = null;
-if (isset($prod->qty) && is_numeric($prod->qty)) {
+if (isset($prod->calculated_stock) && is_numeric($prod->calculated_stock)) {
+    $product_stock = (float)$prod->calculated_stock;
+} elseif (isset($prod->available_qty) && is_numeric($prod->available_qty)) {
+    $product_stock = (float)$prod->available_qty;
+} elseif (isset($prod->qty) && is_numeric($prod->qty) && (float)$prod->qty > 0) {
     $product_stock = (float)$prod->qty;
-} elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty)) {
+} elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty) && (float)$prod->stock_qty > 0) {
     $product_stock = (float)$prod->stock_qty;
-} elseif (isset($prod->total_qty) && is_numeric($prod->total_qty)) {
+} elseif (isset($prod->total_qty) && is_numeric($prod->total_qty) && (float)$prod->total_qty > 0) {
     $product_stock = (float)$prod->total_qty;
-} elseif (isset($prod->quantity) && is_numeric($prod->quantity)) {
+} elseif (isset($prod->quantity) && is_numeric($prod->quantity) && (float)$prod->quantity > 0) {
     $product_stock = (float)$prod->quantity;
 }
 
@@ -31,12 +35,9 @@ if ($product_stock === null) {
     if ($prod_id_check > 0) {
         $ci =& get_instance();
         if (isset($ci->db)) {
-            $is_config = (isset($prod->product_type) && $prod->product_type === 'configurable');
-            if ($is_config) {
-                $child_inv = $ci->db->query("SELECT SUM(COALESCE(vi.available_qty, vi.qty, 0)) as total_stock FROM products v JOIN products_inventory vi ON vi.product_id = v.id WHERE v.parent_id = ?", [$prod_id_check])->row();
-                if ($child_inv && $child_inv->total_stock !== null) {
-                    $product_stock = (float)$child_inv->total_stock;
-                }
+            $child_inv = $ci->db->query("SELECT SUM(COALESCE(vi.available_qty, vi.qty, 0)) as total_stock FROM products v JOIN products_inventory vi ON vi.product_id = v.id WHERE v.parent_id = ? AND v.status = 1 AND v.remove_flag = 0", [$prod_id_check])->row();
+            if ($child_inv && $child_inv->total_stock !== null && (float)$child_inv->total_stock > 0) {
+                $product_stock = (float)$child_inv->total_stock;
             } else {
                 $s_inv = $ci->db->select('available_qty, qty')->where('product_id', $prod_id_check)->get('products_inventory')->row();
                 if ($s_inv) {
@@ -171,18 +172,28 @@ if ($is_out_of_stock) {
     $is_daily_deal = false;
 }
 
-// Stock extraction for Limited Stock detection
+// Stock extraction for Limited Stock and Flash Sale stock indicator
 $remaining_stock = null;
-if ($promo_db && isset($promo_db->inv_available_qty) && is_numeric($promo_db->inv_available_qty) && $promo_db->inv_available_qty > 0) {
+if (isset($prod->calculated_stock) && is_numeric($prod->calculated_stock) && (float)$prod->calculated_stock > 0) {
+    $remaining_stock = (int)$prod->calculated_stock;
+} elseif (isset($prod->available_qty) && is_numeric($prod->available_qty) && (float)$prod->available_qty > 0) {
+    $remaining_stock = (int)$prod->available_qty;
+} elseif ($product_stock !== null && $product_stock > 0) {
+    $remaining_stock = (int)$product_stock;
+} elseif ($promo_db && isset($promo_db->inv_available_qty) && is_numeric($promo_db->inv_available_qty) && $promo_db->inv_available_qty > 0) {
     $remaining_stock = (int)$promo_db->inv_available_qty;
 } elseif ($promo_db && isset($promo_db->inv_qty) && is_numeric($promo_db->inv_qty) && $promo_db->inv_qty > 0) {
     $remaining_stock = (int)$promo_db->inv_qty;
-} elseif ($stock && !empty($stock->qty) && is_numeric($stock->qty)) {
+} elseif ($stock && !empty($stock->qty) && is_numeric($stock->qty) && (int)$stock->qty > 0) {
     $remaining_stock = (int)$stock->qty;
-} elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty) && $prod->stock_qty > 0) {
+} elseif (isset($prod->stock_qty) && is_numeric($prod->stock_qty) && (float)$prod->stock_qty > 0) {
     $remaining_stock = (int)$prod->stock_qty;
-} elseif (isset($prod->qty) && is_numeric($prod->qty) && $prod->qty > 0) {
+} elseif (isset($prod->qty) && is_numeric($prod->qty) && (float)$prod->qty > 0) {
     $remaining_stock = (int)$prod->qty;
+} elseif (isset($prod->quantity) && is_numeric($prod->quantity) && (float)$prod->quantity > 0) {
+    $remaining_stock = (int)$prod->quantity;
+} elseif (isset($prod->total_qty) && is_numeric($prod->total_qty) && (float)$prod->total_qty > 0) {
+    $remaining_stock = (int)$prod->total_qty;
 } elseif ($promo_db && isset($promo_db->stock_qty) && is_numeric($promo_db->stock_qty) && $promo_db->stock_qty > 0) {
     $remaining_stock = (int)$promo_db->stock_qty;
 } elseif ($promo_db && isset($promo_db->qty) && is_numeric($promo_db->qty) && $promo_db->qty > 0) {
@@ -190,12 +201,17 @@ if ($promo_db && isset($promo_db->inv_available_qty) && is_numeric($promo_db->in
 }
 
 if ($remaining_stock === null && $prod_id > 0 && isset($ci->db)) {
-    $single_inv = $ci->db->select('available_qty, qty')->where('product_id', $prod_id)->get('products_inventory')->row();
-    if ($single_inv) {
-        if (isset($single_inv->available_qty) && is_numeric($single_inv->available_qty) && $single_inv->available_qty > 0) {
-            $remaining_stock = (int)$single_inv->available_qty;
-        } elseif (isset($single_inv->qty) && is_numeric($single_inv->qty) && $single_inv->qty > 0) {
-            $remaining_stock = (int)$single_inv->qty;
+    $child_inv = $ci->db->query("SELECT SUM(COALESCE(vi.available_qty, vi.qty, 0)) as total_stock FROM products v JOIN products_inventory vi ON vi.product_id = v.id WHERE v.parent_id = ? AND v.status = 1 AND v.remove_flag = 0", [$prod_id])->row();
+    if ($child_inv && $child_inv->total_stock !== null && (float)$child_inv->total_stock > 0) {
+        $remaining_stock = (int)$child_inv->total_stock;
+    } else {
+        $single_inv = $ci->db->select('available_qty, qty')->where('product_id', $prod_id)->get('products_inventory')->row();
+        if ($single_inv) {
+            if (isset($single_inv->available_qty) && is_numeric($single_inv->available_qty) && $single_inv->available_qty > 0) {
+                $remaining_stock = (int)$single_inv->available_qty;
+            } elseif (isset($single_inv->qty) && is_numeric($single_inv->qty) && $single_inv->qty > 0) {
+                $remaining_stock = (int)$single_inv->qty;
+            }
         }
     }
 }
@@ -334,9 +350,15 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
             ?>
         </div>
 
+        <?php 
+        $is_centered_listing = ($type === 'TrendingListing' || $type === 'NewArrivalListing');
+        $item_align_justify = $is_centered_listing ? 'center' : 'flex-start';
+        $item_align_text = $is_centered_listing ? 'center' : 'left';
+        ?>
+
         <!-- Countdown Timer: Only show if Daily Deal is active (or both Daily Deal & Flash Sale) -->
         <?php if ($is_daily_deal && $timer_ends_at > $now && !$is_out_of_stock): ?>
-            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: normal !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important; width: 100% !important;">
+            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: normal !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; justify-content: <?= $item_align_justify ?> !important; text-align: <?= $item_align_text ?> !important; gap: 4px !important; width: 100% !important;">
                 <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
                 <span>Ends in <span class="live-countdown" data-ends-at="<?= $timer_ends_at ?>"><?= $initial_countdown_str ?></span></span>
             </div>
@@ -344,14 +366,14 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
 
         <!-- Stock Indicator: Only show if Flash Sale is active (or both Daily Deal & Flash Sale, or limited stock) -->
         <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale || ($is_limited_stock && !$is_daily_deal)) && !$is_out_of_stock): ?>
-            <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important; width: 100% !important;">
+            <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; justify-content: <?= $item_align_justify ?> !important; text-align: <?= $item_align_text ?> !important; gap: 4px !important; width: 100% !important;">
                 <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
                 <span>Only <?= $remaining_stock ?> left</span>
             </div>
         <?php endif; ?>
 
         <!-- Action Button -->
-        <div style="margin-top: 6px !important; text-align: center !important; width: 100% !important;">
+        <div class="promo-btn-container" style="margin-top: 6px !important; text-align: <?= $item_align_text ?> !important; width: 100% !important;">
             <?php if ($is_out_of_stock) : ?>
                 <a href="<?= $product_url ?>" class="btn btn-default add2cart" style="background-color: #6c757d !important; border-color: #6c757d !important; color: #ffffff !important; cursor: pointer; display: block !important; width: 100% !important; text-align: center !important;"><?= $this->lang->line('out_of_stock_btn') ? $this->lang->line('out_of_stock_btn') : ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'); ?></a>
             <?php elseif ($type === 'PrelaunchListing') : ?>
@@ -364,7 +386,7 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
                 <?php if ($type === 'TrendingListing' || $type === 'NewArrivalListing') : ?>
                     <a href="<?= $product_url ?>" class="btn view-product-btn ym-view-details-btn" style="display: block !important; width: 100% !important; min-height: 40px !important; padding: 10px 15px !important; margin: 0 auto !important; background: #ffffff !important; border: 1px solid #777777 !important; border-radius: 4px !important; color: #555555 !important; font-size: 15px !important; font-weight: 500 !important; line-height: 20px !important; text-align: center !important; text-decoration: none !important; box-sizing: border-box !important; cursor: pointer !important; transition: all 0.2s ease-in-out !important;"><?= lang('view_details') ?></a>
                 <?php else : ?>
-                    <a href="<?= $product_url ?>" class="btn btn-primary add2cart" style="background-color: #0d6efd !important; border-color: #0d6efd !important; color: #ffffff !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 4px !important; text-transform: capitalize !important; line-height: 1.35 !important; display: inline-block !important; width: fit-content !important;"><?= lang('view_details') ?></a>
+                    <a href="<?= $product_url ?>" class="btn btn-primary add2cart" style="background-color: #0d6efd !important; border-color: #0d6efd !important; color: #ffffff !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 4px !important; text-transform: capitalize !important; line-height: 1.35 !important; display: inline-block !important; width: fit-content !important; text-align: center !important; margin: 0 !important;"><?= lang('view_details') ?></a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>

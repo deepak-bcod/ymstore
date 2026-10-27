@@ -402,6 +402,51 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
             </div>
             <!-- END SALE PRODUCT & NEW ARRIVALS -->
 
+<style>
+/* Ensure home page product cards align Title, Price, Timer, and Button cleanly flush-left in 1 straight line */
+.home-products-section .pi-content-wrapper,
+.trending-products-section .pi-content-wrapper,
+.home-trending-slider .pi-content-wrapper {
+    text-align: left !important;
+}
+
+.home-products-section .pi-content-wrapper .promo-countdown-wrapper,
+.home-products-section .pi-content-wrapper .promo-stock-wrapper,
+.trending-products-section .pi-content-wrapper .promo-countdown-wrapper,
+.trending-products-section .pi-content-wrapper .promo-stock-wrapper,
+.home-trending-slider .pi-content-wrapper .promo-countdown-wrapper,
+.home-trending-slider .pi-content-wrapper .promo-stock-wrapper {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    text-align: left !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+.home-products-section .pi-content-wrapper .promo-btn-container,
+.home-products-section .pi-content-wrapper div[style*="text-align"],
+.trending-products-section .pi-content-wrapper .promo-btn-container,
+.trending-products-section .pi-content-wrapper div[style*="text-align"],
+.home-trending-slider .pi-content-wrapper .promo-btn-container,
+.home-trending-slider .pi-content-wrapper div[style*="text-align"] {
+    text-align: left !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+.home-products-section .pi-content-wrapper .promo-btn-container a.btn,
+.home-products-section .pi-content-wrapper a.add2cart,
+.trending-products-section .pi-content-wrapper .promo-btn-container a.btn,
+.trending-products-section .pi-content-wrapper a.add2cart,
+.home-trending-slider .pi-content-wrapper .promo-btn-container a.btn,
+.home-trending-slider .pi-content-wrapper a.add2cart {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    display: inline-block !important;
+}
+</style>
+
         </div>
     </div>
 </div>

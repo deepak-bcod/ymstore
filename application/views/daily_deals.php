@@ -480,9 +480,14 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </a>
 
                                             <?php
+                                            $now = time();
                                             $is_out_of_stock = false;
                                             $product_stock = null;
-                                            if (isset($p->qty) && is_numeric($p->qty)) {
+                                            if (isset($p->calculated_stock) && is_numeric($p->calculated_stock)) {
+                                                $product_stock = (float)$p->calculated_stock;
+                                            } elseif (isset($p->available_qty) && is_numeric($p->available_qty)) {
+                                                $product_stock = (float)$p->available_qty;
+                                            } elseif (isset($p->qty) && is_numeric($p->qty)) {
                                                 $product_stock = (float)$p->qty;
                                             } elseif (isset($p->stock_qty) && is_numeric($p->stock_qty)) {
                                                 $product_stock = (float)$p->stock_qty;
@@ -490,6 +495,25 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                 $product_stock = (float)$p->total_qty;
                                             } elseif (isset($p->quantity) && is_numeric($p->quantity)) {
                                                 $product_stock = (float)$p->quantity;
+                                            }
+
+                                            if ($product_stock === null && !empty($p->id)) {
+                                                $ci =& get_instance();
+                                                if (isset($ci->db)) {
+                                                    $child_inv = $ci->db->query("SELECT SUM(COALESCE(vi.available_qty, vi.qty, 0)) as total_stock FROM products v JOIN products_inventory vi ON vi.product_id = v.id WHERE v.parent_id = ? AND v.status = 1 AND v.remove_flag = 0", [$p->id])->row();
+                                                    if ($child_inv && $child_inv->total_stock !== null && (float)$child_inv->total_stock > 0) {
+                                                        $product_stock = (float)$child_inv->total_stock;
+                                                    } else {
+                                                        $s_inv = $ci->db->select('available_qty, qty')->where('product_id', $p->id)->get('products_inventory')->row();
+                                                        if ($s_inv) {
+                                                            if ($s_inv->available_qty !== null && is_numeric($s_inv->available_qty)) {
+                                                                $product_stock = (float)$s_inv->available_qty;
+                                                            } elseif ($s_inv->qty !== null && is_numeric($s_inv->qty)) {
+                                                                $product_stock = (float)$s_inv->qty;
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
 
                                             if ($product_stock !== null && $product_stock <= 0) {
@@ -504,8 +528,13 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             if ($special_price > 0 && $regular_price > $special_price) {
                                                 $discount_percent = (int)round((($regular_price - $special_price) / $regular_price) * 100);
                                             }
-                                            $is_deal_active = (!empty($p->daily_deals) && $p->daily_deals == 1 && (empty($p->daily_deal_ends_at) || (int)$p->daily_deal_ends_at > time()));
-                                            $is_flash_active = (!empty($p->flash_sale) && $p->flash_sale == 1 && (empty($p->flash_sale_ends_at) || (int)$p->flash_sale_ends_at > time()));
+                                            $is_deal_active = (!empty($p->daily_deals) && $p->daily_deals == 1 && (empty($p->daily_deal_starts_at) || (int)$p->daily_deal_starts_at <= $now) && (empty($p->daily_deal_ends_at) || (int)$p->daily_deal_ends_at > $now));
+                                            $is_flash_active = (!empty($p->flash_sale) && $p->flash_sale == 1 && (empty($p->flash_sale_starts_at) || (int)$p->flash_sale_starts_at <= $now) && (empty($p->flash_sale_ends_at) || (int)$p->flash_sale_ends_at > $now));
+
+                                            if ($is_out_of_stock) {
+                                                $is_deal_active = false;
+                                                $is_flash_active = false;
+                                            }
                                             ?>
 
                                             <!-- Badges inside product image at TOP (Daily Deals, Flash Sales, Discount Pill, Out of Stock) -->
@@ -606,8 +635,10 @@ function buildCategoryTree($categories, $parent_id = 0)
 
                                             <!-- DEAL ENDS TIMER: If daily deal, show timer. If <=24hrs shows countdown HH:MM:SS, if >24hrs shows Ends in X days -->
                                             <?php
-                                            $now = time();
                                             $dd_ends_at = !empty($p->daily_deal_ends_at) ? (int)$p->daily_deal_ends_at : 0;
+                                            if ($is_deal_active && $dd_ends_at <= $now) {
+                                                $dd_ends_at = $now + 86400;
+                                            }
                                             $initial_countdown_str = '';
                                             if ($dd_ends_at > $now) {
                                                 $diff = $dd_ends_at - $now;
@@ -624,7 +655,7 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             $remaining_stock = ($product_stock !== null && $product_stock > 0) ? (int)$product_stock : null;
                                             ?>
                                             <?php if ($is_deal_active && $dd_ends_at > $now && !$is_out_of_stock): ?>
-                                                <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 13px !important; font-weight: normal !important; margin: 4px 0 6px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important;">
+                                                <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 13px !important; font-weight: normal !important; margin: 4px 0 3px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important;">
                                                     <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
                                                     <span>Ends in <span class="live-countdown" data-ends-at="<?= $dd_ends_at ?>"><?= $initial_countdown_str ?></span></span>
                                                 </div>
