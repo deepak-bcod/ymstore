@@ -23,6 +23,10 @@
         vertical-align: middle;
         text-align: center;
     }
+    a.yellow-button:hover, .yellow-button:hover {
+        color: #e08b0a !important;
+        text-decoration: underline !important;
+    }
     @media (max-width: 768px) {
         .manage-addons-wrapper {
             margin-left: 0;
@@ -63,9 +67,8 @@
                                 <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" 
                                    class="btn btn-sm btn-primary yellow-button" 
                                    target="_blank" 
-                                   title="<?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?>">
-                                    <i class="fa fa-download mr-1"></i><?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?>
-                                </a>
+                                   style="color: #ff9e0c !important; background: transparent !important; border: none !important; font-weight: 500; font-size: 14px; text-decoration: none;"
+                                   title="<?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?>"><?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?></a>
                             </td>
                         </tr>
                         <?php endforeach; ?>

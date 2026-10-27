@@ -31,6 +31,20 @@
         border-color: #dee2e6;
     }
 
+    a.yellow-button, .yellow-button {
+        color: #ff9e0c !important;
+        background: transparent !important;
+        border: none !important;
+        font-weight: 500;
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    a.yellow-button:hover, .yellow-button:hover {
+        color: #e08b0a !important;
+        text-decoration: underline !important;
+    }
+
     @media (max-width: 768px) {
         .manage-addon-container {
             margin-left: 0;
@@ -69,9 +83,7 @@
                             <td><?php echo html_escape($row->date ?? ''); ?></td>
                             <td><?php echo number_format($row->amount ?? 0, 2); ?></td>
                             <td>
-                                <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" class="btn btn-sm btn-primary yellow-button" target="_blank">
-                                    <i class="fa fa-download"></i> Download Invoice
-                                </a>
+                                <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" class="btn btn-sm btn-primary yellow-button" target="_blank" style="color: #ff9e0c !important; background: transparent !important; border: none !important; font-weight: 500; font-size: 14px; text-decoration: none;">Download Invoice</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
