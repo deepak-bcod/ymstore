@@ -59,12 +59,12 @@
                             <td><?php echo isset($row->date) ? $row->date : ''; ?></td>
                             <td><?php echo isset($row->amount) ? $row->amount : ''; ?></td>
                             <td>
-                                <!-- Download Invoice Link (Fixed URL path) -->
+                                <!-- Download Invoice Link -->
                                 <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" 
-                                   class="text-info font-weight-bold" 
+                                   class="btn btn-sm btn-primary yellow-button" 
                                    target="_blank" 
-                                   title="Download Invoice">
-                                    <i class="fa fa-download mr-1"></i><?php echo lang('addon_invoice') ? lang('addon_invoice') : 'Invoice'; ?>
+                                   title="<?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?>">
+                                    <i class="fa fa-download mr-1"></i><?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?>
                                 </a>
                             </td>
                         </tr>

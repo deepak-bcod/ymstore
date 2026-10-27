@@ -134,30 +134,7 @@ class Subscription extends CI_Controller
 
         $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
 
-        // 1. Check if pre-generated PDF already exists on disk
-        $saved_pdf_paths = [
-            rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/' . $filename,
-            rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/' . $filename,
-            rtrim(FCPATH, '/\\') . '/../uploads/subscription_invoices/' . $filename,
-            FCPATH . 'uploads/subscription_invoices/' . $filename
-        ];
-
-        foreach ($saved_pdf_paths as $saved_pdf) {
-            if (file_exists($saved_pdf) && filesize($saved_pdf) > 0) {
-                if (ob_get_length()) {
-                    ob_end_clean();
-                }
-                header('Content-Type: application/pdf');
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                header('Content-Length: ' . filesize($saved_pdf));
-                header('Cache-Control: private, max-age=0, must-revalidate');
-                header('Pragma: public');
-                readfile($saved_pdf);
-                exit;
-            }
-        }
-
-        // 2. Generate PDF via model helper
+        // 1. Generate fresh PDF via model to ensure latest styling/logo/colors
         $pdf_res = $this->Subscription_model->generate_subscription_invoice_pdf($order['id']);
         if ($pdf_res) {
             if (!empty($pdf_res['file_path']) && file_exists($pdf_res['file_path']) && filesize($pdf_res['file_path']) > 0) {
@@ -181,6 +158,29 @@ class Subscription extends CI_Controller
                 header('Cache-Control: private, max-age=0, must-revalidate');
                 header('Pragma: public');
                 echo $pdf_res['pdf_output'];
+                exit;
+            }
+        }
+
+        // 2. Fallback: Check if pre-generated PDF exists on disk
+        $saved_pdf_paths = [
+            rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/' . $filename,
+            rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/' . $filename,
+            rtrim(FCPATH, '/\\') . '/../uploads/subscription_invoices/' . $filename,
+            FCPATH . 'uploads/subscription_invoices/' . $filename
+        ];
+
+        foreach ($saved_pdf_paths as $saved_pdf) {
+            if (file_exists($saved_pdf) && filesize($saved_pdf) > 0) {
+                if (ob_get_length()) {
+                    ob_end_clean();
+                }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Content-Length: ' . filesize($saved_pdf));
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+                readfile($saved_pdf);
                 exit;
             }
         }
@@ -214,6 +214,9 @@ class Subscription extends CI_Controller
 
         $logo_data_uri = '';
         $logo_candidates = [
+            rtrim(FCPATH, '/\\') . '/public/images/yellow-markets-logo-yellow-white.png',
+            rtrim(FCPATH, '/\\') . '/../merchant/public/images/yellow-markets-logo-yellow-white.png',
+            'c:/xampp/htdocs/ymstore/merchant/public/images/yellow-markets-logo-yellow-white.png',
             rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
             rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
             dirname(FCPATH) . '/uploads/yellow-markets-logo.png'

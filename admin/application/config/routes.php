@@ -444,8 +444,9 @@ $route['addon-categories/create']       = 'AddonCategories/create';
 $route['addon-categories/edit/(:num)']  = 'AddonCategories/edit/$1';
 $route['addon-categories/delete/(:num)']= 'AddonCategories/delete/$1';
 
-$route['addons/manage'] = 'addons/manage';
-$route['admin/addons/download_invoice/(:num)']  = 'admin/addons/download_invoice/$1';
+$route['addons/manage']                         = 'addons/manage';
+$route['addons/download_invoice/(:num)']        = 'addons/download_invoice/$1';
+$route['admin/addons/download_invoice/(:num)']  = 'addons/download_invoice/$1';
 
 
 
