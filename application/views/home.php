@@ -149,6 +149,19 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                             if (!empty($dp->daily_deal_ends_at) && (int)$dp->daily_deal_ends_at <= $now) {
                                 continue;
                             }
+                            $dp_stock = null;
+                            if (isset($dp->calculated_stock) && is_numeric($dp->calculated_stock)) {
+                                $dp_stock = (float)$dp->calculated_stock;
+                            } elseif (isset($dp->available_qty) && is_numeric($dp->available_qty)) {
+                                $dp_stock = (float)$dp->available_qty;
+                            } elseif (isset($dp->qty) && is_numeric($dp->qty)) {
+                                $dp_stock = (float)$dp->qty;
+                            } elseif (isset($dp->stock_qty) && is_numeric($dp->stock_qty)) {
+                                $dp_stock = (float)$dp->stock_qty;
+                            }
+                            if ($dp_stock !== null && $dp_stock <= 0) {
+                                continue;
+                            }
                             $active_daily_deals[] = $dp;
                         }
                     }
@@ -164,7 +177,7 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                                     <div class="owl-stage-outer">
                                         <div class="owl-stage" style="transform: translate3d(0px, 0px, 0px); transition: all; width: 1715px;">
                                             <?php 
-                                            $count = 0; 
+                                             $count = 0; 
                                             foreach ($active_daily_deals as $deal_prod) :
                                                 if ($count >= 6) break;
                                                 $deal_prod = ProductPresenter::from($deal_prod);
@@ -197,6 +210,19 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
                                 continue;
                             }
                             if (!empty($fp->flash_sale_ends_at) && (int)$fp->flash_sale_ends_at <= $now) {
+                                continue;
+                            }
+                            $fp_stock = null;
+                            if (isset($fp->calculated_stock) && is_numeric($fp->calculated_stock)) {
+                                $fp_stock = (float)$fp->calculated_stock;
+                            } elseif (isset($fp->available_qty) && is_numeric($fp->available_qty)) {
+                                $fp_stock = (float)$fp->available_qty;
+                            } elseif (isset($fp->qty) && is_numeric($fp->qty)) {
+                                $fp_stock = (float)$fp->qty;
+                            } elseif (isset($fp->stock_qty) && is_numeric($fp->stock_qty)) {
+                                $fp_stock = (float)$fp->stock_qty;
+                            }
+                            if ($fp_stock !== null && $fp_stock <= 0) {
                                 continue;
                             }
                             $active_flash_sales[] = $fp;

@@ -23,6 +23,54 @@
                         <h2><?= $this->lang->line('trending_products') ?: 'Trending Products'; ?></h2>
                     </div>
                 </div>
+<style>
+.products-list-full .view-product-btn,
+.products-list-full .ym-view-details-btn,
+.products-list-full .add2cart {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 40px !important;
+    padding: 10px 15px !important;
+    margin: 0 auto !important;
+    background: #ffffff !important;
+    border: 1px solid #777777 !important;
+    border-radius: 4px !important;
+    color: #555555 !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    line-height: 20px !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.products-list-full .view-product-btn:hover,
+.products-list-full .view-product-btn:focus,
+.products-list-full .ym-view-details-btn:hover,
+.products-list-full .ym-view-details-btn:focus,
+.products-list-full .add2cart:hover,
+.products-list-full .add2cart:focus {
+    background: #0f5cd0 !important;
+    border-color: #0f5cd0 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    outline: none !important;
+}
+
+.products-list-full .promo-countdown-wrapper,
+.products-list-full .promo-stock-wrapper {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+}
+</style>
                 <!-- BEGIN PRODUCT LIST -->
                 <div class="products-list-full grid-view">
                     <?php if (!empty($featured_product)) { ?>

@@ -10011,6 +10011,14 @@ class Sellerproduct extends CI_Controller {
 			$this->db->where('daily_deal_ends_at <=', $now_time);
 			$this->db->update('products', ['daily_deals' => 0]);
 
+			// Also reset deals for any products whose stock is 0
+			$this->db->query("UPDATE products p 
+				JOIN products_inventory inv ON inv.product_id = p.id 
+				SET p.daily_deals = 0, p.daily_deal_ends_at = 0, p.flash_sale = 0, p.flash_sale_ends_at = 0 
+				WHERE (p.daily_deals = 1 OR p.flash_sale = 1) 
+				  AND p.product_type != 'configurable' 
+				  AND COALESCE(inv.available_qty, inv.qty, 0) <= 0");
+
 			// If current product itself has expired daily deal, update in-memory object
 			if (isset($ProductData) && $ProductData->daily_deals == 1 && $ProductData->daily_deal_ends_at > 0 && $ProductData->daily_deal_ends_at <= $now_time) {
 				$ProductData->daily_deals = 0;
@@ -10048,7 +10056,23 @@ class Sellerproduct extends CI_Controller {
 
 			$product = $info['product'];
 
+			$is_out_of_stock = ($stock <= 0);
 
+			// If current product stock is 0 or less, ensure it cannot have active daily deal or flash sale
+			if ($is_out_of_stock) {
+				if (!empty($ProductData) && ($ProductData->daily_deals == 1 || $ProductData->flash_sale == 1)) {
+					$ProductData->daily_deals = 0;
+					$ProductData->daily_deal_ends_at = 0;
+					$ProductData->flash_sale = 0;
+					$ProductData->flash_sale_ends_at = 0;
+					$this->db->where('id', $product_id)->update('products', [
+						'daily_deals' => 0,
+						'daily_deal_ends_at' => 0,
+						'flash_sale' => 0,
+						'flash_sale_ends_at' => 0
+					]);
+				}
+			}
 
 			// Step 5: Decide if "Yes" should be disabled in dropdown
 			
@@ -10058,16 +10082,18 @@ class Sellerproduct extends CI_Controller {
 
 			$low_discount_dd = ($discount_percent < 15);
 
-			$disable_daily_deals_yes = ($reached_limit || $low_stock_dd || $low_discount_dd);
+			$disable_daily_deals_yes = ($is_out_of_stock || $reached_limit || $low_stock_dd || $low_discount_dd);
 
 
 			// Step 6: Prepare reasons for view
 
 			$daily_deals_reasons = [
 
+				'stock_zero' => $is_out_of_stock ? 'Stock is 0. Daily deals cannot be enabled for out-of-stock products.' : null,
+
 				'limit'    => $reached_limit ? 'You reached daily deals limit' : null,
 
-				'stock'    => $low_stock_dd ? 'Stock must be at least 50' : null,
+				'stock'    => $low_stock_dd ? ($is_out_of_stock ? 'Stock is 0' : 'Stock must be at least 50') : null,
 
 				'discount' => $low_discount_dd ? 'Minimum 15% discount required' : null,
 
@@ -10126,17 +10152,19 @@ class Sellerproduct extends CI_Controller {
 				$disable_flash_sale_yes = true;
 				$flash_sale_reasons = [
 					'plan'     => 'Flash Sales are not included in the Starter plan. Please upgrade to Growth or Cyber.',
+					'stock_zero' => $is_out_of_stock ? 'Stock is 0. Flash sales cannot be enabled for out-of-stock products.' : null,
 					'limit'    => null,
 					'stock'    => null,
 					'discount' => null,
 				];
 			} else {
 				$reached_flash_limit = ($current_flash_count >= $flash_sale_limit);
-				$disable_flash_sale_yes = ($reached_flash_limit || $low_stock_fs || $low_discount_fs);
+				$disable_flash_sale_yes = ($is_out_of_stock || $reached_flash_limit || $low_stock_fs || $low_discount_fs);
 				$flash_sale_reasons = [
 					'plan'     => null,
+					'stock_zero' => $is_out_of_stock ? 'Stock is 0. Flash sales cannot be enabled for out-of-stock products.' : null,
 					'limit'    => $reached_flash_limit ? 'You reached flash sale limit' : null,
-					'stock'    => $low_stock_fs ? 'Stock must be at least 100' : null,
+					'stock'    => $low_stock_fs ? ($is_out_of_stock ? 'Stock is 0' : 'Stock must be at least 100') : null,
 					'discount' => $low_discount_fs ? 'Minimum 30% discount required' : null,
 				];
 			}
@@ -10168,6 +10196,8 @@ class Sellerproduct extends CI_Controller {
 			$data['disable_flash_sale_yes']  = $disable_flash_sale_yes;
 
 			$data['flash_sale_reasons']      = $flash_sale_reasons;
+
+			$data['stock']                   = $stock;
 
 
 
@@ -10622,6 +10652,22 @@ class Sellerproduct extends CI_Controller {
 							$daily_deals = (int)$_POST['daily_deals'];
 							$now = time();
 
+							// Server-side validation: if stock is 0 or less, user cannot enable daily deals
+							$check_stock = null;
+							if (isset($_POST['stock_qty']) && is_numeric($_POST['stock_qty'])) {
+								$check_stock = (float)$_POST['stock_qty'];
+							} elseif (isset($_POST['variant_stock']) && is_array($_POST['variant_stock'])) {
+								$check_stock = array_sum(array_map('floatval', $_POST['variant_stock']));
+							}
+							if ($check_stock === null) {
+								$stock_info = $this->getProductStockAndDiscount($product_id);
+								$check_stock = (float)$stock_info['stock'];
+							}
+
+							if ($check_stock <= 0) {
+								$daily_deals = 0;
+							}
+
 							if ($daily_deals == 1) {
 								if (!empty($_POST['daily_deal_starts_at'])) {
 									$dd_str = trim($_POST['daily_deal_starts_at']);
@@ -10804,6 +10850,22 @@ class Sellerproduct extends CI_Controller {
 							$flash_sale = ($can_use_flash_sales && $_POST['flash_sale'] == 1) ? 1 : 0;
 							$now = time();
 
+							// Server-side validation: if stock is 0 or less, user cannot enable flash sales
+							$check_stock_fs = null;
+							if (isset($_POST['stock_qty']) && is_numeric($_POST['stock_qty'])) {
+								$check_stock_fs = (float)$_POST['stock_qty'];
+							} elseif (isset($_POST['variant_stock']) && is_array($_POST['variant_stock'])) {
+								$check_stock_fs = array_sum(array_map('floatval', $_POST['variant_stock']));
+							}
+							if ($check_stock_fs === null) {
+								$stock_info_fs = $this->getProductStockAndDiscount($product_id);
+								$check_stock_fs = (float)$stock_info_fs['stock'];
+							}
+
+							if ($check_stock_fs <= 0) {
+								$flash_sale = 0;
+							}
+
 							if ($flash_sale == 1) {
 								if (!empty($_POST['flash_sale_starts_at'])) {
 									$fs_str = trim($_POST['flash_sale_starts_at']);
@@ -10816,7 +10878,7 @@ class Sellerproduct extends CI_Controller {
 									$fs_end_str = trim($_POST['flash_sale_ends_at']);
 									$flash_sale_ends_at = strtotime($fs_end_str . (stripos($fs_end_str, 'Z') === false && stripos($fs_end_str, 'UTC') === false ? ' UTC' : ''));
 								} else {
-									$flash_sale_ends_at = $flash_sale_starts_at + 86400;
+									$flash_sale_ends_at = $flash_sale_starts_at + (7 * 86400);
 								}
 							} else {
 								$flash_sale_starts_at = null;
@@ -11416,6 +11478,15 @@ class Sellerproduct extends CI_Controller {
 										// $this->SellerProductModel->updateData('products_inventory', $stock_update, $whr_qty_arr);
 										$this->db->where('product_id', $prod_id);
 										$this->db->update('products_inventory', $stock_update);
+
+										if ((float)$stock_qty <= 0) {
+											$this->db->where('id', $prod_id)->update('products', [
+												'daily_deals' => 0,
+												'daily_deal_ends_at' => 0,
+												'flash_sale' => 0,
+												'flash_sale_ends_at' => 0
+											]);
+										}
 
 										// echo $this->db->last_query();
 										// die();

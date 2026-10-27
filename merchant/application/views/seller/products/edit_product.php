@@ -303,12 +303,19 @@
 
 				<h2><?php echo lang('daily_deals_title'); ?></h2>
 
+				<?php 
+					$is_stock_zero = (isset($stock) && (float)$stock <= 0);
+					$is_dd_active = (!$is_stock_zero && $ProductData->daily_deals == 1);
+					$disable_dd_select = ($is_stock_zero || ($disable_daily_deals_yes && !$is_dd_active));
+					$disable_dd_yes_option = ($is_stock_zero || $disable_daily_deals_yes);
+				?>
+
 				<select class="form-control" name="daily_deals" id="daily_deals"
-					<?php echo ($disable_daily_deals_yes && $ProductData->daily_deals != 1) ? 'disabled' : ''; ?>>
+					<?php echo $disable_dd_select ? 'disabled' : ''; ?>>
 
-					<option value="0" <?php echo ($ProductData->daily_deals == 0) ? 'selected' : ''; ?>><?php echo lang('no'); ?></option>
+					<option value="0" <?php echo (!$is_dd_active) ? 'selected' : ''; ?>><?php echo lang('no'); ?></option>
 
-					<option value="1" <?php echo ($ProductData->daily_deals == 1) ? 'selected' : ''; ?> <?php echo ($disable_daily_deals_yes && $ProductData->daily_deals != 1) ? 'disabled' : ''; ?>><?php echo lang('yes'); ?></option>
+					<option value="1" <?php echo ($is_dd_active) ? 'selected' : ''; ?> <?php echo $disable_dd_yes_option ? 'disabled' : ''; ?>><?php echo lang('yes'); ?></option>
 
 				</select>
 
@@ -320,6 +327,12 @@
 
 				</small>
 
+				<?php if ($is_stock_zero): ?>
+					<small class="text-danger stock-zero-warning-dd" style="display: block; font-weight: 600; margin-top: 4px;">
+						Stock is 0. Daily deals cannot be enabled for out-of-stock products.
+					</small>
+				<?php endif; ?>
+
 				<?php
 					$today_min_dt = gmdate('Y-m-d\TH:i');
 					$dd_start_ts = !empty($ProductData->daily_deal_starts_at) ? $ProductData->daily_deal_starts_at : null;
@@ -330,11 +343,11 @@
 					}
 					$dd_end_val   = $dd_end_ts ? gmdate('Y-m-d\TH:i', is_numeric($dd_end_ts) ? (int)$dd_end_ts : strtotime($dd_end_ts . ' UTC')) : '';
 				?>
-				<div id="daily_deals_datetime_box" style="<?php echo ($ProductData->daily_deals == 1) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
+				<div id="daily_deals_datetime_box" style="<?php echo ($is_dd_active) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
 					<div class="row">
 						<div class="col-sm-6">
 							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (UTC) <span class="text-danger">*</span></label>
-							<input type="datetime-local" class="form-control" name="daily_deal_starts_at" id="daily_deal_starts_at" value="<?php echo $dd_start_val; ?>" min="<?php echo $today_min_dt; ?>" <?php echo ($ProductData->daily_deals == 1 ? 'required' : ''); ?>>
+							<input type="datetime-local" class="form-control" name="daily_deal_starts_at" id="daily_deal_starts_at" value="<?php echo $dd_start_val; ?>" min="<?php echo $today_min_dt; ?>" <?php echo ($is_dd_active ? 'required' : ''); ?>>
 						</div>
 						<div class="col-sm-6">
 							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (UTC)</label>
@@ -361,12 +374,17 @@
 						<?php echo htmlspecialchars($flash_sale_reasons['plan'] ?? 'Flash Sales is not included in the Starter plan. Upgrade to Growth or Cyber to access.'); ?>
 					</small>
 				<?php else: ?>
+					<?php
+						$is_fs_active = (!$is_stock_zero && $ProductData->flash_sale == 1);
+						$disable_fs_select = ($is_stock_zero || ($disable_flash_sale_yes && !$is_fs_active));
+						$disable_fs_yes_option = ($is_stock_zero || $disable_flash_sale_yes);
+					?>
 					<select class="form-control" name="flash_sale" id="flash_sale"
-						<?php echo ($disable_flash_sale_yes && $ProductData->flash_sale != 1) ? 'disabled' : ''; ?>>
+						<?php echo $disable_fs_select ? 'disabled' : ''; ?>>
 
-						<option value="0" <?php echo ($ProductData->flash_sale == 0) ? 'selected' : ''; ?>><?php echo lang('no'); ?></option>
+						<option value="0" <?php echo (!$is_fs_active) ? 'selected' : ''; ?>><?php echo lang('no'); ?></option>
 
-						<option value="1" <?php echo ($ProductData->flash_sale == 1) ? 'selected' : ''; ?> <?php echo ($disable_flash_sale_yes && $ProductData->flash_sale != 1) ? 'disabled' : ''; ?>><?php echo lang('yes'); ?></option>
+						<option value="1" <?php echo ($is_fs_active) ? 'selected' : ''; ?> <?php echo $disable_fs_yes_option ? 'disabled' : ''; ?>><?php echo lang('yes'); ?></option>
 
 					</select>
 
@@ -378,20 +396,26 @@
 
 					</small>
 
+					<?php if ($is_stock_zero): ?>
+						<small class="text-danger stock-zero-warning-fs" style="display: block; font-weight: 600; margin-top: 4px;">
+							Stock is 0. Flash sales cannot be enabled for out-of-stock products.
+						</small>
+					<?php endif; ?>
+
 					<?php
 						$fs_start_ts = !empty($ProductData->flash_sale_starts_at) ? $ProductData->flash_sale_starts_at : null;
 						$fs_end_ts   = !empty($ProductData->flash_sale_ends_at) ? $ProductData->flash_sale_ends_at : null;
 						$fs_start_val = $fs_start_ts ? gmdate('Y-m-d\TH:i', is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts . ' UTC')) : '';
 						if (!empty($fs_start_val) && empty($fs_end_ts)) {
-							$fs_end_ts = (is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts . ' UTC')) + 86400;
+							$fs_end_ts = (is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts . ' UTC')) + (7 * 86400);
 						}
 						$fs_end_val   = $fs_end_ts ? gmdate('Y-m-d\TH:i', is_numeric($fs_end_ts) ? (int)$fs_end_ts : strtotime($fs_end_ts . ' UTC')) : '';
 					?>
-					<div id="flash_sale_datetime_box" style="<?php echo ($ProductData->flash_sale == 1) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
+					<div id="flash_sale_datetime_box" style="<?php echo ($is_fs_active) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
 						<div class="row">
 							<div class="col-sm-6">
 								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (UTC) <span class="text-danger">*</span></label>
-								<input type="datetime-local" class="form-control" name="flash_sale_starts_at" id="flash_sale_starts_at" value="<?php echo $fs_start_val; ?>" min="<?php echo $today_min_dt; ?>" <?php echo ($ProductData->flash_sale == 1 ? 'required' : ''); ?>>
+								<input type="datetime-local" class="form-control" name="flash_sale_starts_at" id="flash_sale_starts_at" value="<?php echo $fs_start_val; ?>" min="<?php echo $today_min_dt; ?>" <?php echo ($is_fs_active ? 'required' : ''); ?>>
 							</div>
 							<div class="col-sm-6">
 								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (UTC)</label>
@@ -2092,7 +2116,7 @@ $('.required-field').each(function() {
 				$(this).val(currentDateTimeStr);
 				startVal = currentDateTimeStr;
 			}
-			var endVal = addHoursToDateTimeStringUTC(startVal, 24);
+			var endVal = addHoursToDateTimeStringUTC(startVal, 168); // 7 days (168 hours)
 			$('#flash_sale_ends_at').val(endVal).attr('min', startVal);
 		} else {
 			$('#flash_sale_ends_at').val('');
@@ -2124,6 +2148,70 @@ $('.required-field').each(function() {
 		} else {
 			$('#flash_sale_datetime_box').slideUp();
 			$('#flash_sale_starts_at').prop('required', false);
+		}
+	});
+
+	// Real-time stock monitor to disallow Daily Deals and Flash Sales if stock = 0
+	function checkStockForDeals() {
+		var totalStock = 0;
+		var hasVariantStock = false;
+		$('input[name="variant_stock[]"]').each(function() {
+			hasVariantStock = true;
+			var val = parseFloat($(this).val()) || 0;
+			totalStock += val;
+		});
+		if (!hasVariantStock) {
+			totalStock = parseFloat($('#stock_qty').val()) || 0;
+		}
+
+		if (totalStock <= 0) {
+			// Disable Daily Deals
+			$('#daily_deals option[value="1"]').prop('disabled', true);
+			if ($('#daily_deals').val() == '1') {
+				$('#daily_deals').val('0').trigger('change');
+			}
+			$('#daily_deals').prop('disabled', true);
+			if ($('.stock-zero-warning-dd').length === 0) {
+				$('#daily_deals').after('<small class="text-danger stock-zero-warning-dd" style="display: block; font-weight: 600; margin-top: 4px;">Stock is 0. Daily deals cannot be enabled for out-of-stock products.</small>');
+			}
+
+			// Disable Flash Sales
+			$('#flash_sale option[value="1"]').prop('disabled', true);
+			if ($('#flash_sale').val() == '1') {
+				$('#flash_sale').val('0').trigger('change');
+			}
+			$('#flash_sale').prop('disabled', true);
+			if ($('.stock-zero-warning-fs').length === 0) {
+				$('#flash_sale').after('<small class="text-danger stock-zero-warning-fs" style="display: block; font-weight: 600; margin-top: 4px;">Stock is 0. Flash sales cannot be enabled for out-of-stock products.</small>');
+			}
+		} else {
+			$('.stock-zero-warning-dd').remove();
+			$('.stock-zero-warning-fs').remove();
+			var ddRestricted = <?php echo json_encode($disable_daily_deals_yes); ?>;
+			if (!ddRestricted) {
+				$('#daily_deals').prop('disabled', false);
+				$('#daily_deals option[value="1"]').prop('disabled', false);
+			}
+			var fsRestricted = <?php echo json_encode($disable_flash_sale_yes); ?>;
+			var canFs = <?php echo json_encode($can_use_flash_sales ?? false); ?>;
+			if (canFs && !fsRestricted) {
+				$('#flash_sale').prop('disabled', false);
+				$('#flash_sale option[value="1"]').prop('disabled', false);
+			}
+		}
+	}
+
+	$(document).on('input change blur', '#stock_qty, input[name="variant_stock[]"]', function() {
+		checkStockForDeals();
+	});
+
+	// Ensure select values are posted even if disabled due to 0 stock
+	$('form').on('submit', function() {
+		if ($('#daily_deals').is(':disabled') && $('#daily_deals').val() == '0') {
+			$('#daily_deals').prop('disabled', false);
+		}
+		if ($('#flash_sale').is(':disabled') && $('#flash_sale').val() == '0') {
+			$('#flash_sale').prop('disabled', false);
 		}
 	});
 
