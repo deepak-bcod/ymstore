@@ -102,19 +102,27 @@ if ($lang == 'french' && !empty($prod->lang_title)) {
         $legacy_align_justify = $is_centered_legacy ? 'center' : 'flex-start';
         $legacy_align_text = $is_centered_legacy ? 'center' : 'left';
         ?>
-        <?php if ($is_legacy_dd && $dd_ts > $legacy_now) : 
-            $diff = $dd_ts - $legacy_now;
-            $cd_str = ($diff >= 86400) ? (floor($diff / 86400) . ' days') : sprintf('%02d:%02d:%02d', floor($diff / 3600), floor(($diff % 3600) / 60), $diff % 60);
+        <?php 
+        $has_legacy_timer = ($is_legacy_dd && $dd_ts > $legacy_now);
+        $has_legacy_stock = ($is_legacy_fs && $legacy_stock !== null && $legacy_stock > 0);
         ?>
-            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: normal !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; justify-content: <?= $legacy_align_justify ?> !important; text-align: <?= $legacy_align_text ?> !important; gap: 4px !important; width: 100% !important;">
-                <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
-                <span>Ends in <span class="live-countdown" data-ends-at="<?= $dd_ts ?>"><?= $cd_str ?></span></span>
-            </div>
-        <?php endif; ?>
-        <?php if ($is_legacy_fs && $legacy_stock !== null && $legacy_stock > 0) : ?>
-            <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; justify-content: <?= $legacy_align_justify ?> !important; text-align: <?= $legacy_align_text ?> !important; gap: 4px !important; width: 100% !important;">
-                <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
-                <span>Only <?= $legacy_stock ?> left</span>
+        <?php if ($has_legacy_timer || $has_legacy_stock): ?>
+            <div class="promo-deal-info-container" style="display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: <?= $legacy_align_justify ?> !important; text-align: <?= $legacy_align_text ?> !important; gap: 8px !important; flex-wrap: nowrap !important; width: 100% !important; margin: 3px 0 5px 0 !important;">
+                <?php if ($has_legacy_timer) : 
+                    $diff = $dd_ts - $legacy_now;
+                    $cd_str = ($diff >= 86400) ? (floor($diff / 86400) . ' days') : sprintf('%02d:%02d:%02d', floor($diff / 3600), floor(($diff % 3600) / 60), $diff % 60);
+                ?>
+                    <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 0 !important; display: inline-flex !important; align-items: center !important; gap: 4px !important; width: auto !important; white-space: nowrap !important;">
+                        <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 12px !important;"></i>
+                        <span>Ends in <span class="live-countdown" data-ends-at="<?= $dd_ts ?>"><?= $cd_str ?></span></span>
+                    </div>
+                <?php endif; ?>
+                <?php if ($has_legacy_stock) : ?>
+                    <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 0 !important; display: inline-flex !important; align-items: center !important; gap: 4px !important; width: auto !important; white-space: nowrap !important;">
+                        <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
+                        <span>Only <?= $legacy_stock ?> left</span>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 

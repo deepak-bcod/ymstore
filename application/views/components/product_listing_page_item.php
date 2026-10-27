@@ -356,19 +356,26 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
         $item_align_text = $is_centered_listing ? 'center' : 'left';
         ?>
 
-        <!-- Countdown Timer: Only show if Daily Deal is active (or both Daily Deal & Flash Sale) -->
-        <?php if ($is_daily_deal && $timer_ends_at > $now && !$is_out_of_stock): ?>
-            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: normal !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; justify-content: <?= $item_align_justify ?> !important; text-align: <?= $item_align_text ?> !important; gap: 4px !important; width: 100% !important;">
-                <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
-                <span>Ends in <span class="live-countdown" data-ends-at="<?= $timer_ends_at ?>"><?= $initial_countdown_str ?></span></span>
-            </div>
-        <?php endif; ?>
+        <!-- Countdown Timer & Stock Indicator: Set in one line if both are active -->
+        <?php 
+        $has_deal_timer = ($is_daily_deal && $timer_ends_at > $now && !$is_out_of_stock);
+        $has_deal_stock = ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale || ($is_limited_stock && !$is_daily_deal)) && !$is_out_of_stock);
+        ?>
+        <?php if ($has_deal_timer || $has_deal_stock): ?>
+            <div class="promo-deal-info-container" style="display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: <?= $item_align_justify ?> !important; text-align: <?= $item_align_text ?> !important; gap: 8px !important; flex-wrap: nowrap !important; width: 100% !important; margin: 3px 0 5px 0 !important;">
+                <?php if ($has_deal_timer): ?>
+                    <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 0 !important; display: inline-flex !important; align-items: center !important; gap: 4px !important; width: auto !important; white-space: nowrap !important;">
+                        <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 12px !important;"></i>
+                        <span>Ends in <span class="live-countdown" data-ends-at="<?= $timer_ends_at ?>"><?= $initial_countdown_str ?></span></span>
+                    </div>
+                <?php endif; ?>
 
-        <!-- Stock Indicator: Only show if Flash Sale is active (or both Daily Deal & Flash Sale, or limited stock) -->
-        <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale || ($is_limited_stock && !$is_daily_deal)) && !$is_out_of_stock): ?>
-            <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; justify-content: <?= $item_align_justify ?> !important; text-align: <?= $item_align_text ?> !important; gap: 4px !important; width: 100% !important;">
-                <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
-                <span>Only <?= $remaining_stock ?> left</span>
+                <?php if ($has_deal_stock): ?>
+                    <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 0 !important; display: inline-flex !important; align-items: center !important; gap: 4px !important; width: auto !important; white-space: nowrap !important;">
+                        <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
+                        <span>Only <?= $remaining_stock ?> left</span>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
@@ -384,12 +391,29 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
                 <?php } ?>
             <?php else : ?>
                 <?php if ($type === 'TrendingListing' || $type === 'NewArrivalListing') : ?>
-                    <a href="<?= $product_url ?>" class="btn view-product-btn ym-view-details-btn" style="display: block !important; width: 100% !important; min-height: 40px !important; padding: 10px 15px !important; margin: 0 auto !important; background: #ffffff !important; border: 1px solid #777777 !important; border-radius: 4px !important; color: #555555 !important; font-size: 15px !important; font-weight: 500 !important; line-height: 20px !important; text-align: center !important; text-decoration: none !important; box-sizing: border-box !important; cursor: pointer !important; transition: all 0.2s ease-in-out !important;"><?= lang('view_details') ?></a>
+                    <a href="<?= $product_url ?>" class="btn view-product-btn ym-view-details-btn" style="display: block !important; width: 100% !important; min-height: 40px !important; padding: 10px 15px !important; margin: 0 auto !important; border-radius: 4px !important; font-size: 15px !important; font-weight: 500 !important; line-height: 20px !important; text-align: center !important; text-decoration: none !important; box-sizing: border-box !important; cursor: pointer !important; transition: all 0.2s ease-in-out !important;"><?= lang('view_details') ?></a>
                 <?php else : ?>
                     <a href="<?= $product_url ?>" class="btn btn-primary add2cart" style="background-color: #0d6efd !important; border-color: #0d6efd !important; color: #ffffff !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 4px !important; text-transform: capitalize !important; line-height: 1.35 !important; display: inline-block !important; width: fit-content !important; text-align: center !important; margin: 0 !important;"><?= lang('view_details') ?></a>
                 <?php endif; ?>
             <?php endif; ?>
         </div>
+
+        <style>
+        .view-product-btn.ym-view-details-btn {
+            background: #ffffff !important;
+            border: 1px solid #777777 !important;
+            color: #555555 !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+        .view-product-btn.ym-view-details-btn:hover,
+        .view-product-btn.ym-view-details-btn:focus,
+        .view-product-btn.ym-view-details-btn:active {
+            background: #0f5cd0 !important;
+            border-color: #0f5cd0 !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+        }
+        </style>
 
         <div id="addtocart-message-<?php echo $prod->id; ?>" class="addtocart-message addtocart-message-<?php echo $prod->id; ?>"></div>
 

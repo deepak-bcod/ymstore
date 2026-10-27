@@ -16,12 +16,44 @@ function QuickViewProdDetails(productslug, produrl) {
       initImageZoom();
       getvariantdata();
       sd();
+      tickModalCountdowns();
     },
   });
 }
 $(document).on("click", "#myModal .close", function () {
   $("#myModal").modal("hide");
 });
+
+function tickModalCountdowns() {
+  var now = Math.floor(Date.now() / 1000);
+  var els = document.querySelectorAll("#myModal .live-countdown[data-ends-at], .modal-body .live-countdown[data-ends-at]");
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    var endsAt = parseInt(el.getAttribute("data-ends-at"), 10);
+    if (!endsAt || isNaN(endsAt)) continue;
+    var diff = endsAt - now;
+    if (diff <= 0) {
+      var wrap = el.closest(".promo-countdown-wrapper");
+      if (wrap) wrap.style.display = "none";
+      continue;
+    }
+    if (diff >= 86400) {
+      var days = Math.floor(diff / 86400);
+      el.textContent = days + (days === 1 ? " day" : " days");
+    } else {
+      var h = Math.floor(diff / 3600);
+      var m = Math.floor((diff % 3600) / 60);
+      var s = diff % 60;
+      var pad = function (n) {
+        return (n < 10 ? "0" : "") + n;
+      };
+      el.textContent = pad(h) + ":" + pad(m) + ":" + pad(s);
+    }
+  }
+}
+if (typeof window._quickViewCountdownInterval === "undefined") {
+  window._quickViewCountdownInterval = setInterval(tickModalCountdowns, 1000);
+}
 
 function initImageZoom() {
   $(".product-main-image").zoom({
@@ -415,6 +447,16 @@ function _GetVariantProduct() {
               $("#conf_simple_price").val(simple_price);
 
               $("#conf_simple_qty").val(simple_qty);
+              var $stockLeft1 = $("#quickview-stock-left, #details-stock-left");
+              var isFs1 = $stockLeft1.data("is-flash-sale") == 1;
+              var isDd1 = $stockLeft1.data("is-daily-deal") == 1;
+              var vQty1 = parseInt(simple_qty, 10);
+              if (vQty1 > 0 && (isFs1 || (vQty1 <= 10 && !isDd1))) {
+                $("#quickview-stock-qty, #details-stock-qty").text(vQty1);
+                $stockLeft1.show().css("display", "flex");
+              } else {
+                $stockLeft1.hide();
+              }
 
               if (special_price > 0) {
                 if (display_original > 0 && display_original == 1) {
@@ -544,6 +586,7 @@ function _GetVariantProduct() {
               $("#add_to_cart").prop("disabled", true);
 
               $("#addtocart_error").html("Product is out of stock.");
+              $("#quickview-stock-left, #details-stock-left").hide();
 
               //swal('Error','Product is out of stock.','error');
 
@@ -553,6 +596,7 @@ function _GetVariantProduct() {
             $("#add_to_cart").prop("disabled", true);
 
             $("#addtocart_error").html(response.message);
+            $("#quickview-stock-left, #details-stock-left").hide();
 
             //swal('Error',response.message,'error');
 
@@ -655,6 +699,16 @@ function GetVariantProduct() {
               $("#conf_simple_price").val(simple_price);
 
               $("#conf_simple_qty").val(simple_qty);
+              var $stockLeft = $("#quickview-stock-left, #details-stock-left");
+              var isFs = $stockLeft.data("is-flash-sale") == 1;
+              var isDd = $stockLeft.data("is-daily-deal") == 1;
+              var vQty = parseInt(simple_qty, 10);
+              if (vQty > 0 && (isFs || (vQty <= 10 && !isDd))) {
+                $("#quickview-stock-qty, #details-stock-qty").text(vQty);
+                $stockLeft.show().css("display", "flex");
+              } else {
+                $stockLeft.hide();
+              }
 
               if (special_price > 0) {
                 if (display_original > 0 && display_original == 1) {
@@ -784,6 +838,7 @@ function GetVariantProduct() {
               $("#add_to_cart").prop("disabled", true);
 
               $("#addtocart_error").html("Product is out of stock.");
+              $("#quickview-stock-left, #details-stock-left").hide();
 
               //swal('Error','Product is out of stock.','error');
 
@@ -793,6 +848,7 @@ function GetVariantProduct() {
             $("#add_to_cart").prop("disabled", true);
 
             $("#addtocart_error").html(response.message);
+            $("#quickview-stock-left, #details-stock-left").hide();
 
             //swal('Error',response.message,'error');
 

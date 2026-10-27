@@ -343,8 +343,24 @@ class Subscription extends CI_Controller
 
         $data['order'] = $order;
 
+        // Resolve logo to base64 to avoid external network issues
+        $logo_data_uri = '';
+        $logo_candidates = [
+            rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
+            rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
+            dirname(FCPATH) . '/uploads/yellow-markets-logo.png'
+        ];
+        foreach ($logo_candidates as $lpath) {
+            if (file_exists($lpath) && filesize($lpath) > 0) {
+                $ext = pathinfo($lpath, PATHINFO_EXTENSION);
+                $logo_data_uri = 'data:image/' . ($ext ?: 'png') . ';base64,' . base64_encode(file_get_contents($lpath));
+                break;
+            }
+        }
+        $data['logo_src'] = !empty($logo_data_uri) ? $logo_data_uri : (defined('SITE_LOGO') ? SITE_LOGO : '');
+
         // Load Dompdf autoloader from root or merchant vendor
-        if (!class_exists('\\Dompdf\\Dompdf')) {
+        if (!class_exists('Dompdf\\Dompdf') && !class_exists('\\Dompdf\\Dompdf')) {
             $autoload_candidates = [
                 rtrim(FCPATH, '/\\') . '/../vendor/autoload.php',
                 APPPATH . '../../vendor/autoload.php',
@@ -354,44 +370,72 @@ class Subscription extends CI_Controller
             foreach ($autoload_candidates as $cand) {
                 if (file_exists($cand)) {
                     require_once $cand;
-                    if (class_exists('\\Dompdf\\Dompdf')) {
+                    if (class_exists('Dompdf\\Dompdf') || class_exists('\\Dompdf\\Dompdf')) {
                         break;
                     }
                 }
             }
         }
 
-        // Get HTML
-        $htmldata = $this->load->view('invoice/subscription_invoice', $data, true);
+        if (class_exists('Dompdf\\Dompdf') || class_exists('\\Dompdf\\Dompdf')) {
+            try {
+                // Get HTML
+                $htmldata = $this->load->view('invoice/subscription_invoice', $data, true);
 
-        if (class_exists('\\Dompdf\\Dompdf')) {
-            // Generate PDF using Dompdf directly
-            $options = new \Dompdf\Options();
-            $options->set('isRemoteEnabled', TRUE);
-            $dompdf = new \Dompdf\Dompdf($options);
-            $dompdf->loadHtml($htmldata);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-            $output = $dompdf->output();
+                // Generate PDF using Dompdf directly
+                $options = new \Dompdf\Options();
+                $options->set('isRemoteEnabled', TRUE);
+                $options->set('isHtml5ParserEnabled', TRUE);
+                $options->set('isFontSubsettingEnabled', TRUE);
+                $options->set('defaultFont', 'DejaVu Sans');
 
-            // Save copy to merchant uploads if folder exists or can be created
-            $save_dir = rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/';
-            if (is_dir($save_dir) || @mkdir($save_dir, 0777, true)) {
-                @file_put_contents($save_dir . 'subscription_invoice_' . $order['id'] . '.pdf', $output);
+                $dompdf = new \Dompdf\Dompdf($options);
+                $context = stream_context_create([
+                    'ssl' => [
+                        'verify_peer' => FALSE,
+                        'verify_peer_name' => FALSE,
+                        'allow_self_signed' => TRUE
+                    ]
+                ]);
+                $dompdf->setHttpContext($context);
+                $dompdf->loadHtml($htmldata);
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+                $output = $dompdf->output();
+
+                // Save copy to merchant uploads if folder exists or can be created
+                $save_dirs = [
+                    rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/',
+                    rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/'
+                ];
+                foreach ($save_dirs as $save_dir) {
+                    if (is_dir($save_dir) || @mkdir($save_dir, 0777, true)) {
+                        @file_put_contents($save_dir . 'subscription_invoice_' . $order['id'] . '.pdf', $output);
+                    }
+                }
+
+                // Set headers for download
+                $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
+                if (ob_get_length()) {
+                    ob_end_clean();
+                }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Content-Length: ' . strlen($output));
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+                echo $output;
+                exit;
+            } catch (\Throwable $e) {
+                log_message('error', "Admin Direct Dompdf generation error: " . $e->getMessage());
             }
-
-            // Set headers for download
-            $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
-            if (ob_get_length()) {
-                ob_end_clean();
-            }
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Content-Length: ' . strlen($output));
-            echo $output;
-            exit;
         }
 
-        show_error('Unable to generate invoice. PDF library is not available.');
+        // Fallback: Display print-friendly HTML view directly
+        $data['is_html_fallback'] = true;
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+        $this->load->view('invoice/subscription_invoice', $data);
     }
 }

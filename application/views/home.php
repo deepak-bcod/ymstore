@@ -410,18 +410,34 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
     text-align: left !important;
 }
 
+.home-products-section .pi-content-wrapper .promo-deal-info-container,
+.trending-products-section .pi-content-wrapper .promo-deal-info-container,
+.home-trending-slider .pi-content-wrapper .promo-deal-info-container {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    text-align: left !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+}
+
 .home-products-section .pi-content-wrapper .promo-countdown-wrapper,
 .home-products-section .pi-content-wrapper .promo-stock-wrapper,
 .trending-products-section .pi-content-wrapper .promo-countdown-wrapper,
 .trending-products-section .pi-content-wrapper .promo-stock-wrapper,
 .home-trending-slider .pi-content-wrapper .promo-countdown-wrapper,
 .home-trending-slider .pi-content-wrapper .promo-stock-wrapper {
-    display: flex !important;
+    display: inline-flex !important;
     justify-content: flex-start !important;
     align-items: center !important;
     text-align: left !important;
     margin-left: 0 !important;
-    width: 100% !important;
+    margin-right: 0 !important;
+    width: auto !important;
+    white-space: nowrap !important;
 }
 
 .home-products-section .pi-content-wrapper .promo-btn-container,

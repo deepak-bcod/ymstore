@@ -868,62 +868,133 @@ class Subscription_model extends CI_Model
      */
     public function generate_subscription_invoice_pdf($order_id)
     {
-        $order = $this->db->get_where('subscription_orders', ['id' => $order_id])->row_array();
-        if (!$order) {
-            log_message('error', "generate_subscription_invoice_pdf: Order not found for ID {$order_id}");
+        try {
+            $order = $this->db->get_where('subscription_orders', ['id' => $order_id])->row_array();
+            if (!$order) {
+                log_message('error', "generate_subscription_invoice_pdf: Order not found for ID {$order_id}");
+                return false;
+            }
+
+            $order['plan'] = $this->get_plan_by_id($order['plan_id']);
+            $order['publisher'] = $this->db->get_where('publisher', ['id' => $order['publisher_id']])->row_array();
+
+            $active_sub = $this->get_active_plan($order['publisher_id']);
+            if ($active_sub && !empty($active_sub['end_date'])) {
+                $order['expiry_date'] = date('d-M-Y', strtotime($active_sub['end_date']));
+            }
+
+            $data['order'] = $order;
+
+            // Load Dompdf autoloader from available locations
+            if (!class_exists('Dompdf\\Dompdf') && !class_exists('\\Dompdf\\Dompdf')) {
+                $autoload_candidates = [
+                    APPPATH . '../vendor/autoload.php',
+                    APPPATH . '../../vendor/autoload.php',
+                    rtrim(FCPATH, '/\\') . '/vendor/autoload.php',
+                    rtrim(FCPATH, '/\\') . '/../vendor/autoload.php',
+                    rtrim(FCPATH, '/\\') . '/../merchant/vendor/autoload.php'
+                ];
+                foreach ($autoload_candidates as $cand) {
+                    if (file_exists($cand)) {
+                        require_once $cand;
+                        if (class_exists('Dompdf\\Dompdf') || class_exists('\\Dompdf\\Dompdf')) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Resolve logo to base64 to avoid external network issues
+            $logo_data_uri = '';
+            $logo_candidates = [
+                rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
+                rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
+                dirname(FCPATH) . '/uploads/yellow-markets-logo.png'
+            ];
+            foreach ($logo_candidates as $lpath) {
+                if (file_exists($lpath) && filesize($lpath) > 0) {
+                    $ext = pathinfo($lpath, PATHINFO_EXTENSION);
+                    $logo_data_uri = 'data:image/' . ($ext ?: 'png') . ';base64,' . base64_encode(file_get_contents($lpath));
+                    break;
+                }
+            }
+            $data['logo_src'] = !empty($logo_data_uri) ? $logo_data_uri : (defined('SITE_LOGO') ? SITE_LOGO : '');
+
+            $CI = &get_instance();
+            $htmldata = $CI->load->view('invoice/subscription_invoice', $data, true);
+
+            if (!class_exists('Dompdf\\Dompdf') && !class_exists('\\Dompdf\\Dompdf')) {
+                log_message('error', "generate_subscription_invoice_pdf: Dompdf class not found for Order ID {$order_id}");
+                return false;
+            }
+
+            $options = new \Dompdf\Options();
+            $options->set('isRemoteEnabled', TRUE);
+            $options->set('isHtml5ParserEnabled', TRUE);
+            $options->set('isFontSubsettingEnabled', TRUE);
+            $options->set('defaultFont', 'DejaVu Sans');
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $context = stream_context_create([
+                'ssl' => [
+                    'verify_peer' => FALSE,
+                    'verify_peer_name' => FALSE,
+                    'allow_self_signed' => TRUE
+                ]
+            ]);
+            $dompdf->setHttpContext($context);
+            $dompdf->loadHtml($htmldata);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+            $pdf_output = $dompdf->output();
+
+            $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
+            $saved_file_path = null;
+
+            $dir_candidates = [
+                rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/',
+                rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/',
+                rtrim(FCPATH, '/\\') . '/../uploads/subscription_invoices/'
+            ];
+
+            foreach ($dir_candidates as $dir) {
+                if (!is_dir($dir)) {
+                    @mkdir($dir, 0777, true);
+                }
+                if (is_dir($dir)) {
+                    $target = $dir . $filename;
+                    if (@file_put_contents($target, $pdf_output) !== false) {
+                        if (!$saved_file_path) {
+                            $saved_file_path = $target;
+                        }
+                    }
+                }
+            }
+
+            if (!$saved_file_path || !file_exists($saved_file_path)) {
+                $fallback_dir = rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/';
+                @mkdir($fallback_dir, 0777, true);
+                $saved_file_path = $fallback_dir . $filename;
+                @file_put_contents($saved_file_path, $pdf_output);
+            }
+
+            $this->ensure_subscription_invoice_schema();
+            if ($this->db->field_exists('invoice_file', 'subscription_orders')) {
+                $this->db->where('id', $order['id'])->update('subscription_orders', [
+                    'invoice_file' => $filename
+                ]);
+            }
+
+            return [
+                'file_path'  => $saved_file_path,
+                'filename'   => $filename,
+                'pdf_output' => $pdf_output,
+                'order'      => $order
+            ];
+        } catch (\Throwable $e) {
+            log_message('error', "generate_subscription_invoice_pdf Exception for Order ID {$order_id}: " . $e->getMessage());
             return false;
         }
-
-        $order['plan'] = $this->get_plan_by_id($order['plan_id']);
-        $order['publisher'] = $this->db->get_where('publisher', ['id' => $order['publisher_id']])->row_array();
-
-        $active_sub = $this->get_active_plan($order['publisher_id']);
-        if ($active_sub && !empty($active_sub['end_date'])) {
-            $order['expiry_date'] = date('d-M-Y', strtotime($active_sub['end_date']));
-        }
-
-        $data['order'] = $order;
-
-        // Ensure Dompdf autoloader is loaded
-        if (!class_exists('\\Dompdf\\Dompdf')) {
-            $autoload_path = APPPATH . '../vendor/autoload.php';
-            if (file_exists($autoload_path)) {
-                require_once $autoload_path;
-            }
-        }
-
-        $CI = &get_instance();
-        $htmldata = $CI->load->view('invoice/subscription_invoice', $data, true);
-
-        $options = new \Dompdf\Options();
-        $options->set('isRemoteEnabled', TRUE);
-        $dompdf = new \Dompdf\Dompdf($options);
-        $dompdf->loadHtml($htmldata);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $pdf_output = $dompdf->output();
-
-        $dir = rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/';
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0777, true);
-        }
-
-        $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
-        $file_path = $dir . $filename;
-        file_put_contents($file_path, $pdf_output);
-
-        $this->ensure_subscription_invoice_schema();
-        if ($this->db->field_exists('invoice_file', 'subscription_orders')) {
-            $this->db->where('id', $order['id'])->update('subscription_orders', [
-                'invoice_file' => $filename
-            ]);
-        }
-
-        return [
-            'file_path' => $file_path,
-            'filename'  => $filename,
-            'order'     => $order
-        ];
     }
 
     /**
