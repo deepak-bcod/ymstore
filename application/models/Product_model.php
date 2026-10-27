@@ -33,18 +33,33 @@ class Product_model extends CI_Model {
             @$this->db->query("ALTER TABLE products ADD COLUMN default_special_price DECIMAL(12,2) NULL DEFAULT NULL AFTER special_price");
         }
 
-        // 1. Expire daily deals
-        $exp_dd = $this->db->select('id, special_price, default_special_price')
-            ->from('products')
-            ->where('daily_deals', 1)
-            ->where('daily_deal_ends_at >', 0)
-            ->where('daily_deal_ends_at <=', $current_time)
+        // 1. Expire daily deals (by time or out of stock)
+        $exp_dd = $this->db->select('p.id, p.special_price, p.default_special_price')
+            ->from('products p')
+            ->join('products_inventory inv', 'inv.product_id = p.id', 'left')
+            ->join("(
+                SELECT v.parent_id, 
+                       SUM(COALESCE(vi.available_qty, vi.qty, 0)) AS total_available_qty
+                FROM products v
+                JOIN products_inventory vi ON vi.product_id = v.id
+                WHERE v.parent_id > 0 AND v.status = 1 AND v.remove_flag = 0
+                GROUP BY v.parent_id
+            ) var_inv", 'var_inv.parent_id = p.id', 'left')
+            ->where('p.daily_deals', 1)
+            ->group_start()
+                ->group_start()
+                    ->where('p.daily_deal_ends_at >', 0)
+                    ->where('p.daily_deal_ends_at <=', $current_time)
+                ->group_end()
+                ->or_where("((p.product_type = 'configurable' AND COALESCE(var_inv.total_available_qty, 0) <= 0) OR (p.product_type != 'configurable' AND COALESCE(inv.available_qty, inv.qty, 0) <= 0))", null, false)
+            ->group_end()
             ->get()->result();
 
         foreach ($exp_dd as $p) {
             if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
                 $this->db->where('id', $p->id)->update('products', [
                     'daily_deals' => 0,
+                    'daily_deal_ends_at' => 0,
                     'special_price' => (float)$p->default_special_price
                 ]);
                 $this->db->where('product_id', $p->id)->update('products_special_prices', [
@@ -54,24 +69,40 @@ class Product_model extends CI_Model {
             } else {
                 $this->db->where('id', $p->id)->update('products', [
                     'daily_deals' => 0,
+                    'daily_deal_ends_at' => 0,
                     'special_price' => null
                 ]);
                 $this->db->where('product_id', $p->id)->delete('products_special_prices');
             }
         }
 
-        // 2. Expire flash sales
-        $exp_fs = $this->db->select('id, special_price, default_special_price')
-            ->from('products')
-            ->where('flash_sale', 1)
-            ->where('flash_sale_ends_at >', 0)
-            ->where('flash_sale_ends_at <=', $current_time)
+        // 2. Expire flash sales (by time or out of stock)
+        $exp_fs = $this->db->select('p.id, p.special_price, p.default_special_price')
+            ->from('products p')
+            ->join('products_inventory inv', 'inv.product_id = p.id', 'left')
+            ->join("(
+                SELECT v.parent_id, 
+                       SUM(COALESCE(vi.available_qty, vi.qty, 0)) AS total_available_qty
+                FROM products v
+                JOIN products_inventory vi ON vi.product_id = v.id
+                WHERE v.parent_id > 0 AND v.status = 1 AND v.remove_flag = 0
+                GROUP BY v.parent_id
+            ) var_inv", 'var_inv.parent_id = p.id', 'left')
+            ->where('p.flash_sale', 1)
+            ->group_start()
+                ->group_start()
+                    ->where('p.flash_sale_ends_at >', 0)
+                    ->where('p.flash_sale_ends_at <=', $current_time)
+                ->group_end()
+                ->or_where("((p.product_type = 'configurable' AND COALESCE(var_inv.total_available_qty, 0) <= 0) OR (p.product_type != 'configurable' AND COALESCE(inv.available_qty, inv.qty, 0) <= 0))", null, false)
+            ->group_end()
             ->get()->result();
 
         foreach ($exp_fs as $p) {
             if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
                 $this->db->where('id', $p->id)->update('products', [
                     'flash_sale' => 0,
+                    'flash_sale_ends_at' => 0,
                     'special_price' => (float)$p->default_special_price
                 ]);
                 $this->db->where('product_id', $p->id)->update('products_special_prices', [
@@ -81,6 +112,7 @@ class Product_model extends CI_Model {
             } else {
                 $this->db->where('id', $p->id)->update('products', [
                     'flash_sale' => 0,
+                    'flash_sale_ends_at' => 0,
                     'special_price' => null
                 ]);
                 $this->db->where('product_id', $p->id)->delete('products_special_prices');
@@ -88,7 +120,7 @@ class Product_model extends CI_Model {
         }
     }
 
-    // ✅ Get daily deals products
+    // ✅ Get daily deals products (strictly stock > 0)
     public function get_daily_deals($limit, $offset, $current_time, $category_id = null) {
         $this->auto_expire_deals($current_time);
 
@@ -96,7 +128,8 @@ class Product_model extends CI_Model {
             COALESCE(sp.special_price, var_sp.min_special_price) AS special_price, 
             sp.special_price_from, 
             sp.special_price_to,
-            COALESCE(NULLIF(p.webshop_price, 0), var_sp.min_webshop_price) AS webshop_price');
+            COALESCE(NULLIF(p.webshop_price, 0), var_sp.min_webshop_price) AS webshop_price,
+            COALESCE(var_inv.total_available_qty, inv.available_qty, inv.qty, 0) AS calculated_stock');
         $this->db->from('products p');
         $this->db->join('products_special_prices sp', "sp.product_id = p.id AND sp.special_price_from <= $current_time AND sp.special_price_to >= $current_time", 'left');
         $this->db->join("(
@@ -111,6 +144,15 @@ class Product_model extends CI_Model {
             WHERE v.parent_id > 0
             GROUP BY v.parent_id
         ) var_sp", 'var_sp.parent_id = p.id', 'left');
+        $this->db->join('products_inventory inv', 'inv.product_id = p.id', 'left');
+        $this->db->join("(
+            SELECT v.parent_id, 
+                   SUM(COALESCE(vi.available_qty, vi.qty, 0)) AS total_available_qty
+            FROM products v
+            JOIN products_inventory vi ON vi.product_id = v.id
+            WHERE v.parent_id > 0 AND v.status = 1 AND v.remove_flag = 0
+            GROUP BY v.parent_id
+        ) var_inv", 'var_inv.parent_id = p.id', 'left');
 
         if ($category_id) {
             $this->db->join('products_category pc', 'pc.product_id = p.id', 'inner');
@@ -127,6 +169,9 @@ class Product_model extends CI_Model {
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
         $this->db->where('p.remove_flag', 0);
+
+        // Stock check: Must be in stock (Stock > 0). If Stock = 0, remove product from daily deals section
+        $this->db->where("((p.product_type = 'configurable' AND COALESCE(var_inv.total_available_qty, 0) > 0) OR (p.product_type != 'configurable' AND COALESCE(inv.available_qty, inv.qty, 0) > 0))", null, false);
 
         $this->db->order_by('p.id', 'DESC');
         $this->db->limit($limit, $offset);
@@ -134,11 +179,20 @@ class Product_model extends CI_Model {
         return $this->db->get()->result();
     }
 
-    // ✅ Count daily deals products
+    // ✅ Count daily deals products (strictly stock > 0)
     public function count_daily_deals($current_time, $category_id = null) {
         $this->auto_expire_deals($current_time);
 
         $this->db->from('products p');
+        $this->db->join('products_inventory inv', 'inv.product_id = p.id', 'left');
+        $this->db->join("(
+            SELECT v.parent_id, 
+                   SUM(COALESCE(vi.available_qty, vi.qty, 0)) AS total_available_qty
+            FROM products v
+            JOIN products_inventory vi ON vi.product_id = v.id
+            WHERE v.parent_id > 0 AND v.status = 1 AND v.remove_flag = 0
+            GROUP BY v.parent_id
+        ) var_inv", 'var_inv.parent_id = p.id', 'left');
 
         if ($category_id) {
             $this->db->join('products_category pc', 'pc.product_id = p.id', 'inner');
@@ -156,10 +210,13 @@ class Product_model extends CI_Model {
         $this->db->where('p.approval_status', 1);
         $this->db->where('p.remove_flag', 0);
 
+        // Stock check: Must be in stock (Stock > 0). If Stock = 0, remove product from daily deals section
+        $this->db->where("((p.product_type = 'configurable' AND COALESCE(var_inv.total_available_qty, 0) > 0) OR (p.product_type != 'configurable' AND COALESCE(inv.available_qty, inv.qty, 0) > 0))", null, false);
+
         return $this->db->count_all_results();
     }
 
-    // ✅ Daily deal categories
+    // ✅ Daily deal categories (strictly categories with stock > 0)
     public function get_daily_deal_categories($current_time) {
         $this->auto_expire_deals($current_time);
 
@@ -168,6 +225,15 @@ class Product_model extends CI_Model {
         $this->db->from('category c');
         $this->db->join('products_category pc', 'pc.category_ids = c.id', 'inner');
         $this->db->join('products p', 'p.id = pc.product_id', 'inner');
+        $this->db->join('products_inventory inv', 'inv.product_id = p.id', 'left');
+        $this->db->join("(
+            SELECT v.parent_id, 
+                   SUM(COALESCE(vi.available_qty, vi.qty, 0)) AS total_available_qty
+            FROM products v
+            JOIN products_inventory vi ON vi.product_id = v.id
+            WHERE v.parent_id > 0 AND v.status = 1 AND v.remove_flag = 0
+            GROUP BY v.parent_id
+        ) var_inv", 'var_inv.parent_id = p.id', 'left');
 
         // Daily deal active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.daily_deals', 1);
@@ -180,6 +246,9 @@ class Product_model extends CI_Model {
         $this->db->where('p.approval_status', 1);
         $this->db->where('p.remove_flag', 0);
         $this->db->where('c.status', 1);
+
+        // Stock check: Must be in stock (Stock > 0). If Stock = 0, remove product from daily deals section
+        $this->db->where("((p.product_type = 'configurable' AND COALESCE(var_inv.total_available_qty, 0) > 0) OR (p.product_type != 'configurable' AND COALESCE(inv.available_qty, inv.qty, 0) > 0))", null, false);
 
         $this->db->order_by('c.cat_name', 'ASC');
 
@@ -190,7 +259,7 @@ class Product_model extends CI_Model {
        🚀 FLASH SALE FUNCTIONS
        ========================== */
 
-    // ✅ Get flash sale products
+    // ✅ Get flash sale products (strictly stock > 0)
     public function get_flash_sales($limit, $offset, $current_time, $category_id = null) {
         $this->auto_expire_deals($current_time);
 
@@ -198,7 +267,8 @@ class Product_model extends CI_Model {
             COALESCE(sp.special_price, var_sp.min_special_price) AS special_price, 
             sp.special_price_from, 
             sp.special_price_to,
-            COALESCE(NULLIF(p.webshop_price, 0), var_sp.min_webshop_price) AS webshop_price');
+            COALESCE(NULLIF(p.webshop_price, 0), var_sp.min_webshop_price) AS webshop_price,
+            COALESCE(var_inv.total_available_qty, inv.available_qty, inv.qty, 0) AS calculated_stock');
         $this->db->from('products p');
         $this->db->join('products_special_prices sp', "sp.product_id = p.id AND sp.special_price_from <= $current_time AND sp.special_price_to >= $current_time", 'left');
         $this->db->join("(
@@ -213,6 +283,15 @@ class Product_model extends CI_Model {
             WHERE v.parent_id > 0
             GROUP BY v.parent_id
         ) var_sp", 'var_sp.parent_id = p.id', 'left');
+        $this->db->join('products_inventory inv', 'inv.product_id = p.id', 'left');
+        $this->db->join("(
+            SELECT v.parent_id, 
+                   SUM(COALESCE(vi.available_qty, vi.qty, 0)) AS total_available_qty
+            FROM products v
+            JOIN products_inventory vi ON vi.product_id = v.id
+            WHERE v.parent_id > 0 AND v.status = 1 AND v.remove_flag = 0
+            GROUP BY v.parent_id
+        ) var_inv", 'var_inv.parent_id = p.id', 'left');
 
         if ($category_id) {
             $this->db->join('products_category pc', 'pc.product_id = p.id', 'inner');
@@ -229,6 +308,9 @@ class Product_model extends CI_Model {
         $this->db->where('p.status', 1);
         $this->db->where('p.approval_status', 1);
         $this->db->where('p.remove_flag', 0);
+
+        // Stock check: Must be in stock (Stock > 0). If Stock = 0, remove product from flash sales section
+        $this->db->where("((p.product_type = 'configurable' AND COALESCE(var_inv.total_available_qty, 0) > 0) OR (p.product_type != 'configurable' AND COALESCE(inv.available_qty, inv.qty, 0) > 0))", null, false);
 
         $this->db->order_by('p.id', 'DESC');
         $this->db->limit($limit, $offset);
@@ -236,11 +318,20 @@ class Product_model extends CI_Model {
         return $this->db->get()->result();
     }
 
-    // ✅ Count flash sale products (for pagination)
+    // ✅ Count flash sale products (strictly stock > 0)
     public function count_flash_sales($current_time, $category_id = null) {
         $this->auto_expire_deals($current_time);
 
         $this->db->from('products p');
+        $this->db->join('products_inventory inv', 'inv.product_id = p.id', 'left');
+        $this->db->join("(
+            SELECT v.parent_id, 
+                   SUM(COALESCE(vi.available_qty, vi.qty, 0)) AS total_available_qty
+            FROM products v
+            JOIN products_inventory vi ON vi.product_id = v.id
+            WHERE v.parent_id > 0 AND v.status = 1 AND v.remove_flag = 0
+            GROUP BY v.parent_id
+        ) var_inv", 'var_inv.parent_id = p.id', 'left');
 
         if ($category_id) {
             $this->db->join('products_category pc', 'pc.product_id = p.id', 'inner');
@@ -258,10 +349,13 @@ class Product_model extends CI_Model {
         $this->db->where('p.approval_status', 1);
         $this->db->where('p.remove_flag', 0);
 
+        // Stock check: Must be in stock (Stock > 0). If Stock = 0, remove product from flash sales section
+        $this->db->where("((p.product_type = 'configurable' AND COALESCE(var_inv.total_available_qty, 0) > 0) OR (p.product_type != 'configurable' AND COALESCE(inv.available_qty, inv.qty, 0) > 0))", null, false);
+
         return $this->db->count_all_results();
     }
 
-    // ✅ Flash sale categories
+    // ✅ Flash sale categories (strictly categories with stock > 0)
     public function get_flash_sale_categories($current_time) {
         $this->auto_expire_deals($current_time);
 
@@ -270,6 +364,15 @@ class Product_model extends CI_Model {
         $this->db->from('category c');
         $this->db->join('products_category pc', 'pc.category_ids = c.id', 'inner');
         $this->db->join('products p', 'p.id = pc.product_id', 'inner');
+        $this->db->join('products_inventory inv', 'inv.product_id = p.id', 'left');
+        $this->db->join("(
+            SELECT v.parent_id, 
+                   SUM(COALESCE(vi.available_qty, vi.qty, 0)) AS total_available_qty
+            FROM products v
+            JOIN products_inventory vi ON vi.product_id = v.id
+            WHERE v.parent_id > 0 AND v.status = 1 AND v.remove_flag = 0
+            GROUP BY v.parent_id
+        ) var_inv", 'var_inv.parent_id = p.id', 'left');
 
         // Flash sale active check - strictly active (starts_at <= current_time AND ends_at > current_time)
         $this->db->where('p.flash_sale', 1);
@@ -282,6 +385,9 @@ class Product_model extends CI_Model {
         $this->db->where('p.approval_status', 1);
         $this->db->where('p.remove_flag', 0);
         $this->db->where('c.status', 1);
+
+        // Stock check: Must be in stock (Stock > 0). If Stock = 0, remove product from flash sales section
+        $this->db->where("((p.product_type = 'configurable' AND COALESCE(var_inv.total_available_qty, 0) > 0) OR (p.product_type != 'configurable' AND COALESCE(inv.available_qty, inv.qty, 0) > 0))", null, false);
 
         $this->db->order_by('c.cat_name', 'ASC');
 

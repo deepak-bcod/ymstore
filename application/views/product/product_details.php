@@ -319,10 +319,35 @@ $lang = $this->session->userdata('site_lang');
                                         $product_stock_detail = (float)$ProductData->qty;
                                     } elseif (isset($ProductData->stock_qty) && is_numeric($ProductData->stock_qty)) {
                                         $product_stock_detail = (float)$ProductData->stock_qty;
+                                    } elseif (isset($ProductData->total_qty) && is_numeric($ProductData->total_qty)) {
+                                        $product_stock_detail = (float)$ProductData->total_qty;
                                     }
+
+                                    if ($product_stock_detail === null && !empty($ProductData->id)) {
+                                        $ci =& get_instance();
+                                        if (isset($ci->db)) {
+                                            $is_config = (isset($ProductData->product_type) && $ProductData->product_type === 'configurable');
+                                            if ($is_config) {
+                                                $child_inv = $ci->db->query("SELECT SUM(COALESCE(vi.available_qty, vi.qty, 0)) as total_stock FROM products v JOIN products_inventory vi ON vi.product_id = v.id WHERE v.parent_id = ?", [$ProductData->id])->row();
+                                                if ($child_inv && $child_inv->total_stock !== null) {
+                                                    $product_stock_detail = (float)$child_inv->total_stock;
+                                                }
+                                            } else {
+                                                $p_inv_row = $ci->db->select('available_qty, qty')->where('product_id', $ProductData->id)->get('products_inventory')->row();
+                                                if ($p_inv_row) {
+                                                    if ($p_inv_row->available_qty !== null && is_numeric($p_inv_row->available_qty)) {
+                                                        $product_stock_detail = (float)$p_inv_row->available_qty;
+                                                    } elseif ($p_inv_row->qty !== null && is_numeric($p_inv_row->qty)) {
+                                                        $product_stock_detail = (float)$p_inv_row->qty;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     if ($product_stock_detail !== null && $product_stock_detail <= 0) {
                                         $is_out_of_stock_detail = true;
-                                    } elseif (isset($ProductData->stock_status) && (strtolower(trim($ProductData->stock_status)) == 'out of stock' || strtolower(trim($ProductData->stock_status)) == 'outofstock')) {
+                                    } elseif (isset($ProductData->stock_status) && (strtolower(trim($ProductData->stock_status)) == 'out of stock' || strtolower(trim($ProductData->stock_status)) == 'outofstock' || strtolower(trim($ProductData->stock_status)) == 'notavailable')) {
                                         $is_out_of_stock_detail = true;
                                     }
 
@@ -330,19 +355,18 @@ $lang = $this->session->userdata('site_lang');
                                     if ($product_stock_detail !== null && $product_stock_detail > 0) {
                                         $remaining_stock = (int)$product_stock_detail;
                                     }
-                                    if ($remaining_stock === null && !empty($ProductData->id) && isset($ci->db)) {
-                                        $p_inv_row = $ci->db->select('available_qty, qty')->where('product_id', $ProductData->id)->get('products_inventory')->row();
-                                        if ($p_inv_row) {
-                                            if (isset($p_inv_row->available_qty) && is_numeric($p_inv_row->available_qty) && $p_inv_row->available_qty > 0) {
-                                                $remaining_stock = (int)$p_inv_row->available_qty;
-                                            } elseif (isset($p_inv_row->qty) && is_numeric($p_inv_row->qty) && $p_inv_row->qty > 0) {
-                                                $remaining_stock = (int)$p_inv_row->qty;
-                                            }
-                                        }
+
+                                    if ($is_out_of_stock_detail) {
+                                        $ends_at_detail = 0;
+                                        $dd_ends_at_detail = 0;
+                                        $fs_ends_at_detail = 0;
+                                        $is_flash_sale_detail = false;
+                                        $is_daily_deal_detail = false;
                                     }
                                     ?>
-                                    <?php if ($ends_at_detail > $now) : 
-                                        $diff_d = $ends_at_detail - $now;
+                                    <!-- Countdown Timer: Only show if Daily Deal is active (or both Daily Deal & Flash Sale) -->
+                                    <?php if ($is_daily_deal_detail && $dd_ends_at_detail > $now && !$is_out_of_stock_detail) : 
+                                        $diff_d = $dd_ends_at_detail - $now;
                                         if ($diff_d >= 86400) {
                                             $days_d = floor($diff_d / 86400);
                                             $countdown_str = $days_d . ($days_d == 1 ? ' day' : ' days');
@@ -352,7 +376,15 @@ $lang = $this->session->userdata('site_lang');
                                     ?>
                                         <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 13.5px !important; font-weight: normal !important; margin: 4px 0 8px 0 !important; display: flex !important; align-items: center !important; gap: 5px !important;">
                                             <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 14px !important;"></i>
-                                            <span>Ends in <span class="live-countdown" data-ends-at="<?= $ends_at_detail ?>"><?= $countdown_str ?></span></span>
+                                            <span>Ends in <span class="live-countdown" data-ends-at="<?= $dd_ends_at_detail ?>"><?= $countdown_str ?></span></span>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Stock Indicator: Only show if Flash Sale is active (or both Daily Deal & Flash Sale) -->
+                                    <?php if ($is_flash_sale_detail && $remaining_stock !== null && $remaining_stock > 0 && !$is_out_of_stock_detail) : ?>
+                                        <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 13px !important; font-weight: normal !important; margin: 2px 0 8px 0 !important; display: flex !important; align-items: center !important; gap: 5px !important;">
+                                            <i class="fa fa-fire" style="color: #e52525 !important; font-size: 13px !important;"></i>
+                                            <span>Only <?= $remaining_stock ?> left</span>
                                         </div>
                                     <?php endif; ?>
 
@@ -400,7 +432,7 @@ $lang = $this->session->userdata('site_lang');
                                 <?php } ?>
 
                                 <div class="subscribe-deli">
-                                    <?php if (isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (float)$ProductData->total_qty > 0) && (!isset($ProductData->qty) || (float)$ProductData->qty > 0) && (!isset($ProductData->stock_qty) || (float)$ProductData->stock_qty > 0)) { ?>
+                                    <?php if (!$is_out_of_stock_detail && isset($ProductData->stock_status) && ($ProductData->stock_status == 'Instock') && (!isset($ProductData->total_qty) || (float)$ProductData->total_qty > 0) && (!isset($ProductData->qty) || (float)$ProductData->qty > 0) && (!isset($ProductData->stock_qty) || (float)$ProductData->stock_qty > 0)) { ?>
                                         <?php if ($restricted_access == "yes" && $customer_id == 0) { ?>
                                             <button type="button" class="btn btn-primary subscr-now pull-left" <?php echo isset($ProductData->stock_status) &&
                                                                                                                     ($ProductData->stock_status == "Instock" && $ProductData->product_type == "simple")

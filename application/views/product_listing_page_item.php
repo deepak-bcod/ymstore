@@ -81,10 +81,27 @@ if ($lang == 'french' && !empty($prod->lang_title)) {
     ?>
 </div>
 
-        <?php if ($type === 'DailyDealsListing' && !empty($prod->daily_deal_ends_at)) : ?>
-            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #e52525; font-weight: normal; margin-bottom: 8px;"><?php echo $this->lang->line('deal_ends') ? $this->lang->line('deal_ends') : 'Deal ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->daily_deal_ends_at) ? (int)$prod->daily_deal_ends_at : strtotime($prod->daily_deal_ends_at)); ?></p>
-        <?php elseif ($type === 'FlashSaleListing' && !empty($prod->flash_sale_ends_at)) : ?>
-            <p class="deal-ends mb-2" style="font-size: 0.85em; color: #e52525; font-weight: normal; margin-bottom: 8px;"><?php echo $this->lang->line('sale_ends') ? $this->lang->line('sale_ends') : 'Sale ends:'; ?> <?php echo date("d M Y, H:i", is_numeric($prod->flash_sale_ends_at) ? (int)$prod->flash_sale_ends_at : strtotime($prod->flash_sale_ends_at)); ?></p>
+        <?php 
+        $legacy_now = time();
+        $is_legacy_dd = (!empty($prod->daily_deals) && $prod->daily_deals == 1) || ($type === 'DailyDealsListing' && !empty($prod->daily_deal_ends_at));
+        $is_legacy_fs = (!empty($prod->flash_sale) && $prod->flash_sale == 1) || ($type === 'FlashSaleListing' && !empty($prod->flash_sale_ends_at));
+        $dd_ts = !empty($prod->daily_deal_ends_at) ? (is_numeric($prod->daily_deal_ends_at) ? (int)$prod->daily_deal_ends_at : strtotime($prod->daily_deal_ends_at)) : 0;
+        $legacy_stock = isset($prod->qty) ? (int)$prod->qty : (isset($prod->stock_qty) ? (int)$prod->stock_qty : null);
+        ?>
+        <?php if ($is_legacy_dd && $dd_ts > $legacy_now) : 
+            $diff = $dd_ts - $legacy_now;
+            $cd_str = ($diff >= 86400) ? (floor($diff / 86400) . ' days') : sprintf('%02d:%02d:%02d', floor($diff / 3600), floor(($diff % 3600) / 60), $diff % 60);
+        ?>
+            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: normal !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important; width: 100% !important;">
+                <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
+                <span>Ends in <span class="live-countdown" data-ends-at="<?= $dd_ts ?>"><?= $cd_str ?></span></span>
+            </div>
+        <?php endif; ?>
+        <?php if ($is_legacy_fs && $legacy_stock !== null && $legacy_stock > 0) : ?>
+            <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important; width: 100% !important;">
+                <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
+                <span>Only <?= $legacy_stock ?> left</span>
+            </div>
         <?php endif; ?>
 
         <?php if ($type === 'PrelaunchListing') : ?>

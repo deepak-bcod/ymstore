@@ -312,9 +312,30 @@ class Subscription extends CI_Controller
 
     public function download_invoice($order_id)
     {
-        //$publisher_id = $this->session->userdata('LoginID');
         $order = $this->Subscription_model->get_order_by_id($order_id);
-        if (!$order) show_404();
+        if (!$order) {
+            show_404();
+        }
+
+        // Check if pre-generated PDF exists
+        $saved_pdf_paths = [
+            rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/subscription_invoice_' . $order['id'] . '.pdf',
+            rtrim(FCPATH, '/\\') . '/../uploads/subscription_invoices/subscription_invoice_' . $order['id'] . '.pdf',
+            rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/subscription_invoice_' . $order['id'] . '.pdf'
+        ];
+        foreach ($saved_pdf_paths as $saved_pdf) {
+            if (file_exists($saved_pdf) && filesize($saved_pdf) > 0) {
+                $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
+                if (ob_get_length()) {
+                    ob_end_clean();
+                }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Content-Length: ' . filesize($saved_pdf));
+                readfile($saved_pdf);
+                exit;
+            }
+        }
 
         // Get additional data
         $order['plan'] = $this->Subscription_model->get_plan_by_id($order['plan_id']);
@@ -322,26 +343,55 @@ class Subscription extends CI_Controller
 
         $data['order'] = $order;
 
-        // Load Dompdf autoload
-        require_once APPPATH . '../vendor/autoload.php';
+        // Load Dompdf autoloader from root or merchant vendor
+        if (!class_exists('\\Dompdf\\Dompdf')) {
+            $autoload_candidates = [
+                rtrim(FCPATH, '/\\') . '/../vendor/autoload.php',
+                APPPATH . '../../vendor/autoload.php',
+                rtrim(FCPATH, '/\\') . '/../merchant/vendor/autoload.php',
+                APPPATH . '../vendor/autoload.php'
+            ];
+            foreach ($autoload_candidates as $cand) {
+                if (file_exists($cand)) {
+                    require_once $cand;
+                    if (class_exists('\\Dompdf\\Dompdf')) {
+                        break;
+                    }
+                }
+            }
+        }
+
         // Get HTML
         $htmldata = $this->load->view('invoice/subscription_invoice', $data, true);
 
-        // Generate PDF using Dompdf directly
-        $options = new Options();
-        $options->set('isRemoteEnabled', TRUE);
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($htmldata);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $output = $dompdf->output();
+        if (class_exists('\\Dompdf\\Dompdf')) {
+            // Generate PDF using Dompdf directly
+            $options = new \Dompdf\Options();
+            $options->set('isRemoteEnabled', TRUE);
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($htmldata);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+            $output = $dompdf->output();
 
-        // Set headers for download
-        $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Content-Length: ' . strlen($output));
-        echo $output;
-        exit;
+            // Save copy to merchant uploads if folder exists or can be created
+            $save_dir = rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/';
+            if (is_dir($save_dir) || @mkdir($save_dir, 0777, true)) {
+                @file_put_contents($save_dir . 'subscription_invoice_' . $order['id'] . '.pdf', $output);
+            }
+
+            // Set headers for download
+            $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
+            if (ob_get_length()) {
+                ob_end_clean();
+            }
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Length: ' . strlen($output));
+            echo $output;
+            exit;
+        }
+
+        show_error('Unable to generate invoice. PDF library is not available.');
     }
 }

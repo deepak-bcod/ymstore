@@ -26,9 +26,34 @@ if (isset($prod->qty) && is_numeric($prod->qty)) {
     $product_stock = (float)$prod->quantity;
 }
 
+if ($product_stock === null) {
+    $prod_id_check = isset($prod->id) ? (int)$prod->id : (isset($prod->product_id) ? (int)$prod->product_id : 0);
+    if ($prod_id_check > 0) {
+        $ci =& get_instance();
+        if (isset($ci->db)) {
+            $is_config = (isset($prod->product_type) && $prod->product_type === 'configurable');
+            if ($is_config) {
+                $child_inv = $ci->db->query("SELECT SUM(COALESCE(vi.available_qty, vi.qty, 0)) as total_stock FROM products v JOIN products_inventory vi ON vi.product_id = v.id WHERE v.parent_id = ?", [$prod_id_check])->row();
+                if ($child_inv && $child_inv->total_stock !== null) {
+                    $product_stock = (float)$child_inv->total_stock;
+                }
+            } else {
+                $s_inv = $ci->db->select('available_qty, qty')->where('product_id', $prod_id_check)->get('products_inventory')->row();
+                if ($s_inv) {
+                    if ($s_inv->available_qty !== null && is_numeric($s_inv->available_qty)) {
+                        $product_stock = (float)$s_inv->available_qty;
+                    } elseif ($s_inv->qty !== null && is_numeric($s_inv->qty)) {
+                        $product_stock = (float)$s_inv->qty;
+                    }
+                }
+            }
+        }
+    }
+}
+
 if ($product_stock !== null && $product_stock <= 0) {
     $is_out_of_stock = true;
-} elseif (isset($prod->stock_status) && (strtolower(trim($prod->stock_status)) == 'out of stock' || strtolower(trim($prod->stock_status)) == 'outofstock')) {
+} elseif (isset($prod->stock_status) && (strtolower(trim($prod->stock_status)) == 'out of stock' || strtolower(trim($prod->stock_status)) == 'outofstock' || strtolower(trim($prod->stock_status)) == 'notavailable')) {
     $is_out_of_stock = true;
 }
 
@@ -140,6 +165,12 @@ if ($promo_db && !empty($promo_db->daily_deals)) {
     }
 }
 
+// If product is out of stock, it cannot have active daily deal or flash sale badges/timers
+if ($is_out_of_stock) {
+    $is_flash_sale = false;
+    $is_daily_deal = false;
+}
+
 // Stock extraction for Limited Stock detection
 $remaining_stock = null;
 if ($promo_db && isset($promo_db->inv_available_qty) && is_numeric($promo_db->inv_available_qty) && $promo_db->inv_available_qty > 0) {
@@ -172,16 +203,19 @@ if ($remaining_stock === null && $prod_id > 0 && isset($ci->db)) {
 // Limited stock condition (stock <= 10 when not in flash sale or daily deal)
 $is_limited_stock = (!$is_flash_sale && !$is_daily_deal && !$is_out_of_stock && $remaining_stock !== null && $remaining_stock > 0 && $remaining_stock <= 10);
 
-// End timestamp for countdown timer (earliest expiring active promotion)
-$ends_at_candidates = array_filter([$fs_ends_at, $dd_ends_at], function($ts) use ($now) { return $ts > $now; });
-$ends_at_timestamp = !empty($ends_at_candidates) ? min($ends_at_candidates) : 0;
-if ($ends_at_timestamp == 0 && $promo && !empty($promo->ends_at) && (int)$promo->ends_at > $now) {
-    $ends_at_timestamp = (int)$promo->ends_at;
+// End timestamp for countdown timer (only for daily deals per rule: daily deals show timer, flash sales show count left only)
+$timer_ends_at = 0;
+if ($is_daily_deal) {
+    if ($dd_ends_at > $now) {
+        $timer_ends_at = $dd_ends_at;
+    } elseif ($promo && !empty($promo->ends_at) && (int)$promo->ends_at > $now) {
+        $timer_ends_at = (int)$promo->ends_at;
+    }
 }
 
 $initial_countdown_str = '';
-if ($ends_at_timestamp > $now) {
-    $diff = $ends_at_timestamp - $now;
+if ($timer_ends_at > $now) {
+    $diff = $timer_ends_at - $now;
     if ($diff >= 86400) {
         $days = floor($diff / 86400);
         $initial_countdown_str = $days . ($days == 1 ? ' day' : ' days');
@@ -300,26 +334,26 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
             ?>
         </div>
 
-        <!-- Countdown Timer -->
-        <?php if ($ends_at_timestamp > $now): ?>
-            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: normal !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; gap: 4px !important;">
+        <!-- Countdown Timer: Only show if Daily Deal is active (or both Daily Deal & Flash Sale) -->
+        <?php if ($is_daily_deal && $timer_ends_at > $now && !$is_out_of_stock): ?>
+            <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 12px !important; font-weight: normal !important; margin: 3px 0 4px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important; width: 100% !important;">
                 <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
-                <span>Ends in <span class="live-countdown" data-ends-at="<?= $ends_at_timestamp ?>"><?= $initial_countdown_str ?></span></span>
+                <span>Ends in <span class="live-countdown" data-ends-at="<?= $timer_ends_at ?>"><?= $initial_countdown_str ?></span></span>
             </div>
         <?php endif; ?>
 
-        <!-- Stock Indicator under deal ends in time -->
-        <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale || $is_daily_deal || $remaining_stock <= 10) && !$is_out_of_stock): ?>
-            <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; gap: 4px !important;">
+        <!-- Stock Indicator: Only show if Flash Sale is active (or both Daily Deal & Flash Sale, or limited stock) -->
+        <?php if ($remaining_stock !== null && $remaining_stock > 0 && ($is_flash_sale || ($is_limited_stock && !$is_daily_deal)) && !$is_out_of_stock): ?>
+            <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 5px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important; width: 100% !important;">
                 <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
                 <span>Only <?= $remaining_stock ?> left</span>
             </div>
         <?php endif; ?>
 
         <!-- Action Button -->
-        <div style="margin-top: 4px;">
+        <div style="margin-top: 6px !important; text-align: center !important; width: 100% !important;">
             <?php if ($is_out_of_stock) : ?>
-                <a href="<?= $product_url ?>" class="btn btn-default add2cart" style="background-color: #6c757d; border-color: #6c757d; color: #ffffff; cursor: pointer;"><?= $this->lang->line('out_of_stock_btn') ? $this->lang->line('out_of_stock_btn') : ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'); ?></a>
+                <a href="<?= $product_url ?>" class="btn btn-default add2cart" style="background-color: #6c757d !important; border-color: #6c757d !important; color: #ffffff !important; cursor: pointer; display: block !important; width: 100% !important; text-align: center !important;"><?= $this->lang->line('out_of_stock_btn') ? $this->lang->line('out_of_stock_btn') : ($this->lang->line('out_of_stock_label') ? $this->lang->line('out_of_stock_label') : 'Out of Stock'); ?></a>
             <?php elseif ($type === 'PrelaunchListing') : ?>
                 <?php if ($prod->product_type === 'simple') { ?>
                     <a href="<?= $product_url ?>" data-prelaunch="yes" <?php echo $prod->product_type; ?> data-product-id="<?php echo $prod->id; ?>" data-qty="1" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
@@ -327,8 +361,8 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
                     <a href="javascript:;" onclick="gotoLocation('<?php echo BASE_URL . 'product-detail/' . $prod->url_key . '?type=prelaunch'; ?>');" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
                 <?php } ?>
             <?php else : ?>
-                <?php if ($type === 'NewArrivalListing') : ?>
-                    <a href="<?= $product_url ?>" class="btn view-product-btn newarrival-view-btn" style="display: block !important; width: 100% !important; min-height: 40px !important; padding: 10px 15px !important; margin: 0 !important; background: #ffffff !important; border: 1px solid #777777 !important; border-radius: 3px !important; color: #555555 !important; font-size: 15px !important; font-weight: 500 !important; line-height: 20px !important; text-align: center !important; text-decoration: none !important; box-sizing: border-box !important; cursor: pointer !important; transition: all 0.2s ease-in-out !important;"><?= lang('view_details') ?></a>
+                <?php if ($type === 'TrendingListing' || $type === 'NewArrivalListing') : ?>
+                    <a href="<?= $product_url ?>" class="btn view-product-btn ym-view-details-btn" style="display: block !important; width: 100% !important; min-height: 40px !important; padding: 10px 15px !important; margin: 0 auto !important; background: #ffffff !important; border: 1px solid #777777 !important; border-radius: 4px !important; color: #555555 !important; font-size: 15px !important; font-weight: 500 !important; line-height: 20px !important; text-align: center !important; text-decoration: none !important; box-sizing: border-box !important; cursor: pointer !important; transition: all 0.2s ease-in-out !important;"><?= lang('view_details') ?></a>
                 <?php else : ?>
                     <a href="<?= $product_url ?>" class="btn btn-primary add2cart" style="background-color: #0d6efd !important; border-color: #0d6efd !important; color: #ffffff !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 4px !important; text-transform: capitalize !important; line-height: 1.35 !important; display: inline-block !important; width: fit-content !important;"><?= lang('view_details') ?></a>
                 <?php endif; ?>

@@ -23,9 +23,31 @@
         $product_stock = (float)$ProductData->quantity;
     }
 
+    if ($product_stock === null && !empty($ProductData->id)) {
+        $ci =& get_instance();
+        if (isset($ci->db)) {
+            $is_config = (isset($ProductData->product_type) && $ProductData->product_type === 'configurable');
+            if ($is_config) {
+                $child_inv = $ci->db->query("SELECT SUM(COALESCE(vi.available_qty, vi.qty, 0)) as total_stock FROM products v JOIN products_inventory vi ON vi.product_id = v.id WHERE v.parent_id = ?", [$ProductData->id])->row();
+                if ($child_inv && $child_inv->total_stock !== null) {
+                    $product_stock = (float)$child_inv->total_stock;
+                }
+            } else {
+                $s_inv = $ci->db->select('available_qty, qty')->where('product_id', $ProductData->id)->get('products_inventory')->row();
+                if ($s_inv) {
+                    if ($s_inv->available_qty !== null && is_numeric($s_inv->available_qty)) {
+                        $product_stock = (float)$s_inv->available_qty;
+                    } elseif ($s_inv->qty !== null && is_numeric($s_inv->qty)) {
+                        $product_stock = (float)$s_inv->qty;
+                    }
+                }
+            }
+        }
+    }
+
     if ($product_stock !== null && $product_stock <= 0) {
         $is_out_of_stock = true;
-    } elseif (isset($ProductData->stock_status) && (strtolower(trim($ProductData->stock_status)) == 'out of stock' || strtolower(trim($ProductData->stock_status)) == 'outofstock')) {
+    } elseif (isset($ProductData->stock_status) && (strtolower(trim($ProductData->stock_status)) == 'out of stock' || strtolower(trim($ProductData->stock_status)) == 'outofstock' || strtolower(trim($ProductData->stock_status)) == 'notavailable')) {
         $is_out_of_stock = true;
     }
 
@@ -68,6 +90,11 @@
         } elseif (!empty($ProductData->offer_type) && $ProductData->offer_type === 'daily_deal' && (empty($ProductData->daily_deal_starts_at) || (int)$ProductData->daily_deal_starts_at <= $now) && (empty($ProductData->daily_deal_ends_at) || (int)$ProductData->daily_deal_ends_at > $now)) {
             $is_daily_deal = true;
         }
+    }
+
+    if ($is_out_of_stock) {
+        $is_flash_sale = false;
+        $is_daily_deal = false;
     }
 
     $regular_price = !empty($ProductData->webshop_price) ? (float)$ProductData->webshop_price : 0;

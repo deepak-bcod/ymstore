@@ -380,6 +380,19 @@ function buildCategoryTree($categories, $parent_id = 0)
                                 if (!empty($p->daily_deal_ends_at) && (int)$p->daily_deal_ends_at <= time()) {
                                     continue; // Expired, remove from Daily Deals section
                                 }
+                                $p_stock = null;
+                                if (isset($p->calculated_stock) && is_numeric($p->calculated_stock)) {
+                                    $p_stock = (float)$p->calculated_stock;
+                                } elseif (isset($p->available_qty) && is_numeric($p->available_qty)) {
+                                    $p_stock = (float)$p->available_qty;
+                                } elseif (isset($p->qty) && is_numeric($p->qty)) {
+                                    $p_stock = (float)$p->qty;
+                                } elseif (isset($p->stock_qty) && is_numeric($p->stock_qty)) {
+                                    $p_stock = (float)$p->stock_qty;
+                                }
+                                if ($p_stock !== null && $p_stock <= 0) {
+                                    continue; // Out of stock, remove from Daily Deals section
+                                }
                             ?>
 
 
@@ -591,24 +604,39 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             </div>
 
 
-                                            <!-- DEAL ENDS -->
+                                            <!-- DEAL ENDS TIMER: If daily deal, show timer. If <=24hrs shows countdown HH:MM:SS, if >24hrs shows Ends in X days -->
+                                            <?php
+                                            $now = time();
+                                            $dd_ends_at = !empty($p->daily_deal_ends_at) ? (int)$p->daily_deal_ends_at : 0;
+                                            $initial_countdown_str = '';
+                                            if ($dd_ends_at > $now) {
+                                                $diff = $dd_ends_at - $now;
+                                                if ($diff >= 86400) {
+                                                    $days = floor($diff / 86400);
+                                                    $initial_countdown_str = $days . ($days == 1 ? ' day' : ' days');
+                                                } else {
+                                                    $hours = floor($diff / 3600);
+                                                    $mins = floor(($diff % 3600) / 60);
+                                                    $secs = $diff % 60;
+                                                    $initial_countdown_str = sprintf('%02d:%02d:%02d', $hours, $mins, $secs);
+                                                }
+                                            }
+                                            $remaining_stock = ($product_stock !== null && $product_stock > 0) ? (int)$product_stock : null;
+                                            ?>
+                                            <?php if ($is_deal_active && $dd_ends_at > $now && !$is_out_of_stock): ?>
+                                                <div class="promo-countdown-wrapper" style="color: #e52525 !important; font-size: 13px !important; font-weight: normal !important; margin: 4px 0 6px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important;">
+                                                    <i class="fa fa-clock-o" style="color: #e52525 !important; font-size: 13px !important;"></i>
+                                                    <span>Ends in <span class="live-countdown" data-ends-at="<?= $dd_ends_at ?>"><?= $initial_countdown_str ?></span></span>
+                                                </div>
+                                            <?php endif; ?>
 
-                                            <p class="deal-ends mb-2">
-
-                                                <?php
-                                                echo $this->lang->line(
-                                                    'deal_ends'
-                                                );
-                                                ?>
-
-                                                <?php
-                                                echo date(
-                                                    "d M Y, H:i",
-                                                    $p->daily_deal_ends_at
-                                                );
-                                                ?>
-
-                                            </p>
+                                            <!-- STOCK INDICATOR: If also Flash Sale, show product count left -->
+                                            <?php if ($is_flash_active && $remaining_stock !== null && $remaining_stock > 0 && !$is_out_of_stock): ?>
+                                                <div class="promo-stock-wrapper" style="color: #e52525 !important; font-size: 11.5px !important; font-weight: normal !important; margin: 2px 0 6px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; gap: 4px !important;">
+                                                    <i class="fa fa-fire" style="color: #e52525 !important; font-size: 11px !important;"></i>
+                                                    <span>Only <?= $remaining_stock ?> left</span>
+                                                </div>
+                                            <?php endif; ?>
 
 
                                           
@@ -784,5 +812,43 @@ function buildCategoryTree($categories, $parent_id = 0)
 
 </script>
 
+<script>
+if (typeof window.hasLiveCountdownInit === 'undefined') {
+    window.hasLiveCountdownInit = true;
+    (function() {
+        function tickCountdowns() {
+            var now = Math.floor(Date.now() / 1000);
+            var els = document.querySelectorAll('.live-countdown[data-ends-at]');
+            for (var i = 0; i < els.length; i++) {
+                var el = els[i];
+                var endsAt = parseInt(el.getAttribute('data-ends-at'), 10);
+                if (!endsAt || isNaN(endsAt)) continue;
+                var diff = endsAt - now;
+                if (diff <= 0) {
+                    var wrap = el.closest('.promo-countdown-wrapper');
+                    if (wrap) wrap.style.display = 'none';
+                    continue;
+                }
+                if (diff >= 86400) {
+                    var days = Math.floor(diff / 86400);
+                    el.textContent = days + (days === 1 ? ' day' : ' days');
+                } else {
+                    var h = Math.floor(diff / 3600);
+                    var m = Math.floor((diff % 3600) / 60);
+                    var s = diff % 60;
+                    var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+                    el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+                }
+            }
+        }
+        setInterval(tickCountdowns, 1000);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', tickCountdowns);
+        } else {
+            tickCountdowns();
+        }
+    })();
+}
+</script>
 
 <?php $this->load->view('common/footer'); ?>
