@@ -128,29 +128,159 @@ class Subscription extends CI_Controller
     {
         $publisher_id = $this->session->userdata('LoginID');
         $order = $this->Subscription_model->get_order_by_id($order_id, $publisher_id);
-        if (!$order) show_404();
-
-        $saved_pdf = rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/subscription_invoice_' . $order['id'] . '.pdf';
-        if (file_exists($saved_pdf) && filesize($saved_pdf) > 0) {
-            $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-            header('Content-Length: ' . filesize($saved_pdf));
-            readfile($saved_pdf);
-            exit;
+        if (!$order) {
+            show_404();
         }
 
-        // If not cached on disk yet, generate and stream
+        $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
+
+        // 1. Check if pre-generated PDF already exists on disk
+        $saved_pdf_paths = [
+            rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/' . $filename,
+            rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/' . $filename,
+            rtrim(FCPATH, '/\\') . '/../uploads/subscription_invoices/' . $filename,
+            FCPATH . 'uploads/subscription_invoices/' . $filename
+        ];
+
+        foreach ($saved_pdf_paths as $saved_pdf) {
+            if (file_exists($saved_pdf) && filesize($saved_pdf) > 0) {
+                if (ob_get_length()) {
+                    ob_end_clean();
+                }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Content-Length: ' . filesize($saved_pdf));
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+                readfile($saved_pdf);
+                exit;
+            }
+        }
+
+        // 2. Generate PDF via model helper
         $pdf_res = $this->Subscription_model->generate_subscription_invoice_pdf($order['id']);
-        if ($pdf_res && file_exists($pdf_res['file_path'])) {
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $pdf_res['filename'] . '"');
-            header('Content-Length: ' . filesize($pdf_res['file_path']));
-            readfile($pdf_res['file_path']);
-            exit;
+        if ($pdf_res) {
+            if (!empty($pdf_res['file_path']) && file_exists($pdf_res['file_path']) && filesize($pdf_res['file_path']) > 0) {
+                if (ob_get_length()) {
+                    ob_end_clean();
+                }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Content-Length: ' . filesize($pdf_res['file_path']));
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+                readfile($pdf_res['file_path']);
+                exit;
+            } elseif (!empty($pdf_res['pdf_output'])) {
+                if (ob_get_length()) {
+                    ob_end_clean();
+                }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Content-Length: ' . strlen($pdf_res['pdf_output']));
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+                echo $pdf_res['pdf_output'];
+                exit;
+            }
         }
 
-        show_error('Unable to generate invoice.');
+        // 3. Fallback: Direct generation in controller
+        if (!class_exists('Dompdf\\Dompdf') && !class_exists('\\Dompdf\\Dompdf')) {
+            $autoload_candidates = [
+                rtrim(FCPATH, '/\\') . '/vendor/autoload.php',
+                APPPATH . '../vendor/autoload.php',
+                rtrim(FCPATH, '/\\') . '/../vendor/autoload.php',
+                APPPATH . '../../vendor/autoload.php',
+                rtrim(FCPATH, '/\\') . '/../merchant/vendor/autoload.php'
+            ];
+            foreach ($autoload_candidates as $cand) {
+                if (file_exists($cand)) {
+                    require_once $cand;
+                    if (class_exists('Dompdf\\Dompdf') || class_exists('\\Dompdf\\Dompdf')) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        $order['plan'] = $this->Subscription_model->get_plan_by_id($order['plan_id']);
+        $order['publisher'] = $this->db->get_where('publisher', ['id' => $order['publisher_id']])->row_array();
+        $active_sub = $this->Subscription_model->get_active_plan($order['publisher_id']);
+        if ($active_sub && !empty($active_sub['end_date'])) {
+            $order['expiry_date'] = date('d-M-Y', strtotime($active_sub['end_date']));
+        }
+        $data['order'] = $order;
+
+        $logo_data_uri = '';
+        $logo_candidates = [
+            rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
+            rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
+            dirname(FCPATH) . '/uploads/yellow-markets-logo.png'
+        ];
+        foreach ($logo_candidates as $lpath) {
+            if (file_exists($lpath) && filesize($lpath) > 0) {
+                $ext = pathinfo($lpath, PATHINFO_EXTENSION);
+                $logo_data_uri = 'data:image/' . ($ext ?: 'png') . ';base64,' . base64_encode(file_get_contents($lpath));
+                break;
+            }
+        }
+        $data['logo_src'] = !empty($logo_data_uri) ? $logo_data_uri : (defined('SITE_LOGO') ? SITE_LOGO : '');
+
+        if (class_exists('Dompdf\\Dompdf') || class_exists('\\Dompdf\\Dompdf')) {
+            try {
+                $htmldata = $this->load->view('invoice/subscription_invoice', $data, true);
+                $options = new \Dompdf\Options();
+                $options->set('isRemoteEnabled', TRUE);
+                $options->set('isHtml5ParserEnabled', TRUE);
+                $options->set('isFontSubsettingEnabled', TRUE);
+                $options->set('defaultFont', 'DejaVu Sans');
+
+                $dompdf = new \Dompdf\Dompdf($options);
+                $context = stream_context_create([
+                    'ssl' => [
+                        'verify_peer' => FALSE,
+                        'verify_peer_name' => FALSE,
+                        'allow_self_signed' => TRUE
+                    ]
+                ]);
+                $dompdf->setHttpContext($context);
+                $dompdf->loadHtml($htmldata);
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+                $output = $dompdf->output();
+
+                $save_dirs = [
+                    rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/',
+                    rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/'
+                ];
+                foreach ($save_dirs as $sdir) {
+                    if (is_dir($sdir) || @mkdir($sdir, 0777, true)) {
+                        @file_put_contents($sdir . $filename, $output);
+                    }
+                }
+
+                if (ob_get_length()) {
+                    ob_end_clean();
+                }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Content-Length: ' . strlen($output));
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+                echo $output;
+                exit;
+            } catch (\Throwable $e) {
+                log_message('error', "Direct Dompdf generation error for Order ID {$order['id']}: " . $e->getMessage());
+            }
+        }
+
+        // 4. Fallback: Display print-friendly HTML view directly so user is never blocked
+        $data['is_html_fallback'] = true;
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+        $this->load->view('invoice/subscription_invoice', $data);
     }
 
     /**

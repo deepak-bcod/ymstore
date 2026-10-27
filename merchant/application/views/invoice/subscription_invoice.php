@@ -15,19 +15,26 @@
 
 	<title>Subscription Invoice - <?php echo $order['id'] ?></title>
 
-	<!-- Bootstrap core CSS -->
-	<link rel="stylesheet" type="text/css" href="https://mu.yellowmarkets.com/public/css/bootstrap.min.css"
-		media="all">
-	<script src="https://code.jquery.com/jquery-2.2.0.min.js" type="text/javascript"></script>
-	<script src="https://mu.yellowmarkets.com/public/js/bootstrap.min.js"></script>
-	<link rel="preconnect" href="https://fonts.gstatic.com">
-	<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;300;400;500;600;700;800&display=swap"
-		rel="stylesheet">
-	<link rel="stylesheet" type="text/css" href="https://mu.yellowmarkets.com/public/css/all.css"
-		media="all">
+<?php
+$logo_image_src = !empty($logo_src) ? $logo_src : (defined('SITE_LOGO') ? SITE_LOGO : '');
+if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
+	$candidate_logos = [
+		rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
+		rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
+		dirname(FCPATH) . '/uploads/yellow-markets-logo.png'
+	];
+	foreach ($candidate_logos as $c_logo) {
+		if (file_exists($c_logo) && filesize($c_logo) > 0) {
+			$ext = pathinfo($c_logo, PATHINFO_EXTENSION);
+			$logo_image_src = 'data:image/' . ($ext ?: 'png') . ';base64,' . base64_encode(file_get_contents($c_logo));
+			break;
+		}
+	}
+}
+?>
 	<style>
 		@media print {
-			#noprint {
+			#noprint, .no-print {
 				display: none !important;
 			}
 		}
@@ -116,7 +123,14 @@
 </head>
 
 <body
-	style="margin:0; padding:0;vertical-align:top; font-family: 'Montserrat', sans-serif; font-size: 14px; background:#fff; font-weight:400;color:#444444;">
+	style="margin:0; padding:0;vertical-align:top; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Montserrat', sans-serif; font-size: 14px; background:#fff; font-weight:400;color:#444444;">
+
+<?php if (!empty($is_html_fallback)): ?>
+	<div id="noprint" style="background:#202938;color:#ffffff;padding:12px 20px;text-align:center;font-family:Arial,sans-serif;font-size:14px;margin-bottom:15px;">
+		<strong>Invoice #<?php echo $order['id']; ?></strong> &nbsp;|&nbsp; 
+		<button onclick="window.print();" style="background:#cb1f53;color:#ffffff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-weight:bold;margin-left:10px;">Print / Save as PDF</button>
+	</div>
+<?php endif; ?>
 
 	<table cellpadding="0" cellspacing="0"
 		style="font-family:'Montserrat', sans-serif;font-size: 14px;margin:0 auto;text-align:left;padding: 0px;background-color:#f5f5f5;"
@@ -149,7 +163,7 @@
 												<td style="padding:0;vertical-align: middle; text-align: left;"
 													width="50%">
 													<div class="logo-print">
-														<img src="<?php echo SITE_LOGO; ?>" width="120" style="max-width: 100%;">
+														<img src="<?php echo $logo_image_src; ?>" width="120" style="max-width: 100%; height: auto;">
 													</div>
 												</td>
 
