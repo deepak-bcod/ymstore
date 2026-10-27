@@ -317,35 +317,21 @@ class Subscription extends CI_Controller
             show_404();
         }
 
-        // Check if pre-generated PDF exists
-        $saved_pdf_paths = [
-            rtrim(FCPATH, '/\\') . '/../merchant/uploads/subscription_invoices/subscription_invoice_' . $order['id'] . '.pdf',
-            rtrim(FCPATH, '/\\') . '/../uploads/subscription_invoices/subscription_invoice_' . $order['id'] . '.pdf',
-            rtrim(FCPATH, '/\\') . '/uploads/subscription_invoices/subscription_invoice_' . $order['id'] . '.pdf'
-        ];
-        foreach ($saved_pdf_paths as $saved_pdf) {
-            if (file_exists($saved_pdf) && filesize($saved_pdf) > 0) {
-                $filename = 'subscription_invoice_' . $order['id'] . '.pdf';
-                if (ob_get_length()) {
-                    ob_end_clean();
-                }
-                header('Content-Type: application/pdf');
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                header('Content-Length: ' . filesize($saved_pdf));
-                readfile($saved_pdf);
-                exit;
-            }
-        }
-
         // Get additional data
         $order['plan'] = $this->Subscription_model->get_plan_by_id($order['plan_id']);
         $order['publisher'] = $this->db->get_where('publisher', ['id' => $order['publisher_id']])->row_array();
+        $active_sub = $this->Subscription_model->get_active_subscription($order['publisher_id']);
+        if ($active_sub && !empty($active_sub['end_date'])) {
+            $order['expiry_date'] = date('d-M-Y', strtotime($active_sub['end_date']));
+        }
 
         $data['order'] = $order;
 
         // Resolve logo to base64 to avoid external network issues
         $logo_data_uri = '';
         $logo_candidates = [
+            rtrim(FCPATH, '/\\') . '/../merchant/public/images/yellow-markets-logo-yellow-white.png',
+            rtrim(FCPATH, '/\\') . '/public/images/yellow-markets-logo-yellow-white.png',
             rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
             rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
             dirname(FCPATH) . '/uploads/yellow-markets-logo.png'

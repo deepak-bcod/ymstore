@@ -16,20 +16,25 @@
 	<title>Subscription Invoice - <?php echo $order['id'] ?></title>
 
 <?php
-$logo_image_src = !empty($logo_src) ? $logo_src : (defined('SITE_LOGO') ? SITE_LOGO : '');
-if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
-	$candidate_logos = [
-		rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
-		rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
-		dirname(FCPATH) . '/uploads/yellow-markets-logo.png'
-	];
-	foreach ($candidate_logos as $c_logo) {
-		if (file_exists($c_logo) && filesize($c_logo) > 0) {
-			$ext = pathinfo($c_logo, PATHINFO_EXTENSION);
-			$logo_image_src = 'data:image/' . ($ext ?: 'png') . ';base64,' . base64_encode(file_get_contents($c_logo));
-			break;
-		}
+$logo_image_src = '';
+$candidate_logos = [
+	rtrim(FCPATH, '/\\') . '/../merchant/public/images/yellow-markets-logo-yellow-white.png',
+	rtrim(FCPATH, '/\\') . '/public/images/yellow-markets-logo-yellow-white.png',
+	rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
+	rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
+	dirname(FCPATH) . '/uploads/yellow-markets-logo.png',
+	'c:/xampp/htdocs/ymstore/merchant/public/images/yellow-markets-logo-yellow-white.png',
+	'c:/xampp/htdocs/ymstore/uploads/yellow-markets-logo.png'
+];
+foreach ($candidate_logos as $c_logo) {
+	if (file_exists($c_logo) && filesize($c_logo) > 0) {
+		$ext = pathinfo($c_logo, PATHINFO_EXTENSION);
+		$logo_image_src = 'data:image/' . ($ext ?: 'png') . ';base64,' . base64_encode(file_get_contents($c_logo));
+		break;
 	}
+}
+if (empty($logo_image_src) && !empty($logo_src) && strpos($logo_src, 'data:image') === 0) {
+	$logo_image_src = $logo_src;
 }
 ?>
 	<style>
@@ -61,8 +66,8 @@ if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
 
 		table.table-style {
 			font-family: 'Montserrat', sans-serif;
-			font-size: 12px;
-			margin: 10px 0 0 0;
+			font-size: 13px;
+			margin: 10px 0 30px 0;
 			text-align: left;
 			padding: 0;
 			border: 1px solid #dee2e6;
@@ -71,31 +76,33 @@ if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
 		}
 
 		table.table-style th {
+			background-color: #ffd200 !important;
+			color: #000000 !important;
 			border: 1px solid #dee2e6;
-			padding: 8px 5px;
+			padding: 10px 12px;
 			vertical-align: middle;
-			font-weight: 600;
+			font-weight: 700;
 			text-transform: uppercase;
-			border-bottom: 2px solid #dee2e6;
-			font-size: 11px;
-			color: #ffffff;
+			font-size: 11.5px;
+			letter-spacing: 0.5px;
 			text-align: center;
 			word-wrap: break-word;
 			white-space: normal;
 		}
 
 		table.table-style thead {
-			background: linear-gradient(90deg, rgb(203, 31, 83) 0%, rgb(115, 16, 91) 84.41%);
-			color: rgb(255, 255, 255);
+			background-color: #ffd200 !important;
+			color: #000000 !important;
 		}
 
 		table.table-style td {
+			background-color: #ffffff !important;
 			border: 1px solid #dee2e6;
-			padding: 8px 5px;
+			padding: 12px 12px;
 			vertical-align: middle;
 			font-weight: 500;
 			color: #212529;
-			font-size: 11px;
+			font-size: 12.5px;
 			text-align: center;
 			word-wrap: break-word;
 			white-space: normal;
@@ -162,15 +169,19 @@ if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
 
 												<td style="padding:0;vertical-align: middle; text-align: left;"
 													width="50%">
-													<div class="logo-print">
-														<img src="<?php echo $logo_image_src; ?>" width="120" style="max-width: 100%; height: auto;">
-													</div>
+													<table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 0; background-color: #23282d; border-radius: 4px;">
+														<tr>
+															<td style="background-color: #23282d; padding: 10px 16px; border-radius: 4px; border: none; text-align: center; vertical-align: middle;">
+																<img src="<?php echo $logo_image_src; ?>" width="135" style="display: block; max-width: 100%; height: auto; border: 0;">
+															</td>
+														</tr>
+													</table>
 												</td>
 
 												<td style="padding:0;vertical-align: middle; text-align: right;"
 													width="50%">
 
-													<strong style="font-size: 16px;">Subscription Invoice</strong>
+													<strong style="font-size: 17px; font-weight: 700; color: #212529; font-family: 'Montserrat', sans-serif;">Subscription Invoice</strong>
 
 												</td>
 
@@ -192,7 +203,7 @@ if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
 													width="100%">
 
 													<h1
-														style="font-weight: 600;font-size: 16px;line-height: 20px;letter-spacing: 0.05em;text-transform: capitalize;color: #444444;font-family: 'Montserrat', sans-serif; margin:0 0 20px 0;">
+														style="font-weight: 700;font-size: 16px;line-height: 22px;letter-spacing: 0.05em;color: #333333;font-family: 'Montserrat', sans-serif; margin:0 0 20px 0;">
 														Subscription Details</h1>
 
 												</td>
@@ -213,31 +224,31 @@ if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
 												<td style="padding:0 0 20px 0;vertical-align: top; text-align: left;font-weight: 500;line-height: 18px;color: #333333;"
 													width="50%">
 													<span
-														style="font-weight:600;display: block;">Merchant</span>
+														style="font-weight:600;display: block; font-size: 13px; color: #333333;">Merchant</span>
 													<p
-														style="padding:5px 0 0 0;margin:0;vertical-align: top; text-align: left;font-size: 13px;line-height: 16px;color: #333333;">
-														<?php echo isset($order['publisher']['publication_name']) ? $order['publisher']['publication_name'] : 'N/A'; ?></p>
+														style="padding:5px 0 0 0;margin:0;vertical-align: top; text-align: left;font-size: 13px;line-height: 18px;color: #333333;">
+														<?php echo isset($order['publisher']['publication_name']) ? $order['publisher']['publication_name'] : (!empty($order['publisher']['name']) ? $order['publisher']['name'] : 'N/A'); ?></p>
 												</td>
 
-												<td style="padding:0 0 20px 0;vertical-align: top; text-align: left;font-weight: 500;line-height: 18px;color: #333333;"
+												<td style="padding:0 0 20px 0;vertical-align: top; text-align: left;font-weight: 500;line-height: 20px;color: #333333; font-size: 13px;"
 													width="50%">
 
-													<p style="margin:0 0 5px 0;"> <span
-															style="font-weight:600; display: inline-block; width: 80px;">Invoice ID</span> : <?php echo $order['id'] ?> </p>
+													<p style="margin:0 0 6px 0;"> <span
+															style="font-weight:600; display: inline-block; width: 120px; color: #333333;">Invoice ID</span> : <?php echo $order['id'] ?> </p>
 
-													<p style="margin:0 0 5px 0;"> <span
-															style="font-weight:600; display: inline-block;  width: 80px;">subscription Date</span> :
+													<p style="margin:0 0 6px 0;"> <span
+															style="font-weight:600; display: inline-block; width: 120px; color: #333333;">subscription Date</span> :
 														<?php echo date('d-M-Y', strtotime($order['created_at'])); ?> </p>
 
-													<p style="margin:0;"> <span
-															style="font-weight:600; display: inline-block; width: 80px;">Status</span> : <?php echo ucfirst($order['status']); ?> </p>
+													<p style="margin:0 0 6px 0;"> <span
+															style="font-weight:600; display: inline-block; width: 120px; color: #333333;">Status</span> : <?php echo ucfirst($order['status']); ?> </p>
 
-                                                            <?php if($order['status'] == 'paid') { 
-                                                                $expiry_date = !empty($order['expiry_date']) ? $order['expiry_date'] : date('d-M-Y', strtotime($order['created_at'] . ' +1 year'));
-                                                            ?>
-                                                            <p style="margin:0;"> <span
-															style="font-weight:600; display: inline-block; width: 80px;">Expiry Date</span> : <?php echo $expiry_date; ?> </p>
-                                                          <?php  } ?>
+                                                             <?php if($order['status'] == 'paid') { 
+                                                                 $expiry_date = !empty($order['expiry_date']) ? $order['expiry_date'] : date('d-M-Y', strtotime($order['created_at'] . ' +1 year'));
+                                                             ?>
+                                                             <p style="margin:0;"> <span
+															style="font-weight:600; display: inline-block; width: 120px; color: #333333;">Expiry Date</span> : <?php echo $expiry_date; ?> </p>
+                                                           <?php  } ?>
 
 												</td>
 
@@ -259,7 +270,7 @@ if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
 													width="100%">
 
 													<h2
-														style="font-weight: 600;font-size: 14px;line-height: 18px;letter-spacing: 0.05em;text-transform: capitalize;color: #444444;font-family: 'Montserrat', sans-serif; margin: 0;">
+														style="font-weight: 700;font-size: 15px;line-height: 20px;letter-spacing: 0.05em;color: #333333;font-family: 'Montserrat', sans-serif; margin: 0;">
 														Subscription Information</h2>
 
 												</td>
@@ -270,19 +281,19 @@ if (empty($logo_image_src) || strpos($logo_image_src, 'http') === 0) {
 
 									</table>
 
-									<table class="table-style">
+									<table class="table-style" style="width: 100%; border: 1px solid #dee2e6; border-collapse: collapse; font-family: 'Montserrat', sans-serif; margin-top: 10px; margin-bottom: 30px;">
 										<thead>
-											<tr>
-												<th style="width: 35%;">Plan Name</th>
-												<th style="width: 35%;">Amount</th>
-												<th style="width: 30%;">Payment Method</th>
+											<tr style="background-color: #ffd200;">
+												<th style="width: 35%; background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 10px 12px; font-weight: 700; font-size: 11.5px; text-transform: uppercase; text-align: center;">Plan Name</th>
+												<th style="width: 35%; background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 10px 12px; font-weight: 700; font-size: 11.5px; text-transform: uppercase; text-align: center;">Amount</th>
+												<th style="width: 30%; background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 10px 12px; font-weight: 700; font-size: 11.5px; text-transform: uppercase; text-align: center;">Payment Method</th>
 											</tr>
 										</thead>
 										<tbody>
 											<tr>
-												<td><?php echo isset($order['plan']['name']) ? $order['plan']['name'] : 'N/A'; ?></td>
-												<td>MUR <?php echo number_format($order['amount'], 2); ?></td>
-												<td>My.T Money</td>
+												<td style="background-color: #ffffff; color: #212529; border: 1px solid #dee2e6; padding: 12px 12px; font-size: 12.5px; text-align: center;"><?php echo isset($order['plan']['name']) ? $order['plan']['name'] : 'N/A'; ?></td>
+												<td style="background-color: #ffffff; color: #212529; border: 1px solid #dee2e6; padding: 12px 12px; font-size: 12.5px; text-align: center;">MUR <?php echo number_format($order['amount'], 2); ?></td>
+												<td style="background-color: #ffffff; color: #212529; border: 1px solid #dee2e6; padding: 12px 12px; font-size: 12.5px; text-align: center;">My.T Money</td>
 											</tr>
 										</tbody>
 									</table>

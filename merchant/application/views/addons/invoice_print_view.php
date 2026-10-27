@@ -3,6 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <title>Add-on Invoice #<?php echo $addon_purchase->purchase_id; ?></title>
+<?php
+$logo_image_src = '';
+$candidate_logos = [
+    rtrim(FCPATH, '/\\') . '/public/images/yellow-markets-logo-yellow-white.png',
+    rtrim(FCPATH, '/\\') . '/../merchant/public/images/yellow-markets-logo-yellow-white.png',
+    'c:/xampp/htdocs/ymstore/merchant/public/images/yellow-markets-logo-yellow-white.png',
+    rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
+    rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
+    dirname(FCPATH) . '/uploads/yellow-markets-logo.png',
+    'c:/xampp/htdocs/ymstore/uploads/yellow-markets-logo.png'
+];
+foreach ($candidate_logos as $c_logo) {
+    if (file_exists($c_logo) && filesize($c_logo) > 0) {
+        $ext = pathinfo($c_logo, PATHINFO_EXTENSION);
+        $logo_image_src = 'data:image/' . ($ext ?: 'png') . ';base64,' . base64_encode(file_get_contents($c_logo));
+        break;
+    }
+}
+if (empty($logo_image_src)) {
+    $logo_image_src = base_url('public/images/yellow-markets-logo-yellow-white.png');
+}
+?>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,19 +45,27 @@
             align-items: center;
             margin-bottom: 40px;
         }
-        .brand-logo {
-            background: #2b2b2b;
-            color: #ffc107;
-            padding: 8px 15px;
-            font-weight: bold;
-            font-size: 15px;
+        .brand-logo-container {
+            background-color: #23282d;
+            padding: 10px 16px;
+            border-radius: 4px;
             display: inline-block;
+            vertical-align: middle;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .brand-logo-container img {
+            display: block;
+            width: 135px;
+            max-width: 100%;
+            height: auto;
+            border: 0;
         }
         .invoice-heading {
-            font-size: 14px;
-            font-weight: bold;
-            color: #555;
-            letter-spacing: 1px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #212529;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
         }
         .section-title {
@@ -69,14 +99,16 @@
             margin-bottom: 30px;
         }
         .table th {
-            background-color: #ffc107;
-            color: #000;
+            background-color: #ffd200 !important;
+            color: #000000 !important;
             text-align: center;
             padding: 12px;
             font-size: 12px;
             font-weight: bold;
             border: 1px solid #dee2e6;
             letter-spacing: 0.5px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         .table td {
             padding: 12px;
@@ -90,7 +122,7 @@
             margin-top: 30px;
         }
         .btn-print {
-            background-color: #ffc107;
+            background-color: #ffd200;
             color: #000;
             border: none;
             padding: 10px 25px;
@@ -109,6 +141,14 @@
             body {
                 padding: 0;
             }
+            .brand-logo-container {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .table th {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
@@ -116,10 +156,22 @@
 
 <div class="invoice-box">
     <!-- Top Header Banner matching reference design -->
-    <div class="header-section">
-        <div class="brand-logo">🛒 Yellow Markets</div>
-        <div class="invoice-heading">INVOICE</div>
-    </div>
+    <table cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 30px; border-collapse: collapse; border: none;">
+        <tr>
+            <td style="vertical-align: middle; text-align: left; border: none; padding: 0;">
+                <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 0; background-color: #23282d; border-radius: 4px;">
+                    <tr>
+                        <td style="background-color: #23282d; padding: 10px 16px; border-radius: 4px; border: none; text-align: center; vertical-align: middle;">
+                            <img src="<?php echo $logo_image_src; ?>" width="135" style="display: block; max-width: 100%; height: auto; border: 0;" alt="Yellow Markets">
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td style="vertical-align: middle; text-align: right; border: none; padding: 0;">
+                <div class="invoice-heading">INVOICE</div>
+            </td>
+        </tr>
+    </table>
 
     <!-- Details Section Header -->
     <div class="section-title">Add-on Details</div>
@@ -152,11 +204,11 @@
     <!-- Items Table -->
     <table class="table">
         <thead>
-            <tr>
-                <th>ADD-ON SERVICE</th>
-                <th>ADD-ON NAME</th>
-                <th>AMOUNT</th>
-                <th>PAYMENT METHOD</th>
+            <tr style="background-color: #ffd200;">
+                <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">ADD-ON SERVICE</th>
+                <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">ADD-ON NAME</th>
+                <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">AMOUNT</th>
+                <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">PAYMENT METHOD</th>
             </tr>
         </thead>
         <tbody>
@@ -170,9 +222,11 @@
     </table>
 
     <!-- Print Button -->
+<?php if (empty($is_pdf)): ?>
     <div class="print-section">
         <button onclick="window.print();" class="btn-print">🖨 Print / Download Invoice</button>
     </div>
+<?php endif; ?>
 </div>
 
 </body>

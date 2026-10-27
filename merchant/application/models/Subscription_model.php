@@ -454,8 +454,7 @@ class Subscription_model extends CI_Model
                 '<p style="margin: 0 0 8px 0;"><strong>Start Date:</strong> ##START_DATE##</p>' .
                 '<p style="margin: 0;"><strong>Expiry Date:</strong> ##EXPIRY_DATE##</p>' .
                 '</div>' .
-                '<p>Your official subscription invoice has been attached to this email as a PDF document for your records.</p>' .
-                '<p>You can also view and download your invoice at any time from your merchant dashboard:</p>' .
+                '<p>You can view and download your invoice at any time from your merchant dashboard:</p>' .
                 '<div style="text-align: left; margin: 25px 0;">' .
                 '<a href="##SUBSCRIPTION_URL##" style="background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">View Subscription & Invoices</a>' .
                 '</div>' .
@@ -482,8 +481,7 @@ class Subscription_model extends CI_Model
                 "<p style=\"margin: 0 0 8px 0;\"><strong>Date de début :</strong> ##START_DATE##</p>" .
                 "<p style=\"margin: 0;\"><strong>Date d'expiration :</strong> ##EXPIRY_DATE##</p>" .
                 "</div>" .
-                "<p>Votre facture officielle d'abonnement est jointe à cet email au format PDF pour vos archives.</p>" .
-                "<p>Vous pouvez également consulter et télécharger vos factures à tout moment depuis votre espace marchand :</p>" .
+                "<p>Vous pouvez consulter et télécharger vos factures à tout moment depuis votre espace marchand :</p>" .
                 "<div style=\"text-align: left; margin: 25px 0;\">" .
                 "<a href=\"##SUBSCRIPTION_URL##\" style=\"background-color: #f7a800; color: #000; padding: 12px 28px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;\">Gérer mon abonnement</a>" .
                 "</div>" .
@@ -907,6 +905,9 @@ class Subscription_model extends CI_Model
             // Resolve logo to base64 to avoid external network issues
             $logo_data_uri = '';
             $logo_candidates = [
+                rtrim(FCPATH, '/\\') . '/../merchant/public/images/yellow-markets-logo-yellow-white.png',
+                rtrim(FCPATH, '/\\') . '/public/images/yellow-markets-logo-yellow-white.png',
+                'c:/xampp/htdocs/ymstore/merchant/public/images/yellow-markets-logo-yellow-white.png',
                 rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
                 rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
                 dirname(FCPATH) . '/uploads/yellow-markets-logo.png'
@@ -1108,7 +1109,7 @@ class Subscription_model extends CI_Model
             ? "Renouvellement d'abonnement : Votre abonnement est renouvelé pour {$plan_name} - Facture #{$order['id']}"
             : "Subscription Renewal : Your Subscription is renewed to {$plan_name} - Invoice #{$order['id']}";
 
-        // Send confirmation email + invoice PDF to Merchant
+        // Send confirmation email to Merchant (no PDF attachment per user request)
         $mailSent = $CI->CommonModel->sendCommonHTMLEmail(
             $to_email,
             'merchant-subscription-payment-confirmation',
@@ -1117,7 +1118,7 @@ class Subscription_model extends CI_Model
             $lang_code,
             $custom_subject,
             '', // custom_content fallback
-            $attachment_path
+            ''  // invoice PDF is not attached per user request
         );
 
         // 6. Notifications for Admin and Merchant (In-App and Email)

@@ -697,6 +697,66 @@ class Addons extends CI_Controller
             show_404();
         }
 
+        // Try direct PDF generation via Dompdf so user can download PDF
+        if (!class_exists('Dompdf\\Dompdf') && !class_exists('\\Dompdf\\Dompdf')) {
+            $autoload_candidates = [
+                APPPATH . '../vendor/autoload.php',
+                APPPATH . '../../vendor/autoload.php',
+                rtrim(FCPATH, '/\\') . '/vendor/autoload.php',
+                rtrim(FCPATH, '/\\') . '/../vendor/autoload.php',
+                rtrim(FCPATH, '/\\') . '/../merchant/vendor/autoload.php'
+            ];
+            foreach ($autoload_candidates as $cand) {
+                if (file_exists($cand)) {
+                    require_once $cand;
+                    if (class_exists('Dompdf\\Dompdf') || class_exists('\\Dompdf\\Dompdf')) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (empty($_GET['html']) && (class_exists('Dompdf\\Dompdf') || class_exists('\\Dompdf\\Dompdf'))) {
+            try {
+                $data['is_pdf'] = true;
+                $htmldata = $this->load->view('addons/invoice_print_view', $data, true);
+
+                $options = new \Dompdf\Options();
+                $options->set('isRemoteEnabled', TRUE);
+                $options->set('isHtml5ParserEnabled', TRUE);
+                $options->set('isFontSubsettingEnabled', TRUE);
+                $options->set('defaultFont', 'DejaVu Sans');
+
+                $dompdf = new \Dompdf\Dompdf($options);
+                $context = stream_context_create([
+                    'ssl' => [
+                        'verify_peer' => FALSE,
+                        'verify_peer_name' => FALSE,
+                        'allow_self_signed' => TRUE
+                    ]
+                ]);
+                $dompdf->setHttpContext($context);
+                $dompdf->loadHtml($htmldata);
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+                $output = $dompdf->output();
+
+                $filename = 'addon_invoice_' . $data['addon_purchase']->purchase_id . '.pdf';
+                if (ob_get_length()) {
+                    ob_end_clean();
+                }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                header('Content-Length: ' . strlen($output));
+                header('Cache-Control: private, max-age=0, must-revalidate');
+                header('Pragma: public');
+                echo $output;
+                exit;
+            } catch (\Throwable $e) {
+                log_message('error', "Merchant Addon Dompdf error: " . $e->getMessage());
+            }
+        }
+
         $this->load->view('addons/invoice_print_view', $data);
     }
 }
