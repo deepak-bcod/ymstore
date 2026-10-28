@@ -351,7 +351,15 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
         </div>
 
         <?php 
-        $is_centered_listing = ($type === 'TrendingListing' || $type === 'NewArrivalListing');
+        $ci =& get_instance();
+        $is_home_page = (
+            (isset($ci->router) && $ci->router->fetch_class() === 'HomeController' && $ci->router->fetch_method() === 'index')
+            || uri_string() === ''
+            || uri_string() === '/'
+            || (isset($_SERVER['REQUEST_URI']) && (trim($_SERVER['REQUEST_URI'], '/') === '' || parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) === '/'))
+        );
+        $is_search = ($type === 'SearchListing' || (isset($_SERVER['REQUEST_URI']) && strpos($_SERVER['REQUEST_URI'], 'searchresult') !== false));
+        $is_centered_listing = (!$is_home_page && ($type === 'TrendingListing' || $type === 'NewArrivalListing' || $is_search));
         $item_align_justify = $is_centered_listing ? 'center' : 'flex-start';
         $item_align_text = $is_centered_listing ? 'center' : 'left';
         ?>
@@ -390,7 +398,7 @@ if ($promo && !empty($promo->discount_percent) && $promo->discount_percent > 0) 
                     <a href="javascript:;" onclick="gotoLocation('<?php echo BASE_URL . 'product-detail/' . $prod->url_key . '?type=prelaunch'; ?>');" class="btn btn-default add2cart"><?= lang('view_details') ?></a>
                 <?php } ?>
             <?php else : ?>
-                <?php if ($type === 'TrendingListing' || $type === 'NewArrivalListing') : ?>
+                <?php if ($is_centered_listing) : ?>
                     <a href="<?= $product_url ?>" class="btn view-product-btn ym-view-details-btn" style="display: block !important; width: 100% !important; min-height: 40px !important; padding: 10px 15px !important; margin: 0 auto !important; border-radius: 4px !important; font-size: 15px !important; font-weight: 500 !important; line-height: 20px !important; text-align: center !important; text-decoration: none !important; box-sizing: border-box !important; cursor: pointer !important; transition: all 0.2s ease-in-out !important;"><?= lang('view_details') ?></a>
                 <?php else : ?>
                     <a href="<?= $product_url ?>" class="btn btn-primary add2cart" style="background-color: #0d6efd !important; border-color: #0d6efd !important; color: #ffffff !important; font-size: 12px !important; font-weight: 600 !important; padding: 6px 14px !important; border-radius: 4px !important; text-transform: capitalize !important; line-height: 1.35 !important; display: inline-block !important; width: fit-content !important; text-align: center !important; margin: 0 !important;"><?= lang('view_details') ?></a>
