@@ -276,20 +276,41 @@
                                         
                                     case 'faq':
 
-                                    if ($subtype == 'admin_reply') {
+                                        if ($subtype == 'admin_reply') {
 
-                                        $title = "Réponse à la FAQ";
+                                            $title = "Réponse à la FAQ";
 
-                                        $msg = "L'administrateur a répondu à votre question FAQ.";
+                                            $msg = "L'administrateur a répondu à votre question FAQ.";
 
-                                    }
+                                        }
 
-                                    break;
+                                        break;
 
+                                    case 'addon_purchase':
+                                    case 'addon':
 
-                                    
+                                        $title = "Service Add-on Activé";
 
-                                    
+                                        $msg = str_replace(
+                                            [
+                                                'Your add-on service "',
+                                                'Your add-on service \'',
+                                                '" has been successfully activated.',
+                                                '\' has been successfully activated.',
+                                                'has been successfully activated.'
+                                            ],
+                                            [
+                                                'Votre service add-on "',
+                                                'Votre service add-on \'',
+                                                '" a été activé avec succès.',
+                                                '\' a été activé avec succès.',
+                                                'a été activé avec succès.'
+                                            ],
+                                            $raw_msg
+                                        );
+
+                                        break;
+
                                 }
 
                             }
