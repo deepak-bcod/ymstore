@@ -74,13 +74,28 @@ class Notification_model extends CI_Model
         $this->db->where('recipient_type', $recipient_type);
         $this->db->where('is_read', 0);
 
-        if ($recipient_id !== null) {
-            $this->db->group_start()
-                    ->where('recipient_id', $recipient_id)
-                    ->or_where('recipient_id IS NULL', null, false)
-                    ->group_end();
+        if ($recipient_type === 'admin') {
+            if ($recipient_id !== null) {
+                $this->db->group_start()
+                        ->where('recipient_id', (int)$recipient_id)
+                        ->or_where('recipient_id', 1)
+                        ->or_where('recipient_id IS NULL', null, false)
+                        ->group_end();
+            } else {
+                $this->db->group_start()
+                        ->where('recipient_id', 1)
+                        ->or_where('recipient_id IS NULL', null, false)
+                        ->group_end();
+            }
         } else {
-            $this->db->where('recipient_id IS NULL', null, false);
+            if ($recipient_id !== null) {
+                $this->db->group_start()
+                        ->where('recipient_id', (int)$recipient_id)
+                        ->or_where('recipient_id IS NULL', null, false)
+                        ->group_end();
+            } else {
+                $this->db->where('recipient_id IS NULL', null, false);
+            }
         }
 
         return (int) $this->db->count_all_results();
@@ -120,13 +135,28 @@ class Notification_model extends CI_Model
     {
         $this->db->where('recipient_type', $recipient_type);
 
-        if ($recipient_id !== null) {
-            $this->db->group_start()
-                     ->where('recipient_id', (int)$recipient_id)
-                     ->or_where('recipient_id IS NULL', null, false)
-                     ->group_end();
+        if ($recipient_type === 'admin') {
+            if ($recipient_id !== null) {
+                $this->db->group_start()
+                         ->where('recipient_id', (int)$recipient_id)
+                         ->or_where('recipient_id', 1)
+                         ->or_where('recipient_id IS NULL', null, false)
+                         ->group_end();
+            } else {
+                $this->db->group_start()
+                         ->where('recipient_id', 1)
+                         ->or_where('recipient_id IS NULL', null, false)
+                         ->group_end();
+            }
         } else {
-            $this->db->where('recipient_id IS NULL', null, false);
+            if ($recipient_id !== null) {
+                $this->db->group_start()
+                         ->where('recipient_id', (int)$recipient_id)
+                         ->or_where('recipient_id IS NULL', null, false)
+                         ->group_end();
+            } else {
+                $this->db->where('recipient_id IS NULL', null, false);
+            }
         }
 
         $this->db->where('is_read', 0);
@@ -143,10 +173,18 @@ class Notification_model extends CI_Model
     public function get_unread_count($recipient_type, $recipient_id)
     {
         $this->db->where('recipient_type', $recipient_type);
-        $this->db->group_start()
-                 ->where('recipient_id', (int)$recipient_id)
-                 ->or_where('recipient_id IS NULL', null, false)
-                 ->group_end();
+        if ($recipient_type === 'admin') {
+            $this->db->group_start()
+                     ->where('recipient_id', (int)$recipient_id)
+                     ->or_where('recipient_id', 1)
+                     ->or_where('recipient_id IS NULL', null, false)
+                     ->group_end();
+        } else {
+            $this->db->group_start()
+                     ->where('recipient_id', (int)$recipient_id)
+                     ->or_where('recipient_id IS NULL', null, false)
+                     ->group_end();
+        }
         $this->db->where('is_read', 0);
         return (int) $this->db->count_all_results($this->table);
     }

@@ -336,6 +336,7 @@ class Addons extends CI_Controller
         if ($transaction && $status == 'success') {
             $this->db->where('id', $transaction->purchase_id)
                      ->update('merchant_addon_purchases', ['status' => 'paid']);
+            $this->_processAddonPurchaseSuccess($transaction_id);
             $this->session->set_flashdata('success', 'Payment successful! Add-on activated.');
         } else {
             $this->db->where('id', $transaction->purchase_id)
@@ -350,7 +351,7 @@ class Addons extends CI_Controller
     {
         log_message('info', '=== MyT Addon Callback Called ===');
 
-        $merTradeNo = $this->input->get_post('merTradeNo') ?? null;
+        $merTradeNo = $this->input->get_post('merTradeNo') ?? $this->input->get('merTradeNo') ?? $this->input->post('merTradeNo');
 
         if (!$merTradeNo) {
             log_message('error', 'Missing merTradeNo in Addon callback.');
@@ -364,6 +365,15 @@ class Addons extends CI_Controller
             log_message('error', 'Addon transaction not found for merTradeNo: ' . $merTradeNo);
             show_error('Transaction not found.', 404);
             return;
+        }
+
+        // If transaction is still initiated/pending, process callback data
+        if ($transaction['status'] === 'initiated' || $transaction['status'] === 'pending') {
+            $callbackData = array_merge($this->input->get() ?: [], $this->input->post() ?: []);
+            if (!empty($callbackData['tradeStatus']) || isset($callbackData['resultCode'])) {
+                $this->_handleMytAddonResponse(false, $callbackData);
+                $transaction = $this->db->get_where('merchant_addon_transactions', ['id' => $transaction['id']])->row_array();
+            }
         }
 
         // Redirect to Addon payment status page using encrypted token
@@ -438,53 +448,9 @@ class Addons extends CI_Controller
             }
 
             // ==========================================
-            // INLINE ADMIN NOTIFICATION CODE (NOTIFY)
+            // PROCESS NOTIFICATIONS & EMAILS (BELL ICON & EMAIL)
             // ==========================================
-            $purchase = $this->db->get_where('merchant_addon_purchases', ['id' => $transaction['purchase_id']])->row_array();
-            if ($purchase) {
-                $service = $this->db->get_where('addon_services', ['id' => $purchase['service_id']])->row_array();
-                $merchant = $this->db->get_where('publisher', ['id' => $purchase['merchant_id']])->row_array();
-
-                $service_title = $service['title'] ?? 'Add-On Service';
-                $merchant_name = $merchant['name'] ?? $merchant['email'] ?? ('Merchant #' . $purchase['merchant_id']);
-                $amount = $transaction['amount'];
-
-                if ($this->db->table_exists('admin_notifications')) {
-                    $exists = $this->db->get_where('admin_notifications', ['type' => 'addon_purchase', 'reference_id' => $purchase['id']])->row();
-                    if (!$exists) {
-                        $this->db->insert('admin_notifications', [
-                            'title'        => 'New Add-On Purchase',
-                            'message'      => "Merchant {$merchant_name} successfully purchased '{$service_title}' for MUR {$amount}.",
-                            'type'         => 'addon_purchase',
-                            'reference_id' => $purchase['id'],
-                            'is_read'      => 0,
-                            'created_at'   => date('Y-m-d H:i:s')
-                        ]);
-                    }
-                }
-
-                $this->load->library('email');
-                $admin_email = $this->config->item('admin_email') ?: 'admin@yellowmarkets.com';
-
-                $this->email->from('no-reply@yellowmarkets.com', 'Yellow Markets System');
-                $this->email->to($admin_email);
-                $this->email->subject("New Add-On Purchased: {$service_title} by {$merchant_name}");
-                
-                $email_message  = "<p>Hello Admin,</p>";
-                $email_message .= "<p>A merchant has successfully purchased and paid for an add-on service:</p>";
-                $email_message .= "<ul>";
-                $email_message .= "<li><strong>Merchant:</strong> {$merchant_name} (ID: {$purchase['merchant_id']})</li>";
-                $email_message .= "<li><strong>Service:</strong> {$service_title}</li>";
-                $email_message .= "<li><strong>Quantity:</strong> {$purchase['qty']}</li>";
-                $email_message .= "<li><strong>Amount Paid:</strong> MUR {$amount}</li>";
-                $email_message .= "<li><strong>Transaction Ref:</strong> " . (!empty($transaction['transaction_ref']) ? $transaction['transaction_ref'] : $transaction['mer_trade_no']) . "</li>";
-                $email_message .= "<li><strong>Date:</strong> " . date('Y-m-d H:i:s') . "</li>";
-                $email_message .= "</ul>";
-
-                $this->email->message($email_message);
-                $this->email->set_mailtype('html');
-                @$this->email->send();
-            }
+            $this->_processAddonPurchaseSuccess($transaction['id']);
 
         } else {
             log_message('error', "❌ MyT Addon Payment FAILED → Txn ID: {$transaction['id']} | tradeStatus: {$tradeStatus}");
@@ -609,25 +575,7 @@ class Addons extends CI_Controller
                 $service_title = $service ? $service->title : 'YM Delivery';
                 $txn_ref = !empty($txn['transaction_ref']) ? $txn['transaction_ref'] : (!empty($txn['mer_trade_no']) ? $txn['mer_trade_no'] : ('Purchase #' . $purchase['id']));
 
-                // ==========================================
-                // INLINE ADMIN NOTIFICATION CODE (STATUS FALLBACK)
-                // ==========================================
-                $merchant = $this->db->get_where('publisher', ['id' => $purchase['merchant_id']])->row_array();
-                $merchant_name = $merchant['name'] ?? $merchant['email'] ?? ('Merchant #' . $purchase['merchant_id']);
-
-                if ($this->db->table_exists('admin_notifications')) {
-                    $exists = $this->db->get_where('admin_notifications', ['type' => 'addon_purchase', 'reference_id' => $purchase['id']])->row();
-                    if (!$exists) {
-                        $this->db->insert('admin_notifications', [
-                            'title'        => 'New Add-On Purchase',
-                            'message'      => "Merchant {$merchant_name} successfully purchased '{$service_title}' for MUR {$txn['amount']}.",
-                            'type'         => 'addon_purchase',
-                            'reference_id' => $purchase['id'],
-                            'is_read'      => 0,
-                            'created_at'   => date('Y-m-d H:i:s')
-                        ]);
-                    }
-                }
+                $this->_processAddonPurchaseSuccess($txn['id']);
 
                 $this->session->set_flashdata('addon_payment_success', [
                     'order_number'    => $res_ticket->order_number,
@@ -647,6 +595,11 @@ class Addons extends CI_Controller
                 redirect('order_resolution/view/' . $res_ticket->ticket_number . '?payment=failed');
                 return;
             }
+        }
+
+        // Process notification and email for regular add-on purchases if payment succeeded
+        if ($txn['status'] === 'success') {
+            $this->_processAddonPurchaseSuccess($txn['id']);
         }
 
         $data['transaction']  = $txn;
@@ -758,5 +711,439 @@ class Addons extends CI_Controller
         }
 
         $this->load->view('addons/invoice_print_view', $data);
+    }
+
+    /**
+     * Process notifications and emails for a successful add-on service purchase
+     * - In-app notification to Merchant (appears in bell icon)
+     * - In-app notification to Admin (appears in bell icon & admin panel)
+     * - Email to login merchant email, CC admin
+     * - Fully idempotent (will not duplicate notifications or emails)
+     */
+    private function _processAddonPurchaseSuccess($transaction_id)
+    {
+        $transaction = $this->db
+            ->get_where('merchant_addon_transactions', ['id' => $transaction_id])
+            ->row_array();
+
+        if (!$transaction || empty($transaction['purchase_id'])) {
+            return;
+        }
+
+        $purchase = $this->db
+            ->get_where('merchant_addon_purchases', ['id' => $transaction['purchase_id']])
+            ->row_array();
+
+        if (!$purchase) {
+            return;
+        }
+
+        // Idempotency check: prevent duplicate notifications/emails for the same purchase
+        $already_notified = $this->db
+            ->where('recipient_type', 'merchant')
+            ->where('type', 'addon_purchase')
+            ->where('recipient_id', (int)$purchase['merchant_id'])
+            ->group_start()
+                ->like('data', '"purchase_id":' . (int)$purchase['id'])
+                ->or_like('data', '"purchase_id":"' . (int)$purchase['id'] . '"')
+            ->group_end()
+            ->get('notifications')
+            ->row();
+
+        if ($already_notified) {
+            log_message('info', "Addon purchase ID {$purchase['id']} has already been processed for notifications/emails. Skipping.");
+            return;
+        }
+
+        $this->load->model('Notification_model');
+        $this->load->model('CommonModel');
+
+        // Fetch Service and Category details
+        $service = $this->db->get_where('addon_services', ['id' => $purchase['service_id']])->row_array();
+        $category = null;
+        if (!empty($service['category_id'])) {
+            $category = $this->db->get_where('addon_categories', ['id' => $service['category_id']])->row_array();
+        }
+
+        // Fetch Merchant details
+        $merchant = $this->db->get_where('publisher', ['id' => $purchase['merchant_id']])->row_array();
+        $merchant_email = !empty($merchant['email']) ? trim($merchant['email']) : '';
+        if (empty($merchant_email) && $this->session->userdata('LoginID') == $purchase['merchant_id']) {
+            $merchant_email = trim($this->session->userdata('email') ?? '');
+        }
+
+        $merchant_name = !empty($merchant['publication_name'])
+            ? $merchant['publication_name']
+            : (!empty($merchant['name']) ? $merchant['name'] : (!empty($merchant['company_name']) ? $merchant['company_name'] : ('Merchant #' . $purchase['merchant_id'])));
+
+        // Language resolution
+        $site_lang = !empty($transaction['lang']) ? $transaction['lang'] : ($this->session->userdata('site_lang') ?: ($merchant['language'] ?? 'english'));
+        $is_french = (strtolower($site_lang) === 'french' || strtolower($site_lang) === 'fr');
+        $lang_code = $is_french ? 'fr' : 'en';
+
+        // Names & formatting
+        $service_title = $service ? ($is_french && !empty($service['title_fr']) ? $service['title_fr'] : $service['title']) : 'Add-On Service';
+        $category_name = $category ? ($is_french && !empty($category['name_fr']) ? $category['name_fr'] : $category['name']) : 'Add-On Services';
+
+        $amount = !empty($transaction['amount']) ? $transaction['amount'] : ($service['final_price'] ?? 0);
+        $amount_formatted = number_format((float)$amount, 2);
+        $txn_ref = !empty($transaction['transaction_ref']) ? $transaction['transaction_ref'] : (!empty($transaction['mer_trade_no']) ? $transaction['mer_trade_no'] : ('Purchase #' . $purchase['id']));
+        $date_formatted = !empty($purchase['created_at']) ? date('d-M-Y H:i', strtotime($purchase['created_at'])) : date('d-M-Y H:i');
+
+        // ==========================================
+        // 1. IN-APP NOTIFICATION FOR MERCHANT (BELL ICON)
+        // ==========================================
+        $merchant_notif_title = $is_french ? "Service Add-on Activé" : "Add-On Service Activated";
+        $merchant_notif_msg = $is_french
+            ? "Votre service add-on '{$service_title}' a été activé avec succès."
+            : "Your add-on service '{$service_title}' has been successfully activated.";
+
+        $merchant_notification = [
+            'recipient_type' => 'merchant',
+            'recipient_id'   => (int)$purchase['merchant_id'],
+            'title'          => $merchant_notif_title,
+            'message'        => $merchant_notif_msg,
+            'type'           => 'addon_purchase',
+            'subtype'        => 'success',
+            'data'           => [
+                'purchase_id'    => (int)$purchase['id'],
+                'service_id'     => (int)$purchase['service_id'],
+                'service_title'  => $service_title,
+                'category_id'    => (int)($service['category_id'] ?? 0),
+                'category_name'  => $category_name,
+                'qty'            => (int)$purchase['qty'],
+                'amount'         => $amount,
+                'transaction_ref'=> $txn_ref,
+                'type'           => 'addon_purchase'
+            ],
+            'is_read'        => 0
+        ];
+        $this->Notification_model->insert($merchant_notification);
+        log_message('info', "Addon bell notification created for Merchant ID {$purchase['merchant_id']} | Purchase ID {$purchase['id']}");
+
+        // ==========================================
+        // 2. IN-APP NOTIFICATION FOR ADMIN (BELL ICON & ADMIN PANEL)
+        // ==========================================
+        $admin_notif_title = 'New Add-On Purchase';
+        $admin_notif_msg = "Merchant {$merchant_name} successfully purchased '{$service_title}' for MUR {$amount_formatted}.";
+
+        $admin_notification = [
+            'recipient_type' => 'admin',
+            'recipient_id'   => 1,
+            'title'          => $admin_notif_title,
+            'message'        => $admin_notif_msg,
+            'type'           => 'addon_purchase',
+            'subtype'        => 'success',
+            'data'           => [
+                'purchase_id'    => (int)$purchase['id'],
+                'merchant_id'    => (int)$purchase['merchant_id'],
+                'merchant_name'  => $merchant_name,
+                'service_id'     => (int)$purchase['service_id'],
+                'service_title'  => $service_title,
+                'category_id'    => (int)($service['category_id'] ?? 0),
+                'category_name'  => $category_name,
+                'qty'            => (int)$purchase['qty'],
+                'amount'         => $amount,
+                'transaction_ref'=> $txn_ref,
+                'type'           => 'addon_purchase'
+            ],
+            'is_read'        => 0
+        ];
+        $this->Notification_model->insert($admin_notification);
+        log_message('info', "Addon bell notification created for Admin (ID 1) | Purchase ID {$purchase['id']}");
+
+        if ($this->db->table_exists('admin_notifications')) {
+            $exists = $this->db->get_where('admin_notifications', [
+                'type'         => 'addon_purchase',
+                'reference_id' => $purchase['id']
+            ])->row();
+
+            if (!$exists) {
+                $this->db->insert('admin_notifications', [
+                    'title'        => $admin_notif_title,
+                    'message'      => $admin_notif_msg,
+                    'type'         => 'addon_purchase',
+                    'reference_id' => $purchase['id'],
+                    'is_read'      => 0,
+                    'created_at'   => date('Y-m-d H:i:s')
+                ]);
+            }
+        }
+
+        // ==========================================
+        // 3. EMAIL TO LOGIN MERCHANT EMAIL (CC ADMIN)
+        // ==========================================
+        $admin_email = '';
+        if (method_exists($this->CommonModel, 'get_custom_variable')) {
+            $admin_email = $this->CommonModel->get_custom_variable('admin_email');
+            if (empty($admin_email)) {
+                $admin_email = $this->CommonModel->get_custom_variable('contact_us_email');
+            }
+        }
+        if (empty($admin_email)) {
+            $admin_email = $this->config->item('admin_email');
+        }
+        if (empty($admin_email)) {
+            $admin_email = 'admin@yellowmarkets.com';
+        }
+        $admin_email = trim($admin_email);
+
+        if (!empty($merchant_email) && filter_var($merchant_email, FILTER_VALIDATE_EMAIL)) {
+            $manage_url = base_url('addons/manage');
+            $invoice_url = base_url('addons/download_invoice/' . $purchase['id']);
+
+            // Ensure template in email_template table if table exists
+            $this->_ensureAddonEmailTemplate();
+
+            if ($is_french) {
+                $email_subject = "Confirmation d'achat du service Add-on : {$service_title} - Facture #{$purchase['id']}";
+                $email_content = '<div style="font-family: Arial, Helvetica, sans-serif; color: #333333; line-height: 1.6; max-width: 600px; margin: 0 auto;">' .
+                    '<h2 style="color: #222222; margin-top: 0;">Confirmation d\'achat de service Add-on</h2>' .
+                    "<p>Bonjour <strong>{$merchant_name}</strong>,</p>" .
+                    "<p>Merci pour votre paiement ! Nous vous confirmons que votre service add-on <strong>{$service_title}</strong> a été payé et activé avec succès sur votre compte marchand.</p>" .
+                    '<div style="background-color: #fdfdfd; border: 1px solid #e0e0e0; border-left: 4px solid #f7a800; border-radius: 4px; padding: 18px 20px; margin: 25px 0;">' .
+                    '<h3 style="margin: 0 0 15px 0; font-size: 16px; color: #111;">Détails de la commande</h3>' .
+                    '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">' .
+                    '<tr><td style="padding: 6px 0; color: #666; width: 40%;"><strong>N° de commande :</strong></td><td style="padding: 6px 0; color: #222;">#' . $purchase['id'] . '</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Nom du service :</strong></td><td style="padding: 6px 0; color: #222;"><strong>' . htmlspecialchars($service_title) . '</strong></td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Catégorie :</strong></td><td style="padding: 6px 0; color: #222;">' . htmlspecialchars($category_name) . '</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Quantité :</strong></td><td style="padding: 6px 0; color: #222;">' . (int)$purchase['qty'] . '</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Montant payé :</strong></td><td style="padding: 6px 0; color: #28a745; font-size: 16px;"><strong>MUR ' . $amount_formatted . '</strong></td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Réf. transaction :</strong></td><td style="padding: 6px 0; color: #222;">' . htmlspecialchars($txn_ref) . '</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Date :</strong></td><td style="padding: 6px 0; color: #222;">' . $date_formatted . '</td></tr>' .
+                    '</table>' .
+                    '</div>' .
+                    '<div style="text-align: left; margin: 25px 0;">' .
+                    '<a href="' . $manage_url . '" style="background-color: #f7a800; color: #000000; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; margin-right: 10px;">Gérer mes Add-ons</a>' .
+                    '<a href="' . $invoice_url . '" style="background-color: #f0f0f0; color: #333333; border: 1px solid #ccc; padding: 12px 22px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Télécharger la facture</a>' .
+                    '</div>' .
+                    '<p style="margin-top: 30px;">Merci pour votre partenariat avec <strong>Yellow Markets</strong>.</p>' .
+                    '<p style="margin-bottom: 0;">Cordialement,<br><strong>L\'équipe support Yellow Markets</strong></p>' .
+                    '</div>';
+            } else {
+                $email_subject = "Add-On Service Purchase Confirmation: {$service_title} - Invoice #{$purchase['id']}";
+                $email_content = '<div style="font-family: Arial, Helvetica, sans-serif; color: #333333; line-height: 1.6; max-width: 600px; margin: 0 auto;">' .
+                    '<h2 style="color: #222222; margin-top: 0;">Add-On Service Purchase Confirmation</h2>' .
+                    "<p>Dear <strong>{$merchant_name}</strong>,</p>" .
+                    "<p>Thank you for your payment! We are pleased to confirm that your add-on service <strong>{$service_title}</strong> has been successfully paid and activated for your merchant account.</p>" .
+                    '<div style="background-color: #fdfdfd; border: 1px solid #e0e0e0; border-left: 4px solid #f7a800; border-radius: 4px; padding: 18px 20px; margin: 25px 0;">' .
+                    '<h3 style="margin: 0 0 15px 0; font-size: 16px; color: #111;">Purchase Summary</h3>' .
+                    '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">' .
+                    '<tr><td style="padding: 6px 0; color: #666; width: 40%;"><strong>Order ID:</strong></td><td style="padding: 6px 0; color: #222;">#' . $purchase['id'] . '</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Service Name:</strong></td><td style="padding: 6px 0; color: #222;"><strong>' . htmlspecialchars($service_title) . '</strong></td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Category:</strong></td><td style="padding: 6px 0; color: #222;">' . htmlspecialchars($category_name) . '</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Quantity:</strong></td><td style="padding: 6px 0; color: #222;">' . (int)$purchase['qty'] . '</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Amount Paid:</strong></td><td style="padding: 6px 0; color: #28a745; font-size: 16px;"><strong>MUR ' . $amount_formatted . '</strong></td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Transaction Reference:</strong></td><td style="padding: 6px 0; color: #222;">' . htmlspecialchars($txn_ref) . '</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Payment Date:</strong></td><td style="padding: 6px 0; color: #222;">' . $date_formatted . '</td></tr>' .
+                    '</table>' .
+                    '</div>' .
+                    '<div style="text-align: left; margin: 25px 0;">' .
+                    '<a href="' . $manage_url . '" style="background-color: #f7a800; color: #000000; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; margin-right: 10px;">Manage Add-Ons</a>' .
+                    '<a href="' . $invoice_url . '" style="background-color: #f0f0f0; color: #333333; border: 1px solid #ccc; padding: 12px 22px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Download Invoice</a>' .
+                    '</div>' .
+                    '<p style="margin-top: 30px;">Thank you for partnering with <strong>Yellow Markets</strong>.</p>' .
+                    '<p style="margin-bottom: 0;">Best regards,<br><strong>Yellow Markets Support Team</strong></p>' .
+                    '</div>';
+            }
+
+            $tempVars = [
+                '##MERCHANT_NAME##', '{merchant_name}',
+                '##INVOICE_ID##', '{invoice_id}',
+                '##SERVICE_TITLE##', '{service_title}',
+                '##CATEGORY_NAME##', '{category_name}',
+                '##QTY##', '{qty}',
+                '##AMOUNT##', '{amount}',
+                '##TRANSACTION_REF##', '{transaction_ref}',
+                '##DATE##', '{date}',
+                '##MANAGE_URL##', '{manage_url}',
+                '##INVOICE_URL##', '{invoice_url}'
+            ];
+
+            $dynamicVars = [
+                $merchant_name, $merchant_name,
+                $purchase['id'], $purchase['id'],
+                $service_title, $service_title,
+                $category_name, $category_name,
+                $purchase['qty'], $purchase['qty'],
+                $amount_formatted, $amount_formatted,
+                $txn_ref, $txn_ref,
+                $date_formatted, $date_formatted,
+                $manage_url, $manage_url,
+                $invoice_url, $invoice_url
+            ];
+
+            $mail_sent = false;
+            try {
+                $mail_sent = $this->CommonModel->sendCommonHTMLEmail(
+                    $merchant_email,
+                    'merchant-addon-purchase-confirmation',
+                    $tempVars,
+                    $dynamicVars,
+                    $lang_code,
+                    $email_subject,
+                    $email_content,
+                    '',
+                    $admin_email
+                );
+            } catch (\Throwable $e) {
+                log_message('error', "sendCommonHTMLEmail error for Addon purchase {$purchase['id']}: " . $e->getMessage());
+            }
+
+            if (!$mail_sent) {
+                try {
+                    $this->load->library('email');
+                    $this->email->clear(TRUE);
+                    $this->email->from('no-reply@yellowmarkets.com', 'Yellow Markets');
+                    $this->email->to($merchant_email);
+                    if (!empty($admin_email)) {
+                        $this->email->cc($admin_email);
+                    }
+                    $this->email->subject($email_subject);
+                    $this->email->message($email_content);
+                    $this->email->set_mailtype('html');
+                    @$this->email->send();
+                    log_message('info', "Sent Addon purchase confirmation email via direct CI email library to {$merchant_email} (CC: {$admin_email})");
+                } catch (\Throwable $e) {
+                    log_message('error', "Direct CI email send failed for Addon purchase {$purchase['id']}: " . $e->getMessage());
+                }
+            } else {
+                log_message('info', "Sent Addon purchase confirmation email via sendCommonHTMLEmail to {$merchant_email} (CC: {$admin_email})");
+            }
+        } else {
+            log_message('error', "Invalid or missing merchant email for Addon purchase ID {$purchase['id']} (Merchant ID: {$purchase['merchant_id']})");
+        }
+
+        // ==========================================
+        // 4. DEDICATED NOTIFICATION EMAIL TO ADMIN
+        // ==========================================
+        if (!empty($admin_email) && filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
+            $admin_manage_url = 'https://mu.yellowmarkets.com/admin/addons/manage';
+            $admin_invoice_url = 'https://mu.yellowmarkets.com/admin/addons/download_invoice/' . $purchase['id'];
+            if (defined('BASE_URL')) {
+                $admin_manage_url = str_replace('/merchant/', '/admin/', BASE_URL) . 'addons/manage';
+                $admin_invoice_url = str_replace('/merchant/', '/admin/', BASE_URL) . 'addons/download_invoice/' . $purchase['id'];
+            }
+
+            $admin_email_subject = "New Add-On Purchased: {$service_title} by {$merchant_name} (Order #{$purchase['id']})";
+            $admin_email_content = '<div style="font-family: Arial, Helvetica, sans-serif; color: #333333; line-height: 1.6; max-width: 600px; margin: 0 auto;">' .
+                '<div style="background-color: #222222; color: #ffffff; padding: 16px 20px; border-radius: 4px 4px 0 0;">' .
+                '<h2 style="color: #f7a800; margin: 0; font-size: 20px;">New Add-On Service Purchased</h2>' .
+                '</div>' .
+                '<div style="padding: 20px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 4px 4px; background-color: #ffffff;">' .
+                '<p>Hello Admin,</p>' .
+                "<p>A merchant has successfully purchased and paid for an add-on service on <strong>Yellow Markets</strong>.</p>" .
+                '<div style="background-color: #fdfdfd; border: 1px solid #e0e0e0; border-left: 4px solid #f7a800; border-radius: 4px; padding: 15px 18px; margin: 20px 0;">' .
+                '<h3 style="margin: 0 0 12px 0; font-size: 15px; color: #111;">Purchase & Merchant Details</h3>' .
+                '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">' .
+                '<tr><td style="padding: 6px 0; color: #666; width: 40%;"><strong>Order ID:</strong></td><td style="padding: 6px 0; color: #222;">#' . $purchase['id'] . '</td></tr>' .
+                '<tr><td style="padding: 6px 0; color: #666;"><strong>Merchant Name:</strong></td><td style="padding: 6px 0; color: #222;"><strong>' . htmlspecialchars($merchant_name) . '</strong> (ID: #' . (int)$purchase['merchant_id'] . ')</td></tr>' .
+                '<tr><td style="padding: 6px 0; color: #666;"><strong>Merchant Email:</strong></td><td style="padding: 6px 0; color: #222;">' . htmlspecialchars($merchant_email) . '</td></tr>' .
+                '<tr><td style="padding: 6px 0; color: #666;"><strong>Service Name:</strong></td><td style="padding: 6px 0; color: #222;"><strong>' . htmlspecialchars($service_title) . '</strong></td></tr>' .
+                '<tr><td style="padding: 6px 0; color: #666;"><strong>Category:</strong></td><td style="padding: 6px 0; color: #222;">' . htmlspecialchars($category_name) . '</td></tr>' .
+                '<tr><td style="padding: 6px 0; color: #666;"><strong>Quantity:</strong></td><td style="padding: 6px 0; color: #222;">' . (int)$purchase['qty'] . '</td></tr>' .
+                '<tr><td style="padding: 6px 0; color: #666;"><strong>Amount Paid:</strong></td><td style="padding: 6px 0; color: #28a745; font-size: 16px;"><strong>MUR ' . $amount_formatted . '</strong></td></tr>' .
+                '<tr><td style="padding: 6px 0; color: #666;"><strong>Transaction Ref:</strong></td><td style="padding: 6px 0; color: #222;">' . htmlspecialchars($txn_ref) . '</td></tr>' .
+                '<tr><td style="padding: 6px 0; color: #666;"><strong>Payment Date:</strong></td><td style="padding: 6px 0; color: #222;">' . $date_formatted . '</td></tr>' .
+                '</table>' .
+                '</div>' .
+                '<div style="text-align: left; margin: 25px 0;">' .
+                '<a href="' . $admin_manage_url . '" style="background-color: #f7a800; color: #000000; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; margin-right: 10px;">Manage Add-Ons (Admin)</a>' .
+                '<a href="' . $admin_invoice_url . '" style="background-color: #f0f0f0; color: #333333; border: 1px solid #ccc; padding: 12px 20px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Download Invoice</a>' .
+                '</div>' .
+                '<p style="margin-top: 25px; font-size: 13px; color: #777;">This is an automated notification from Yellow Markets System.</p>' .
+                '</div>' .
+                '</div>';
+
+            try {
+                $this->load->library('email');
+                $this->email->clear(TRUE);
+                $this->email->from('no-reply@yellowmarkets.com', 'Yellow Markets');
+                $this->email->to($admin_email);
+                $this->email->subject($admin_email_subject);
+                $this->email->message($admin_email_content);
+                $this->email->set_mailtype('html');
+                @$this->email->send();
+                log_message('info', "Sent Addon purchase alert email to Admin ({$admin_email}) for Purchase ID {$purchase['id']}");
+            } catch (\Throwable $e) {
+                log_message('error', "Failed to send Addon purchase alert email to Admin ({$admin_email}): " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Ensure email template for merchant add-on purchase confirmation exists
+     */
+    private function _ensureAddonEmailTemplate()
+    {
+        if (!$this->db->table_exists('email_template')) {
+            return;
+        }
+
+        $tpl = $this->db->get_where('email_template', ['email_code' => 'merchant-addon-purchase-confirmation'])->row_array();
+        if (!$tpl) {
+            $has_fr = $this->db->field_exists('subject_fr', 'email_template');
+            $tpl_data = [
+                'email_code' => 'merchant-addon-purchase-confirmation',
+                'title'      => 'Merchant Add-on Purchase Confirmation',
+                'subject'    => 'Add-On Service Purchase Confirmation: ##SERVICE_TITLE## - Invoice ###INVOICE_ID##',
+                'content'    => '<div style="font-family: Arial, Helvetica, sans-serif; color: #333333; line-height: 1.6; max-width: 600px; margin: 0 auto;">' .
+                    '<h2 style="color: #222222; margin-top: 0;">Add-On Service Purchase Confirmation</h2>' .
+                    '<p>Dear <strong>##MERCHANT_NAME##</strong>,</p>' .
+                    '<p>Thank you for your payment! We are pleased to confirm that your add-on service <strong>##SERVICE_TITLE##</strong> has been successfully paid and activated for your merchant account.</p>' .
+                    '<div style="background-color: #fdfdfd; border: 1px solid #e0e0e0; border-left: 4px solid #f7a800; border-radius: 4px; padding: 18px 20px; margin: 25px 0;">' .
+                    '<h3 style="margin: 0 0 15px 0; font-size: 16px; color: #111;">Purchase Summary</h3>' .
+                    '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">' .
+                    '<tr><td style="padding: 6px 0; color: #666; width: 40%;"><strong>Order ID:</strong></td><td style="padding: 6px 0; color: #222;">###INVOICE_ID##</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Service Name:</strong></td><td style="padding: 6px 0; color: #222;"><strong>##SERVICE_TITLE##</strong></td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Category:</strong></td><td style="padding: 6px 0; color: #222;">##CATEGORY_NAME##</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Quantity:</strong></td><td style="padding: 6px 0; color: #222;">##QTY##</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Amount Paid:</strong></td><td style="padding: 6px 0; color: #28a745; font-size: 16px;"><strong>MUR ##AMOUNT##</strong></td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Transaction Reference:</strong></td><td style="padding: 6px 0; color: #222;">##TRANSACTION_REF##</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Payment Date:</strong></td><td style="padding: 6px 0; color: #222;">##DATE##</td></tr>' .
+                    '</table>' .
+                    '</div>' .
+                    '<div style="text-align: left; margin: 25px 0;">' .
+                    '<a href="##MANAGE_URL##" style="background-color: #f7a800; color: #000000; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; margin-right: 10px;">Manage Add-Ons</a>' .
+                    '<a href="##INVOICE_URL##" style="background-color: #f0f0f0; color: #333333; border: 1px solid #ccc; padding: 12px 22px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Download Invoice</a>' .
+                    '</div>' .
+                    '<p style="margin-top: 30px;">Thank you for partnering with <strong>Yellow Markets</strong>.</p>' .
+                    '<p style="margin-bottom: 0;">Best regards,<br><strong>Yellow Markets Support Team</strong></p>' .
+                    '</div>',
+                'status'     => 1,
+                'created_by' => 1,
+                'created_at' => time()
+            ];
+            if ($has_fr) {
+                if ($this->db->field_exists('title_fr', 'email_template')) {
+                    $tpl_data['title_fr'] = "Confirmation d'achat du service Add-on";
+                }
+                $tpl_data['subject_fr'] = "Confirmation d'achat du service Add-on : ##SERVICE_TITLE## - Facture ###INVOICE_ID##";
+                $tpl_data['content_fr'] = '<div style="font-family: Arial, Helvetica, sans-serif; color: #333333; line-height: 1.6; max-width: 600px; margin: 0 auto;">' .
+                    '<h2 style="color: #222222; margin-top: 0;">Confirmation d\'achat de service Add-on</h2>' .
+                    '<p>Bonjour <strong>##MERCHANT_NAME##</strong>,</p>' .
+                    '<p>Merci pour votre paiement ! Nous vous confirmons que votre service add-on <strong>##SERVICE_TITLE##</strong> a été payé et activé avec succès sur votre compte marchand.</p>' .
+                    '<div style="background-color: #fdfdfd; border: 1px solid #e0e0e0; border-left: 4px solid #f7a800; border-radius: 4px; padding: 18px 20px; margin: 25px 0;">' .
+                    '<h3 style="margin: 0 0 15px 0; font-size: 16px; color: #111;">Détails de la commande</h3>' .
+                    '<table style="width: 100%; border-collapse: collapse; font-size: 14px;">' .
+                    '<tr><td style="padding: 6px 0; color: #666; width: 40%;"><strong>N° de commande :</strong></td><td style="padding: 6px 0; color: #222;">###INVOICE_ID##</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Nom du service :</strong></td><td style="padding: 6px 0; color: #222;"><strong>##SERVICE_TITLE##</strong></td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Catégorie :</strong></td><td style="padding: 6px 0; color: #222;">##CATEGORY_NAME##</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Quantité :</strong></td><td style="padding: 6px 0; color: #222;">##QTY##</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Montant payé :</strong></td><td style="padding: 6px 0; color: #28a745; font-size: 16px;"><strong>MUR ##AMOUNT##</strong></td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Réf. transaction :</strong></td><td style="padding: 6px 0; color: #222;">##TRANSACTION_REF##</td></tr>' .
+                    '<tr><td style="padding: 6px 0; color: #666;"><strong>Date :</strong></td><td style="padding: 6px 0; color: #222;">##DATE##</td></tr>' .
+                    '</table>' .
+                    '</div>' .
+                    '<div style="text-align: left; margin: 25px 0;">' .
+                    '<a href="##MANAGE_URL##" style="background-color: #f7a800; color: #000000; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; margin-right: 10px;">Gérer mes Add-ons</a>' .
+                    '<a href="##INVOICE_URL##" style="background-color: #f0f0f0; color: #333333; border: 1px solid #ccc; padding: 12px 22px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block;">Télécharger la facture</a>' .
+                    '</div>' .
+                    '<p style="margin-top: 30px;">Merci pour votre partenariat avec <strong>Yellow Markets</strong>.</p>' .
+                    '<p style="margin-bottom: 0;">Cordialement,<br><strong>L\'équipe support Yellow Markets</strong></p>' .
+                    '</div>';
+            }
+            $this->db->insert('email_template', $tpl_data);
+        }
     }
 }

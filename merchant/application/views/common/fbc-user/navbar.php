@@ -300,11 +300,30 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
 
                         break;
 
-                    
+                    case 'addon_purchase':
+                    case 'addon':
 
-                                    
+                        $display_title = 'Service Add-on Activé';
 
-                                       
+                        $display_msg = str_replace(
+                            [
+                                'Your add-on service "',
+                                'Your add-on service \'',
+                                '" has been successfully activated.',
+                                '\' has been successfully activated.',
+                                'has been successfully activated.'
+                            ],
+                            [
+                                'Votre service add-on "',
+                                'Votre service add-on \'',
+                                '" a été activé avec succès.',
+                                '\' a été activé avec succès.',
+                                'a été activé avec succès.'
+                            ],
+                            $display_msg
+                        );
+
+                        break;
 
                 }
             }
