@@ -325,7 +325,255 @@ $unread_count = $ci->Notification_model->unread_count('merchant', $id);
 
                         break;
 
+                    case 'subscription':
+                    case 'subscription_renewal':
+                    case 'subscription_order':
+
+                        if (stripos($display_title, 'Subscription Renewal') !== false) {
+                            $display_title = "Renouvellement d'abonnement";
+                        } elseif (stripos($display_title, 'Subscription Expired') !== false) {
+                            $display_title = "Abonnement expiré";
+                        } elseif (stripos($display_title, 'Subscription Expiry Reminder') !== false) {
+                            $display_title = "Rappel d'expiration d'abonnement";
+                        } elseif (stripos($display_title, 'Subscription Activated') !== false) {
+                            $display_title = "Abonnement activé";
+                        }
+
+                        $display_msg = str_ireplace(
+                            [
+                                'Your Subscription is renewed to ',
+                                'Your subscription is renewed to ',
+                                'Your subscription plan has been renewed to ',
+                                'Your subscription will expire in ',
+                                'Your subscription has expired.',
+                                'Your subscription has expired',
+                                'Your subscription for plan ',
+                                ' has been activated.',
+                                'Subscription payment confirmed for '
+                            ],
+                            [
+                                'Votre abonnement est renouvelé pour ',
+                                'Votre abonnement est renouvelé pour ',
+                                'Votre plan d’abonnement a été renouvelé pour ',
+                                'Votre abonnement expirera dans ',
+                                'Votre abonnement a expiré.',
+                                'Votre abonnement a expiré',
+                                'Votre abonnement pour le plan ',
+                                ' a été activé.',
+                                'Paiement de l’abonnement confirmé pour '
+                            ],
+                            $display_msg
+                        );
+
+                        break;
+
+                    case 'order_resolution':
+                    case 'resolution':
+                    case 'order_resolution_ticket':
+
+                        if ($subtype == 'new_ticket' || stripos($display_title, 'New Order Resolution Ticket') !== false) {
+                            $display_title = 'Nouveau ticket de résolution de commande';
+                        } elseif ($subtype == 'ticket_closed' || stripos($display_title, 'Order Resolution Closed') !== false) {
+                            $display_title = 'Ticket de résolution fermé';
+                        } elseif ($subtype == 'closed_final' || stripos($display_title, 'Closed (Final)') !== false) {
+                            $display_title = 'Résolution de commande - Fermée (Finale)';
+                        } elseif ($subtype == 'shopper_dispute_decision' || stripos($display_title, 'Shopper Dispute Decision') !== false) {
+                            $display_title = 'Résolution de commande - Décision contestée par l’acheteur';
+                        } elseif ($subtype == 'dispute_refund_decision' || stripos($display_title, 'Dispute Refund Decision') !== false) {
+                            $display_title = 'Résolution de commande - Contestation de la décision de remboursement';
+                        } elseif ($subtype == 'addon_purchase_requested' || stripos($display_title, 'Purchase Replacement Delivery AddOn') !== false) {
+                            $display_title = 'Action requise : Acheter le service de livraison de remplacement';
+                        } elseif ($subtype == 'admin_message' || stripos($display_title, 'Admin Message on Ticket') !== false) {
+                            $display_title = preg_replace('/Admin Message on Ticket\s*#(\S+)/i', 'Message de l’administrateur sur le ticket #$1', $display_title);
+                        } elseif (stripos($display_title, 'Order Resolution Reply on Ticket') !== false) {
+                            $display_title = preg_replace('/Order Resolution Reply on Ticket\s*#(\S+)/i', 'Réponse à la résolution de commande sur le ticket #$1', $display_title);
+                        } elseif (stripos($display_title, 'Order Refund Approved Update') !== false) {
+                            $display_title = 'Mise à jour : Remboursement de commande approuvé';
+                        } elseif (stripos($display_title, 'Order Replacement Approved Update') !== false) {
+                            $display_title = 'Mise à jour : Remplacement de commande approuvé';
+                        } elseif (stripos($display_title, 'Order Replacement Completed Update') !== false) {
+                            $display_title = 'Mise à jour : Remplacement de commande terminé';
+                        } elseif (stripos($display_title, 'Resolution ticket is closed') !== false) {
+                            $display_title = 'Le ticket de résolution est fermé';
+                        } elseif (stripos($display_title, 'Resolution ticket approved') !== false) {
+                            $display_title = 'Ticket de résolution approuvé';
+                        } elseif (stripos($display_title, 'Resolution ticket denied') !== false) {
+                            $display_title = 'Ticket de résolution refusé';
+                        }
+
+                        break;
+
                 }
+
+                // Global / Fallback check for Subscription & Resolution notifications
+                // Ensures older notifications with empty/generic type or unhandled subtypes are also translated
+                if (stripos($display_title, 'Subscription Renewal') !== false) {
+                    $display_title = "Renouvellement d'abonnement";
+                } elseif (stripos($display_title, 'New Order Resolution Ticket') !== false) {
+                    $display_title = "Nouveau ticket de résolution de commande";
+                } elseif (stripos($display_title, 'Order Resolution Closed') !== false) {
+                    $display_title = "Ticket de résolution fermé";
+                } elseif (stripos($display_title, 'Order Resolution - Closed (Final)') !== false) {
+                    $display_title = "Résolution de commande - Fermée (Finale)";
+                } elseif (stripos($display_title, 'Order Resolution - Dispute Refund Decision') !== false) {
+                    $display_title = "Résolution de commande - Contestation de la décision de remboursement";
+                } elseif (stripos($display_title, 'Order Resolution - Shopper Dispute Decision') !== false) {
+                    $display_title = "Résolution de commande - Décision contestée par l’acheteur";
+                } elseif (stripos($display_title, 'Action Required: Purchase Replacement Delivery AddOn') !== false) {
+                    $display_title = "Action requise : Acheter le service de livraison de remplacement";
+                } elseif (preg_match('/Admin Message on Ticket\s*#(\S+)/i', $display_title)) {
+                    $display_title = preg_replace('/Admin Message on Ticket\s*#(\S+)/i', 'Message de l’administrateur sur le ticket #$1', $display_title);
+                } elseif (preg_match('/Order Resolution Reply on Ticket\s*#(\S+)/i', $display_title)) {
+                    $display_title = preg_replace('/Order Resolution Reply on Ticket\s*#(\S+)/i', 'Réponse à la résolution de commande sur le ticket #$1', $display_title);
+                }
+
+                // Subscription messages
+                if (stripos($display_msg, 'Your Subscription is renewed to') !== false) {
+                    $display_msg = str_ireplace('Your Subscription is renewed to ', 'Votre abonnement est renouvelé pour ', $display_msg);
+                } elseif (stripos($display_msg, 'Your subscription is renewed to') !== false) {
+                    $display_msg = str_ireplace('Your subscription is renewed to ', 'Votre abonnement est renouvelé pour ', $display_msg);
+                } elseif (stripos($display_msg, 'Your subscription plan has been renewed to') !== false) {
+                    $display_msg = str_ireplace('Your subscription plan has been renewed to ', 'Votre plan d’abonnement a été renouvelé pour ', $display_msg);
+                } elseif (stripos($display_msg, 'Your subscription will expire in') !== false) {
+                    $display_msg = str_ireplace('Your subscription will expire in ', 'Votre abonnement expirera dans ', $display_msg);
+                    $display_msg = preg_replace('/\s*days?\./i', ' jours.', $display_msg);
+                } elseif (stripos($display_msg, 'Your subscription has expired') !== false) {
+                    $display_msg = str_ireplace(['Your subscription has expired.', 'Your subscription has expired'], 'Votre abonnement a expiré.', $display_msg);
+                }
+
+                // Resolution messages
+                if (stripos($display_msg, 'New Resolution Ticket') !== false && (stripos($display_msg, 'raised for Order') !== false || stripos($display_msg, 'created for Order') !== false)) {
+                    $display_msg = preg_replace_callback(
+                        '/New Resolution Ticket\s*(#\S+)?\s*(raised for Order|created for Order)\s*(#\S+)?(?:\s*by\s*(.*?))?\./i',
+                        function($m) {
+                            $ticket = $m[1] ?? '';
+                            $order = $m[3] ?? '';
+                            $by = !empty($m[4]) ? ' par ' . trim($m[4]) : '';
+                            return 'Nouveau ticket de résolution ' . $ticket . ' créé pour la commande ' . $order . $by . '.';
+                        },
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Order Resolution Ticket') !== false && stripos($display_msg, 'has been marked as Close') !== false) {
+                    $display_msg = preg_replace(
+                        '/Order Resolution Ticket\s*(#\S+)?\s*has been marked as Close(?:d)? by Yellow Markets Support \(@Help\)\./i',
+                        'Le ticket de résolution de commande $1 a été marqué comme fermé par le support Yellow Markets (@Help).',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Order Resolution Ticket') !== false && stripos($display_msg, 'has been closed (Final)') !== false) {
+                    $display_msg = preg_replace(
+                        '/Order Resolution Ticket\s*(#\S+)?\s*has been closed \(Final\)\./i',
+                        'Le ticket de résolution de commande $1 a été fermé (Final).',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Shopper has disputed refund') !== false) {
+                    $display_msg = preg_replace(
+                        '/Shopper has disputed refund decision for Ticket\s*(#\S+)?\s*\(Order\s*(#\S+)?\)\.\s*Case is under Yellow Markets review\./i',
+                        'L’acheteur a contesté la décision de remboursement pour le ticket $1 (Commande $2). Le dossier est en cours d’examen par Yellow Markets.',
+                        $display_msg
+                    );
+                    $display_msg = preg_replace(
+                        '/Shopper has disputed refund denial for Ticket\s*(#\S+)?\s*\(Order\s*(#\S+)?\)\.\s*Investigation required\./i',
+                        'L’acheteur a contesté le refus de remboursement pour le ticket $1 (Commande $2). Enquête requise.',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Dispute resolved in your favour for Ticket') !== false) {
+                    $display_msg = preg_replace(
+                        '/Dispute resolved in your favour for Ticket\s*(#\S+)?\.\s*Ticket is closed \(Final\)\./i',
+                        'Litige résolu en votre faveur pour le ticket $1. Le ticket est fermé (Final).',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'After investigation, resolution was decided in favour of merchant for Ticket') !== false) {
+                    $display_msg = preg_replace(
+                        '/After investigation,\s*resolution was decided in favour of merchant for Ticket\s*(#\S+)?\.\s*Ticket is closed \(Final\)\./i',
+                        'Après enquête, la décision a été prise en faveur du marchand pour le ticket $1. Le ticket est fermé (Final).',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Accounting (@Acct) has requested you to purchase') !== false) {
+                    $display_msg = preg_replace(
+                        '/Accounting \(@Acct\) has requested you to purchase the replacement delivery AddOn Service for Ticket\s*(#\S+)?\s*\(Order\s*(#\S+)?\)\./i',
+                        'La comptabilité (@Acct) vous a demandé d’acheter le service complémentaire de livraison de remplacement pour le ticket $1 (Commande $2).',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'YellowMarkets Admin posted a message on Ticket') !== false) {
+                    $display_msg = preg_replace(
+                        '/YellowMarkets Admin posted a message on Ticket\s*(#\S+)?\./i',
+                        'L’administrateur YellowMarkets a publié un message sur le ticket $1.',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Merchant replied to your Order Resolution request') !== false) {
+                    $display_msg = str_ireplace(
+                        'Merchant replied to your Order Resolution request.',
+                        'Le marchand a répondu à votre demande de résolution de commande.',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Your refund request for Ticket') !== false) {
+                    $display_msg = preg_replace(
+                        '/Your refund request for Ticket\s*(#\S+)?\s*has been approved \(Order\s*(#\S+)?\)\./i',
+                        'Votre demande de remboursement pour le ticket $1 a été approuvée (Commande $2).',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Your replacement request for Ticket') !== false) {
+                    $display_msg = preg_replace(
+                        '/Your replacement request for Ticket\s*(#\S+)?\s*has been approved \(Order\s*(#\S+)?\)\./i',
+                        'Votre demande de remplacement pour le ticket $1 a été approuvée (Commande $2).',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Your replacement for Ticket') !== false && stripos($display_msg, 'has been marked as completed') !== false) {
+                    $display_msg = preg_replace(
+                        '/Your replacement for Ticket\s*(#\S+)?\s*has been marked as completed \(Order\s*(#\S+)?\)\./i',
+                        'Votre remplacement pour le ticket $1 a été marqué comme terminé (Commande $2).',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Yellow Market team has replied to your resolution ticket') !== false || stripos($display_msg, 'Yellow Markets Support team has replied to your resolution ticket') !== false) {
+                    $display_msg = preg_replace(
+                        '/Yellow Markets?\s*(?:Support\s*)?team has replied to your resolution ticket\s*\((.*?)\)/i',
+                        'L’équipe de support Yellow Markets a répondu à votre ticket de résolution ($1)',
+                        $display_msg
+                    );
+                }
+
+                if (stripos($display_msg, 'Your resolution ticket no') !== false) {
+                    $display_msg = preg_replace(
+                        '/Your resolution ticket no\s*\((.*?)\)\s*is closed\./i',
+                        'Votre ticket de résolution n° ($1) est fermé.',
+                        $display_msg
+                    );
+                    $display_msg = preg_replace(
+                        '/Your resolution ticket no\s*\((.*?)\)\s*is approved by The yellow market team,?\s*Team is working on it and will update you asap\./i',
+                        'Votre ticket de résolution n° ($1) a été approuvé par l’équipe Yellow Market. L’équipe y travaille et vous informera dès que possible.',
+                        $display_msg
+                    );
+                    $display_msg = preg_replace(
+                        '/Your resolution ticket no\s*\((.*?)\)\s*is denied by The yellow market team\./i',
+                        'Votre ticket de résolution n° ($1) a été refusé par l’équipe Yellow Market.',
+                        $display_msg
+                    );
+                }
+
             }
         ?>
                 <li class="list-group-item small d-flex justify-content-between align-items-start" data-id="<?= $n['id'] ?>">
