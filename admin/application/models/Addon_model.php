@@ -127,7 +127,7 @@ class Addon_model extends CI_Model {
             s.price,
             s.vat_percent,
             s.final_price as amount,
-            COALESCE(NULLIF(pub.publication_name, \'\'), NULLIF(pub.company_name, \'\'), pub.name, \'Merchant\') as merchant_name,
+            COALESCE(NULLIF(pub.publication_name, \'\'), NULLIF(pub.company_name, \'\'), \'Merchant\') as merchant_name,
             pub.email as merchant_email
         ');
         $this->db->from('merchant_addon_purchases p');
