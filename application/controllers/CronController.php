@@ -2619,6 +2619,7 @@ class CronController extends CI_Controller
 			if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
 				$this->db->where('id', $p->id)->update('products', [
 					'daily_deals' => 0,
+					'daily_deal_ends_at' => 0,
 					'special_price' => (float)$p->default_special_price
 				]);
 				$this->db->where('product_id', $p->id)->update('products_special_prices', [
@@ -2628,6 +2629,7 @@ class CronController extends CI_Controller
 			} else {
 				$this->db->where('id', $p->id)->update('products', [
 					'daily_deals' => 0,
+					'daily_deal_ends_at' => 0,
 					'special_price' => null
 				]);
 				$this->db->where('product_id', $p->id)->delete('products_special_prices');
@@ -2647,6 +2649,7 @@ class CronController extends CI_Controller
 			if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
 				$this->db->where('id', $p->id)->update('products', [
 					'flash_sale' => 0,
+					'flash_sale_ends_at' => 0,
 					'special_price' => (float)$p->default_special_price
 				]);
 				$this->db->where('product_id', $p->id)->update('products_special_prices', [
@@ -2656,11 +2659,53 @@ class CronController extends CI_Controller
 			} else {
 				$this->db->where('id', $p->id)->update('products', [
 					'flash_sale' => 0,
+					'flash_sale_ends_at' => 0,
 					'special_price' => null
 				]);
 				$this->db->where('product_id', $p->id)->delete('products_special_prices');
 			}
 			$affected_fs++;
+		}
+
+		// Also clean up any orphaned records in products_special_prices
+		$orphans = $this->db->select('p.id, p.special_price, p.default_special_price, p.special_price_to, sp.id as sp_id, sp.special_price as sp_special_price, sp.offer_type, sp.special_price_to as sp_to')
+			->from('products p')
+			->join('products_special_prices sp', 'sp.product_id = p.id', 'inner')
+			->where('p.daily_deals', 0)
+			->where('p.flash_sale', 0)
+			->get()->result();
+
+		foreach ($orphans as $row) {
+			if (in_array($row->offer_type, ['daily_deal', 'flash_sale']) || empty($row->special_price) || (float)$row->special_price <= 0) {
+				$has_default = (!empty($row->default_special_price) && (float)$row->default_special_price > 0);
+				$to_valid = true;
+				if (!empty($row->special_price_to)) {
+					$to_ts = is_numeric($row->special_price_to) ? (int)$row->special_price_to : strtotime($row->special_price_to);
+					if ($to_ts > 0 && $to_ts < $now) {
+						$to_valid = false;
+					}
+				}
+
+				if ($has_default && $to_valid) {
+					$base_price = (float)$row->default_special_price;
+					$this->db->where('id', $row->id)->update('products', [
+						'special_price' => $base_price
+					]);
+					$this->db->where('id', $row->sp_id)->update('products_special_prices', [
+						'special_price' => $base_price,
+						'offer_type'    => 'general',
+						'updated_at'    => $now
+					]);
+				} else {
+					$this->db->where('id', $row->id)->update('products', [
+						'special_price'         => null,
+						'default_special_price' => null,
+						'special_price_from'    => null,
+						'special_price_to'      => null
+					]);
+					$this->db->where('id', $row->sp_id)->delete('products_special_prices');
+				}
+			}
 		}
 
 		echo json_encode([

@@ -2831,9 +2831,11 @@ class Sellerproduct extends CI_Controller
 			$update_p = [];
 			if ($p->daily_deals == 1 && $p->daily_deal_ends_at > 0 && $p->daily_deal_ends_at <= $now) {
 				$update_p['daily_deals'] = 0;
+				$update_p['daily_deal_ends_at'] = 0;
 			}
 			if ($p->flash_sale == 1 && $p->flash_sale_ends_at > 0 && $p->flash_sale_ends_at <= $now) {
 				$update_p['flash_sale'] = 0;
+				$update_p['flash_sale_ends_at'] = 0;
 			}
 			if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
 				$update_p['special_price'] = (float)$p->default_special_price;
@@ -2846,6 +2848,50 @@ class Sellerproduct extends CI_Controller
 				$this->db->where('product_id', $p->id)->delete('products_special_prices');
 			}
 			$this->db->where('id', $p->id)->update('products', $update_p);
+		}
+
+		// Also clean up any orphaned records in products_special_prices
+		$this->db->select('p.id, p.special_price, p.default_special_price, p.special_price_to, sp.id as sp_id, sp.special_price as sp_special_price, sp.offer_type, sp.special_price_to as sp_to');
+		$this->db->from('products p');
+		$this->db->join('products_special_prices sp', 'sp.product_id = p.id', 'inner');
+		$this->db->where('p.daily_deals', 0);
+		$this->db->where('p.flash_sale', 0);
+		if ($product_id) {
+			$this->db->where('p.id', $product_id);
+		}
+		$orphans = $this->db->get()->result();
+
+		foreach ($orphans as $row) {
+			if (in_array($row->offer_type, ['daily_deal', 'flash_sale']) || empty($row->special_price) || (float)$row->special_price <= 0) {
+				$has_default = (!empty($row->default_special_price) && (float)$row->default_special_price > 0);
+				$to_valid = true;
+				if (!empty($row->special_price_to)) {
+					$to_ts = is_numeric($row->special_price_to) ? (int)$row->special_price_to : strtotime($row->special_price_to);
+					if ($to_ts > 0 && $to_ts < $now) {
+						$to_valid = false;
+					}
+				}
+
+				if ($has_default && $to_valid) {
+					$base_price = (float)$row->default_special_price;
+					$this->db->where('id', $row->id)->update('products', [
+						'special_price' => $base_price
+					]);
+					$this->db->where('id', $row->sp_id)->update('products_special_prices', [
+						'special_price' => $base_price,
+						'offer_type'    => 'general',
+						'updated_at'    => $now
+					]);
+				} else {
+					$this->db->where('id', $row->id)->update('products', [
+						'special_price'         => null,
+						'default_special_price' => null,
+						'special_price_from'    => null,
+						'special_price_to'      => null
+					]);
+					$this->db->where('id', $row->sp_id)->delete('products_special_prices');
+				}
+			}
 		}
 	}
 
@@ -3340,10 +3386,15 @@ class Sellerproduct extends CI_Controller
 							if ($is_dd_admin || $is_fs_admin) {
 								if (!empty($OldProductData->default_special_price) && (float)$OldProductData->default_special_price > 0) {
 									$default_sp_to_save = (float)$OldProductData->default_special_price;
-								} elseif (!empty($OldProductData->special_price) && (float)$OldProductData->special_price > 0) {
+								} elseif (empty($OldProductData->daily_deals) && empty($OldProductData->flash_sale) && !empty($OldProductData->special_price) && (float)$OldProductData->special_price > 0) {
 									$default_sp_to_save = (float)$OldProductData->special_price;
 								} else {
-									$default_sp_to_save = null;
+									$old_sp = $this->db->get_where('products_special_prices', ['product_id' => $product_id])->row();
+									if (!empty($old_sp) && $old_sp->offer_type === 'general' && (float)$old_sp->special_price > 0) {
+										$default_sp_to_save = (float)$old_sp->special_price;
+									} else {
+										$default_sp_to_save = null;
+									}
 								}
 								$updatedata['special_price'] = $promo_special_price;
 								$updatedata['default_special_price'] = $default_sp_to_save;

@@ -428,13 +428,36 @@ $(document).on("change", "input[type=radio][name=type-of-commission]", function 
 $(document).ready(function() {
 	var todayDateOnlyStr = new Date().toISOString().split('T')[0];
 
-	$(document).on('change input', '#special_price_from', function() {
+	// Disable past dates ONLY when opening datepicker
+	$(document).on('focus click', '#special_price_from, input[name="variant_special_price_from[]"]', function() {
+		$(this).attr('min', todayDateOnlyStr);
+	});
+
+	$(document).on('focus click', '#special_price_to', function() {
+		var fromVal = $('#special_price_from').val();
+		var minDate = (fromVal && fromVal >= todayDateOnlyStr) ? fromVal : todayDateOnlyStr;
+		$(this).attr('min', minDate);
+	});
+
+	$(document).on('focus click', 'input[name="variant_special_price_to[]"]', function() {
+		var tr = $(this).closest('tr');
+		var fromVal = tr.find('input[name="variant_special_price_from[]"]').val();
+		var minDate = (fromVal && fromVal >= todayDateOnlyStr) ? fromVal : todayDateOnlyStr;
+		$(this).attr('min', minDate);
+	});
+
+	// Remove min on blur if value is in past so saving isn't blocked
+	$(document).on('blur', 'input[type="date"]', function() {
 		var val = $(this).val();
-		if (val && val < todayDateOnlyStr) {
-			alert('Start date cannot be in the past. Please select today or a future date.');
-			$(this).val(todayDateOnlyStr);
-			val = todayDateOnlyStr;
+		var min = $(this).attr('min');
+		if (val && min && val < min) {
+			$(this).removeAttr('min');
 		}
+	});
+
+	// Dynamic adjustment when dates change (silently without alerts)
+	$(document).on('change', '#special_price_from', function() {
+		var val = $(this).val();
 		if (val) {
 			$('#special_price_to').attr('min', val);
 			if ($('#special_price_to').val() && $('#special_price_to').val() < val) {
@@ -443,23 +466,17 @@ $(document).ready(function() {
 		}
 	});
 
-	$(document).on('change input', '#special_price_to', function() {
+	$(document).on('change', '#special_price_to', function() {
 		var val = $(this).val();
-		var currentMin = $('#special_price_from').val() || todayDateOnlyStr;
-		if (val && val < currentMin) {
-			alert('End date cannot be earlier than start date or in the past.');
-			$(this).val(currentMin);
+		var fromVal = $('#special_price_from').val();
+		if (val && fromVal && val < fromVal) {
+			$(this).val(fromVal);
 		}
 	});
 
-	$(document).on('change input', 'input[name="variant_special_price_from[]"]', function() {
+	$(document).on('change', 'input[name="variant_special_price_from[]"]', function() {
 		var tr = $(this).closest('tr');
 		var val = $(this).val();
-		if (val && val < todayDateOnlyStr) {
-			alert('Start date cannot be in the past. Please select today or a future date.');
-			$(this).val(todayDateOnlyStr);
-			val = todayDateOnlyStr;
-		}
 		var toInput = tr.find('input[name="variant_special_price_to[]"]');
 		if (val && toInput.length) {
 			toInput.attr('min', val);
@@ -469,13 +486,23 @@ $(document).ready(function() {
 		}
 	});
 
-	$(document).on('change input', 'input[name="variant_special_price_to[]"]', function() {
+	$(document).on('change', 'input[name="variant_special_price_to[]"]', function() {
 		var tr = $(this).closest('tr');
 		var val = $(this).val();
-		var currentMin = tr.find('input[name="variant_special_price_from[]"]').val() || todayDateOnlyStr;
-		if (val && val < currentMin) {
-			alert('End date cannot be earlier than start date or in the past.');
-			$(this).val(currentMin);
+		var fromVal = tr.find('input[name="variant_special_price_from[]"]').val();
+		if (val && fromVal && val < fromVal) {
+			$(this).val(fromVal);
 		}
+	});
+
+	// Remove past date restriction on form submit
+	$('form').on('submit', function() {
+		$(this).find('input[type="date"]').each(function() {
+			var val = $(this).val();
+			var min = $(this).attr('min');
+			if (val && min && val < min) {
+				$(this).removeAttr('min');
+			}
+		});
 	});
 });

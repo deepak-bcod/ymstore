@@ -1500,10 +1500,15 @@
 													<td>
 														<?php
 															$simple_sp = '';
-															if (!empty($SpecialPriceData->special_price) && $SpecialPriceData->special_price > 0) {
-																$simple_sp = $SpecialPriceData->special_price;
-															} elseif (!empty($ProductData->special_price) && $ProductData->special_price > 0) {
-																$simple_sp = $ProductData->special_price;
+															$is_active_deal = (!empty($ProductData->daily_deals) || !empty($ProductData->flash_sale));
+															if (!empty($ProductData->special_price) && (float)$ProductData->special_price > 0) {
+																$simple_sp = (float)$ProductData->special_price;
+															} elseif (!empty($ProductData->default_special_price) && (float)$ProductData->default_special_price > 0) {
+																$simple_sp = (float)$ProductData->default_special_price;
+															} elseif (!empty($SpecialPriceData->special_price) && (float)$SpecialPriceData->special_price > 0) {
+																if ($is_active_deal || (isset($SpecialPriceData->offer_type) && $SpecialPriceData->offer_type === 'general')) {
+																	$simple_sp = (float)$SpecialPriceData->special_price;
+																}
 															}
 														?>
 														<input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" value="<?php echo $simple_sp; ?>" placeholder="0.00">
@@ -1512,11 +1517,13 @@
 													<td>
 														<?php
 															$simple_sp_from = '';
-															$from_ts = !empty($SpecialPriceData->special_price_from) ? $SpecialPriceData->special_price_from : (!empty($ProductData->special_price_from) ? $ProductData->special_price_from : null);
-															if (!empty($from_ts)) {
-																$ts = is_numeric($from_ts) ? (int)$from_ts : strtotime($from_ts);
-																if ($ts > 0) {
-																	$simple_sp_from = date('Y-m-d', $ts);
+															if ($simple_sp !== '') {
+																$from_ts = !empty($SpecialPriceData->special_price_from) ? $SpecialPriceData->special_price_from : (!empty($ProductData->special_price_from) ? $ProductData->special_price_from : null);
+																if (!empty($from_ts)) {
+																	$ts = is_numeric($from_ts) ? (int)$from_ts : strtotime($from_ts);
+																	if ($ts > 0) {
+																		$simple_sp_from = date('Y-m-d', $ts);
+																	}
 																}
 															}
 														?>
@@ -1526,11 +1533,13 @@
 													<td>
 														<?php
 															$simple_sp_to = '';
-															$to_ts = !empty($SpecialPriceData->special_price_to) ? $SpecialPriceData->special_price_to : (!empty($ProductData->special_price_to) ? $ProductData->special_price_to : null);
-															if (!empty($to_ts)) {
-																$ts = is_numeric($to_ts) ? (int)$to_ts : strtotime($to_ts);
-																if ($ts > 0) {
-																	$simple_sp_to = date('Y-m-d', $ts);
+															if ($simple_sp !== '') {
+																$to_ts = !empty($SpecialPriceData->special_price_to) ? $SpecialPriceData->special_price_to : (!empty($ProductData->special_price_to) ? $ProductData->special_price_to : null);
+																if (!empty($to_ts)) {
+																	$ts = is_numeric($to_ts) ? (int)$to_ts : strtotime($to_ts);
+																	if ($ts > 0) {
+																		$simple_sp_to = date('Y-m-d', $ts);
+																	}
 																}
 															}
 														?>

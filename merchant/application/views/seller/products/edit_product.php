@@ -27,7 +27,7 @@
 
 	<div id="addnew" class="tab-pane fade active show">
 
-	<form name="product-frm-edit" id="product-frm-edit" method="POST" action="<?php echo base_url() ?>seller/product/edit/<?php echo $ProductData->id; ?>" enctype="multipart/form-data">
+	<form name="product-frm-edit" id="product-frm-edit" method="POST" action="<?php echo base_url() ?>seller/product/edit/<?php echo $ProductData->id; ?>" enctype="multipart/form-data" novalidate>
 
 	<input type="hidden" value="edit" id="current_page" name="current_page">
 
@@ -347,7 +347,7 @@
 					<div class="row">
 						<div class="col-sm-6">
 							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (UTC) <span class="text-danger">*</span></label>
-							<input type="datetime-local" class="form-control" name="daily_deal_starts_at" id="daily_deal_starts_at" value="<?php echo $dd_start_val; ?>" min="<?php echo $today_min_dt; ?>" <?php echo ($is_dd_active ? 'required' : ''); ?>>
+							<input type="datetime-local" class="form-control" name="daily_deal_starts_at" id="daily_deal_starts_at" value="<?php echo $dd_start_val; ?>" <?php echo ($is_dd_active ? 'required' : ''); ?>>
 						</div>
 						<div class="col-sm-6">
 							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (UTC)</label>
@@ -415,7 +415,7 @@
 						<div class="row">
 							<div class="col-sm-6">
 								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (UTC) <span class="text-danger">*</span></label>
-								<input type="datetime-local" class="form-control" name="flash_sale_starts_at" id="flash_sale_starts_at" value="<?php echo $fs_start_val; ?>" min="<?php echo $today_min_dt; ?>" <?php echo ($is_fs_active ? 'required' : ''); ?>>
+								<input type="datetime-local" class="form-control" name="flash_sale_starts_at" id="flash_sale_starts_at" value="<?php echo $fs_start_val; ?>" <?php echo ($is_fs_active ? 'required' : ''); ?>>
 							</div>
 							<div class="col-sm-6">
 								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (UTC)</label>
@@ -1447,10 +1447,15 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 					<td>
 						<?php
 							$simple_sp = '';
-							if (!empty($SpecialPriceData->special_price) && $SpecialPriceData->special_price > 0) {
-								$simple_sp = $SpecialPriceData->special_price;
-							} elseif (!empty($ProductData->special_price) && $ProductData->special_price > 0) {
-								$simple_sp = $ProductData->special_price;
+							$is_active_deal = (!empty($ProductData->daily_deals) || !empty($ProductData->flash_sale));
+							if (!empty($ProductData->special_price) && (float)$ProductData->special_price > 0) {
+								$simple_sp = (float)$ProductData->special_price;
+							} elseif (!empty($ProductData->default_special_price) && (float)$ProductData->default_special_price > 0) {
+								$simple_sp = (float)$ProductData->default_special_price;
+							} elseif (!empty($SpecialPriceData->special_price) && (float)$SpecialPriceData->special_price > 0) {
+								if ($is_active_deal || (isset($SpecialPriceData->offer_type) && $SpecialPriceData->offer_type === 'general')) {
+									$simple_sp = (float)$SpecialPriceData->special_price;
+								}
 							}
 						?>
 						<input type="number" step="0.01" min="0" class="form-control input-sm" name="special_price" id="special_price" value="<?php echo $simple_sp; ?>" placeholder="0.00">
@@ -1459,29 +1464,33 @@ $qty=(isset($ProductStock) && $ProductStock->qty>0)?($ProductStock->qty - $Produ
 					<td>
 						<?php
 							$simple_sp_from = '';
-							$from_ts = !empty($SpecialPriceData->special_price_from) ? $SpecialPriceData->special_price_from : (!empty($ProductData->special_price_from) ? $ProductData->special_price_from : null);
-							if (!empty($from_ts)) {
-								$ts = is_numeric($from_ts) ? (int)$from_ts : strtotime($from_ts);
-								if ($ts > 0) {
-									$simple_sp_from = date('Y-m-d', $ts);
+							if ($simple_sp !== '') {
+								$from_ts = !empty($SpecialPriceData->special_price_from) ? $SpecialPriceData->special_price_from : (!empty($ProductData->special_price_from) ? $ProductData->special_price_from : null);
+								if (!empty($from_ts)) {
+									$ts = is_numeric($from_ts) ? (int)$from_ts : strtotime($from_ts);
+									if ($ts > 0) {
+										$simple_sp_from = date('Y-m-d', $ts);
+									}
 								}
 							}
 						?>
-						<input type="date" class="form-control input-sm" name="special_price_from" id="special_price_from" value="<?php echo $simple_sp_from; ?>" min="<?php echo date('Y-m-d'); ?>">
+						<input type="date" class="form-control input-sm" name="special_price_from" id="special_price_from" value="<?php echo $simple_sp_from; ?>">
 					</td>
 
 					<td>
 						<?php
 							$simple_sp_to = '';
-							$to_ts = !empty($SpecialPriceData->special_price_to) ? $SpecialPriceData->special_price_to : (!empty($ProductData->special_price_to) ? $ProductData->special_price_to : null);
-							if (!empty($to_ts)) {
-								$ts = is_numeric($to_ts) ? (int)$to_ts : strtotime($to_ts);
-								if ($ts > 0) {
-									$simple_sp_to = date('Y-m-d', $ts);
+							if ($simple_sp !== '') {
+								$to_ts = !empty($SpecialPriceData->special_price_to) ? $SpecialPriceData->special_price_to : (!empty($ProductData->special_price_to) ? $ProductData->special_price_to : null);
+								if (!empty($to_ts)) {
+									$ts = is_numeric($to_ts) ? (int)$to_ts : strtotime($to_ts);
+									if ($ts > 0) {
+										$simple_sp_to = date('Y-m-d', $ts);
+									}
 								}
 							}
 						?>
-						<input type="date" class="form-control input-sm" name="special_price_to" id="special_price_to" value="<?php echo $simple_sp_to; ?>" min="<?php echo date('Y-m-d'); ?>">
+						<input type="date" class="form-control input-sm" name="special_price_to" id="special_price_to" value="<?php echo $simple_sp_to; ?>">
 					</td>
 
 					  <!-- <td><select class="form-control input-sm" name="gifts_to" id="gifts_to">
@@ -2216,15 +2225,43 @@ $('.required-field').each(function() {
 	});
 
 	var todayDateOnlyStr = '<?php echo date("Y-m-d"); ?>';
+	var todayDateTimeLocalStr = '<?php echo date("Y-m-d\TH:i"); ?>';
 
-	$('#special_price_from').attr('min', todayDateOnlyStr).on('change input', function() {
+	// 1. Disable past dates ONLY when user opens/interacts with the datepicker (focus / click)
+	$(document).on('focus click', '#special_price_from, input[name="variant_special_price_from[]"]', function() {
+		$(this).attr('min', todayDateOnlyStr);
+	});
+
+	$(document).on('focus click', '#special_price_to', function() {
+		var fromVal = $('#special_price_from').val();
+		var minDate = (fromVal && fromVal >= todayDateOnlyStr) ? fromVal : todayDateOnlyStr;
+		$(this).attr('min', minDate);
+	});
+
+	$(document).on('focus click', 'input[name="variant_special_price_to[]"]', function() {
+		var tr = $(this).closest('tr');
+		var fromVal = tr.find('input[name="variant_special_price_from[]"]').val();
+		var minDate = (fromVal && fromVal >= todayDateOnlyStr) ? fromVal : todayDateOnlyStr;
+		$(this).attr('min', minDate);
+	});
+
+	$(document).on('focus click', '#daily_deal_starts_at, #flash_sale_starts_at', function() {
+		$(this).attr('min', todayDateTimeLocalStr);
+	});
+
+	// 2. If user leaves the field without picking a future date (or leaves an existing past date), remove min so save is not blocked
+	$(document).on('blur', 'input[type="date"], input[type="datetime-local"]', function() {
+		var val = $(this).val();
+		var min = $(this).attr('min');
+		if (val && min && val < min) {
+			$(this).removeAttr('min');
+		}
+	});
+
+	// 3. Dynamic adjustment when dates change (silently without alerts)
+	$('#special_price_from').on('change', function() {
 		var fromVal = $(this).val();
 		if (fromVal) {
-			if (fromVal < todayDateOnlyStr) {
-				alert('Special price start date cannot be in the past.');
-				$(this).val(todayDateOnlyStr);
-				fromVal = todayDateOnlyStr;
-			}
 			$('#special_price_to').attr('min', fromVal);
 			if ($('#special_price_to').val() && $('#special_price_to').val() < fromVal) {
 				$('#special_price_to').val(fromVal);
@@ -2232,38 +2269,52 @@ $('.required-field').each(function() {
 		}
 	});
 
-	$('#special_price_to').on('change input', function() {
+	$('#special_price_to').on('change', function() {
 		var toVal = $(this).val();
-		var currentMin = $('#special_price_from').val() || todayDateOnlyStr;
-		if (toVal && toVal < currentMin) {
-			alert('Special price end date cannot be earlier than start date or in the past.');
-			$(this).val(currentMin);
+		var fromVal = $('#special_price_from').val();
+		if (toVal && fromVal && toVal < fromVal) {
+			$(this).val(fromVal);
 		}
 	});
 
-	$(document).on('change input', 'input[name="variant_special_price_from[]"]', function() {
+	$(document).on('change', 'input[name="variant_special_price_from[]"]', function() {
 		var fromVal = $(this).val();
-		if (fromVal && fromVal < todayDateOnlyStr) {
-			alert('Special price start date cannot be in the past.');
-			$(this).val(todayDateOnlyStr);
-			fromVal = todayDateOnlyStr;
-		}
 		var tr = $(this).closest('tr');
 		var toInput = tr.find('input[name="variant_special_price_to[]"]');
-		toInput.attr('min', fromVal || todayDateOnlyStr);
-		if (toInput.val() && toInput.val() < fromVal) {
-			toInput.val(fromVal);
+		if (fromVal && toInput.length) {
+			toInput.attr('min', fromVal);
+			if (toInput.val() && toInput.val() < fromVal) {
+				toInput.val(fromVal);
+			}
 		}
 	});
 
-	$(document).on('change input', 'input[name="variant_special_price_to[]"]', function() {
+	$(document).on('change', 'input[name="variant_special_price_to[]"]', function() {
 		var toVal = $(this).val();
 		var tr = $(this).closest('tr');
-		var currentMin = tr.find('input[name="variant_special_price_from[]"]').val() || todayDateOnlyStr;
-		if (toVal && toVal < currentMin) {
-			alert('Special price end date cannot be earlier than start date or in the past.');
-			$(this).val(currentMin);
+		var fromVal = tr.find('input[name="variant_special_price_from[]"]').val();
+		if (toVal && fromVal && toVal < fromVal) {
+			$(this).val(fromVal);
 		}
+	});
+
+	// 4. On click of Save button or submit, remove any min attributes that could block past dates
+	function clearPastDateRestrictions() {
+		$('input[type="date"], input[type="datetime-local"]').each(function() {
+			var val = $(this).val();
+			var min = $(this).attr('min');
+			if (val && min && val < min) {
+				$(this).removeAttr('min');
+			}
+		});
+	}
+
+	$(document).on('click', 'input[type="submit"], button[type="submit"], .save-discard-btn input, input[name="save_product"]', function() {
+		clearPastDateRestrictions();
+	});
+
+	$('form').on('submit', function() {
+		clearPastDateRestrictions();
 	});
 
 });

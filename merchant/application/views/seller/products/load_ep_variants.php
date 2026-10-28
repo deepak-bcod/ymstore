@@ -156,7 +156,7 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
                 }
             }
         ?>
-        <input type="date" name="variant_special_price_from[]" class="form-control" value="<?php echo $v_sp_from; ?>" min="<?php echo date('Y-m-d'); ?>">
+        <input type="date" name="variant_special_price_from[]" class="form-control" value="<?php echo $v_sp_from; ?>">
     </td>
     <td>
         <?php
@@ -169,7 +169,7 @@ if(isset($VariantProducts) && count($VariantProducts)>0){
                 }
             }
         ?>
-        <input type="date" name="variant_special_price_to[]" class="form-control" value="<?php echo $v_sp_to; ?>" min="<?php echo !empty($v_sp_from) && $v_sp_from > date('Y-m-d') ? $v_sp_from : date('Y-m-d'); ?>">
+        <input type="date" name="variant_special_price_to[]" class="form-control" value="<?php echo $v_sp_to; ?>">
     </td>
     <input type="hidden" name="conf_simple[]" class="form-control "  value="<?php echo $variant['id']; ?>" >
     <td>
