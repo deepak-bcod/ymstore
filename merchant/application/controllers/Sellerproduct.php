@@ -9688,49 +9688,8 @@ class Sellerproduct extends CI_Controller {
 	private function auto_expire_product_deal($product_id = null, $now = null)
 	{
 		if (!$now) $now = time();
-		if (!$this->db->field_exists('default_special_price', 'products')) {
-			@$this->db->query("ALTER TABLE products ADD COLUMN default_special_price DECIMAL(12,2) NULL DEFAULT NULL AFTER special_price");
-		}
-
-		$this->db->select('id, special_price, default_special_price, daily_deals, daily_deal_ends_at, flash_sale, flash_sale_ends_at');
-		$this->db->from('products');
-		if ($product_id) {
-			$this->db->where('id', $product_id);
-		}
-		$this->db->group_start();
-			$this->db->group_start();
-				$this->db->where('daily_deals', 1);
-				$this->db->where('daily_deal_ends_at >', 0);
-				$this->db->where('daily_deal_ends_at <=', $now);
-			$this->db->group_end();
-			$this->db->or_group_start();
-				$this->db->where('flash_sale', 1);
-				$this->db->where('flash_sale_ends_at >', 0);
-				$this->db->where('flash_sale_ends_at <=', $now);
-			$this->db->group_end();
-		$this->db->group_end();
-
-		$exp_prods = $this->db->get()->result();
-		foreach ($exp_prods as $p) {
-			$update_p = [];
-			if ($p->daily_deals == 1 && $p->daily_deal_ends_at > 0 && $p->daily_deal_ends_at <= $now) {
-				$update_p['daily_deals'] = 0;
-			}
-			if ($p->flash_sale == 1 && $p->flash_sale_ends_at > 0 && $p->flash_sale_ends_at <= $now) {
-				$update_p['flash_sale'] = 0;
-			}
-			if (!empty($p->default_special_price) && (float)$p->default_special_price > 0) {
-				$update_p['special_price'] = (float)$p->default_special_price;
-				$this->db->where('product_id', $p->id)->update('products_special_prices', [
-					'special_price' => (float)$p->default_special_price,
-					'offer_type' => 'general'
-				]);
-			} else {
-				$update_p['special_price'] = null;
-				$this->db->where('product_id', $p->id)->delete('products_special_prices');
-			}
-			$this->db->where('id', $p->id)->update('products', $update_p);
-		}
+		$this->load->model('UserModel');
+		$this->UserModel->expire_deals($now, $product_id);
 	}
 
 	function editproduct()
@@ -10004,12 +9963,9 @@ class Sellerproduct extends CI_Controller {
 			$this->load->model('UserModel');
 			$this->load->model('Subscription_model');
 
-			// Opportunistic cleanup of expired deals
+			// Opportunistic cleanup of expired deals and reversion
 			$now_time = time();
-			$this->db->where('daily_deals', 1);
-			$this->db->where('daily_deal_ends_at >', 0);
-			$this->db->where('daily_deal_ends_at <=', $now_time);
-			$this->db->update('products', ['daily_deals' => 0]);
+			$this->auto_expire_product_deal(null, $now_time);
 
 			// Also reset deals for any products whose stock is 0
 			$this->db->query("UPDATE products p 
@@ -10109,11 +10065,7 @@ class Sellerproduct extends CI_Controller {
 
 			// -----------------------------
 
-			// Opportunistic cleanup of expired flash sales
-			$this->db->where('flash_sale', 1);
-			$this->db->where('flash_sale_ends_at >', 0);
-			$this->db->where('flash_sale_ends_at <=', $now_time);
-			$this->db->update('products', ['flash_sale' => 0]);
+			// Expired flash sales already cleaned up by auto_expire_product_deal above
 
 			// If current product itself has expired flash sale, update in-memory object
 			if (isset($ProductData) && $ProductData->flash_sale == 1 && $ProductData->flash_sale_ends_at > 0 && $ProductData->flash_sale_ends_at <= $now_time) {
@@ -10218,6 +10170,9 @@ class Sellerproduct extends CI_Controller {
 
 			// Special Pricing data
 			$data['SpecialPriceData'] = $this->SellerProductModel->getSingleDataByID('products_special_prices', array('product_id' => $product_id), '*');
+			if (empty($ProductData->special_price) && empty($ProductData->default_special_price) && empty($ProductData->daily_deals) && empty($ProductData->flash_sale)) {
+				$data['SpecialPriceData'] = null;
+			}
 
 			$this->load->view('seller/products/edit_product', $data);
 
@@ -11132,10 +11087,15 @@ class Sellerproduct extends CI_Controller {
 							// Preserve existing base special price in default_special_price
 							if (!empty($OldProductData->default_special_price) && (float)$OldProductData->default_special_price > 0) {
 								$default_sp_to_save = (float)$OldProductData->default_special_price;
-							} elseif (!empty($OldProductData->special_price) && (float)$OldProductData->special_price > 0) {
+							} elseif (empty($OldProductData->daily_deals) && empty($OldProductData->flash_sale) && !empty($OldProductData->special_price) && (float)$OldProductData->special_price > 0) {
 								$default_sp_to_save = (float)$OldProductData->special_price;
 							} else {
-								$default_sp_to_save = null;
+								$old_sp = $this->db->get_where('products_special_prices', ['product_id' => $product_id])->row();
+								if (!empty($old_sp) && $old_sp->offer_type === 'general' && (float)$old_sp->special_price > 0) {
+									$default_sp_to_save = (float)$old_sp->special_price;
+								} else {
+									$default_sp_to_save = null;
+								}
 							}
 
 							$updatedata['special_price'] = ($promo_special_price > 0) ? $promo_special_price : null;

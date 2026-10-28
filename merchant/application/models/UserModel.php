@@ -448,17 +448,183 @@ class UserModel extends CI_Model
     {
         $current_time = time(); // current timestamp
 
-        // Clean up expired deals
-        $this->db->where('daily_deals', 1);
-        $this->db->where('daily_deal_ends_at >', 0);
-        $this->db->where('daily_deal_ends_at <=', $current_time);
-        $this->db->update('products', ['daily_deals' => 0]);
+        // Clean up expired deals with special price reversion
+        $this->expire_deals($current_time);
 
         $this->db->from('products');
         $this->db->where('publisher_id', $merchant_id);
         $this->db->where('daily_deals', 1);
         $this->db->where('daily_deal_ends_at >', $current_time); // only active deals
         return $this->db->count_all_results();
+    }
+
+    public function expire_deals($now = null, $product_id = null)
+    {
+        if (!$now) $now = time();
+
+        if (!$this->db->field_exists('default_special_price', 'products')) {
+            @$this->db->query("ALTER TABLE products ADD COLUMN default_special_price DECIMAL(12,2) NULL DEFAULT NULL AFTER special_price");
+        }
+
+        // 1. Expire daily deals whose time has passed
+        $this->db->select('id, special_price, default_special_price, special_price_from, special_price_to, daily_deals, daily_deal_ends_at');
+        $this->db->from('products');
+        if ($product_id) {
+            $this->db->where('id', $product_id);
+        }
+        $this->db->where('daily_deals', 1);
+        $this->db->where('daily_deal_ends_at >', 0);
+        $this->db->where('daily_deal_ends_at <=', $now);
+        $exp_dd = $this->db->get()->result();
+
+        foreach ($exp_dd as $p) {
+            $this->revert_product_deal($p, 'daily_deal', $now);
+        }
+
+        // 2. Expire flash sales whose time has passed
+        $this->db->select('id, special_price, default_special_price, special_price_from, special_price_to, flash_sale, flash_sale_ends_at');
+        $this->db->from('products');
+        if ($product_id) {
+            $this->db->where('id', $product_id);
+        }
+        $this->db->where('flash_sale', 1);
+        $this->db->where('flash_sale_ends_at >', 0);
+        $this->db->where('flash_sale_ends_at <=', $now);
+        $exp_fs = $this->db->get()->result();
+
+        foreach ($exp_fs as $p) {
+            $this->revert_product_deal($p, 'flash_sale', $now);
+        }
+
+        // 3. Clean up orphaned deal rows in products_special_prices
+        $this->cleanup_orphaned_special_prices($product_id, $now);
+    }
+
+    public function revert_product_deal($p, $type = 'daily_deal', $now = null)
+    {
+        if (!$now) $now = time();
+        $update = [];
+        if ($type === 'daily_deal') {
+            $update['daily_deals'] = 0;
+            $update['daily_deal_ends_at'] = 0;
+        } else {
+            $update['flash_sale'] = 0;
+            $update['flash_sale_ends_at'] = 0;
+        }
+
+        // Check if regular special price was preserved in default_special_price
+        $has_default_sp = (!empty($p->default_special_price) && (float)$p->default_special_price > 0);
+        
+        // Check if regular special_price_to is still active
+        $sp_to_valid = true;
+        if (!empty($p->special_price_to)) {
+            $sp_to_ts = is_numeric($p->special_price_to) ? (int)$p->special_price_to : strtotime($p->special_price_to);
+            if ($sp_to_ts > 0 && $sp_to_ts < $now) {
+                $sp_to_valid = false;
+            }
+        }
+
+        if ($has_default_sp && $sp_to_valid) {
+            // Restore regular special price
+            $restored_price = (float)$p->default_special_price;
+            $update['special_price'] = $restored_price;
+            $this->db->where('id', $p->id)->update('products', $update);
+
+            // Synchronize products_special_prices
+            $sp_row = $this->db->get_where('products_special_prices', ['product_id' => $p->id])->row();
+            $sp_payload = [
+                'product_id'    => $p->id,
+                'special_price' => $restored_price,
+                'offer_type'    => 'general',
+                'updated_at'    => $now
+            ];
+            if (!empty($p->special_price_from)) {
+                $sp_payload['special_price_from'] = $p->special_price_from;
+            }
+            if (!empty($p->special_price_to)) {
+                $sp_payload['special_price_to'] = $p->special_price_to;
+            }
+
+            if (!empty($sp_row)) {
+                $this->db->where('id', $sp_row->id)->update('products_special_prices', $sp_payload);
+            } else {
+                $sp_payload['created_at'] = $now;
+                $this->db->insert('products_special_prices', $sp_payload);
+            }
+        } else {
+            // No default special price, or regular special price has expired
+            $update['special_price'] = null;
+            $update['default_special_price'] = null;
+            $update['special_price_from'] = null;
+            $update['special_price_to'] = null;
+            $this->db->where('id', $p->id)->update('products', $update);
+
+            $this->db->where('product_id', $p->id)->delete('products_special_prices');
+        }
+    }
+
+    public function cleanup_orphaned_special_prices($product_id = null, $now = null)
+    {
+        if (!$now) $now = time();
+
+        if (!$this->db->table_exists('products_special_prices')) {
+            return;
+        }
+
+        $this->db->select('p.id, p.special_price, p.default_special_price, p.special_price_from, p.special_price_to, sp.id as sp_id, sp.special_price as sp_special_price, sp.offer_type, sp.special_price_to as sp_to');
+        $this->db->from('products p');
+        $this->db->join('products_special_prices sp', 'sp.product_id = p.id', 'inner');
+        $this->db->where('p.daily_deals', 0);
+        $this->db->where('p.flash_sale', 0);
+        if ($product_id) {
+            $this->db->where('p.id', $product_id);
+        }
+        $orphans = $this->db->get()->result();
+
+        foreach ($orphans as $row) {
+            // If offer_type was daily_deal/flash_sale or products table has NULL/0 special price
+            if (in_array($row->offer_type, ['daily_deal', 'flash_sale']) || empty($row->special_price) || (float)$row->special_price <= 0) {
+                $has_default = (!empty($row->default_special_price) && (float)$row->default_special_price > 0);
+                $to_valid = true;
+                if (!empty($row->special_price_to)) {
+                    $to_ts = is_numeric($row->special_price_to) ? (int)$row->special_price_to : strtotime($row->special_price_to);
+                    if ($to_ts > 0 && $to_ts < $now) {
+                        $to_valid = false;
+                    }
+                }
+
+                if ($has_default && $to_valid) {
+                    $base_price = (float)$row->default_special_price;
+                    $this->db->where('id', $row->id)->update('products', [
+                        'special_price' => $base_price
+                    ]);
+                    $this->db->where('id', $row->sp_id)->update('products_special_prices', [
+                        'special_price' => $base_price,
+                        'offer_type'    => 'general',
+                        'updated_at'    => $now
+                    ]);
+                } else {
+                    $this->db->where('id', $row->id)->update('products', [
+                        'special_price'         => null,
+                        'default_special_price' => null,
+                        'special_price_from'    => null,
+                        'special_price_to'      => null
+                    ]);
+                    $this->db->where('id', $row->sp_id)->delete('products_special_prices');
+                }
+            } elseif (!empty($row->sp_to)) {
+                $sp_to_ts = is_numeric($row->sp_to) ? (int)$row->sp_to : strtotime($row->sp_to);
+                if ($sp_to_ts > 0 && $sp_to_ts < $now) {
+                    $this->db->where('id', $row->id)->update('products', [
+                        'special_price'         => null,
+                        'default_special_price' => null,
+                        'special_price_from'    => null,
+                        'special_price_to'      => null
+                    ]);
+                    $this->db->where('id', $row->sp_id)->delete('products_special_prices');
+                }
+            }
+        }
     }
 
 	// application/models/UserModel.php
