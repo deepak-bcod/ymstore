@@ -647,7 +647,17 @@ class Addons extends CI_Controller
         $data['addon_purchase'] = $this->Addon_model->get_purchase_by_id($purchase_id);
 
         if (empty($data['addon_purchase'])) {
-            show_404();
+            $this->session->set_flashdata('error', 'Invoice not found or payment has not been completed.');
+            redirect('addons/manage');
+            return;
+        }
+
+        $merchant_id = $this->session->userdata('LoginID');
+        if (!empty($merchant_id) && !empty($data['addon_purchase']->merchant_id)) {
+            if ((int)$data['addon_purchase']->merchant_id !== (int)$merchant_id) {
+                show_error('Unauthorized access.', 403);
+                return;
+            }
         }
 
         // Try direct PDF generation via Dompdf so user can download PDF

@@ -32,13 +32,16 @@ class Addon_model extends CI_Model {
     public function get_merchant_addons() {
         // Get the currently logged-in merchant ID from the session
         $merchant_id = $this->session->userdata('LoginID');
+        $site_lang = $this->session->userdata('site_lang');
+        $is_french = ($site_lang === 'french');
 
         $this->db->select('
             p.id as purchase_id,
+            p.merchant_id,
             DATE_FORMAT(p.created_at, "%d-%m-%Y %H:%i:%s") as date,
             p.status,
-            c.name as addon_service_name,
-            s.title as addon_name,
+            ' . ($is_french ? 'COALESCE(NULLIF(c.name_fr, \'\'), c.name)' : 'c.name') . ' as addon_service_name,
+            ' . ($is_french ? 'COALESCE(NULLIF(s.title_fr, \'\'), s.title)' : 's.title') . ' as addon_name,
             s.final_price as amount,
             pub.company_name as merchant_name
         ', FALSE);
@@ -46,6 +49,9 @@ class Addon_model extends CI_Model {
         $this->db->join('addon_services s', 's.id = p.service_id', 'left');
         $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
         $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
+
+        // Only show entries that have completed payment successfully
+        $this->db->where_in('p.status', ['paid', 'success', 'completed']);
 
         // Filter to show only the currently logged-in merchant\'s purchases
         if ($merchant_id) {
@@ -59,12 +65,16 @@ class Addon_model extends CI_Model {
 
     public function get_purchase_by_id($purchase_id) 
     {
+        $site_lang = $this->session->userdata('site_lang');
+        $is_french = ($site_lang === 'french');
+
         $this->db->select('
             p.id as purchase_id,
+            p.merchant_id,
             DATE_FORMAT(p.created_at, "%d-%m-%Y %H:%i:%s") as date,
             p.status,
-            c.name as addon_service_name,
-            s.title as addon_name,
+            ' . ($is_french ? 'COALESCE(NULLIF(c.name_fr, \'\'), c.name)' : 'c.name') . ' as addon_service_name,
+            ' . ($is_french ? 'COALESCE(NULLIF(s.title_fr, \'\'), s.title)' : 's.title') . ' as addon_name,
             s.price,
             s.vat_percent,
             s.final_price as amount,
@@ -76,6 +86,9 @@ class Addon_model extends CI_Model {
         $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
         $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
         $this->db->where('p.id', $purchase_id);
+
+        // Only generate invoices for entries that have completed payment successfully
+        $this->db->where_in('p.status', ['paid', 'success', 'completed']);
         
         $query = $this->db->get();
         return $query->row();

@@ -95,26 +95,28 @@ class Addon_model extends CI_Model {
 
     }
     public function get_all_merchant_purchases() 
-{
-    $this->db->select('
-        p.id as purchase_id,
-        DATE_FORMAT(p.created_at, "%d-%m-%Y %H:%i:%s") as date,
-        p.status,
-        c.name as addon_service_name,
-        s.title as addon_name,
-        s.final_price as amount,
-        pub.company_name as merchant_name
-    ');
-    $this->db->from('merchant_addon_purchases p');
-    $this->db->join('addon_services s', 's.id = p.service_id', 'left');
-    $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
-    $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
-    
-  
-    $this->db->order_by('p.id', 'DESC');
-    $query = $this->db->get();
-    return $query->result();
-}
+    {
+        $this->db->select('
+            p.id as purchase_id,
+            DATE_FORMAT(p.created_at, "%d-%m-%Y %H:%i:%s") as date,
+            p.status,
+            c.name as addon_service_name,
+            s.title as addon_name,
+            s.final_price as amount,
+            pub.company_name as merchant_name
+        ');
+        $this->db->from('merchant_addon_purchases p');
+        $this->db->join('addon_services s', 's.id = p.service_id', 'left');
+        $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
+        $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
+        
+        // Only show paid purchases in manage view
+        $this->db->where_in('p.status', ['paid', 'success', 'completed']);
+      
+        $this->db->order_by('p.id', 'DESC');
+        $query = $this->db->get();
+        return $query->result();
+    }
 
     public function get_purchase_by_id($purchase_id) 
     {
@@ -135,6 +137,9 @@ class Addon_model extends CI_Model {
         $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
         $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
         $this->db->where('p.id', $purchase_id);
+        
+        // Only allow invoice for paid purchases
+        $this->db->where_in('p.status', ['paid', 'success', 'completed']);
         
         $query = $this->db->get();
         return $query->row();
