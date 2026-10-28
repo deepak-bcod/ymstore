@@ -47,9 +47,59 @@
                             </select>
                         </div> -->
                         <input type="hidden" id="category-id" name="category-id" value="<?php echo $cat_obj->id; ?>">
-                        <input type="hidden" name="page_sort_type" id="page_sort_type" value="Listing">
+                        <input type="hidden" name="page_sort_type" id="page_sort_type" value="SearchListing">
                     </div>
                 </div>
+<style>
+.product-list-section .view-product-btn,
+.product-list-section .ym-view-details-btn,
+.product-list-section .add2cart {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 40px !important;
+    padding: 10px 15px !important;
+    margin: 0 auto !important;
+    background: #ffffff !important;
+    border: 1px solid #777777 !important;
+    border-radius: 4px !important;
+    color: #555555 !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    line-height: 20px !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.product-list-section .view-product-btn:hover,
+.product-list-section .view-product-btn:focus,
+.product-list-section .ym-view-details-btn:hover,
+.product-list-section .ym-view-details-btn:focus,
+.product-list-section .add2cart:hover,
+.product-list-section .add2cart:focus {
+    background: #0f5cd0 !important;
+    border-color: #0f5cd0 !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    outline: none !important;
+}
+
+.product-list-section .promo-deal-info-container,
+.product-list-section .promo-countdown-wrapper,
+.product-list-section .promo-stock-wrapper,
+.product-list-section .promo-btn-container {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+}
+</style>
                 <!-- BEGIN PRODUCT LIST -->
                 <div class="product-list-section" id="product-list-section">
                     <div class="row product-list">
@@ -62,7 +112,7 @@
                                     $prod->current_category_id = $current_category_id;
                                     $prod = ProductPresenter::from($prod);
                                     $prod_image = $prod->product_image('thumb');
-                                    (new ProductList())->productListData($prod, $prod_image, 'Listing','','');
+                                    (new ProductList())->productListData($prod, $prod_image, 'SearchListing','','');
                                     ?>
                                 </div>
                             <?php } ?>

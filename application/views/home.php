@@ -451,15 +451,58 @@ $lang = $this->session->userdata('site_lang'); // or whatever key you use for la
     width: 100% !important;
 }
 
-.home-products-section .pi-content-wrapper .promo-btn-container a.btn,
-.home-products-section .pi-content-wrapper a.add2cart,
-.trending-products-section .pi-content-wrapper .promo-btn-container a.btn,
-.trending-products-section .pi-content-wrapper a.add2cart,
-.home-trending-slider .pi-content-wrapper .promo-btn-container a.btn,
-.home-trending-slider .pi-content-wrapper a.add2cart {
+/* Home page: static, blue, and small View details button */
+.home-products-section .pi-content-wrapper .promo-btn-container a.btn:not([style*="6c757d"]),
+.home-products-section .pi-content-wrapper a.add2cart:not([style*="6c757d"]),
+.home-products-section .pi-content-wrapper a.ym-view-details-btn,
+.home-products-section .pi-content-wrapper a.view-product-btn,
+.trending-products-section .pi-content-wrapper .promo-btn-container a.btn:not([style*="6c757d"]),
+.trending-products-section .pi-content-wrapper a.add2cart:not([style*="6c757d"]),
+.trending-products-section .pi-content-wrapper a.ym-view-details-btn,
+.trending-products-section .pi-content-wrapper a.view-product-btn,
+.home-trending-slider .pi-content-wrapper .promo-btn-container a.btn:not([style*="6c757d"]),
+.home-trending-slider .pi-content-wrapper a.add2cart:not([style*="6c757d"]),
+.home-trending-slider .pi-content-wrapper a.ym-view-details-btn,
+.home-trending-slider .pi-content-wrapper a.view-product-btn {
+    display: inline-block !important;
+    position: static !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    border: 1px solid #0d6efd !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 6px 14px !important;
+    border-radius: 4px !important;
+    text-transform: capitalize !important;
+    line-height: 1.35 !important;
+    width: fit-content !important;
+    min-height: unset !important;
+    height: auto !important;
     margin-left: 0 !important;
     margin-right: auto !important;
-    display: inline-block !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.home-products-section .pi-content-wrapper .promo-btn-container a.btn:not([style*="6c757d"]):hover,
+.home-products-section .pi-content-wrapper a.add2cart:not([style*="6c757d"]):hover,
+.home-products-section .pi-content-wrapper a.ym-view-details-btn:hover,
+.home-products-section .pi-content-wrapper a.view-product-btn:hover,
+.trending-products-section .pi-content-wrapper .promo-btn-container a.btn:not([style*="6c757d"]):hover,
+.trending-products-section .pi-content-wrapper a.add2cart:not([style*="6c757d"]):hover,
+.trending-products-section .pi-content-wrapper a.ym-view-details-btn:hover,
+.trending-products-section .pi-content-wrapper a.view-product-btn:hover,
+.home-trending-slider .pi-content-wrapper .promo-btn-container a.btn:not([style*="6c757d"]):hover,
+.home-trending-slider .pi-content-wrapper a.add2cart:not([style*="6c757d"]):hover,
+.home-trending-slider .pi-content-wrapper a.ym-view-details-btn:hover,
+.home-trending-slider .pi-content-wrapper a.view-product-btn:hover {
+    background-color: #0b5ed7 !important;
+    border-color: #0a58ca !important;
+    color: #ffffff !important;
 }
 </style>
 
