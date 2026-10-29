@@ -1,0 +1,71 @@
+# ========================================================
+# Robots.txt for Yellow Markets (YMStore) E-Commerce Platform
+# ========================================================
+
+User-agent: *
+
+# --------------------------------------------------------
+# 1. ALLOW ASSETS (Required for Googlebot Page Rendering)
+# --------------------------------------------------------
+Allow: /public/
+Allow: /uploads/products/
+Allow: /uploads/trust_badges/
+Allow: /images/
+
+# --------------------------------------------------------
+# 2. DISALLOW ADMIN, MERCHANT & BACKEND PANELS
+# --------------------------------------------------------
+Disallow: /admin/
+Disallow: /merchant/
+Disallow: /webapi/
+Disallow: /phpadminer/
+
+# --------------------------------------------------------
+# 3. DISALLOW PRIVATE CUSTOMER & AUTHENTICATION PAGES
+# --------------------------------------------------------
+Disallow: /customer/
+Disallow: /merchants/login
+Disallow: /merchants/register
+Disallow: /merchants/forgot-password
+Disallow: /merchants/reset-password
+
+# --------------------------------------------------------
+# 4. DISALLOW CART, CHECKOUT & TRANSACTIONAL FLOWS
+# --------------------------------------------------------
+Disallow: /cart
+Disallow: /cart/
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /abandoned_carts_checkout
+Disallow: /order/
+Disallow: /guest-order/
+Disallow: /return-order/
+Disallow: /return-guest-order/
+Disallow: /receipt-order/
+Disallow: /order_resolution/
+Disallow: /review/
+
+# --------------------------------------------------------
+# 5. DISALLOW INTERNAL SEARCH TO PREVENT CRAWL TRAPS
+# --------------------------------------------------------
+Disallow: /search
+Disallow: /searchresult
+Disallow: /search?*
+Disallow: /searchresult?*
+
+# --------------------------------------------------------
+# 6. DISALLOW BACKEND SCRIPTS & CRON JOBS
+# --------------------------------------------------------
+Disallow: /cronController/
+Disallow: /CronController/
+Disallow: /catlog-builder/
+Disallow: /notification/
+Disallow: /*.php$
+Allow: /index.php
+
+# --------------------------------------------------------
+# 7. SITEMAP LOCATION
+# (Replace with your actual production domain)
+# --------------------------------------------------------
+Sitemap: https://yellowmarkets.com/sitemap
+
