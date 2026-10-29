@@ -1,3 +1,4 @@
 User-agent: *
 Disallow:
+
 Sitemap: https://mu.yellowmarkets.com/sitemap.xml
