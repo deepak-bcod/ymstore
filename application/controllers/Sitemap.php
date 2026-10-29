@@ -60,7 +60,7 @@ class Sitemap extends CI_Controller
         }
 
         // echo"<pre>"; print_r($data['products']);die();
-        header("Content-Type: text/xml;charset=iso-8859-1");
+        header("Content-Type: text/xml;charset=utf-8");
         $this->load->view('sitemap', $data);
     }
 }
