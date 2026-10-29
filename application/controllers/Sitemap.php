@@ -6,6 +6,12 @@ class Sitemap extends CI_Controller
 {
     public function index()
     {
+        // If accessed as /sitemap without .xml, redirect to /sitemap.xml so .xml is shown in browser
+        if ($this->uri->uri_string() === 'sitemap') {
+            redirect(base_url('sitemap.xml'), 'location', 301);
+            return;
+        }
+
         //static pages
         $shopcode = SHOPCODE;
         $shop_id = SHOP_ID;
