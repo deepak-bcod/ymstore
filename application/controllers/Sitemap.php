@@ -60,7 +60,20 @@ class Sitemap extends CI_Controller
         }
 
         // echo"<pre>"; print_r($data['products']);die();
-        header("Content-Type: text/xml;charset=utf-8");
-        $this->load->view('sitemap', $data);
+        // Load view as string to eliminate any stray whitespace or BOM
+        $xml = $this->load->view('sitemap', $data, true);
+
+        // Discard any previous buffer (whitespaces from included config/model files)
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        // Ensure <?xml starts at line 1, column 1 with no leading spaces or BOM
+        $xml = ltrim($xml);
+        $xml = preg_replace('/^[\xEF\xBB\xBF\s]+/', '', $xml);
+
+        header("Content-Type: text/xml; charset=utf-8");
+        echo $xml;
+        exit;
     }
 }
