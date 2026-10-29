@@ -65,7 +65,6 @@ Allow: /index.php
 
 # --------------------------------------------------------
 # 7. SITEMAP LOCATION
-# (Replace with your actual production domain)
 # --------------------------------------------------------
-Sitemap: https://yellowmarkets.com/sitemap
+Sitemap: https://yellowmarkets.com/sitemap.xml
 
