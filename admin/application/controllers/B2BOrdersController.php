@@ -18690,7 +18690,7 @@ public function markDelivered()
     );
 
     // ==========================================
-    // UPDATE B2B ORDER STATUS
+    // UPDATE B2B ORDER STATUS TO DELIVERED
     // ==========================================
 
     $updated = $this->CommonModel->updateData(
@@ -18718,7 +18718,10 @@ public function markDelivered()
 
         $webshop_order_id = (int) $orderData->webshop_order_id;
 
-        // Update main sales order status
+        // ==========================================
+        // UPDATE MAIN SALES ORDER STATUS
+        // ==========================================
+
         $this->CommonModel->checkAndUpdateMainOrderStatus(
             $webshop_order_id
         );
@@ -18742,7 +18745,7 @@ public function markDelivered()
             $customerId = $salesOrder->customer_id ?? null;
 
             // ==========================================
-            // GET B2B ORDER BARCODE
+            // GET B2B ORDER NUMBER
             // ==========================================
 
             $b2bOrderNumber = !empty($b2bOrder->order_barcode)
@@ -18764,46 +18767,57 @@ public function markDelivered()
 
             // ==========================================
             // SEND DELIVERED EMAIL TO SHOPPER
+            // SAME METHOD AS MarkAsFailed()
             // ==========================================
 
-            $customerEmail = trim(
-                (string) ($salesOrder->customer_email ?? '')
-            );
-
             if (
-                !empty($customerEmail) &&
-                filter_var($customerEmail, FILTER_VALIDATE_EMAIL)
+                !empty($salesOrder->customer_email) &&
+                filter_var(
+                    $salesOrder->customer_email,
+                    FILTER_VALIDATE_EMAIL
+                )
             ) {
+
+                $TempVars = [
+                    '##CUSTOMERNAME##',
+                    '##ORDERNO##'
+                ];
+
+                $DynamicVars = [
+                    $customerName,
+                    $b2bOrderNumber
+                ];
+
                 $emailSent = $this->CommonModel->sendCommonHTMLEmail(
-                    $customerEmail,
+                    $salesOrder->customer_email,
                     'delivery-order-delivered',
-                    [
-                        '##CUSTOMERNAME##',
-                        '##ORDERNO##'
-                    ],
-                    [
-                        $customerName,
-                        $b2bOrderNumber
-                    ]
+                    $TempVars,
+                    $DynamicVars
                 );
 
                 if ($emailSent) {
+
                     log_message(
                         'info',
-                        'Delivered email accepted by mail helper for order ' .
-                        $b2bOrderNumber . ' to ' . $customerEmail
+                        'Delivered email sent through mail helper. Order: ' .
+                        $b2bOrderNumber
                     );
+
                 } else {
+
                     log_message(
                         'error',
-                        'Delivered email failed for order ' .
-                        $b2bOrderNumber . ' to ' . $customerEmail
+                        'Delivered email failed. Order: ' .
+                        $b2bOrderNumber .
+                        ', Email: ' . $salesOrder->customer_email
                     );
                 }
+
             } else {
+
                 log_message(
                     'error',
-                    'Missing or invalid customer_email for B2B order ' .
+                    'Customer email missing or invalid for delivered order: ' .
                     $b2bOrderNumber
                 );
             }
@@ -18815,23 +18829,23 @@ public function markDelivered()
             if (!empty($customerId)) {
 
                 $notificationData = [
-                    'type'         => 'order',
-                    'subtype'      => 'order_delivered',
+                    'type'           => 'order',
+                    'subtype'        => 'order_delivered',
                     'recipient_type' => 'shopper',
-                    'recipient_id' => $customerId,
-                    'title'        => 'Order delivered',
-                    'message'      => 'Your order no. ' .
-                                      $b2bOrderNumber .
-                                      ' is delivered.',
-                    'data'         => json_encode([
+                    'recipient_id'   => $customerId,
+                    'title'          => 'Order delivered',
+                    'message'        => 'Your order no. ' .
+                                        $b2bOrderNumber .
+                                        ' is delivered.',
+                    'data'           => json_encode([
                         'order_id'     => $webshop_order_id,
                         'b2b_order_id' => $order_id,
                         'b2b_order_no' => $b2bOrderNumber,
                         'status'       => 8
                     ]),
-                    'is_read'      => 0,
-                    'created_at'   => $now,
-                    'updated_at'   => $now
+                    'is_read'        => 0,
+                    'created_at'     => $now,
+                    'updated_at'     => $now
                 ];
 
                 $this->db->insert(
@@ -18840,9 +18854,10 @@ public function markDelivered()
                 );
 
                 if ($this->db->affected_rows() <= 0) {
+
                     log_message(
                         'error',
-                        'Failed to insert delivered notification for order ' .
+                        'Failed to insert delivered notification for order: ' .
                         $b2bOrderNumber
                     );
                 }
@@ -18861,7 +18876,6 @@ public function markDelivered()
 
     exit;
 }
-
 
 	public function markCollected()
 
