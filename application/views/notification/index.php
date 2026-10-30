@@ -273,7 +273,8 @@ if ($current_lang === 'french') {
     }
 }
 ?>
-    
+    <?php endforeach; ?>
+<?php endif; ?>
                         <tr style="<?= ($row->is_read == 0)
                             ? 'background-color: #fffdf0; font-weight: bold;'
                             : ''; ?>">
