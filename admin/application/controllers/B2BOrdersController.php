@@ -18718,7 +18718,7 @@ public function markDelivered()
 
 
                 // ==========================================
-                // GET SHOPPER CUSTOMER ID
+                // GET SHOPPER CUSTOMER ID & EMAIL
                 // ==========================================
 
                 $salesOrder = $this->db
@@ -18798,6 +18798,35 @@ public function markDelivered()
                             $notif_sql,
                             $notif_params
                         );
+
+
+                        // ==========================================
+                        // SEND EMAIL NOTIFICATION TO SHOPPER
+                        // ==========================================
+
+                        $customer = $this->db
+                            ->select('email, firstname, lastname')
+                            ->where('id', $customerId)
+                            ->get('customers') // Adjust table name if your customer table is named differently (e.g., 'users')
+                            ->row();
+
+                        if ($customer && !empty($customer->email)) {
+                            
+                            $this->load->library('email');
+
+                            $emailBody = "Hello " . (!empty($customer->firstname) ? $customer->firstname : 'Valued Customer') . ",<br><br>" .
+                                         "Your order no. <b>" . $b2bOrderNumber . "</b> has been successfully delivered.<br>" .
+                                         "Thank you for shopping with Yellow Markets!<br><br>" .
+                                         "Best Regards,<br>Yellow Markets Team";
+
+                            $this->email->from('no-reply@yellowmarkets.com', 'Yellow Markets');
+                            $this->email->to($customer->email);
+                            $this->email->subject('Order Delivered - #' . $b2bOrderNumber);
+                            $this->email->message($emailBody);
+
+                            // Attempt to send email
+                            @$this->email->send();
+                        }
                     }
                 }
             }
@@ -18836,8 +18865,6 @@ public function markDelivered()
         ]);
     }
 }
-
-
 
 
 
