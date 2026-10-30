@@ -290,16 +290,12 @@ class CommonModel extends CI_Model
 		return $result;
 	}
 
-public function getEmailTemplateByIdentifier($identifier)
-{
-    $result = $this->db
-        ->where('email_code', $identifier)
-        ->where('status', 1)
-        ->get('email_template')
-        ->row();
 
-    return $result;
-}
+	public function getEmailTemplateByIdentifier($identifier)
+	{
+		$result = $this->db->get_where('email_template', array('email_code' => $identifier))->row();
+		return $result;
+	}
 
 	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '', $custom_subject = '', $custom_content = '')
 	{
