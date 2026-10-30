@@ -18801,7 +18801,7 @@ public function markDelivered()
                                 'type'           => 'order',
                                 'subtype'        => 'order_delivered',
                                 'recipient_type' => 'shopper',
-                               'recipient_id'   => $salesOrder->customer_id,
+                                'recipient_id'   => $customerId,
                                 'title'          => $notificationTitle,
                                 'message'        => $notificationMessage,
                                 'data'           => $notificationData,
@@ -18848,6 +18848,7 @@ public function markDelivered()
         ]);
     }
 }
+
 
 
 
