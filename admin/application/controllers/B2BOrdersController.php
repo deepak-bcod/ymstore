@@ -18639,7 +18639,6 @@ public function markDelivered()
     if ($this->input->post('order_id')) {
 
         $order_id = $this->input->post('order_id');
-
         $User_id = $this->session->userdata('LoginID');
 
         // ==========================================
@@ -18718,115 +18717,94 @@ public function markDelivered()
 
 
                 // ==========================================
-                // GET SHOPPER CUSTOMER ID & EMAIL
+                // GET SALES ORDER & CUSTOMER DATA
                 // ==========================================
 
                 $salesOrder = $this->db
-                    ->select('customer_id')
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
 
+                $b2bOrder = $this->db
+                    ->where('order_id', $order_id)
+                    ->get('b2b_orders')
+                    ->row();
 
-                if ($salesOrder) {
 
-                    $customerId = $salesOrder->customer_id;
+                if (!empty($b2bOrder)) {
 
+                    $customerName = trim(
+                        ($b2bOrder->customer_firstname ?? '') . ' ' .
+                        ($b2bOrder->customer_lastname ?? '')
+                    );
+
+                    $b2bOrderNumber = $b2bOrder->increment_id ?? '';
+                    $customerId     = $salesOrder->customer_id ?? ($b2bOrder->customer_id ?? null);
+                    $customerEmail  = $salesOrder->customer_email ?? null;
+
+                    // Fallback to customers table if email is missing from sales_order
+                    if (empty($customerEmail) && !empty($customerId)) {
+                        $customerRec = $this->db->select('email')->where('id', $customerId)->get('customers')->row();
+                        if ($customerRec) {
+                            $customerEmail = $customerRec->email;
+                        }
+                    }
 
                     // ==========================================
-                    // GET B2B ORDER BARCODE
+                    // SEND EMAIL VIA TEMPLATE (order-delivered)
                     // ==========================================
+                    if (!empty($customerEmail) && !empty($b2bOrderNumber)) {
 
-                    $b2bOrder = $this->db
-                        ->select('order_barcode')
-                        ->where('order_id', $order_id)
-                        ->get('b2b_orders')
-                        ->row();
-
-
-                    if ($b2bOrder && !empty($b2bOrder->order_barcode)) {
-
-                        $b2bOrderNumber = $b2bOrder->order_barcode;
-
-
-                        // ==========================================
-                        // SHOPPER NOTIFICATION - ORDER DELIVERED
-                        // ==========================================
-
-                        $notif_sql = "INSERT INTO notifications
-                            (
-                                type,
-                                subtype,
-                                recipient_type,
-                                recipient_id,
-                                title,
-                                message,
-                                data,
-                                is_read,
-                                created_at,
-                                updated_at
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-
-                        $notif_params = [
-                            'order',
-                            'order_delivered',
-                            'shopper',
-                            $customerId,
-
-                            'Order delivered',
-
-                            // ONLY B2B ORDER NUMBER
-                            'Your order no. ' . $b2bOrderNumber . ' is delivered.',
-
-                            json_encode([
-                                'order_id'      => $webshop_order_id,
-                                'b2b_order_id'  => $order_id,
-                                'b2b_order_no'  => $b2bOrderNumber,
-                                'status'        => 8
-                            ]),
-
-                            0,
-                            date('Y-m-d H:i:s'),
-                            date('Y-m-d H:i:s')
+                        $TempVars = [
+                            '##CUSTOMERNAME##',
+                            '##ORDERNO##'
                         ];
 
+                        $DynamicVars = [
+                            !empty($customerName) ? $customerName : 'Valued Customer',
+                            $b2bOrderNumber
+                        ];
 
-                        // Insert notification
-                        $this->db->query(
-                            $notif_sql,
-                            $notif_params
+                        $this->CommonModel->sendCommonHTMLEmail(
+                            $customerEmail,
+                            'order-delivered', // Matches email_code in your database
+                            $TempVars,
+                            $DynamicVars
                         );
+                    }
 
 
-                        // ==========================================
-                        // SEND EMAIL NOTIFICATION TO SHOPPER
-                        // ==========================================
+                    // ==========================================
+                    // ADD SHOPPER NOTIFICATION
+                    // ==========================================
+                    if (!empty($customerId)) {
 
-                        $customer = $this->db
-                            ->select('email, firstname, lastname')
-                            ->where('id', $customerId)
-                            ->get('customers') // Adjust table name if your customer table is named differently (e.g., 'users')
-                            ->row();
+                        $notificationTitle = 'Order Delivered';
 
-                        if ($customer && !empty($customer->email)) {
-                            
-                            $this->load->library('email');
+                        $notificationMessage = 'Your order no. ' . $b2bOrderNumber . ' has been successfully delivered.';
 
-                            $emailBody = "Hello " . (!empty($customer->firstname) ? $customer->firstname : 'Valued Customer') . ",<br><br>" .
-                                         "Your order no. <b>" . $b2bOrderNumber . "</b> has been successfully delivered.<br>" .
-                                         "Thank you for shopping with Yellow Markets!<br><br>" .
-                                         "Best Regards,<br>Yellow Markets Team";
+                        $notificationData = json_encode([
+                            'order_id'         => $webshop_order_id,
+                            'b2b_order_id'     => $order_id,
+                            'b2b_order_no'     => $b2bOrderNumber,
+                            'status'           => 8
+                        ]);
 
-                            $this->email->from('no-reply@yellowmarkets.com', 'Yellow Markets');
-                            $this->email->to($customer->email);
-                            $this->email->subject('Order Delivered - #' . $b2bOrderNumber);
-                            $this->email->message($emailBody);
-
-                            // Attempt to send email
-                            @$this->email->send();
-                        }
+                        $this->db->insert(
+                            'notifications',
+                            [
+                                'type'           => 'order',
+                                'subtype'        => 'order_delivered',
+                                'recipient_type' => 'shopper',
+                                'recipient_id'   => $customerId,
+                                'title'          => $notificationTitle,
+                                'message'        => $notificationMessage,
+                                'data'           => $notificationData,
+                                'is_read'        => 0,
+                                'created_at'     => date('Y-m-d H:i:s'),
+                                'updated_at'     => date('Y-m-d H:i:s')
+                            ]
+                        );
                     }
                 }
             }
