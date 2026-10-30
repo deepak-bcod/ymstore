@@ -7,55 +7,39 @@ class OrdersRepository
     
 public static function my_orders_listing($LoginID, $limit, $offset)
 {
+    if (empty($LoginID)) {
+        log_message('error', 'MY ORDERS: LoginID is empty.');
+        return null;
+    }
+
+    $LoginID = (int) $LoginID;
+    $limit   = max(1, (int) $limit);
+    $offset  = max(0, (int) $offset);
+
+    $api_url = '/webshop/my_orders_listing_new/' .
+               $LoginID . '/' . $limit . '/' . $offset;
+
     try {
 
-        if (empty($LoginID)) {
-
-            log_message(
-                'error',
-                'MY ORDERS API ERROR: Customer LoginID is empty.'
-            );
-
-            return null;
-        }
-
-        $LoginID = (int) $LoginID;
-        $limit   = (int) $limit;
-        $offset  = (int) $offset;
-
-        if ($limit <= 0) {
-            $limit = 20;
-        }
-
-        if ($offset < 0) {
-            $offset = 0;
-        }
-
-        $api_url = '/webshop/my_orders_listing_new/' .
-                   $LoginID . '/' .
-                   $limit . '/' .
-                   $offset;
-
-        log_message(
-            'error',
-            'MY ORDERS API URL: ' . $api_url
-        );
+        log_message('error', 'MY ORDERS API URL: ' . $api_url);
 
         $result = self::get_method($api_url);
 
         log_message(
             'error',
-            'MY ORDERS API RESULT: ' . json_encode($result)
+            'MY ORDERS RAW RESPONSE: ' . print_r($result, true)
         );
 
+        if (is_string($result)) {
+            $decoded = json_decode($result);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $result = $decoded;
+            }
+        }
+
         if (empty($result)) {
-
-            log_message(
-                'error',
-                'MY ORDERS API ERROR: Empty API response. Customer ID: ' .
-                $LoginID
-            );
-
+            log_message('error', 'MY ORDERS: API returned empty response.');
             return null;
         }
 
@@ -65,12 +49,9 @@ public static function my_orders_listing($LoginID, $limit, $offset)
 
         log_message(
             'error',
-            'MY ORDERS REPOSITORY ERROR: ' . $e->getMessage()
-        );
-
-        log_message(
-            'error',
-            'MY ORDERS REPOSITORY FILE: ' . $e->getFile() .
+            'MY ORDERS REPOSITORY ERROR: ' .
+            $e->getMessage() .
+            ' FILE: ' . $e->getFile() .
             ' LINE: ' . $e->getLine()
         );
 
