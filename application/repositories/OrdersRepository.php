@@ -4,61 +4,18 @@
 class OrdersRepository
 {
     use UsesRestAPI;
-    
-public static function my_orders_listing($LoginID, $limit, $offset)
-{
-    if (empty($LoginID)) {
-        log_message('error', 'MY ORDERS: LoginID is empty.');
-        return null;
-    }
-
-    $LoginID = (int) $LoginID;
-    $limit   = max(1, (int) $limit);
-    $offset  = max(0, (int) $offset);
-
-    $api_url = '/webshop/my_orders_listing_new/' .
-               $LoginID . '/' . $limit . '/' . $offset;
-
-    try {
-
-        log_message('error', 'MY ORDERS API URL: ' . $api_url);
-
-        $result = self::get_method($api_url);
-
-        log_message(
-            'error',
-            'MY ORDERS RAW RESPONSE: ' . print_r($result, true)
-        );
-
-        if (is_string($result)) {
-            $decoded = json_decode($result);
-
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $result = $decoded;
-            }
-        }
-
-        if (empty($result)) {
-            log_message('error', 'MY ORDERS: API returned empty response.');
+    public static function my_orders_listing($LoginID, $limit, $offset)
+    {
+        if (empty($LoginID)) {
             return null;
         }
-
-        return $result;
-
-    } catch (\Throwable $e) {
-
-        log_message(
-            'error',
-            'MY ORDERS REPOSITORY ERROR: ' .
-            $e->getMessage() .
-            ' FILE: ' . $e->getFile() .
-            ' LINE: ' . $e->getLine()
-        );
-
-        return null;
+        static $result;
+        if (isset($result)) {
+            return $result;
+        }
+		$result = self::get_method('/webshop/my_orders_listing_new/'.$LoginID.'/'.$limit.'/'.$offset);
+		return $result;
     }
-}
-
 
 
     public static function order_operation_checks($shopcode, $shop_id, $post_arr)

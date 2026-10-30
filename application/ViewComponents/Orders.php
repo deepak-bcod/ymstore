@@ -12,308 +12,99 @@ class Orders
         $this->ci = &get_instance();
     }
 
-    
-public function list($login_type)
-{
-    $data['login_type'] = $login_type;
+    public function list($login_type)
+    {
+        $data['login_type'] = $login_type;
+        $secret_return = $this->ci->input->get('secret-return') ?? '';
+        if ($login_type == 'general') {
+            $LoginID = $this->ci->session->userdata('LoginID');
+            $page = ($this->ci->uri->segment(3) == '' || $this->ci->uri->segment(3) == null) ? 1 : $this->ci->uri->segment(3);
+            $limit = 20;
+            $offset = ($page - 1) * $limit;
+            $offset = ($offset == 1) ? 0 : $offset;
 
-    $secret_return = $this->ci->input->get('secret-return') ?? '';
+            $response = OrdersRepository::my_orders_listing($LoginID, $limit, $offset);
+            $OrderList = [];
+            $total_orders = 0;
 
-    /*
-    |--------------------------------------------------------------------------
-    | GENERAL CUSTOMER ORDERS
-    |--------------------------------------------------------------------------
-    */
+            if (!empty($response) && isset($response->is_success) && $response->is_success == 'true' && !empty($response->OrderData)) {
+                $OrderList = $response->OrderData;
+                $total_orders = (int)($response->Total_Order ?? count($OrderList));
+            }
 
-    if ($login_type == 'general') {
+            $data['OrderList'] = $OrderList;
+            $data['Total_Order'] = $total_orders;
+            $data['Limit'] = $limit;
+            $data['Page'] = $page;
+            $data['links'] = '';
+            $data['escalation_status_map'] = [];
 
-        $LoginID = (int) $this->ci->session->userdata('LoginID');
+            if (!empty($OrderList)) {
+                $config = array();
+                $config["first_tag_open"] = "<li class='page-item'>";
+                $config["first_tag_close"] = "</li>";
+                $config["last_tag_open"] = "<li class='page-item'>";
+                $config["last_tag_close"] = "</li>";
+                $config["next_tag_open"] = "<li class='page-item'>";
+                $config["next_tag_close"] = "</li>";
+                $config["prev_tag_open"] = "<li class='page-item'>";
+                $config["prev_tag_close"] = "</li>";
+                $config["cur_tag_open"] = "<li class='page-item active'><a>";
+                $config["cur_tag_close"] = "</a></li>";
+                $config["num_tag_open"] = "<li class='page-item'>";
+                $config["num_tag_close"] = "</li>";
+                $config['use_page_numbers'] = true;
+                $config["base_url"] = base_url() . "customer/my-orders";
+                $config["total_rows"] = $total_orders;
+                $config["per_page"] = $limit;
+                $this->ci->pagination->initialize($config);
+                $data["links"] = $this->ci->pagination->create_links();
 
-        $page = (int) $this->ci->uri->segment(3);
-        $page = max(1, $page);
-
-        $limit  = 20;
-        $offset = ($page - 1) * $limit;
-
-        $OrderList = [];
-        $total_orders = 0;
-
-        $data['OrderList'] = [];
-        $data['Total_Order'] = 0;
-        $data['Limit'] = $limit;
-        $data['Page'] = $page;
-        $data['links'] = '';
-        $data['escalation_status_map'] = [];
-
-        try {
-
-            // Validate customer LoginID
-            if ($LoginID <= 0) {
-
-                log_message(
-                    'error',
-                    'MY ORDERS ERROR: Customer LoginID is empty or invalid.'
-                );
-
-            } else {
-
-                // Get customer orders from API
-                $response = OrdersRepository::my_orders_listing(
-                    $LoginID,
-                    $limit,
-                    $offset
-                );
-
-                log_message(
-                    'error',
-                    'MY ORDERS LIST RESPONSE: ' . print_r($response, true)
-                );
-
-                // Check API response
-                if (!empty($response)) {
-
-                    $is_success = $response->is_success ?? false;
-
-                    $api_orders = $response->OrderData ?? [];
-
-                    if (
-                        $is_success === true ||
-                        $is_success === 'true' ||
-                        $is_success == 1
-                    ) {
-
-                        if (
-                            is_array($api_orders) ||
-                            $api_orders instanceof \Traversable
-                        ) {
-
-                            $OrderList = is_array($api_orders)
-                                ? $api_orders
-                                : iterator_to_array($api_orders);
-
-                            $total_orders = (int) (
-                                $response->Total_Order ?? count($OrderList)
-                            );
-                        }
-
-                    } else {
-
-                        log_message(
-                            'error',
-                            'MY ORDERS API SUCCESS FLAG: ' .
-                            print_r($is_success, true)
-                        );
+                $order_ids = [];
+                foreach ($OrderList as $order) {
+                    $order_id = $order->order_id;
+                    $order_ids[] = $order_id;
+                    if (isset($secret_return) && !empty($secret_return) && $secret_return == 1 && $order->status == 6) {
+                        $order->flag = 'able_to_return';
                     }
-
-                } else {
-
-                    log_message(
-                        'error',
-                        'MY ORDERS ERROR: API returned empty response.'
-                    );
+                    $order->ReturnOrders = $order->return_orders ?? [];
                 }
-
-                /*
-                |--------------------------------------------------------------------------
-                | PAGINATION
-                |--------------------------------------------------------------------------
-                */
-
-                if (!empty($OrderList)) {
-
-                    $this->ci->load->library('pagination');
-
-                    $config = [];
-
-                    $config['first_tag_open'] = "<li class='page-item'>";
-                    $config['first_tag_close'] = "</li>";
-
-                    $config['last_tag_open'] = "<li class='page-item'>";
-                    $config['last_tag_close'] = "</li>";
-
-                    $config['next_tag_open'] = "<li class='page-item'>";
-                    $config['next_tag_close'] = "</li>";
-
-                    $config['prev_tag_open'] = "<li class='page-item'>";
-                    $config['prev_tag_close'] = "</li>";
-
-                    $config['cur_tag_open'] = "<li class='page-item active'><a>";
-                    $config['cur_tag_close'] = "</a></li>";
-
-                    $config['num_tag_open'] = "<li class='page-item'>";
-                    $config['num_tag_close'] = "</li>";
-
-                    $config['use_page_numbers'] = true;
-                    $config['base_url'] = base_url() . 'customer/my-orders';
-                    $config['total_rows'] = $total_orders;
-                    $config['per_page'] = $limit;
-
-                    $this->ci->pagination->initialize($config);
-
-                    $data['links'] = $this->ci->pagination->create_links();
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | PREPARE ORDER DATA
-                    |--------------------------------------------------------------------------
-                    */
-
-                    $order_ids = [];
-
-                    foreach ($OrderList as $order) {
-
-                        if (!empty($order->order_id)) {
-                            $order_ids[] = $order->order_id;
-                        }
-
-                        if (
-                            !empty($secret_return) &&
-                            $secret_return == 1 &&
-                            isset($order->status) &&
-                            $order->status == 6
-                        ) {
-
-                            $order->flag = 'able_to_return';
-                        }
-
-                        $order->ReturnOrders = $order->return_orders ?? [];
-                    }
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | ORDER ESCALATION STATUS
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!empty($order_ids)) {
-
-                        try {
-
+                if (!empty($order_ids)) {
+                    try {
+                        if (!empty($this->ci->db) && !empty($this->ci->db->conn_id)) {
                             if (!isset($this->ci->OrderResolutionModel)) {
-
-                                $this->ci->load->model(
-                                    'OrderResolutionModel'
-                                );
+                                $this->ci->load->model('OrderResolutionModel');
                             }
-
                             if (isset($this->ci->OrderResolutionModel)) {
-
-                                $data['escalation_status_map'] =
-                                    $this->ci->OrderResolutionModel
-                                        ->get_escalation_status_for_order_items(
-                                            $order_ids
-                                        );
+                                $data['escalation_status_map'] = $this->ci->OrderResolutionModel->get_escalation_status_for_order_items($order_ids);
                             }
-
-                        } catch (\Throwable $e) {
-
-                            log_message(
-                                'error',
-                                'MY ORDERS ESCALATION ERROR: ' .
-                                $e->getMessage() .
-                                ' FILE: ' . $e->getFile() .
-                                ' LINE: ' . $e->getLine()
-                            );
                         }
+                    } catch (\Throwable $e) {
+                        log_message('error', 'escalation status error: ' . $e->getMessage());
                     }
                 }
             }
-
-        } catch (\Throwable $e) {
-
-            log_message(
-                'error',
-                'MY ORDERS MAIN ERROR: ' .
-                $e->getMessage() .
-                ' FILE: ' . $e->getFile() .
-                ' LINE: ' . $e->getLine()
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | LOAD CUSTOMER ORDERS VIEW
-        |--------------------------------------------------------------------------
-        */
-
-        $data['OrderList'] = $OrderList;
-        $data['Total_Order'] = $total_orders;
-        $data['Limit'] = $limit;
-        $data['Page'] = $page;
-
-        $this->ci->template->load(
-            'components/order/customer_general_orders',
-            $data
-        );
-
-    } else {
-
-        /*
-        |--------------------------------------------------------------------------
-        | GUEST ORDER DETAILS
-        |--------------------------------------------------------------------------
-        */
-
-        $order_id = urldecode($this->ci->uri->segment(3));
-
-        $order_id = base64_decode($order_id);
-
-        $postArr = [];
-
-        $data['OrderData'] = null;
-
-        try {
-
+            $this->ci->template->load('components/order/customer_general_orders', $data);
+        } else {
+            $order_id = urldecode($this->ci->uri->segment(3));
+            $order_id = base64_decode($order_id);
+            $postArr = array();
             $response = OrdersRepository::my_order_detail($order_id);
-
-            if (
-                !empty($response) &&
-                isset($response->is_success) &&
-                $response->is_success == 'true' &&
-                !empty($response->OrderData)
-            ) {
-
+            if (!empty($response) && $response->is_success == 'true') {
                 $OrderData = $response->OrderData;
-
+                $response->OrderData;
                 $data['OrderData'] = $OrderData;
-
-                $order_id = $OrderData->order_id;
-
-                if (
-                    !empty($secret_return) &&
-                    $secret_return == 1 &&
-                    $OrderData->status == 6
-                ) {
-
+                $order_id = $data['OrderData']->order_id;
+                if (isset($secret_return) && !empty($secret_return) && $secret_return == 1 && $OrderData->status == 6) {
                     $data['OrderData']->flag = 'able_to_return';
-
                 } else {
-
-                    $data['OrderData']->flag =
-                        $this->checkOperationFlag($order_id);
+                    $data['OrderData']->flag = $this->checkOperationFlag($order_id);
                 }
-
-                $data['OrderData']->ReturnOrders =
-                    $this->returnOrderListing($order_id);
+                $data['OrderData']->ReturnOrders = $this->returnOrderListing($order_id);
             }
-
-        } catch (\Throwable $e) {
-
-            log_message(
-                'error',
-                'GUEST ORDER ERROR: ' .
-                $e->getMessage() .
-                ' FILE: ' . $e->getFile() .
-                ' LINE: ' . $e->getLine()
-            );
+            $this->ci->template->load('components/order/customer_guest_orders', $data);
         }
-
-        $this->ci->template->load(
-            'components/order/customer_guest_orders',
-            $data
-        );
     }
-}
 
     public function checkOperationFlag($order_id)
     {
