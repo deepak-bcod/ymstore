@@ -43,6 +43,10 @@
 
     <?php foreach ($notifications as $row): ?>
     <?php
+<?php if (!empty($notifications)): ?>
+
+    <?php foreach ($notifications as $row): ?>
+    <?php
 $current_lang = $this->session->userdata('site_lang') ?? 'english';
 
 $title = $row->title;
@@ -98,9 +102,8 @@ if ($current_lang === 'french') {
     }
 
     // 3c. Order Resolution Reply & Denied Requests
-    if (strpos($row->title, 'Order Resolution Reply') !== false) {
-        $title = str_replace('Order Resolution Reply on Ticket', 'Réponse à la résolution de la commande sur le ticket', $row->title);
-        $title = str_replace('Order Resolution Reply', 'Réponse à la résolution de la commande', $title);
+    if (strpos($row->title, 'Order Resolution Reply') !== false || strpos($row->title, 'Order resolution reply') !== false) {
+        $title = preg_replace('/Order [Rr]esolution [Rr]eply(?:\s+on\s+[Tt]icket)?(?:\s*\((.*?)\))?/i', 'Réponse à la résolution de la commande ($1)', $row->title);
         
         $message = str_replace(
             ['Merchant reply your Order Resolution', 'Merchant reply on your Order Resolution', 'Merchant replied to your Order Resolution request.'],
@@ -127,15 +130,15 @@ if ($current_lang === 'french') {
     }
 
     // 3e. Order Resolution Subtypes (mark_done, close, close_final, resolution_approved, resolution_denied)
-    if ($type === 'order_resolution') {
-        if ($subtype === 'reply') {
-            if (strpos($row->title, 'Order resolution reply') !== false) {
-                $title = str_replace('Order resolution reply', 'Réponse à la résolution de la commande', $row->title);
+    if ($type === 'order_resolution' || strpos($row->message, 'resolution ticket') !== false) {
+        if ($subtype === 'reply' || strpos($row->message, 'has replied to your resolution ticket') !== false) {
+            if (strpos($row->title, 'Order resolution reply') !== false || strpos($row->title, 'Order Resolution Reply') !== false) {
+                $title = preg_replace('/Order [Rr]esolution [Rr]eply\s*(?:\((.*?)\))?/i', 'Réponse à la résolution de la commande ($1)', $row->title);
             }
-            if (strpos($row->message, 'Yellow Market team has replied to your resolution ticket') !== false) {
-                $message = str_replace(
-                    'Yellow Market team has replied to your resolution ticket',
-                    'L’équipe Yellow Market a répondu à votre ticket de résolution',
+            if (strpos($row->message, 'has replied to your resolution ticket') !== false) {
+                $message = preg_replace(
+                    '/(?:Yellow Market team|Yellow Markets Support team) has replied to your resolution ticket \((.*?)\)/i',
+                    'L’équipe d’assistance Yellow Markets a répondu à votre ticket de résolution ($1)',
                     $message
                 );
             }
@@ -270,6 +273,7 @@ if ($current_lang === 'french') {
     }
 }
 ?>
+    
                         <tr style="<?= ($row->is_read == 0)
                             ? 'background-color: #fffdf0; font-weight: bold;'
                             : ''; ?>">
