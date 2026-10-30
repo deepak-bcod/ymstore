@@ -5,7 +5,7 @@
  */
 class Orders
 {
-    private $ci;
+    private $ci
 
     public function __construct()
     {
@@ -19,9 +19,11 @@ class Orders
         if ($login_type == 'general') {
             $LoginID = $this->ci->session->userdata('LoginID');
             $page = ($this->ci->uri->segment(3) == '' || $this->ci->uri->segment(3) == null) ? 1 : $this->ci->uri->segment(3);
-            $limit = 20;
-            $offset = ($page - 1) * $limit;
-            $offset = ($offset == 1) ? 0 : $offset;
+            $page = max(1, (int) $page);
+
+$limit = 20;
+
+$offset = ($page - 1) * $limit;
 
             $response = OrdersRepository::my_orders_listing($LoginID, $limit, $offset);
             $OrderList = [];

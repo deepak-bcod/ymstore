@@ -5,17 +5,37 @@ class OrdersRepository
 {
     use UsesRestAPI;
     public static function my_orders_listing($LoginID, $limit, $offset)
-    {
-        if (empty($LoginID)) {
-            return null;
-        }
-        static $result;
-        if (isset($result)) {
-            return $result;
-        }
-		$result = self::get_method('/webshop/my_orders_listing_new/'.$LoginID.'/'.$limit.'/'.$offset);
-		return $result;
+{
+    if (empty($LoginID)) {
+        log_message('error', 'My Orders: Customer LoginID is empty.');
+        return null;
     }
+
+    $LoginID = (int) $LoginID;
+    $limit   = (int) $limit;
+    $offset  = (int) $offset;
+
+    $result = self::get_method(
+        '/webshop/my_orders_listing_new/' .
+        $LoginID . '/' . $limit . '/' . $offset
+    );
+
+    if (empty($result)) {
+        log_message(
+            'error',
+            'My Orders API returned empty response. Customer ID: ' . $LoginID
+        );
+
+        return null;
+    }
+
+    log_message(
+        'error',
+        'My Orders API Response: ' . json_encode($result)
+    );
+
+    return $result;
+}
 
 
     public static function order_operation_checks($shopcode, $shop_id, $post_arr)

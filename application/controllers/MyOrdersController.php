@@ -565,7 +565,7 @@ class MyOrdersController extends CI_Controller
         if (!empty($target_merchants)) {
             foreach ($target_merchants as $merchant_id => $m_info) {
                 $actual_b2b_order_id = (int)$m_info['b2b_order_id'];
-                if ($actual_b2b_order_id > 0) {
+                if ($actual_b2b_order_id  0) {
                     $this->db->where('order_id', $actual_b2b_order_id)->update('b2b_orders', ['status' => 15, 'updated_at' => time()]);
                 }
 
