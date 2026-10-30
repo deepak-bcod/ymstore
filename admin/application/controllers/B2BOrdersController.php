@@ -18634,89 +18634,7 @@ public function MarkAsFailedPopup() {
 
 
 
-public function markDelivered()
-{
-    if ($this->input->post('order_id')) {
-
-        $order_id = $this->input->post('order_id');
-        $User_id  = $this->session->userdata('LoginID');
-
-        // ==========================================
-        // GET LAST DELIVERY ATTEMPT
-        // ==========================================
-
-        $lastAttempt = $this->db
-            ->where('order_id', $order_id)
-            ->order_by('delivery_attempt_no', 'DESC')
-            ->limit(1)
-            ->get('b2b_orders_delivery_details')
-            ->row();
-
-        $currentAttempt = $lastAttempt
-            ? (int)$lastAttempt->delivery_attempt_no
-            : 0;
-
-        $nextAttempt = $currentAttempt + 1;
-
-
-        // ==========================================
-        // INSERT DELIVERY DETAILS
-        // ==========================================
-
-        $insertData = [
-            'order_id'                  => $order_id,
-            'delivery_type'             => 2,
-            'driver_id'                 => '',
-            'delivery_date'             => date('Y-m-d H:i:s'),
-            'remarks'                   => 'Order Delivered Successfully',
-            'delivery_status'           => 8,
-            'delivery_attempt_no'       => $nextAttempt,
-            'reason_for_attempt_failed' => 'Success',
-            'generate_by'               => $User_id,
-            'created_at'                => date('Y-m-d H:i:s'),
-            'ip'                        => $this->input->ip_address()
-        ];
-
-        $this->CommonModel->insertData(
-            'b2b_orders_delivery_details',
-            $insertData
-        );
-
-
-        // ==========================================
-        // UPDATE B2B ORDER STATUS TO DELIVERED
-        // ==========================================
-
-        $updated = $this->CommonModel->updateData(
-            'b2b_orders',
-            ['order_id' => $order_id],
-            ['status' => 8]
-        );
-
-
-        if ($updated) {
-
-            // ==========================================
-            // GET B2B ORDER DATA
-            // ==========================================
-
-            $orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
-
-            if ($orderData && !empty($orderData->webshop_order_id)) {
-
-                $webshop_order_id = $orderData->webshop_order_id;
-
-
-                // ==========================================
-                // UPDATE MAIN SALES ORDER STATUS
-                // ==========================================
-
-                $this->CommonModel->checkAndUpdateMainOrderStatus(
-                    $webshop_order_id
-                );
-
-
-                // ==========================================
+// ==========================================
                 // GET SALES ORDER & CUSTOMER DATA
                 // ==========================================
 
@@ -18740,19 +18658,22 @@ public function markDelivered()
 
                     $b2bOrderNumber = $b2bOrder->increment_id ?? '';
                     $customerId     = $salesOrder->customer_id ?? ($b2bOrder->customer_id ?? null);
-                    $customerEmail  = $salesOrder->customer_email ?? null;
-
-                    // Fallback to customers table if email or name is missing from sales_order / b2b_orders
+                    
+                    // Retrieve customer email reliably from the customers table
+                    $customerEmail  = '';
                     if (!empty($customerId)) {
                         $customerRec = $this->db->select('email, firstname, lastname')->where('id', $customerId)->get('customers')->row();
                         if ($customerRec) {
-                            if (empty($customerEmail)) {
-                                $customerEmail = $customerRec->email ?? '';
-                            }
+                            $customerEmail = $customerRec->email ?? '';
                             if (empty($customerName)) {
                                 $customerName = trim(($customerRec->firstname ?? '') . ' ' . ($customerRec->lastname ?? ''));
                             }
                         }
+                    }
+
+                    // Fallback to sales_order email column if customers table lookup didn't yield an email
+                    if (empty($customerEmail) && !empty($salesOrder->customer_email)) {
+                        $customerEmail = $salesOrder->customer_email;
                     }
 
                     // ==========================================
@@ -18772,7 +18693,7 @@ public function markDelivered()
 
                         $this->CommonModel->sendCommonHTMLEmail(
                             $customerEmail,
-                            'order-delivered', // Matches email_code in your database
+                            'order-delivered', // Matches email_code in your database (ID 84)
                             $TempVars,
                             $DynamicVars
                         );
@@ -18812,42 +18733,6 @@ public function markDelivered()
                         );
                     }
                 }
-            }
-
-
-            // ==========================================
-            // SUCCESS RESPONSE
-            // ==========================================
-
-            echo json_encode([
-                'status'  => 200,
-                'message' => 'Order marked as delivered successfully.'
-            ]);
-
-        } else {
-
-            // ==========================================
-            // UPDATE FAILED
-            // ==========================================
-
-            echo json_encode([
-                'status'  => 500,
-                'message' => 'Failed to update order status.'
-            ]);
-        }
-
-    } else {
-
-        // ==========================================
-        // INVALID REQUEST
-        // ==========================================
-
-        echo json_encode([
-            'status'  => 500,
-            'message' => 'Invalid request.'
-        ]);
-    }
-}
 
 
 
