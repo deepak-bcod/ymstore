@@ -573,7 +573,6 @@ $app->get('/webshop/my_orders_listing_new/{customer_id}/{limit}/{offset}', funct
 			
 
 			$this->order_products = !empty($OrderItemsMultidata) && is_array($OrderItemsMultidata) ? array_group($OrderItemsMultidata, 'order_id') : [];
-			$this->order_b2bShopsIds = false;
 
 			// $b2bShopsIds=$ch_obj->getShopsForBTwoBOrdersMultiple($order_ids);
 
