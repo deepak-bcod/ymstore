@@ -18639,7 +18639,7 @@ public function markDelivered()
     if ($this->input->post('order_id')) {
 
         $order_id = $this->input->post('order_id');
-        $User_id = $this->session->userdata('LoginID');
+        $User_id  = $this->session->userdata('LoginID');
 
         // ==========================================
         // GET LAST DELIVERY ATTEMPT
@@ -18742,11 +18742,16 @@ public function markDelivered()
                     $customerId     = $salesOrder->customer_id ?? ($b2bOrder->customer_id ?? null);
                     $customerEmail  = $salesOrder->customer_email ?? null;
 
-                    // Fallback to customers table if email is missing from sales_order
-                    if (empty($customerEmail) && !empty($customerId)) {
-                        $customerRec = $this->db->select('email')->where('id', $customerId)->get('customers')->row();
+                    // Fallback to customers table if email or name is missing from sales_order / b2b_orders
+                    if (!empty($customerId)) {
+                        $customerRec = $this->db->select('email, firstname, lastname')->where('id', $customerId)->get('customers')->row();
                         if ($customerRec) {
-                            $customerEmail = $customerRec->email;
+                            if (empty($customerEmail)) {
+                                $customerEmail = $customerRec->email ?? '';
+                            }
+                            if (empty($customerName)) {
+                                $customerName = trim(($customerRec->firstname ?? '') . ' ' . ($customerRec->lastname ?? ''));
+                            }
                         }
                     }
 
@@ -18796,7 +18801,7 @@ public function markDelivered()
                                 'type'           => 'order',
                                 'subtype'        => 'order_delivered',
                                 'recipient_type' => 'shopper',
-                                'recipient_id'   => $customerId,
+                               'recipient_id'   => $salesOrder->customer_id,
                                 'title'          => $notificationTitle,
                                 'message'        => $notificationMessage,
                                 'data'           => $notificationData,
