@@ -4,38 +4,80 @@
 class OrdersRepository
 {
     use UsesRestAPI;
-    public static function my_orders_listing($LoginID, $limit, $offset)
+    
+public static function my_orders_listing($LoginID, $limit, $offset)
 {
-    if (empty($LoginID)) {
-        log_message('error', 'My Orders: Customer LoginID is empty.');
-        return null;
-    }
+    try {
 
-    $LoginID = (int) $LoginID;
-    $limit   = (int) $limit;
-    $offset  = (int) $offset;
+        if (empty($LoginID)) {
 
-    $result = self::get_method(
-        '/webshop/my_orders_listing_new/' .
-        $LoginID . '/' . $limit . '/' . $offset
-    );
+            log_message(
+                'error',
+                'MY ORDERS API ERROR: Customer LoginID is empty.'
+            );
 
-    if (empty($result)) {
+            return null;
+        }
+
+        $LoginID = (int) $LoginID;
+        $limit   = (int) $limit;
+        $offset  = (int) $offset;
+
+        if ($limit <= 0) {
+            $limit = 20;
+        }
+
+        if ($offset < 0) {
+            $offset = 0;
+        }
+
+        $api_url = '/webshop/my_orders_listing_new/' .
+                   $LoginID . '/' .
+                   $limit . '/' .
+                   $offset;
+
         log_message(
             'error',
-            'My Orders API returned empty response. Customer ID: ' . $LoginID
+            'MY ORDERS API URL: ' . $api_url
+        );
+
+        $result = self::get_method($api_url);
+
+        log_message(
+            'error',
+            'MY ORDERS API RESULT: ' . json_encode($result)
+        );
+
+        if (empty($result)) {
+
+            log_message(
+                'error',
+                'MY ORDERS API ERROR: Empty API response. Customer ID: ' .
+                $LoginID
+            );
+
+            return null;
+        }
+
+        return $result;
+
+    } catch (\Throwable $e) {
+
+        log_message(
+            'error',
+            'MY ORDERS REPOSITORY ERROR: ' . $e->getMessage()
+        );
+
+        log_message(
+            'error',
+            'MY ORDERS REPOSITORY FILE: ' . $e->getFile() .
+            ' LINE: ' . $e->getLine()
         );
 
         return null;
     }
-
-    log_message(
-        'error',
-        'My Orders API Response: ' . json_encode($result)
-    );
-
-    return $result;
 }
+
 
 
     public static function order_operation_checks($shopcode, $shop_id, $post_arr)

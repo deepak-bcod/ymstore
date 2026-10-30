@@ -5,7 +5,7 @@
  */
 class Orders
 {
-    private $ci
+    private $ci;
 
     public function __construct()
     {

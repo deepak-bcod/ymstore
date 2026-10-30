@@ -655,7 +655,7 @@ function getSubOrderStatusText($status) {
     </div>
 </div>
 
-<div id="returnPpup" class="modal fade" role="dialog">
+<div id="returnPopup" class="modal fade" role="dialog">
     <div class="modal-dialog">  
 
         <div class="modal-content">
