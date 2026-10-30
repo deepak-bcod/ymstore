@@ -129,13 +129,15 @@ if ($current_lang === 'french') {
     // 3e. Order Resolution Subtypes (mark_done, close, close_final, resolution_approved, resolution_denied)
     if ($type === 'order_resolution') {
         if ($subtype === 'reply') {
+            // Translate Titles like "Order resolution reply (RES-0037)"
             if (strpos($row->title, 'Order resolution reply') !== false) {
-                $title = str_replace('Order resolution reply', 'Réponse à la résolution de la commande', $row->title);
+                $title = preg_replace('/Order resolution reply \((.*?)\)/i', 'Réponse à la résolution de la commande ($1)', $row->title);
             }
-            if (strpos($row->message, 'Yellow Market team has replied to your resolution ticket') !== false) {
-                $message = str_replace(
-                    'Yellow Market team has replied to your resolution ticket',
-                    'L’équipe Yellow Market a répondu à votre ticket de résolution',
+            // Translate Messages from both Yellow Market team & Support team
+            if (strpos($row->message, 'has replied to your resolution ticket') !== false) {
+                $message = preg_replace(
+                    '/(Yellow Market team|Yellow Markets Support team) has replied to your resolution ticket \((.*?)\)/i',
+                    'L’équipe d’assistance Yellow Markets a répondu à votre ticket de résolution ($2)',
                     $message
                 );
             }
@@ -210,7 +212,7 @@ if ($current_lang === 'french') {
         if (strpos($row->message, 'is delivered') !== false) {
             $message = str_replace(['Your order no.', 'is delivered.'], ['Votre commande n°', 'a été livrée.'], $row->message);
         } elseif (strpos($row->message, 'is shipped') !== false) {
-            $message = str_replace(['Your order no.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.'], $row->message);
+            $message = str_replace(['Your order no.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.'], $row:message ?? $row->message);
         } elseif (strpos($row->message, 'is under process') !== false) {
             $message = str_replace(['Your order no.', 'is under process.'], ['Votre commande n°', 'est en cours de traitement.'], $row->message);
         }
