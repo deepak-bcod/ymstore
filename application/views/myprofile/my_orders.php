@@ -19,7 +19,7 @@
 </div><!-- breadcrum section -->
 
 <div class="my-profile-page-full">
-    <div class="container">
+    <div class="container"
         <div class="row">
             <?php $this->load->view('common/profile_sidebar'); ?>
             <?php (new Orders())->list('general'); ?>

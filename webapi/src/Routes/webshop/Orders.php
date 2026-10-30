@@ -946,7 +946,7 @@ $app->get('/webshop/my_orders_listing_new/{customer_id}/{limit}/{offset}', funct
 
 
 
-});
+})
 
 
 

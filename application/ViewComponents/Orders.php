@@ -91,7 +91,7 @@ class Orders
             $postArr = array();
             $response = OrdersRepository::my_order_detail($order_id);
             if (!empty($response) && $response->is_success == 'true') {
-                $OrderData = $response->OrderData;
+                $OrderData = $response->OrderData
                 $response->OrderData;
                 $data['OrderData'] = $OrderData;
                 $order_id = $data['OrderData']->order_id;

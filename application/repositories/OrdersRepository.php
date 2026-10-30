@@ -4,19 +4,63 @@
 class OrdersRepository
 {
     use UsesRestAPI;
-    public static function my_orders_listing($LoginID, $limit, $offset)
-    {
+   public static function my_orders_listing($LoginID, $limit, $offset)
+{
+    try {
+
         if (empty($LoginID)) {
+            log_message('error', 'MY ORDERS: LoginID is empty.');
             return null;
         }
-        static $result;
-        if (isset($result)) {
+
+        $LoginID = (int) $LoginID;
+        $limit   = (int) $limit;
+        $offset  = (int) $offset;
+
+        if ($limit <= 0) {
+            $limit = 20;
+        }
+
+        if ($offset < 0) {
+            $offset = 0;
+        }
+
+        $APIUrl = '/webshop/my_orders_listing_new/'
+                . $LoginID . '/'
+                . $limit . '/'
+                . $offset;
+
+        log_message('error', 'MY ORDERS API URL: ' . $APIUrl);
+
+        // Call API
+        $result = self::get_method($APIUrl);
+
+        // Decode if API returns JSON string
+        if (is_string($result)) {
+            $result = json_decode($result);
+        }
+
+        log_message('error', 'MY ORDERS API RESPONSE: ' . print_r($result, true));
+
+        if (!empty($result) && isset($result->is_success)
+            && $result->is_success == 'true') {
+
             return $result;
         }
-		$result = self::get_method('/webshop/my_orders_listing_new/'.$LoginID.'/'.$limit.'/'.$offset);
-		return $result;
-    }
 
+        log_message('error', 'MY ORDERS API returned unsuccessful response.');
+
+        return $result;
+
+    } catch (\Throwable $e) {
+
+        log_message('error', 'MY ORDERS REPOSITORY ERROR: ' . $e->getMessage());
+        log_message('error', 'MY ORDERS ERROR FILE: ' . $e->getFile());
+        log_message('error', 'MY ORDERS ERROR LINE: ' . $e->getLine());
+
+        return null;
+    }
+}
 
     public static function order_operation_checks($shopcode, $shop_id, $post_arr)
     {
