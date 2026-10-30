@@ -41,8 +41,8 @@
             <tbody>
                 <?php if (!empty($notifications)): ?>
 
-                    <?php foreach ($notifications as $row): ?>
-                  <?php
+    <?php foreach ($notifications as $row): ?>
+    <?php
 $current_lang = $this->session->userdata('site_lang') ?? 'english';
 
 $title = $row->title;
@@ -67,15 +67,23 @@ if ($current_lang === 'french') {
         }
     }
 
-    // 3. Replacement Request
-    if ($type === 'replacement' || strpos($row->title, 'Replacement Approved') !== false || strpos($row->title, 'Order Replacement Approved') !== false) {
-        $title = 'Demande de remplacement approuvée';
-        
-        $message = str_replace(
-            ['Your replacement request for', 'has been approved.'], 
-            ['Votre demande de remplacement pour', 'a été approuvée.'], 
-            $message
-        );
+    // 3. Replacement Request (Approved or Rejected)
+    if ($type === 'replacement' || strpos($row->title, 'Replacement Approved') !== false || strpos($row->title, 'Order Replacement Approved') !== false || strpos($row->title, 'Replacement') !== false) {
+        if (strpos($row->title, 'Rejected') !== false || strpos($row->message, 'was rejected') !== false) {
+            $title = 'Demande de remplacement rejetée';
+            $message = str_replace(
+                ['Your replacement request for', 'Order No', 'was rejected.'], 
+                ['Votre demande de remplacement pour', 'Commande n°', 'a été rejetée.'], 
+                $message
+            );
+        } else {
+            $title = 'Demande de remplacement approuvée';
+            $message = str_replace(
+                ['Your replacement request for', 'has been approved.'], 
+                ['Votre demande de remplacement pour', 'a été approuvée.'], 
+                $message
+            );
+        }
     }
 
     // 3b. Refund Request
@@ -92,28 +100,33 @@ if ($current_lang === 'french') {
     // 3c. Order Resolution Reply & Denied Requests
     if (strpos($row->title, 'Order Resolution Reply') !== false) {
         $title = str_replace('Order Resolution Reply on Ticket', 'Réponse à la résolution de la commande sur le ticket', $row->title);
+        $title = str_replace('Order Resolution Reply', 'Réponse à la résolution de la commande', $title);
         
         $message = str_replace(
-            ['Merchant reply your Order Resolution', 'Merchant reply on your Order Resolution'],
-            ['Réponse du vendeur à votre résolution de commande', 'Réponse du vendeur à votre résolution de commande'],
+            ['Merchant reply your Order Resolution', 'Merchant reply on your Order Resolution', 'Merchant replied to your Order Resolution request.'],
+            ['Réponse du vendeur à votre résolution de commande', 'Réponse du vendeur à votre résolution de commande', 'Le vendeur a répondu à votre demande de résolution de commande.'],
             $message
         );
     }
 
-    // 3d. Order Resolution - No Refund / Merchant Denied
-    if (strpos($row->title, 'Order Resolution - No Refund') !== false) {
-        $title = str_replace('Order Resolution - No Refund for Product', 'Résolution de commande - Aucun remboursement pour le produit', $row->title);
+    // 3d. Order Resolution - No Refund / No Replacement / Merchant Denied
+    if (strpos($row->title, 'Order Resolution - No Refund') !== false || strpos($row->title, 'Order Resolution - No Replacement') !== false) {
+        $title = str_replace(
+            ['Order Resolution - No Refund for Product', 'Order Resolution - No Replacement for Product'], 
+            ['Résolution de commande - Aucun remboursement pour le produit', 'Résolution de commande - Aucun remplacement pour le produit'], 
+            $row->title
+        );
         
-        if (strpos($row->message, 'Merchant has denied the refund request') !== false) {
+        if (strpos($row->message, 'Merchant has denied') !== false) {
             $message = str_replace(
-                ['Merchant has denied the refund request for'],
-                ['Le vendeur a refusé la demande de remboursement pour'],
+                ['Merchant has denied the refund request for', 'Merchant has denied the replacement request for'],
+                ['Le vendeur a refusé la demande de remboursement pour', 'Le vendeur a refusé la demande de remplacement pour'],
                 $message
             );
         }
     }
 
-    // 3e. Order Resolution Subtypes (mark_done, close, close_final, resolution_approved, resolution_denied) - NEW
+    // 3e. Order Resolution Subtypes (mark_done, close, close_final, resolution_approved, resolution_denied)
     if ($type === 'order_resolution') {
         if ($subtype === 'reply') {
             if (strpos($row->title, 'Order resolution reply') !== false) {
@@ -127,11 +140,9 @@ if ($current_lang === 'french') {
                 );
             }
         } elseif ($subtype === 'mark_done') {
-            // Title: "Your Resolution for Order is refunded"
             if (strpos($row->title, 'Your Resolution for Order is refunded') !== false) {
                 $title = 'Votre résolution de commande a été remboursée';
             }
-            // Message: "Your resolution ({ticket}) for Order item({item}) is refunded by Yellow markets team."
             if (strpos($row->message, 'is refunded by Yellow markets team') !== false) {
                 $message = preg_replace(
                     '/Your resolution \((.*?)\) for Order item\((.*?)\) is refunded by Yellow markets team\./',
@@ -140,11 +151,9 @@ if ($current_lang === 'french') {
                 );
             }
         } elseif ($subtype === 'close') {
-            // Title: "Resolution ticket is closed"
             if (strpos($row->title, 'Resolution ticket is closed') !== false) {
                 $title = 'Le ticket de résolution est fermé';
             }
-            // Message: "Your resolution ticket no ({ticket}) is closed. If you wish to escalate..."
             if (strpos($row->message, 'is closed. If you wish to escalate') !== false) {
                 $message = preg_replace(
                     '/Your resolution ticket no \((.*?)\) is closed\. If you wish to escalate with Yellow Market team plz go back inside you tick and raise resolution with yellow market team\./',
@@ -153,11 +162,9 @@ if ($current_lang === 'french') {
                 );
             }
         } elseif ($subtype === 'close_final') {
-            // Title: "Resolution ({ticket}) closed"
             if (strpos($row->title, 'closed') !== false) {
                 $title = preg_replace('/Resolution \((.*?)\) closed/', 'Résolution ($1) fermée', $row->title);
             }
-            // Message: "Your resolution ticket no ({ticket}) is closed."
             if (strpos($row->message, 'is closed') !== false) {
                 $message = preg_replace(
                     '/Your resolution ticket no \((.*?)\) is closed\./',
@@ -166,11 +173,9 @@ if ($current_lang === 'french') {
                 );
             }
         } elseif ($subtype === 'resolution_approved') {
-            // Title: "Resolution ticket approved"
             if (strpos($row->title, 'Resolution ticket approved') !== false) {
                 $title = 'Ticket de résolution approuvé';
             }
-            // Message: "Your resolution ticket no ({ticket}) is approved by The yellow market team, Team is working on it and will update you asap."
             if (strpos($row->message, 'is approved by The yellow market team') !== false) {
                 $message = preg_replace(
                     '/Your resolution ticket no \((.*?)\) is approved by The yellow market team, Team is working on it and will update you asap\./',
@@ -179,11 +184,9 @@ if ($current_lang === 'french') {
                 );
             }
         } elseif ($subtype === 'resolution_denied') {
-            // Title: "Resolution ticket denied"
             if (strpos($row->title, 'Resolution ticket denied') !== false) {
                 $title = 'Ticket de résolution refusé';
             }
-            // Message: "Your resolution ticket no ({ticket}) is denied by The yellow market team."
             if (strpos($row->message, 'is denied by The yellow market team') !== false) {
                 $message = preg_replace(
                     '/Your resolution ticket no \((.*?)\) is denied by The yellow market team\./',
