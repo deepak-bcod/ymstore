@@ -1,0 +1,1 @@
+queries|a:1:{s:6:"server";a:1:{s:0:"";a:1:{s:4:"root";a:1:{s:3:"ysm";N;}}}}dbs|a:1:{s:6:"server";a:1:{s:0:"";a:1:{s:4:"root";a:7:{i:0;s:11:"holidays_db";i:1;s:18:"information_schema";i:2;s:5:"mysql";i:3;s:18:"performance_schema";i:4;s:12:"yellowmarket";i:5;s:3:"ysm";i:6;s:7:"ysm_bak";}}}}

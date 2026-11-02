@@ -1,0 +1,4 @@
+queries|a:1:{s:6:"server";a:1:{s:0:"";a:1:{s:4:"root";a:1:{s:3:"ysm";a:1:{i:0;a:2:{i:0;s:81:"SELECT *
+FROM `b2b_orders_delivery_details`
+WHERE `order_id` = '331'
+LIMIT 50;";i:1;i:1792383516;}}}}}}dbs|a:1:{s:6:"server";a:1:{s:0:"";a:1:{s:4:"root";a:7:{i:0;s:11:"holidays_db";i:1;s:18:"information_schema";i:2;s:5:"mysql";i:3;s:18:"performance_schema";i:4;s:12:"yellowmarket";i:5;s:3:"ysm";i:6;s:7:"ysm_bak";}}}}
