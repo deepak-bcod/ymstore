@@ -315,11 +315,11 @@ class OrderResolutionModel extends CI_Model
             }
         }
 
-        // 5. Filter out items that already have an active/open Order Resolution ticket
+        // 5. Filter out items that already have an Order Resolution ticket (active or closed)
         $final_eligible = [];
         foreach ($eligible_items as $item) {
-            $active_ticket = $this->get_active_resolution_for_item($item->order_id, $item->product_id);
-            if (!$active_ticket) {
+            $existing_ticket = $this->get_latest_resolution_for_item($item->order_id, $item->product_id);
+            if (!$existing_ticket) {
                 $final_eligible[] = $item;
             }
         }

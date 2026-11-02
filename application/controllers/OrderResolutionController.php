@@ -59,10 +59,13 @@ class OrderResolutionController extends CI_Controller
         if ($order_id > 0) {
             $matched_item = $this->OrderResolutionModel->is_item_eligible_for_resolution($order_id, $product_id, $customer_id);
             if (!$matched_item) {
-                // Check if an active ticket already exists for this item
-                $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
+                // Check if a ticket (active or closed) already exists for this item
+                $existing_ticket = $this->OrderResolutionModel->get_latest_resolution_for_item($order_id, $product_id);
                 if ($existing_ticket) {
-                    $msg = sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
+                    $is_closed = in_array($existing_ticket->status, ['Close', 'Close (Final)'], true);
+                    $msg = $is_closed
+                        ? sprintf('The Order Resolution ticket (#%s) for this item has already been closed.', $existing_ticket->ticket_number)
+                        : sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
                     $this->session->set_flashdata('error', $msg);
                     redirect('order_resolution/view/' . $existing_ticket->ticket_number);
                     return;
@@ -169,9 +172,12 @@ class OrderResolutionController extends CI_Controller
         // Mandatory Prerequisite: Item must have a rejected Return or Replacement request
         $matched_item = $this->OrderResolutionModel->is_item_eligible_for_resolution($order_id, $product_id, $customer_id);
         if (!$matched_item) {
-            $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
+            $existing_ticket = $this->OrderResolutionModel->get_latest_resolution_for_item($order_id, $product_id);
             if ($existing_ticket) {
-                $msg = sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
+                $is_closed = in_array($existing_ticket->status, ['Close', 'Close (Final)'], true);
+                $msg = $is_closed
+                    ? sprintf('The Order Resolution ticket (#%s) for this item has already been closed.', $existing_ticket->ticket_number)
+                    : sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
                 $this->json_response(false, $msg, ['redirect' => base_url('order_resolution/view/' . $existing_ticket->ticket_number), 'requires_reload' => true], 'order_resolution/view/' . $existing_ticket->ticket_number);
                 return;
             }
@@ -181,10 +187,13 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
-        // Prevent duplicate active tickets
-        $existing_ticket = $this->OrderResolutionModel->get_active_resolution_for_item($order_id, $product_id);
+        // Prevent duplicate tickets (active or closed)
+        $existing_ticket = $this->OrderResolutionModel->get_latest_resolution_for_item($order_id, $product_id);
         if ($existing_ticket) {
-            $msg = sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
+            $is_closed = in_array($existing_ticket->status, ['Close', 'Close (Final)'], true);
+            $msg = $is_closed
+                ? sprintf('The Order Resolution ticket (#%s) for this item has already been closed.', $existing_ticket->ticket_number)
+                : sprintf($this->lang->line('active_resolution_exists') ?: 'An active Order Resolution ticket (#%s) already exists for this item.', $existing_ticket->ticket_number);
             $this->json_response(false, $msg, ['redirect' => base_url('order_resolution/view/' . $existing_ticket->ticket_number), 'requires_reload' => true], 'order_resolution/view/' . $existing_ticket->ticket_number);
             return;
         }
