@@ -297,52 +297,47 @@ class CommonModel extends CI_Model
 		return $result;
 	}
 
-	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $SubDynamic = '')
+	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '', $custom_subject = '', $custom_content = '')
 	{
-		// $GlobalVar = $this->getGlobalVariableByIdentifier('fbc-admin-email');
-		// if (isset($GlobalVar) && $GlobalVar->value != '') {
-			$from_email = 'noreply@yellowmarkets.com';
-		// }
+		$from_email = 'noreply@yellowmarkets.com';
 
 		$emailTemplate = $this->getEmailTemplateByIdentifier($identifier);
+		if ($emailTemplate) {
+			if (!empty($lang_code) && ($lang_code === 'fr' || $lang_code === 'french')) {
+				$subject = !empty($emailTemplate->subject_fr) ? $emailTemplate->subject_fr : $emailTemplate->subject;
+				$content = !empty($emailTemplate->content_fr) ? $emailTemplate->content_fr : $emailTemplate->content;
+			} else {
+				$subject = $emailTemplate->subject;
+				$content = $emailTemplate->content;
+			}
+		} else {
+			$subject = !empty($custom_subject) ? $custom_subject : ('Yellow Markets Notification: ' . $identifier);
+			$content = !empty($custom_content) ? $custom_content : '<p>This is an automated notification regarding your Order Resolution ticket ##TICKET_NUMBER##.</p>';
+		}
 
-		$subject = (isset($email_subject) && $email_subject != '')
-			? $email_subject
-			: $emailTemplate->subject;
+		if (!empty($custom_subject)) {
+			$subject = $custom_subject;
+		}
 
-		// Replace placeholders in subject
 		$subject = str_replace($TempVars, $DynamicVars, $subject);
-
-		$title = $emailTemplate->title;
-
-		// Replace placeholders in email body
-		$emailBody = str_replace(
-			$TempVars,
-			$DynamicVars,
-			$emailTemplate->content
-		);
+		$emailBody = str_replace($TempVars, $DynamicVars, $content);
 
 		$data['subject'] = $subject;
 		$data['content'] = $emailBody;
 
-		$content = $this->load->view(
+		$contentView = $this->load->view(
 			'email_template/email_content',
 			$data,
 			TRUE
 		);
 
-		if ($this->sendHTMLMailSMTP(
-			$EmailTo,
-			$subject,
-			$content,
-			$from_email,
-			$attachment = ""
-		)) {
+		if ($this->sendHTMLMailSMTP($EmailTo, $subject, $contentView, $from_email, $attachment = "")) {
 			return true;
 		} else {
 			return false;
 		}
 	}
+
 
 
 
