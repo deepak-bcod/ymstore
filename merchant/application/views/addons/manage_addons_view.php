@@ -46,6 +46,7 @@
                             <th><?php echo lang('addon_sr_no'); ?></th>
                             <th><?php echo lang('addon_service'); ?></th>
                             <th><?php echo lang('addon_name'); ?></th>
+                            <th><?php echo lang('purchase_details') ?: 'Purchase Details'; ?></th>
                             <th><?php echo lang('addon_date'); ?></th>
                             <th><?php echo lang('addon_amount'); ?></th>
                             <th><?php echo lang('addon_actions'); ?></th>
@@ -57,9 +58,19 @@
                             <tr>
                                 <td><?php echo $sr++; ?></td>
                                 <td><?php echo isset($row->addon_service_name) ? htmlspecialchars($row->addon_service_name) : ''; ?></td>
-                                <td><?php echo isset($row->addon_name) ? htmlspecialchars($row->addon_name) : ''; ?></td>
+                                <td><strong><?php echo isset($row->addon_name) ? htmlspecialchars($row->addon_name) : ''; ?></strong></td>
+                                <td>
+                                    <?php if (!empty($row->order_number)): ?>
+                                        <span class="badge badge-info" style="font-size: 13px;">Order #<?php echo htmlspecialchars($row->order_number); ?></span>
+                                        <?php if (!empty($row->ticket_number)): ?>
+                                            <br><small class="text-muted"><a href="<?php echo base_url('order_resolution/view/' . $row->ticket_number); ?>" style="color:#1E7EC8; font-weight:600;">Ticket #<?php echo htmlspecialchars($row->ticket_number); ?></a></small>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="text-muted">General Add-On</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo isset($row->date) ? htmlspecialchars($row->date) : ''; ?></td>
-                                <td>MUR <?php echo isset($row->amount) ? number_format((float)$row->amount, 2) : '0.00'; ?></td>
+                                <td class="font-weight-bold text-dark">MUR <?php echo isset($row->amount) ? number_format((float)$row->amount, 2) : '0.00'; ?></td>
                                 <td>
                                     <!-- Download Invoice Link -->
                                     <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" 
@@ -67,14 +78,14 @@
                                        target="_blank" 
                                        style="color: #ff9e0c !important; background: transparent !important; border: none !important; font-weight: 500; font-size: 14px; text-decoration: none;"
                                        title="<?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?>">
-                                        <i class="fas fa-download mr-1"></i><?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?>
+                                        <i class="fas fa-file-invoice mr-1"></i><?php echo lang('download_invoice') ? lang('download_invoice') : 'Download Invoice'; ?>
                                     </a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="text-center py-4"><?php echo lang('addon_no_records'); ?></td>
+                                <td colspan="7" class="text-center py-4"><?php echo lang('addon_no_records'); ?></td>
                             </tr>
                         <?php endif; ?>
                     </tbody>

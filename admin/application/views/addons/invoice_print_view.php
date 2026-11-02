@@ -190,12 +190,22 @@ if (empty($logo_image_src)) {
             <td class="col-label">Date</td>
             <td class="col-val">: <?php echo $addon_purchase->date; ?></td>
         </tr>
+        <?php if (!empty($addon_purchase->order_number) || !empty($addon_purchase->ticket_number)): ?>
         <tr>
-            <td class="col-label"></td>
-            <td class="col-val"></td>
-            <!-- <td class="col-label">Status</td>
-            <td class="col-val">: <span style="text-transform: capitalize; color: #28a745; font-weight: bold;"><?php echo $addon_purchase->status; ?></span></td> -->
+            <td class="col-label">Order Number</td>
+            <td class="col-val">: #<?php echo htmlspecialchars($addon_purchase->order_number); ?></td>
+            <td class="col-label">Resolution Ticket</td>
+            <td class="col-val">: <?php echo htmlspecialchars($addon_purchase->ticket_number); ?></td>
         </tr>
+        <?php endif; ?>
+        <?php if (!empty($addon_purchase->transaction_ref)): ?>
+        <tr>
+            <td class="col-label">Transaction Ref</td>
+            <td class="col-val">: <?php echo htmlspecialchars($addon_purchase->transaction_ref); ?></td>
+            <td class="col-label">Payment Status</td>
+            <td class="col-val">: <span style="color: #28a745; font-weight: bold;">Paid (My.T Money)</span></td>
+        </tr>
+        <?php endif; ?>
     </table>
 
     <!-- Table Section Header -->
@@ -214,7 +224,12 @@ if (empty($logo_image_src)) {
         <tbody>
             <tr>
                 <td><?php echo isset($addon_purchase->addon_service_name) ? htmlspecialchars($addon_purchase->addon_service_name) : ''; ?></td>
-                <td><?php echo isset($addon_purchase->addon_name) ? htmlspecialchars($addon_purchase->addon_name) : ''; ?></td>
+                <td>
+                    <strong><?php echo isset($addon_purchase->addon_name) ? htmlspecialchars($addon_purchase->addon_name) : ''; ?></strong>
+                    <?php if (!empty($addon_purchase->order_number)): ?>
+                        <br><span style="font-size: 12px; color: #555;">Replacement Delivery for Order #<?php echo htmlspecialchars($addon_purchase->order_number); ?> (Ticket <?php echo htmlspecialchars($addon_purchase->ticket_number); ?>)</span>
+                    <?php endif; ?>
+                </td>
                 <td>MUR <?php echo number_format($addon_purchase->amount, 2); ?></td>
                 <td>My.T Money</td>
             </tr>

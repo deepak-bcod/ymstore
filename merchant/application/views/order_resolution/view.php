@@ -222,6 +222,9 @@ $this->load->view('common/fbc-user/header');
                                                         <button class="btn btn-sm btn-success disabled" disabled>
                                                             <i class="fa fa-check"></i> <?= $this->lang->line('addon_service_paid') ?: 'Purchased'; ?>
                                                         </button>
+                                                        <a href="<?= base_url('addons/download_invoice/' . $resolution->addon_purchase_id); ?>" class="btn btn-sm btn-outline-primary ml-1" target="_blank" title="View / Download Invoice">
+                                                            <i class="fa fa-file-text-o"></i> <?= $this->lang->line('invoice') ?: 'Invoice'; ?>
+                                                        </a>
                                                     <?php else: ?>
                                                         <a href="<?= base_url('addons/buy_resolution_delivery/' . $resolution->ticket_number); ?>" class="btn btn-sm btn-info font-weight-bold">
                                                             <i class="fa fa-shopping-cart"></i> <?= $this->lang->line('purchase_addon_service') ?: 'Purchase AddOn Service'; ?>
@@ -298,23 +301,40 @@ $this->load->view('common/fbc-user/header');
                                     <span class="badge badge-info p-2">
                                         <i class="fa fa-check-circle"></i> <?= $this->lang->line('replacement_approved') ?: 'Replacement Approved'; ?> (<?= htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?>)
                                     </span>
-                                    <!-- Replacement Completed: displayed ONLY after Replacement Approved AND delivery option selected -->
-                                    <?php if ($resolution->delivery_option === 'ym_delivery' && empty($is_addon_paid)): ?>
-                                        <button type="button" class="btn btn-secondary btn-sm" disabled style="opacity: 0.65; cursor: not-allowed;" title="<?= htmlspecialchars($this->lang->line('addon_payment_required_tooltip') ?: 'Please purchase and complete payment for the YM Delivery AddOn service before marking replacement as completed.'); ?>">
-                                            <i class="fa fa-lock"></i> <?= $this->lang->line('replacement_completed') ?: 'Replacement Completed'; ?>
-                                        </button>
-                                        <span class="badge badge-warning text-dark p-2 ml-1" style="font-size: 11px;">
-                                            <i class="fa fa-exclamation-triangle"></i> <?= $this->lang->line('addon_service_payment_required') ?: 'YM Delivery AddOn Payment Required'; ?>
-                                        </span>
+                                    <!-- Delivery Handling: YM Delivery is performed by Yellow Markets team, while Own Delivery / Self Pickup is handled by Merchant -->
+                                    <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
+                                        <?php if (empty($is_addon_paid)): ?>
+                                            <span class="badge badge-warning text-dark p-2 ml-1" style="font-size: 12px;">
+                                                <i class="fa fa-exclamation-triangle"></i> <?= $this->lang->line('addon_service_payment_required') ?: 'YM Delivery AddOn Payment Required'; ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge badge-success p-2 ml-1" style="font-size: 12px;">
+                                                <i class="fa fa-check-circle"></i> <?= $this->lang->line('addon_service_paid') ?: 'YM Delivery Service Paid'; ?>
+                                            </span>
+                                            <span class="badge badge-info p-2 ml-1" style="font-size: 12px;">
+                                                <i class="fa fa-truck"></i> <?= $this->lang->line('delivery_by_ym_team') ?: 'Delivery Handled by Yellow Markets Team'; ?>
+                                            </span>
+                                            <div class="w-100 mt-2">
+                                                <div class="alert alert-info py-2 mb-0" style="font-size: 13px;">
+                                                    <i class="fa fa-info-circle"></i> <strong>Yellow Markets Delivery:</strong> You have purchased the YM Delivery Service. Yellow Markets delivery team will collect the replacement product from you and deliver it directly to the shopper. You do not need to deliver this product.
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
                                             <i class="fa fa-check-square-o"></i> <?= $this->lang->line('replacement_completed') ?: 'Replacement Completed'; ?>
                                         </button>
                                     <?php endif; ?>
                                 <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
-                                    <span class="badge badge-primary p-2">
-                                        <i class="fa fa-check-circle"></i> <?= $this->lang->line('replacement_completed') ?: 'Replacement Completed'; ?>
-                                    </span>
+                                    <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
+                                        <span class="badge badge-success p-2">
+                                            <i class="fa fa-check-circle"></i> <?= $this->lang->line('ym_replacement_delivered') ?: 'Replacement Delivered by Yellow Markets Team'; ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge badge-primary p-2">
+                                            <i class="fa fa-check-circle"></i> <?= $this->lang->line('replacement_completed') ?: 'Replacement Completed'; ?>
+                                        </span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             <?php endif; ?>
 

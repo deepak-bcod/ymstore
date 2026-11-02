@@ -505,3 +505,5 @@ $route['order_resolution/close_ticket']             = 'OrderResolutionController
 $route['order_resolution/close_final']              = 'OrderResolutionController/close_final';
 $route['order_resolution/resolution_decision']     = 'OrderResolutionController/resolution_decision';
 
+
+$route['order_resolution/complete_ym_delivery'] = 'OrderResolutionController/complete_ym_delivery';

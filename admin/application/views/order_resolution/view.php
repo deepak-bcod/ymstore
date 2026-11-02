@@ -164,8 +164,15 @@ $this->load->view('common/fbc-user/header');
                         <!-- ================= @Acct (ACCOUNTING ONLY) CONTROLS ================= -->
                         <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
                             <?php if (!empty($resolution->addon_purchase_id)): ?>
-                                <div class="alert alert-success py-2 mb-3">
-                                    <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
+                                <div class="alert alert-success py-2 mb-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
+                                    </div>
+                                    <div>
+                                        <a href="<?= base_url('addons/download_invoice/' . $resolution->addon_purchase_id); ?>" class="btn btn-sm btn-outline-success font-weight-bold" target="_blank">
+                                            <i class="fa fa-file-pdf-o"></i> Download Invoice
+                                        </a>
+                                    </div>
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-info py-2 mb-3">
@@ -182,7 +189,7 @@ $this->load->view('common/fbc-user/header');
                         <?php if ($resolution->status === 'Processing'): ?>
                             <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
                                 <div class="alert alert-info py-2 mb-3">
-                                    <i class="fa fa-truck"></i> <strong>Assigned to Accounting (@Acct):</strong> Coordinate with the merchant to purchase the replacement delivery AddOn Service. Once delivery is completed by the merchant, the ticket will be handed back to @Help for closure.
+                                    <i class="fa fa-truck"></i> <strong>Assigned to Accounting (@Acct):</strong> Coordinate with the merchant to purchase the replacement delivery AddOn Service. Yellow Markets logistics team will collect and deliver the replacement product to the shopper, then @Help will complete and close the ticket.
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-info py-2 mb-3">
@@ -212,8 +219,15 @@ $this->load->view('common/fbc-user/header');
                         <!-- ================= @Help (SUPPORT ONLY) CONTROLS ================= -->
                         <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
                             <?php if (!empty($resolution->addon_purchase_id)): ?>
-                                <div class="alert alert-success py-2 mb-3">
-                                    <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
+                                <div class="alert alert-success py-2 mb-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
+                                    </div>
+                                    <div>
+                                        <a href="<?= base_url('addons/download_invoice/' . $resolution->addon_purchase_id); ?>" class="btn btn-sm btn-outline-success font-weight-bold" target="_blank">
+                                            <i class="fa fa-file-pdf-o"></i> Download Invoice
+                                        </a>
+                                    </div>
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-info py-2 mb-3">
@@ -234,7 +248,7 @@ $this->load->view('common/fbc-user/header');
                         <?php elseif ($resolution->status === 'Processing'): ?>
                             <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
                                 <div class="alert alert-info py-2 mb-3">
-                                    <i class="fa fa-truck"></i> <strong>Assigned to Accounting (@Acct):</strong> Coordinate with the merchant to purchase the replacement delivery AddOn Service. Once delivery is completed by the merchant, the ticket will be handed back to @Help for closure.
+                                    <i class="fa fa-truck"></i> <strong>Assigned to Accounting (@Acct):</strong> Coordinate with the merchant to purchase the replacement delivery AddOn Service. Yellow Markets logistics team will collect and deliver the replacement product to the shopper, then @Help will complete and close the ticket.
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-info py-2 mb-3">
@@ -291,6 +305,12 @@ $this->load->view('common/fbc-user/header');
                                 <?php if ($resolution->status === 'Open' && $has_merchant_action && $resolution->merchant_action !== 'refund_denied' && !$hide_acct && $resolution->delivery_option === 'ym_delivery'): ?>
                                     <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
                                         <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved' && !empty($resolution->addon_purchase_id)): ?>
+                                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#completeYmDeliveryModal">
+                                        <i class="fa fa-truck"></i> Mark YM Delivery Completed
                                     </button>
                                 <?php endif; ?>
                             <?php endif; ?>
@@ -683,6 +703,33 @@ $this->load->view('common/fbc-user/header');
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger btn-sm">Confirm Resolution Denied</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal: Complete YM Delivery (@Help) -->
+<div class="modal fade" id="completeYmDeliveryModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="<?= base_url('order_resolution/complete_ym_delivery'); ?>" method="POST" class="ajax-resolution-form">
+                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                <div class="modal-header">
+                    <h5 class="modal-title text-success"><i class="fa fa-truck"></i> Complete YM Delivery</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Confirm that Yellow Markets logistics has collected the replacement product from the merchant and successfully delivered it to the shopper.</p>
+                    <div class="form-group mb-0">
+                        <label>Delivery / Tracking Notes (optional):</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Delivered by YM courier partner on <?= date('d M Y'); ?>"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm">Confirm Delivery Completed</button>
                 </div>
             </form>
         </div>

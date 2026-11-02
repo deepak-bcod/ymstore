@@ -2469,4 +2469,50 @@ class OrderResolutionModel extends CI_Model
             }
         }
     }
+    /**
+     * @Help / Admin completes YM Delivery replacement (Fulfillment done by Yellow Markets logistics team)
+     */
+    public function complete_ym_delivery_by_admin($ticket_number, $admin_id, $notes = '')
+    {
+        $res = $this->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+
+        if ($res->merchant_action === 'replacement_completed') {
+            return ['status' => false, 'message' => 'Replacement is already marked as completed.', 'requires_reload' => true];
+        }
+
+        $time = time();
+        $this->db->where('id', $res->id)->update('order_resolutions', [
+            'merchant_action' => 'replacement_completed',
+            'updated_at'      => $time
+        ]);
+
+        $audit_note = "Yellow Markets logistics team completed the replacement delivery to shopper." . ($notes ? ' Note: ' . $notes : '');
+        $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'YM Replacement Delivery Completed', 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
+
+        // Post into conversation
+        $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Yellow Markets Logistics Team has completed delivery of the replacement product to the shopper." . ($notes ? ' Details: ' . $notes : ''), '', '', 'shopper_admin');
+        $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Yellow Markets Logistics Team has successfully delivered the replacement product for Ticket #{$ticket_number} (Order #{$res->order_number}) to the shopper.", '', '', 'merchant_admin');
+
+        // Send replacement completed email to shopper
+        $this->send_replacement_completed_shopper_email($res);
+
+        // Notify Shopper via in-app notification
+        if (!empty($res->customer_id)) {
+            $this->send_inapp_notification('customer', $res->customer_id, 'replacement_completed',
+                'Replacement Product Delivered',
+                "Your replacement product for Ticket #{$ticket_number} (Order #{$res->order_number}) has been delivered by Yellow Markets logistics.", $res);
+        }
+
+        // Notify Merchant via in-app notification
+        if (!empty($res->merchant_id)) {
+            $this->send_inapp_notification('merchant', $res->merchant_id, 'replacement_completed',
+                'YM Replacement Delivery Completed',
+                "Yellow Markets logistics team has delivered the replacement product for Ticket #{$ticket_number} (Order #{$res->order_number}) to the shopper.", $res);
+        }
+
+        return ['status' => true, 'message' => 'YM Replacement delivery marked as completed. Shopper and Merchant notified.'];
+    }
 }
