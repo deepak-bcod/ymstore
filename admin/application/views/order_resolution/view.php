@@ -118,7 +118,7 @@ $this->load->view('common/fbc-user/header');
                         </div>
                         <div class="col-md-4 col-sm-6">
                             <strong>Delivery Option:</strong> 
-                            <span class="text-success font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
+                            <span class="text-success font-weight-bold"><?php echo $delivery_option = ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
                         </div>
                         <div class="col-md-4 col-sm-6">
                             <strong>Refund Amount:</strong> 
@@ -288,7 +288,7 @@ $this->load->view('common/fbc-user/header');
                                     </button>
                                 <?php endif; ?>
 
-                                <?php if ($resolution->status === 'Open' && $has_merchant_action && $resolution->merchant_action !== 'refund_denied' && !$hide_acct): ?>
+                                <?php if ($resolution->status === 'Open' && $has_merchant_action && $resolution->merchant_action !== 'refund_denied' && !$hide_acct && $resolution->delivery_option === 'ym_delivery'): ?>
                                     <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
                                         <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
                                     </button>
