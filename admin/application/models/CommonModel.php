@@ -297,47 +297,124 @@ class CommonModel extends CI_Model
 		return $result;
 	}
 
-	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '', $custom_subject = '', $custom_content = '')
-	{
-		$from_email = 'noreply@yellowmarkets.com';
+	
+public function sendCommonHTMLEmail(
+    $EmailTo,
+    $identifier,
+    $TempVars,
+    $DynamicVars,
+    $lang_code = '',
+    $custom_subject = '',
+    $custom_content = ''
+) {
+    $from_email = 'noreply@yellowmarkets.com';
 
-		$emailTemplate = $this->getEmailTemplateByIdentifier($identifier);
-		if ($emailTemplate) {
-			if (!empty($lang_code) && ($lang_code === 'fr' || $lang_code === 'french')) {
-				$subject = !empty($emailTemplate->subject_fr) ? $emailTemplate->subject_fr : $emailTemplate->subject;
-				$content = !empty($emailTemplate->content_fr) ? $emailTemplate->content_fr : $emailTemplate->content;
-			} else {
-				$subject = $emailTemplate->subject;
-				$content = $emailTemplate->content;
-			}
-		} else {
-			$subject = !empty($custom_subject) ? $custom_subject : ('Yellow Markets Notification: ' . $identifier);
-			$content = !empty($custom_content) ? $custom_content : '<p>This is an automated notification regarding your Order Resolution ticket ##TICKET_NUMBER##.</p>';
-		}
+    // Validate recipient
+    if (empty($EmailTo) || !filter_var($EmailTo, FILTER_VALIDATE_EMAIL)) {
+        log_message(
+            'error',
+            'Invalid email recipient. Template: ' . $identifier
+        );
+        return false;
+    }
 
-		if (!empty($custom_subject)) {
-			$subject = $custom_subject;
-		}
+    // Get email template
+    $emailTemplate = $this->getEmailTemplateByIdentifier($identifier);
 
-		$subject = str_replace($TempVars, $DynamicVars, $subject);
-		$emailBody = str_replace($TempVars, $DynamicVars, $content);
+    if ($emailTemplate) {
 
-		$data['subject'] = $subject;
-		$data['content'] = $emailBody;
+        // Select language
+        if (
+            !empty($lang_code) &&
+            in_array(strtolower($lang_code), ['fr', 'french'], true)
+        ) {
+            $subject = !empty($emailTemplate->subject_fr)
+                ? $emailTemplate->subject_fr
+                : $emailTemplate->subject;
 
-		$contentView = $this->load->view(
-			'email_template/email_content',
-			$data,
-			TRUE
-		);
+            $content = !empty($emailTemplate->content_fr)
+                ? $emailTemplate->content_fr
+                : $emailTemplate->content;
 
-		if ($this->sendHTMLMailSMTP($EmailTo, $subject, $contentView, $from_email, $attachment = "")) {
-			return true;
-		} else {
-			return false;
-		}
-	}
+        } else {
 
+            $subject = $emailTemplate->subject;
+            $content = $emailTemplate->content;
+        }
+
+    } else {
+
+        log_message(
+            'error',
+            'Email template not found. Identifier: ' . $identifier
+        );
+
+        // Use fallback only when explicitly provided
+        if (empty($custom_subject) || empty($custom_content)) {
+            return false;
+        }
+
+        $subject = $custom_subject;
+        $content = $custom_content;
+    }
+
+    // Override subject when supplied
+    if (!empty($custom_subject)) {
+        $subject = $custom_subject;
+    }
+
+    // Replace placeholders
+    $subject = str_replace($TempVars, $DynamicVars, $subject);
+    $emailBody = str_replace($TempVars, $DynamicVars, $content);
+
+    // Prepare email view
+    $data['subject'] = $subject;
+    $data['content'] = $emailBody;
+
+    $contentView = $this->load->view(
+        'email_template/email_content',
+        $data,
+        TRUE
+    );
+
+    if (empty($contentView)) {
+        log_message(
+            'error',
+            'Email content view is empty. Identifier: ' . $identifier
+        );
+        return false;
+    }
+
+    // Send email
+    $result = $this->sendHTMLMailSMTP(
+        $EmailTo,
+        $subject,
+        $contentView,
+        $from_email,
+        ''
+    );
+
+    if ($result) {
+
+        log_message(
+            'info',
+            'Email sent successfully. Identifier: ' . $identifier .
+            ', Recipient: ' . $EmailTo
+        );
+
+        return true;
+
+    } else {
+
+        log_message(
+            'error',
+            'SMTP email sending failed. Identifier: ' . $identifier .
+            ', Recipient: ' . $EmailTo
+        );
+
+        return false;
+    }
+}
 
 
 
