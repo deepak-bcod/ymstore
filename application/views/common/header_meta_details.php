@@ -25,11 +25,11 @@
 if ($this->router->fetch_class() != 'SearchController' && $this->router->fetch_method() != 'searchResultPage') {
 
     // 1. Default Fallbacks (Rule 3: Others Link Sharing -> YM Logo)
-    
+    $default_og_image = base_url('uploads/YM-logo-0.png');
     $og_type = 'website';
     $og_title = (isset($PageMetaTitle) && $PageMetaTitle != '') ? $PageMetaTitle : ((isset($SiteMetaTitle) && $SiteMetaTitle != '') ? $SiteMetaTitle : 'Yellow Markets');
     $og_desc = (isset($PageMetaDesc) && $PageMetaDesc != '') ? $PageMetaDesc : ((isset($SiteMetaDesc) && $SiteMetaDesc != '') ? $SiteMetaDesc : 'Shop online with Yellow Markets - authentic products, verified local merchants, and top deals.');
-    $og_image = $default_og_image;
+    // $og_image = $default_og_image;
     $og_url = current_url();
     $og_extra = array();
 
@@ -135,17 +135,17 @@ if ($this->router->fetch_class() != 'SearchController' && $this->router->fetch_m
     }
 
     // Determine image MIME type
-    $og_image_type = 'image/jpeg';
-    if (!empty($og_image)) {
-        $ext = strtolower(pathinfo(parse_url($og_image, PHP_URL_PATH), PATHINFO_EXTENSION));
-        if ($ext === 'png') {
-            $og_image_type = 'image/png';
-        } elseif ($ext === 'webp') {
-            $og_image_type = 'image/webp';
-        } elseif ($ext === 'gif') {
-            $og_image_type = 'image/gif';
-        }
-    }
+    // $og_image_type = 'image/jpeg';
+    // if (!empty($og_image)) {
+    //     $ext = strtolower(pathinfo(parse_url($og_image, PHP_URL_PATH), PATHINFO_EXTENSION));
+    //     if ($ext === 'png') {
+    //         $og_image_type = 'image/png';
+    //     } elseif ($ext === 'webp') {
+    //         $og_image_type = 'image/webp';
+    //     } elseif ($ext === 'gif') {
+    //         $og_image_type = 'image/gif';
+    //     }
+    // }
 
     // Clean up title: decode entities first then encode to prevent double &amp;amp;
     $og_title = htmlspecialchars(html_entity_decode(trim($og_title), ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
