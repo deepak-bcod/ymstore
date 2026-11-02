@@ -25,7 +25,7 @@
 if ($this->router->fetch_class() != 'SearchController' && $this->router->fetch_method() != 'searchResultPage') {
 
     // 1. Default Fallbacks (Rule 3: Others Link Sharing -> YM Logo)
-    $default_og_image = base_url('uploads/yellow-markets-og-v2.png');
+    $default_og_image = base_url('uploads/yellow-markets-og-1.png');
     $og_type = 'website';
     $og_title = (isset($PageMetaTitle) && $PageMetaTitle != '') ? $PageMetaTitle : ((isset($SiteMetaTitle) && $SiteMetaTitle != '') ? $SiteMetaTitle : 'Yellow Markets');
     $og_desc = (isset($PageMetaDesc) && $PageMetaDesc != '') ? $PageMetaDesc : ((isset($SiteMetaDesc) && $SiteMetaDesc != '') ? $SiteMetaDesc : 'Shop online with Yellow Markets - authentic products, verified local merchants, and top deals.');
