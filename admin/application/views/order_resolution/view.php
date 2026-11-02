@@ -147,6 +147,7 @@ $this->load->view('common/fbc-user/header');
                 if ($hide_acct && $current_role === 'acct') {
                     $current_role = 'help';
                 }
+                $is_addon_paid = !empty($is_addon_paid) || (!empty($addon_purchase) && in_array(strtolower($addon_purchase->status ?? ''), ['paid', 'success', 'completed'], true));
                 ?>
 
                 <!-- Admin Action Management Controls -->
@@ -163,7 +164,7 @@ $this->load->view('common/fbc-user/header');
                     <?php if ($current_role === 'acct' && !$hide_acct): ?>
                         <!-- ================= @Acct (ACCOUNTING ONLY) CONTROLS ================= -->
                         <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
-                            <?php if (!empty($resolution->addon_purchase_id)): ?>
+                            <?php if ($is_addon_paid): ?>
                                 <div class="alert alert-success py-2 mb-3 d-flex justify-content-between align-items-center">
                                     <div>
                                         <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
@@ -172,6 +173,15 @@ $this->load->view('common/fbc-user/header');
                                         <a href="<?= base_url('addons/download_invoice/' . $resolution->addon_purchase_id); ?>" class="btn btn-sm btn-outline-success font-weight-bold" target="_blank">
                                             <i class="fa fa-file-pdf-o"></i> Download Invoice
                                         </a>
+                                    </div>
+                                </div>
+                            <?php elseif (!empty($resolution->addon_purchase_id)): ?>
+                                <div class="alert alert-warning py-2 mb-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fa fa-clock-o"></i> <strong>AddOn Service Requested (Pending Payment):</strong> AddOn Service purchase (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>) has been requested and is awaiting merchant payment. YellowMarkets delivery logistics can be scheduled once payment is confirmed.
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-warning p-2"><i class="fa fa-clock-o"></i> Payment Pending</span>
                                     </div>
                                 </div>
                             <?php else: ?>
@@ -218,7 +228,7 @@ $this->load->view('common/fbc-user/header');
                     <?php else: ?>
                         <!-- ================= @Help (SUPPORT ONLY) CONTROLS ================= -->
                         <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
-                            <?php if (!empty($resolution->addon_purchase_id)): ?>
+                            <?php if ($is_addon_paid): ?>
                                 <div class="alert alert-success py-2 mb-3 d-flex justify-content-between align-items-center">
                                     <div>
                                         <i class="fa fa-check-circle"></i> <strong>AddOn Service Purchased:</strong> The merchant has completed payment for the replacement delivery AddOn Service (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>). YellowMarkets delivery logistics can be scheduled.
@@ -227,6 +237,15 @@ $this->load->view('common/fbc-user/header');
                                         <a href="<?= base_url('addons/download_invoice/' . $resolution->addon_purchase_id); ?>" class="btn btn-sm btn-outline-success font-weight-bold" target="_blank">
                                             <i class="fa fa-file-pdf-o"></i> Download Invoice
                                         </a>
+                                    </div>
+                                </div>
+                            <?php elseif (!empty($resolution->addon_purchase_id)): ?>
+                                <div class="alert alert-warning py-2 mb-3 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fa fa-clock-o"></i> <strong>AddOn Service Requested (Pending Payment):</strong> AddOn Service purchase (Purchase ID: #<?= (int)$resolution->addon_purchase_id; ?>) has been requested and is awaiting merchant payment. YellowMarkets delivery logistics can be scheduled once payment is confirmed.
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-warning p-2"><i class="fa fa-clock-o"></i> Payment Pending</span>
                                     </div>
                                 </div>
                             <?php else: ?>
@@ -308,7 +327,7 @@ $this->load->view('common/fbc-user/header');
                                     </button>
                                 <?php endif; ?>
 
-                                <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved' && !empty($resolution->addon_purchase_id)): ?>
+                                <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved' && $is_addon_paid): ?>
                                     <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#completeYmDeliveryModal">
                                         <i class="fa fa-truck"></i> Mark YM Delivery Completed
                                     </button>
