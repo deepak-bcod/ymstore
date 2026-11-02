@@ -45,10 +45,17 @@ class ShutdownHandler
     {
         $error = error_get_last();
         if ($error) {
+            $errorType = $error['type'];
+
+            // Only handle fatal errors that actually halted execution.
+            // Non-fatal warnings, notices, and deprecations should NOT trigger 500 error responses.
+            if (!in_array($errorType, [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE])) {
+                return;
+            }
+
             $errorFile = $error['file'];
             $errorLine = $error['line'];
             $errorMessage = $error['message'];
-            $errorType = $error['type'];
             $message = 'An error while processing your request. Please try again later.';
 
             if ($this->displayErrorDetails) {
@@ -56,14 +63,6 @@ class ShutdownHandler
                     case E_USER_ERROR:
                         $message = "FATAL ERROR: {$errorMessage}. ";
                         $message .= " on line {$errorLine} in file {$errorFile}.";
-                        break;
-
-                    case E_USER_WARNING:
-                        $message = "WARNING: {$errorMessage}";
-                        break;
-
-                    case E_USER_NOTICE:
-                        $message = "NOTICE: {$errorMessage}";
                         break;
 
                     default:
@@ -75,6 +74,10 @@ class ShutdownHandler
 
             $exception = new HttpInternalServerErrorException($this->request, $message);
             $response = $this->errorHandler->__invoke($this->request, $exception, $this->displayErrorDetails, false, false);
+
+            if (ob_get_length()) {
+                ob_clean();
+            }
 
             $responseEmitter = new ResponseEmitter();
             $responseEmitter->emit($response);
