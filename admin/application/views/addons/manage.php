@@ -67,6 +67,7 @@
                     <th>MERCHANT NAME</th>
                     <th>ADDON SERVICE</th>
                     <th>ADDON NAME</th>
+                    <th>PURCHASE DETAILS</th>
                     <th>DATE</th>
                     <th>AMOUNT</th>
                     <th>ACTIONS</th>
@@ -77,19 +78,31 @@
                     <?php $sr = 1; foreach($manage_addons as $row): ?>
                         <tr>
                             <td><?php echo $sr++; ?></td>
-                            <td><?php echo html_escape($row->merchant_name ?? ''); ?></td>
+                            <td><strong><?php echo html_escape($row->merchant_name ?? ''); ?></strong></td>
                             <td><?php echo html_escape($row->addon_service_name ?? ''); ?></td>
-                            <td><?php echo html_escape($row->addon_name ?? ''); ?></td>
-                            <td><?php echo html_escape($row->date ?? ''); ?></td>
-                            <td><?php echo number_format($row->amount ?? 0, 2); ?></td>
+                            <td><strong><?php echo html_escape($row->addon_name ?? ''); ?></strong></td>
                             <td>
-                                <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" class="btn btn-sm btn-primary yellow-button" target="_blank" style="color: #ff9e0c !important; background: transparent !important; border: none !important; font-weight: 500; font-size: 14px; text-decoration: none;">Download Invoice</a>
+                                <?php if (!empty($row->order_number)): ?>
+                                    <span class="badge badge-info" style="font-size: 13px;">Order #<?php echo html_escape($row->order_number); ?></span>
+                                    <?php if (!empty($row->ticket_number)): ?>
+                                        <br><small class="text-muted"><a href="<?php echo base_url('order_resolution/view/' . $row->ticket_number . '?as=help'); ?>" style="color:#1E7EC8; font-weight:600;">Ticket #<?php echo html_escape($row->ticket_number); ?></a></small>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="text-muted">General Add-On</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo html_escape($row->date ?? ''); ?></td>
+                            <td class="font-weight-bold text-dark">MUR <?php echo number_format($row->amount ?? 0, 2); ?></td>
+                            <td>
+                                <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" class="btn btn-sm btn-primary yellow-button" target="_blank" style="color: #ff9e0c !important; background: transparent !important; border: none !important; font-weight: 500; font-size: 14px; text-decoration: none;">
+                                    <i class="fas fa-file-invoice mr-1"></i>Download Invoice
+                                </a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" class="text-center">No records found</td>
+                        <td colspan="8" class="text-center py-4">No records found</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

@@ -102,17 +102,22 @@ class Addon_model extends CI_Model {
             p.status,
             c.name as addon_service_name,
             s.title as addon_name,
-            s.final_price as amount,
+            COALESCE(NULLIF(p.amount, 0), MAX(txn.amount), s.final_price) as amount,
+            MAX(res.order_number) as order_number,
+            MAX(res.ticket_number) as ticket_number,
+            MAX(txn.transaction_ref) as transaction_ref,
             pub.company_name as merchant_name
-        ');
+        ', FALSE);
         $this->db->from('merchant_addon_purchases p');
         $this->db->join('addon_services s', 's.id = p.service_id', 'left');
         $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
         $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
+        $this->db->join('order_resolutions res', 'res.addon_purchase_id = p.id', 'left');
+        $this->db->join('merchant_addon_transactions txn', 'txn.purchase_id = p.id', 'left');
         
         // Only show paid purchases in manage view
         $this->db->where_in('p.status', ['paid', 'success', 'completed']);
-      
+        $this->db->group_by('p.id');
         $this->db->order_by('p.id', 'DESC');
         $query = $this->db->get();
         return $query->result();
@@ -128,22 +133,27 @@ class Addon_model extends CI_Model {
             s.title as addon_name,
             s.price,
             s.vat_percent,
-            s.final_price as amount,
+            COALESCE(NULLIF(p.amount, 0), MAX(txn.amount), s.final_price) as amount,
+            MAX(res.order_number) as order_number,
+            MAX(res.ticket_number) as ticket_number,
+            MAX(txn.transaction_ref) as transaction_ref,
             COALESCE(NULLIF(pub.publication_name, \'\'), NULLIF(pub.company_name, \'\'), \'Merchant\') as merchant_name,
             pub.email as merchant_email
-        ');
+        ', FALSE);
         $this->db->from('merchant_addon_purchases p');
         $this->db->join('addon_services s', 's.id = p.service_id', 'left');
         $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
         $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
+        $this->db->join('order_resolutions res', 'res.addon_purchase_id = p.id', 'left');
+        $this->db->join('merchant_addon_transactions txn', 'txn.purchase_id = p.id', 'left');
         $this->db->where('p.id', $purchase_id);
         
         // Only allow invoice for paid purchases
         $this->db->where_in('p.status', ['paid', 'success', 'completed']);
+        $this->db->group_by('p.id');
         
         $query = $this->db->get();
         return $query->row();
     }
 
 }
-

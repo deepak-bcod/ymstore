@@ -127,6 +127,7 @@ class Addons extends CI_Controller
             'merchant_id' => $publisher_id,
             'service_id'  => $service_id,
             'qty'         => $qty,
+            'amount'      => $amount,
             'status'      => 'pending',
             'created_at'  => date('Y-m-d H:i:s'),
             'ip'          => $this->input->ip_address()
@@ -188,6 +189,7 @@ class Addons extends CI_Controller
             'merchant_id' => $publisher_id,
             'service_id'  => $service_id,
             'qty'         => 1,
+            'amount'      => $amount,
             'status'      => 'pending',
             'created_at'  => date('Y-m-d H:i:s'),
             'ip'          => $this->input->ip_address()
