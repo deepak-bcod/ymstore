@@ -43,7 +43,15 @@ trait UsesRestAPI
         }
         */
 
-        return json_decode($buffer);
+        $decoded = json_decode($buffer);
+        if ($decoded === null && is_string($buffer)) {
+            $trimmed = trim($buffer);
+            if (strpos($trimmed, "}{") !== false) {
+                $parts = explode("}{", $trimmed, 2);
+                $decoded = json_decode($parts[0] . "}");
+            }
+        }
+        return $decoded;
     }
 
     private static function post_method($url, $array, $cacheTTL = 0)
@@ -68,7 +76,15 @@ trait UsesRestAPI
         $buffer = curl_exec($curl_handle);
 
         curl_close($curl_handle);
-        return json_decode($buffer);
+        $decoded = json_decode($buffer);
+        if ($decoded === null && is_string($buffer)) {
+            $trimmed = trim($buffer);
+            if (strpos($trimmed, "}{") !== false) {
+                $parts = explode("}{", $trimmed, 2);
+                $decoded = json_decode($parts[0] . "}");
+            }
+        }
+        return $decoded;
     }
 
     private static function post_method_with_json($url, $array)
@@ -85,7 +101,15 @@ trait UsesRestAPI
         $buffer = curl_exec($curl_handle);
         curl_close($curl_handle);
 
-        return json_decode($buffer);
+        $decoded = json_decode($buffer);
+        if ($decoded === null && is_string($buffer)) {
+            $trimmed = trim($buffer);
+            if (strpos($trimmed, "}{") !== false) {
+                $parts = explode("}{", $trimmed, 2);
+                $decoded = json_decode($parts[0] . "}");
+            }
+        }
+        return $decoded;
     }
 
     private static function delete($id)

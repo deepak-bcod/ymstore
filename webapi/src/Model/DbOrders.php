@@ -1,5 +1,11 @@
 <?php
+#[\AllowDynamicProperties]
 Class DbOrders{
+	public $order_item_data;
+	public $order_products;
+	public $order_ReturnOrdersData;
+	public $order_return_item;
+	public $order_b2bShopsIds;
 	private $dbl;
 
 	public function __construct()
