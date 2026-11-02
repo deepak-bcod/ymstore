@@ -164,9 +164,13 @@ if ($this->router->fetch_class() != 'SearchController' && $this->router->fetch_m
 <meta property="og:title" content="<?php echo $og_title; ?>" />
 <meta property="og:description" content="<?php echo $og_desc; ?>" />
 <meta property="og:url" content="<?php echo $og_url; ?>" />
-<meta property="og:image" content="<?php echo $og_image; ?>" />
-<meta property="og:image:secure_url" content="<?php echo $og_image; ?>" />
+<!-- Open Graph Image -->
+<meta property="og:image" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>" />
+<meta property="og:image:secure_url" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>" />
 <meta property="og:image:type" content="<?php echo $og_image_type; ?>" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Yellow Markets - The Local Online Marketplace Mauritius" />
 
 <?php foreach ($og_extra as $og_prop => $og_val): ?>
 <meta property="<?php echo $og_prop; ?>" content="<?php echo htmlspecialchars($og_val, ENT_QUOTES, 'UTF-8'); ?>" />
