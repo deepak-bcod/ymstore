@@ -111,6 +111,7 @@ class OrderResolutionController extends CI_Controller
         $data['addon_transaction']      = $data['addon_purchase']
             ? $this->db->where('purchase_id', $data['addon_purchase']->id)->order_by('id', 'DESC')->get('merchant_addon_transactions')->row()
             : null;
+        $data['is_addon_paid']          = (!empty($data['addon_purchase']) && in_array(strtolower($data['addon_purchase']->status ?? ''), ['paid', 'success', 'completed'], true));
 
         // Fetch Order, Product, Merchant, Customer
         $data['order']    = $this->db->where('order_id', $res->order_id)->get('sales_order')->row();
@@ -551,6 +552,17 @@ class OrderResolutionController extends CI_Controller
 
         if ($res->delivery_option !== 'ym_delivery' || $res->merchant_action !== 'replacement_approved') {
             $this->json_response(false, 'YM Delivery completion is only applicable for YM Delivery replacement approvals.');
+            return;
+        }
+
+        if (empty($res->addon_purchase_id)) {
+            $this->json_response(false, 'Cannot complete delivery: AddOn Service has not been purchased yet.');
+            return;
+        }
+
+        $purchase = $this->db->get_where('merchant_addon_purchases', ['id' => (int)$res->addon_purchase_id])->row();
+        if (!$purchase || !in_array(strtolower($purchase->status ?? ''), ['paid', 'success', 'completed'], true)) {
+            $this->json_response(false, 'Cannot complete delivery: AddOn Service payment is still pending.');
             return;
         }
 
