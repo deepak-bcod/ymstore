@@ -64,12 +64,18 @@
                             <?php $variant_options = [];
                             $count = 1;
                             $first_instock_checked = false;
+                            $first_child_id = '';
+                            $first_child_price = '';
+                            $first_child_qty = '';
                             foreach ($ProductData->childProducts as $child_key => $child_val) {
                                 $child_qty = isset($child_val->qty) ? (int)$child_val->qty : 0;
                                 $is_child_in_stock = ($child_qty > 0);
                                 if ($is_child_in_stock && !$first_instock_checked) {
                                     $selected = 'checked';
                                     $first_instock_checked = true;
+                                    $first_child_id = $child_val->id;
+                                    $first_child_price = isset($child_val->price) ? $child_val->price : '';
+                                    $first_child_qty = $child_qty;
                                 } else {
                                     $selected = '';
                                 }
@@ -255,13 +261,15 @@
         <!-- bundle end -->
 
         <?php if ($ProductData->product_type == "configurable") { ?>
+            <input type="hidden" name="product_type" id="product_type" value="<?php echo $ProductData->product_type; ?>">
             <input type="hidden" name="product_id" id="product_id" value="<?php echo $ProductData->id; ?>">
-            <input type="hidden" name="conf_simple_pid" id="conf_simple_pid" value="">
-            <input type="hidden" name="conf_simple_price" id="conf_simple_price" value="">
-            <input type="hidden" name="conf_simple_qty" id="conf_simple_qty" value="">
+            <input type="hidden" name="conf_simple_pid" id="conf_simple_pid" value="<?php echo $first_child_id; ?>">
+            <input type="hidden" name="conf_simple_price" id="conf_simple_price" value="<?php echo $first_child_price; ?>">
+            <input type="hidden" name="conf_simple_qty" id="conf_simple_qty" value="<?php echo $first_child_qty; ?>">
             <input type="hidden" name="selected_variant_count" id="selected_variant_count" value="">
             <input type="hidden" name="quantity" id="quantity" value="1">
         <?php } else { ?>
+            <input type="hidden" name="product_type" id="product_type" value="<?php echo $ProductData->product_type; ?>">
             <input type="hidden" name="product_id" id="product_id" value="<?php echo $ProductData->id; ?>">
             <input type="hidden" name="quantity" id="quantity" value="1">
         <?php } ?>

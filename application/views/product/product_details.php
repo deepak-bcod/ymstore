@@ -145,6 +145,8 @@ $lang = $this->session->userdata('site_lang');
 
                             <form name="product-frm" id="product-frm" method="POST"
                                 action="<?php echo base_url(); ?>CartController/addtocart">
+                                <input type="hidden" name="product_type" id="product_type"
+                                    value="<?php echo $ProductData->product_type; ?>">
                                 <input type="hidden" name="media_variant_id" id="media_variant_id"
                                     value="<?php echo $ProductData->media_variant_id; ?>">
                                 <?php
@@ -757,33 +759,17 @@ $lang = $this->session->userdata('site_lang');
 
 
         var product_type = $("#product_type").val();
-
-
+        if (!product_type) {
+            product_type = "<?= $ProductData->product_type ?? '' ?>";
+        }
 
         if (product_type == "bundle") {
-
             $(".bundle_child_id").each(function(i) {
-
                 var bundle_child_id = $(this).val();
-
-
-
                 GetVariantProductForBundle(bundle_child_id);
-
             });
-
-        } else {
-
-            if (product_type == "configurable") {
-
-                GetVariantProduct();
-
-
-
-                return false;
-
-            }
-
+        } else if (product_type == "configurable") {
+            GetVariantProduct();
         }
 
     });
@@ -1978,11 +1964,17 @@ $lang = $this->session->userdata('site_lang');
 
                 $("#addtocart_error").html("");
 
-
-
                 $("#add_to_cart").attr("disabled", true);
 
-
+                if ($("#product_type").val() === "configurable" && (!$("#conf_simple_pid").val() || $("#conf_simple_pid").val() === "")) {
+                    var checkedVal = $('input[name="variant_options_data"]:checked').val();
+                    if (checkedVal) {
+                        var parts = checkedVal.split(",");
+                        if (parts[0]) {
+                            $("#conf_simple_pid").val(parts[0]);
+                        }
+                    }
+                }
 
                 var form_obj = $("#product-frm")[0];
 
