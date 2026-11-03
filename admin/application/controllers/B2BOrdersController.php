@@ -18404,199 +18404,16 @@ public function MarkPickupReceived()
 
 public function MarkAsFailed()
 {
-    if (isset($_POST['order_id']) && isset($_POST['attempt_no'])) {
+    // ==================================================
+    // 1. GET POST DATA
+    // ==================================================
 
-        $User_id    = $this->session->userdata('LoginID');
-        $order_id   = $_POST['order_id'];
-        $attempt_no = (int)$_POST['attempt_no'];
-        $reason     = $_POST['reason_for_attempt_failed'] ?? '';
+    $order_id   = $this->input->post('order_id');
+    $attempt_no = (int) $this->input->post('attempt_no');
+    $reason     = trim((string) $this->input->post('reason_for_attempt_failed'));
 
-        if (empty($reason)) {
+    if (empty($order_id) || empty($attempt_no)) {
 
-            echo json_encode([
-                'status'  => 500,
-                'message' => 'Reason for failure is required.'
-            ]);
-
-            exit;
-        }
-
-        switch ($attempt_no) {
-
-            case 1:
-                $failedStatus = 2; // Failed Attempt 1
-                break;
-
-            case 2:
-                $failedStatus = 4; // Failed Attempt 2
-                break;
-
-            case 3:
-                $failedStatus = 6; // Failed Attempt 3
-                break;
-
-            default:
-                $failedStatus = 2;
-                break;
-        }
-
-        $record = $this->CommonModel->getSingleDataByID(
-            'b2b_orders_delivery_details',
-            [
-                'order_id'            => $order_id,
-                'delivery_attempt_no' => $attempt_no
-            ],
-            '*'
-        );
-
-        if (!$record) {
-
-            echo json_encode([
-                'status'  => 500,
-                'message' => 'Delivery attempt not found.'
-            ]);
-
-            exit;
-        }
-
-        $updated = $this->CommonModel->updateData(
-            'b2b_orders_delivery_details',
-            [
-                'order_id'            => $order_id,
-                'delivery_attempt_no' => $attempt_no
-            ],
-            [
-                'reason_for_attempt_failed' => $reason,
-                'delivery_status'           => $failedStatus,
-                'updated_at'                => date('Y-m-d H:i:s')
-            ]
-        );
-
-
-        if (!$updated) {
-
-            echo json_encode([
-                'status'  => 500,
-                'message' => 'No changes were made.'
-            ]);
-
-            exit;
-        }
-
-        if ($attempt_no == 2) {
-
-            $this->CommonModel->updateData(
-                'b2b_orders',
-                [
-                    'order_id' => $order_id
-                ],
-                [
-                    'status' => 13
-                ]
-            );
-
-            $b2bOrder = $this->db
-                ->where('order_id', $order_id)
-                ->get('b2b_orders')
-                ->row();
-
-
-            if (!empty($b2bOrder)) {
-
-                $salesOrder = null;
-
-                if (!empty($b2bOrder->webshop_order_id)) {
-
-                    $salesOrder = $this->db
-                        ->where('order_id', $b2bOrder->webshop_order_id)
-                        ->get('sales_order')
-                        ->row();
-                }
-
-                $customerName = trim(
-                    ($b2bOrder->customer_firstname ?? '') . ' ' .
-                    ($b2bOrder->customer_lastname ?? '')
-                );
-
-                if (
-                    !empty($salesOrder) &&
-                    !empty($salesOrder->customer_email)
-                ) {
-
-                    $TempVars = [
-                        '##CUSTOMERNAME##',
-                        '##ORDERNO##',
-                        '##REASON##'
-                    ];
-
-                    $DynamicVars = [
-                        $customerName,
-                        $b2bOrder->increment_id,
-                        $reason
-                    ];
-
-
-                    // Send Attempt 2 Failed email
-                    $this->CommonModel->sendCommonHTMLEmail(
-                        $salesOrder->customer_email,
-                        'delivery-attempt-2-failed',
-                        $TempVars,
-                        $DynamicVars
-                    );
-                }
-
-
-                /// ==================================================
-				// ADD SHOPPER NOTIFICATION
-				// ==================================================
-				if (!empty($salesOrder) && !empty($salesOrder->customer_id)) {
-
-					
-					$notificationTitle = 'Order Failed';
-
-					
-					$notificationMessage =
-						'Your order no. ' .
-						$b2bOrder->increment_id .
-						' could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.';
-
-					
-					$notificationData = json_encode([
-						'order_id'         => $b2bOrder->order_id,
-						'increment_id'     => $b2bOrder->increment_id,
-						'order_barcode'    => $b2bOrder->order_barcode,
-						'webshop_order_id' => $b2bOrder->webshop_order_id,
-						'failure_reason'   => $reason
-					]);
-
-					
-					$this->db->insert(
-						'notifications',
-						[
-							'type'           => 'order',
-							'subtype'        => 'delivery_failed',
-							'recipient_type' => 'shopper',
-							'recipient_id'   => $salesOrder->customer_id,
-							'title'          => $notificationTitle,
-							'message'        => $notificationMessage,
-							'data'           => $notificationData,
-							'is_read'        => 0,
-							'created_at'     => date('Y-m-d H:i:s'),
-							'updated_at'     => date('Y-m-d H:i:s')
-						]
-					);
-				}
-            }
-        }
-        echo json_encode([
-            'status'  => 200,
-            'message' => 'Delivery attempt marked as failed.'
-        ]);
-
-        exit;
-
-
-    } else {
         echo json_encode([
             'status'  => 500,
             'message' => 'Invalid data.'
@@ -18604,8 +18421,287 @@ public function MarkAsFailed()
 
         exit;
     }
-}
 
+    // ==================================================
+    // 2. VALIDATE REASON
+    // ==================================================
+
+    if ($reason === '') {
+
+        echo json_encode([
+            'status'  => 500,
+            'message' => 'Reason for failure is required.'
+        ]);
+
+        exit;
+    }
+
+    // ==================================================
+    // 3. SET FAILED STATUS
+    // ==================================================
+
+    switch ($attempt_no) {
+
+        case 1:
+            $failedStatus = 2; // Failed Attempt 1
+            break;
+
+        case 2:
+            $failedStatus = 4; // Failed Attempt 2
+            break;
+
+        case 3:
+            $failedStatus = 6; // Failed Attempt 3
+            break;
+
+        default:
+
+            echo json_encode([
+                'status'  => 500,
+                'message' => 'Invalid delivery attempt number.'
+            ]);
+
+            exit;
+    }
+
+    // ==================================================
+    // 4. CHECK DELIVERY ATTEMPT
+    // ==================================================
+
+    $record = $this->CommonModel->getSingleDataByID(
+        'b2b_orders_delivery_details',
+        [
+            'order_id'            => $order_id,
+            'delivery_attempt_no' => $attempt_no
+        ],
+        '*'
+    );
+
+    if (!$record) {
+
+        echo json_encode([
+            'status'  => 500,
+            'message' => 'Delivery attempt not found.'
+        ]);
+
+        exit;
+    }
+
+    // ==================================================
+    // 5. UPDATE DELIVERY FAILURE
+    // ==================================================
+
+    $updated = $this->CommonModel->updateData(
+        'b2b_orders_delivery_details',
+        [
+            'order_id'            => $order_id,
+            'delivery_attempt_no' => $attempt_no
+        ],
+        [
+            'reason_for_attempt_failed' => $reason,
+            'delivery_status'           => $failedStatus,
+            'updated_at'                => date('Y-m-d H:i:s')
+        ]
+    );
+
+    if (!$updated) {
+
+        echo json_encode([
+            'status'  => 500,
+            'message' => 'Failed to update delivery attempt.'
+        ]);
+
+        exit;
+    }
+
+    // ==================================================
+    // 6. ATTEMPT 2 FAILED
+    // ==================================================
+
+    if ($attempt_no == 2) {
+
+        // Update B2B order status
+        $this->CommonModel->updateData(
+            'b2b_orders',
+            [
+                'order_id' => $order_id
+            ],
+            [
+                'status' => 13
+            ]
+        );
+
+        // Get B2B order
+        $b2bOrder = $this->db
+            ->where('order_id', $order_id)
+            ->get('b2b_orders')
+            ->row();
+
+        if (!empty($b2bOrder)) {
+
+            // ==================================================
+            // 7. GET SHOPPER SALES ORDER
+            // ==================================================
+
+            $salesOrder = null;
+
+            if (!empty($b2bOrder->webshop_order_id)) {
+
+                $salesOrder = $this->db
+                    ->where('order_id', $b2bOrder->webshop_order_id)
+                    ->get('sales_order')
+                    ->row();
+            }
+
+            // Customer name
+            $customerName = trim(
+                ($b2bOrder->customer_firstname ?? '') . ' ' .
+                ($b2bOrder->customer_lastname ?? '')
+            );
+
+            if ($customerName === '' && !empty($salesOrder)) {
+
+                $customerName = trim(
+                    ($salesOrder->customer_firstname ?? '') . ' ' .
+                    ($salesOrder->customer_lastname ?? '')
+                );
+            }
+
+            // ==================================================
+            // 8. SEND ATTEMPT 2 FAILED EMAIL
+            // ==================================================
+
+            if (!empty($salesOrder) && !empty($salesOrder->customer_email)) {
+
+                $customerEmail = trim($salesOrder->customer_email);
+
+                $TempVars = [
+                    '##CUSTOMERNAME##',
+                    '##ORDERNO##',
+                    '##REASON##'
+                ];
+
+                $DynamicVars = [
+                    $customerName,
+                    $b2bOrder->increment_id,
+                    $reason
+                ];
+
+                log_message(
+                    'error',
+                    'ATTEMPT 2 EMAIL STARTED | Order ID: ' .
+                    $order_id .
+                    ' | Email: ' . $customerEmail
+                );
+
+                // Send email
+                $emailSent = $this->CommonModel->sendCommonHTMLEmail(
+                    $customerEmail,
+                    'delivery-attempt-2-failed',
+                    $TempVars,
+                    $DynamicVars
+                );
+
+                if ($emailSent === true) {
+
+                    log_message(
+                        'error',
+                        'ATTEMPT 2 EMAIL SUCCESS | Order ID: ' . $order_id
+                    );
+
+                } else {
+
+                    log_message(
+                        'error',
+                        'ATTEMPT 2 EMAIL FAILED | Order ID: ' .
+                        $order_id .
+                        ' | Email: ' . $customerEmail
+                    );
+                }
+
+            } else {
+
+                log_message(
+                    'error',
+                    'ATTEMPT 2 EMAIL NOT SENT | Customer email missing | Order ID: ' .
+                    $order_id
+                );
+            }
+
+            // ==================================================
+            // 9. ADD SHOPPER NOTIFICATION
+            // ==================================================
+
+            if (!empty($salesOrder) && !empty($salesOrder->customer_id)) {
+
+                $notificationTitle = 'Order Failed';
+
+                $notificationMessage =
+                    'Your order no. ' .
+                    $b2bOrder->increment_id .
+                    ' could not be delivered because of 2 unsuccessful attempts. Please contact the Yellow Markets team to collect your order.';
+
+                $notificationData = json_encode([
+                    'order_id'         => $b2bOrder->order_id,
+                    'increment_id'     => $b2bOrder->increment_id,
+                    'order_barcode'    => $b2bOrder->order_barcode,
+                    'webshop_order_id' => $b2bOrder->webshop_order_id,
+                    'failure_reason'   => $reason
+                ]);
+
+                $notificationInserted = $this->db->insert(
+                    'notifications',
+                    [
+                        'type'           => 'order',
+                        'subtype'        => 'delivery_failed',
+                        'recipient_type' => 'shopper',
+                        'recipient_id'   => $salesOrder->customer_id,
+                        'title'          => $notificationTitle,
+                        'message'        => $notificationMessage,
+                        'data'           => $notificationData,
+                        'is_read'        => 0,
+                        'created_at'     => date('Y-m-d H:i:s'),
+                        'updated_at'     => date('Y-m-d H:i:s')
+                    ]
+                );
+
+                if ($notificationInserted) {
+
+                    log_message(
+                        'error',
+                        'SHOPPER NOTIFICATION SUCCESS | Order ID: ' . $order_id
+                    );
+
+                } else {
+
+                    log_message(
+                        'error',
+                        'SHOPPER NOTIFICATION FAILED | Order ID: ' . $order_id
+                    );
+                }
+
+            } else {
+
+                log_message(
+                    'error',
+                    'SHOPPER NOTIFICATION NOT SENT | Customer ID missing | Order ID: ' .
+                    $order_id
+                );
+            }
+        }
+    }
+
+    // ==================================================
+    // 10. SUCCESS RESPONSE
+    // ==================================================
+
+    echo json_encode([
+        'status'  => 200,
+        'message' => 'Delivery attempt marked as failed.'
+    ]);
+
+    exit;
+}
 
 
 
