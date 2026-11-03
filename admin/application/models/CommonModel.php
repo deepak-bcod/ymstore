@@ -297,46 +297,95 @@ class CommonModel extends CI_Model
 		return $result;
 	}
 
-	public function sendCommonHTMLEmail($EmailTo, $identifier, $TempVars, $DynamicVars, $lang_code = '', $custom_subject = '', $custom_content = '')
-	{
-		$from_email = 'noreply@yellowmarkets.com';
+	public function sendCommonHTMLEmail(
+    $EmailTo,
+    $identifier,
+    $TempVars,
+    $DynamicVars,
+    $lang_code = '',
+    $custom_subject = '',
+    $custom_content = ''
+) {
+    $from_email = 'noreply@yellowmarkets.com';
 
-		$emailTemplate = $this->getEmailTemplateByIdentifier($identifier);
-		if ($emailTemplate) {
-			if (!empty($lang_code) && ($lang_code === 'fr' || $lang_code === 'french')) {
-				$subject = !empty($emailTemplate->subject_fr) ? $emailTemplate->subject_fr : $emailTemplate->subject;
-				$content = !empty($emailTemplate->content_fr) ? $emailTemplate->content_fr : $emailTemplate->content;
-			} else {
-				$subject = $emailTemplate->subject;
-				$content = $emailTemplate->content;
-			}
-		} else {
-			$subject = !empty($custom_subject) ? $custom_subject : ('Yellow Markets Notification: ' . $identifier);
-			$content = !empty($custom_content) ? $custom_content : '<p>This is an automated notification regarding your Order Resolution ticket ##TICKET_NUMBER##.</p>';
-		}
+    // Get email template
+    $emailTemplate = $this->getEmailTemplateByIdentifier($identifier);
 
-		if (!empty($custom_subject)) {
-			$subject = $custom_subject;
-		}
+    if ($emailTemplate) {
 
-		$subject = str_replace($TempVars, $DynamicVars, $subject);
-		$emailBody = str_replace($TempVars, $DynamicVars, $content);
+        // French template
+        if ($lang_code === 'fr' || $lang_code === 'french') {
 
-		$data['subject'] = $subject;
-		$data['content'] = $emailBody;
+            $subject = !empty($emailTemplate->subject_fr)
+                ? $emailTemplate->subject_fr
+                : $emailTemplate->subject;
 
-		$contentView = $this->load->view(
-			'email_template/email_content',
-			$data,
-			TRUE
-		);
+            $content = !empty($emailTemplate->content_fr)
+                ? $emailTemplate->content_fr
+                : $emailTemplate->content;
 
-		if ($this->sendHTMLMailSMTP($EmailTo, $subject, $contentView, $from_email, $attachment = "")) {
-			return true;
-		} else {
-			return false;
-		}
-	}
+        } else {
+
+            // English template
+            $subject = $emailTemplate->subject;
+            $content = $emailTemplate->content;
+        }
+
+    } else {
+
+        // Fallback if template does not exist
+        $subject = !empty($custom_subject)
+            ? $custom_subject
+            : 'Yellow Markets Notification: ' . $identifier;
+
+        $content = !empty($custom_content)
+            ? $custom_content
+            : '<p>This is an automated notification.</p>';
+    }
+
+    // Custom subject override
+    if (!empty($custom_subject)) {
+        $subject = $custom_subject;
+    }
+
+    // Replace dynamic variables
+    $subject = str_replace($TempVars, $DynamicVars, $subject);
+    $emailBody = str_replace($TempVars, $DynamicVars, $content);
+
+    $data = [
+        'subject' => $subject,
+        'content' => $emailBody
+    ];
+
+    // Load email HTML template
+    $contentView = $this->load->view(
+        'email_template/email_content',
+        $data,
+        TRUE
+    );
+
+    if (empty($EmailTo) || !filter_var($EmailTo, FILTER_VALIDATE_EMAIL)) {
+        log_message('error', 'Invalid email recipient: ' . $EmailTo);
+        return false;
+    }
+
+    // Send email
+    $emailSent = $this->sendHTMLMailSMTP(
+        $EmailTo,
+        $subject,
+        $contentView,
+        $from_email
+    );
+
+    if ($emailSent) {
+        log_message('info', 'Email successfully sent. Identifier: ' . $identifier . ', Recipient: ' . $EmailTo);
+        return true;
+    }
+
+    log_message('error', 'Email sending failed. Identifier: ' . $identifier . ', Recipient: ' . $EmailTo);
+
+    return false;
+}
 
 
 
@@ -401,73 +450,83 @@ class CommonModel extends CI_Model
 		}
 	}
 
-	public function sendHTMLMailSMTP($to, $subject, $content, $from_email='', $attachment="", $webshop_smtp_host="", $webshop_smtp_port="", $webshop_smtp_username="", $webshop_smtp_password="", $webshop_smtp_secure="")
+	public function sendHTMLMailSMTP(
+    $to,
+    $subject,
+    $content,
+    $from_email = '',
+    $attachment = "",
+    $webshop_smtp_host = "",
+    $webshop_smtp_port = "",
+    $webshop_smtp_username = "",
+    $webshop_smtp_password = "",
+    $webshop_smtp_secure = ""
+) {
+    // SMTP configuration
+    $webshop_smtp_host     = 'smtp.gmail.com';
+    $webshop_smtp_port     = 465;
+    $webshop_smtp_username = 'noreply@yellowmarkets.com';
 
- 	{
+    // Set the newly generated Gmail App Password here securely.
+    // Prefer loading it from environment/configuration, not hardcoding it.
+    $webshop_smtp_password = getenv('YM_SMTP_PASSWORD');
 
-		// $email='ranjana.patel@bcod.co.in';
-		$email = 'ranjana.patel@bcod.co.in';
-		$webshop_smtp_host = 'smtp.gmail.com'; // $this->getCustomVariableByIdentifier('smtp_host');
-		$webshop_smtp_port =  465; // $this->getCustomVariableByIdentifier('smtp_port') ??
-		$webshop_smtp_username = 'noreply@yellowmarkets.com'; //$this->getCustomVariableByIdentifier('smtp_username') ?? 
-		$webshop_smtp_password = 'fkyvohootmnwylkg'; //$this->getCustomVariableByIdentifier('smtp_password') ?? 
-		$webshop_smtp_secure = 'ssl';
-        
-		$from_email='info@yellowmarkets.com';
+    $webshop_smtp_secure = 'ssl';
 
-		$this->load->library('email');
+    $from_email = 'info@yellowmarkets.com';
 
-		if($webshop_smtp_host != '' && $webshop_smtp_port != '' && $webshop_smtp_username != '' && $webshop_smtp_password != '' && $webshop_smtp_secure != ''){
+    // Validate recipient
+    if (empty($to) || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        log_message('error', 'SMTP: Invalid recipient email: ' . $to);
+        return false;
+    }
 
-			$config = array(
+    if (empty($webshop_smtp_password)) {
+        log_message('error', 'SMTP: Gmail App Password is missing.');
+        return false;
+    }
 
-				'protocol'  => 'smtp',
+    $this->load->library('email');
 
-				'smtp_host' => $webshop_smtp_host,
+    $config = [
+        'protocol'     => 'smtp',
+        'smtp_host'    => $webshop_smtp_host,
+        'smtp_port'    => $webshop_smtp_port,
+        'smtp_user'    => $webshop_smtp_username,
+        'smtp_pass'    => $webshop_smtp_password,
+        'smtp_crypto'  => $webshop_smtp_secure,
+        'mailtype'     => 'html',
+        'charset'      => 'utf-8',
+        'newline'      => "\r\n",
+        'crlf'         => "\r\n",
+        'wordwrap'     => TRUE
+    ];
 
-				'smtp_port' => $webshop_smtp_port,
+    $this->email->clear(TRUE);
+    $this->email->initialize($config);
 
-				'smtp_user' => $webshop_smtp_username,
+    $this->email->from($from_email);
+    $this->email->to($to);
+    $this->email->bcc('deepak@bcod.co.in');
+    $this->email->subject($subject);
+    $this->email->message($content);
 
-				'smtp_pass' => $webshop_smtp_password,
+    if (!empty($attachment) && file_exists($attachment)) {
+        $this->email->attach($attachment);
+    }
 
-				'mailtype'  => 'html',
+    if ($this->email->send()) {
+        log_message('info', 'SMTP email sent successfully to: ' . $to);
+        return true;
+    }
 
-				'charset'   => 'utf-8',
+    $debug = $this->email->print_debugger(['headers']);
 
-				'smtp_crypto' => $webshop_smtp_secure,
+    log_message('error', 'SMTP email failed for: ' . $to);
+    log_message('error', 'SMTP error: ' . $debug);
 
-			);
-
-			$this->email->initialize($config);
-
-		}
-
-		$this->email->set_newline("\r\n");
-
-		$this->email->from($from_email); // change it to yours
-
-		$this->email->to($to);// change it to yours
-
-		$this->email->bcc('deepak@bcod.co.in');// change it to yours
-
-		$this->email->subject($subject);
-
-		$this->email->message($content);
-
-		$this->email->set_mailtype("html");
-
-		if($this->email->send()){
-
-			return true;
-
-		}else{
-
-			return false;
-
-		}
-
-  	}
+    return false;
+}
 
 
 	public function sendHTMLMailSMTPOld($to_email, $subject, $content, $from_email = '', $attachment = "")

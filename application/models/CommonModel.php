@@ -594,7 +594,7 @@ class CommonModel extends CI_Model
 
 
 
-    public function get_picup_order_details($driver_id, $order_id)
+    public function get_pickup_order_details($driver_id, $order_id)
     {
         $this->db->select('
             bopd.order_id AS order_id,
