@@ -18639,6 +18639,7 @@ public function markDelivered()
     if ($this->input->post('order_id')) {
 
         $order_id = $this->input->post('order_id');
+
         $User_id = $this->session->userdata('LoginID');
 
         // ==========================================
@@ -18700,9 +18701,7 @@ public function markDelivered()
             // GET B2B ORDER DATA
             // ==========================================
 
-            $orderData = $this->CommonModel->getOrderDataByb2bOrderId(
-                $order_id
-            );
+            $orderData = $this->CommonModel->getOrderDataByb2bOrderId($order_id);
 
             if ($orderData && !empty($orderData->webshop_order_id)) {
 
@@ -18719,10 +18718,11 @@ public function markDelivered()
 
 
                 // ==========================================
-                // GET SHOPPER DETAILS
+                // GET SHOPPER CUSTOMER ID
                 // ==========================================
 
                 $salesOrder = $this->db
+                    ->select('customer_id')
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
@@ -18730,15 +18730,7 @@ public function markDelivered()
 
                 if ($salesOrder) {
 
-                    $customerId = $salesOrder->customer_id ?? '';
-
-                    $customerEmail = !empty($salesOrder->customer_email)
-                        ? trim($salesOrder->customer_email)
-                        : '';
-
-                    $customerName = !empty($salesOrder->customer_name)
-                        ? $salesOrder->customer_name
-                        : 'Customer';
+                    $customerId = $salesOrder->customer_id;
 
 
                     // ==========================================
@@ -18776,98 +18768,38 @@ public function markDelivered()
                             )
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
+
                         $notif_params = [
                             'order',
                             'order_delivered',
                             'shopper',
                             $customerId,
+
                             'Order delivered',
+
+                            // ONLY B2B ORDER NUMBER
                             'Your order no. ' . $b2bOrderNumber . ' is delivered.',
+
                             json_encode([
-                                'order_id'     => $webshop_order_id,
-                                'b2b_order_id' => $order_id,
-                                'b2b_order_no' => $b2bOrderNumber,
-                                'status'       => 8
+                                'order_id'      => $webshop_order_id,
+                                'b2b_order_id'  => $order_id,
+                                'b2b_order_no'  => $b2bOrderNumber,
+                                'status'        => 8
                             ]),
+
                             0,
                             date('Y-m-d H:i:s'),
                             date('Y-m-d H:i:s')
                         ];
 
+
                         // Insert notification
-                        $notificationInserted = $this->db->query(
+                        $this->db->query(
                             $notif_sql,
                             $notif_params
                         );
-
-
-                        // ==========================================
-                        // SHOPPER EMAIL - ORDER DELIVERED
-                        // ==========================================
-
-                        if (!empty($customerEmail)) {
-
-                            $emailSent = $this->CommonModel->sendCommonHTMLEmail(
-                                $customerEmail,
-                                'delivery-order-delivered',
-                                [
-                                    '##CUSTOMERNAME##',
-                                    '##ORDERNO##'
-                                ],
-                                [
-                                    $customerName,
-                                    $b2bOrderNumber
-                                ]
-                            );
-
-                            if ($emailSent) {
-
-                                log_message(
-                                    'info',
-                                    'Delivered email sent successfully. B2B Order: ' . $b2bOrderNumber .
-                                    ', Email: ' . $customerEmail
-                                );
-
-                            } else {
-
-                                log_message(
-                                    'error',
-                                    'Delivered email failed. B2B Order: ' . $b2bOrderNumber .
-                                    ', Email: ' . $customerEmail
-                                );
-                            }
-
-                        } else {
-
-                            log_message(
-                                'error',
-                                'Delivered email not sent: Customer email is empty. B2B Order: ' .
-                                $b2bOrderNumber
-                            );
-                        }
-
-                    } else {
-
-                        log_message(
-                            'error',
-                            'B2B order barcode not found. Order ID: ' . $order_id
-                        );
                     }
-
-                } else {
-
-                    log_message(
-                        'error',
-                        'Sales order not found. Webshop Order ID: ' . $webshop_order_id
-                    );
                 }
-
-            } else {
-
-                log_message(
-                    'error',
-                    'B2B order data or webshop_order_id not found. B2B Order ID: ' . $order_id
-                );
             }
 
 
