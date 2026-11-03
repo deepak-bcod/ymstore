@@ -312,9 +312,9 @@ $this->load->view('common/fbc-user/header');
                                 <?php endif; ?>
 
                                 <?php if ($resolution->status === 'Open' && $has_merchant_action && $resolution->merchant_action !== 'refund_denied' && !$hide_acct && $resolution->delivery_option === 'ym_delivery'): ?>
-                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
+                                    <!--button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#assignAcctModal">
                                         <i class="fa fa-user-plus"></i> Assign to @acct (Processing)
-                                    </button>
+                                    </button-->
                                 <?php endif; ?>
 
                                 <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved' && $is_addon_paid): ?>

@@ -2352,7 +2352,7 @@ class OrderResolutionModel extends CI_Model
         );
 
         // Post confirmation message into Merchant <-> Admin conversion thread
-        $this->add_reply($ticket_number, 'merchant', $res->merchant_id, $merchant_name . ' (Merchant)', "Confirmed AddOn Payment: Purchased {$service_title} for {$amount_str}. Payment Ref: {$txn_ref}. Ready to proceed with replacement.", '', '', 'merchant_admin');
+        //$this->add_reply($ticket_number, 'merchant', $res->merchant_id, $merchant_name . ' (Merchant)', "Confirmed AddOn Payment: Purchased {$service_title} for {$amount_str}. Payment Ref: {$txn_ref}. Ready to proceed with replacement.", '', '', 'merchant_admin');
 
         // Detailed Notification to Admin (@Acct & @Help)
         $admin_title = "AddOn Service Purchased - Ticket #{$ticket_number}";
