@@ -143,6 +143,28 @@ class CartController extends CI_Controller
 
                     $quantity = (int)$_POST['quantity'];
                     if ($quantity <= 0) $quantity = 1;
+
+                    // Resolve child simple product ID for configurable products
+                    if ($ProductData->product_type == 'configurable') {
+                        if (empty($_POST['conf_simple_pid']) && !empty($_POST['variant_options_data'])) {
+                            $parts = explode(',', $_POST['variant_options_data']);
+                            if (!empty($parts[0]) && is_numeric($parts[0])) {
+                                $_POST['conf_simple_pid'] = (int)$parts[0];
+                            }
+                        }
+                        if (empty($_POST['conf_simple_pid']) && !empty($ProductData->childProducts)) {
+                            foreach ($ProductData->childProducts as $child) {
+                                if (isset($child->qty) && (int)$child->qty > 0) {
+                                    $_POST['conf_simple_pid'] = (int)$child->id;
+                                    break;
+                                }
+                            }
+                            if (empty($_POST['conf_simple_pid']) && !empty($ProductData->childProducts[0]->id)) {
+                                $_POST['conf_simple_pid'] = (int)$ProductData->childProducts[0]->id;
+                            }
+                        }
+                    }
+
                     $target_product_id = $product_id;
                     if ($ProductData->product_type == 'configurable' && !empty($_POST['conf_simple_pid'])) {
                         $target_product_id = $_POST['conf_simple_pid'];

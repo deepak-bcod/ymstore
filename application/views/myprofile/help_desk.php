@@ -262,13 +262,8 @@ $(document).ready(function() {
     const subjectTypesMap = {
         "1": [
             { value: "1", text: "<?= lang('order_issue'); ?>" },
-            { value: "2", text: "<?= lang('refund_request'); ?>" },
-            { value: "3", text: "<?= lang('replacement_request'); ?>" },
-            { value: "4", text: "<?= lang('merchant_delivery'); ?>" }
         ],
         "2": [
-            { value: "5", text: "<?= lang('ym_delivery'); ?>" },
-            { value: "6", text: "<?= lang('resolution_request'); ?>" },
             { value: "7", text: "<?= lang('general_support'); ?>" },
             { value: "8", text: "<?= lang('technical_issue'); ?>" }
         ]
