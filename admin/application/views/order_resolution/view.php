@@ -188,11 +188,6 @@ $this->load->view('common/fbc-user/header');
                                 <div class="alert alert-info py-2 mb-3">
                                     <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
                                 </div>
-                                <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 10px;">
-                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#requestAddonModal">
-                                        <i class="fa fa-paper-plane"></i> Request AddOn Service Purchase
-                                    </button>
-                                </div>
                             <?php endif; ?>
                         <?php endif; ?>
 
@@ -251,11 +246,6 @@ $this->load->view('common/fbc-user/header');
                             <?php else: ?>
                                 <div class="alert alert-info py-2 mb-3">
                                     <i class="fa fa-truck"></i> <strong>YM Delivery Replacement (AddOn Service Required):</strong> The merchant selected Yellow Markets delivery for this replacement. Accounting (@Acct) / Support must request the merchant to purchase the replacement delivery service as an <strong>AddOn Service</strong>.
-                                </div>
-                                <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 10px;">
-                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#requestAddonModal">
-                                        <i class="fa fa-paper-plane"></i> Request AddOn Service Purchase
-                                    </button>
                                 </div>
                             <?php endif; ?>
                         <?php endif; ?>
