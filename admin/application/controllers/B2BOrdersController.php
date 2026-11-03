@@ -18644,7 +18644,7 @@ public function markDelivered()
 
         // ==========================================
         // GET LAST DELIVERY ATTEMPT
-        // =========================================
+        // ==========================================
 
         $lastAttempt = $this->db
             ->where('order_id', $order_id)
@@ -18718,11 +18718,10 @@ public function markDelivered()
 
 
                 // ==========================================
-                // GET SHOPPER CUSTOMER ID
+                // GET SHOPPER DETAILS
                 // ==========================================
 
                 $salesOrder = $this->db
-                    ->select('customer_id')
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
@@ -18731,6 +18730,14 @@ public function markDelivered()
                 if ($salesOrder) {
 
                     $customerId = $salesOrder->customer_id;
+
+                    $customerEmail = !empty($salesOrder->customer_email)
+                        ? trim($salesOrder->customer_email)
+                        : '';
+
+                    $customerName = !empty($salesOrder->customer_name)
+                        ? $salesOrder->customer_name
+                        : 'Customer';
 
 
                     // ==========================================
@@ -18777,7 +18784,6 @@ public function markDelivered()
 
                             'Order delivered',
 
-                            // ONLY B2B ORDER NUMBER
                             'Your order no. ' . $b2bOrderNumber . ' is delivered.',
 
                             json_encode([
@@ -18793,11 +18799,66 @@ public function markDelivered()
                         ];
 
 
-                        // Insert notification
+                        // Insert shopper notification
                         $this->db->query(
                             $notif_sql,
                             $notif_params
                         );
+
+
+                        // ==========================================
+                        // SHOPPER EMAIL - ORDER DELIVERED
+                        // ==========================================
+
+                        if (!empty($customerEmail)) {
+
+                            $emailSent = $this->CommonModel->sendCommonHTMLEmail(
+
+                                $customerEmail,
+
+                                'delivery-order-delivered',
+
+                                [
+                                    '##CUSTOMERNAME##',
+                                    '##ORDERNO##'
+                                ],
+
+                                [
+                                    $customerName,
+                                    $b2bOrderNumber
+                                ]
+                            );
+
+
+                            if ($emailSent) {
+
+                                log_message(
+                                    'info',
+                                    'Order delivered email sent to shopper: '
+                                    . $customerEmail
+                                    . ' | Order: '
+                                    . $b2bOrderNumber
+                                );
+
+                            } else {
+
+                                log_message(
+                                    'error',
+                                    'Order delivered email failed for: '
+                                    . $customerEmail
+                                    . ' | Order: '
+                                    . $b2bOrderNumber
+                                );
+                            }
+
+                        } else {
+
+                            log_message(
+                                'error',
+                                'Shopper email not found for webshop order: '
+                                . $webshop_order_id
+                            );
+                        }
                     }
                 }
             }
@@ -18836,7 +18897,6 @@ public function markDelivered()
         ]);
     }
 }
-
 
 
 
