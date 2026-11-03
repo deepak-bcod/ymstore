@@ -728,14 +728,17 @@ class Api extends CI_Controller {
 {
     $jwtToken = $this->input->post('token_id') ?? $this->input->get('token_id');
     $date     = $this->input->post('date');
-    $type     = strtolower(trim($this->input->post('type')));
+    $type     = strtolower(trim($this->input->post('type') ?? ''));
     $status   = (int) $this->input->post('status');
     $order_id = $this->input->post('order_id');
     $is_parent_level = (int) $this->input->post('is_parent_level');
 
-    // -----------------------------------------
-    // VALIDATE TOKEN
-    // -----------------------------------------
+    $emailSent = false;
+    $shopperNotificationSent = false;
+
+    // =========================================
+    // 1. TOKEN VALIDATION
+    // =========================================
     if (empty($jwtToken)) {
         echo json_encode([
             'flag' => 0,
@@ -766,9 +769,9 @@ class Api extends CI_Controller {
 
     try {
 
-        // -----------------------------------------
-        // DETERMINE TABLE
-        // -----------------------------------------
+        // =========================================
+        // 2. DETERMINE PICKUP / DELIVERY TABLE
+        // =========================================
         if ($type === 'pickup') {
 
             $table = 'b2b_orders_pickup_details';
@@ -790,12 +793,12 @@ class Api extends CI_Controller {
             exit;
         }
 
-        $inserted = 0;
         $affected = 0;
+        $inserted = 0;
 
-        // -----------------------------------------
-        // DELIVERY ATTEMPT INSERT
-        // -----------------------------------------
+        // =========================================
+        // 3. DELIVERY ATTEMPT INSERT
+        // =========================================
         if ($type === 'delivery') {
 
             $lookup_field = ($is_parent_level === 1)
@@ -804,7 +807,6 @@ class Api extends CI_Controller {
 
             $lookup_value = $order_id;
 
-            // Get last delivery attempt
             $lastAttempt = $this->db
                 ->where($lookup_field, $lookup_value)
                 ->where('driver_id', $driver_id)
@@ -830,7 +832,7 @@ class Api extends CI_Controller {
                     ]);
             }
 
-            // Insert new delivery record
+            // Insert new attempt
             $insertData = [
 
                 'order_id' => ($is_parent_level === 1)
@@ -870,9 +872,9 @@ class Api extends CI_Controller {
             $inserted = $this->db->affected_rows();
         }
 
-        // -----------------------------------------
-        // UPDATE PICKUP / DELIVERY STATUS
-        // -----------------------------------------
+        // =========================================
+        // 4. UPDATE PICKUP / DELIVERY STATUS
+        // =========================================
         $updateData = [
             $status_field => $status,
             'updated_at' => date('Y-m-d H:i:s')
@@ -896,7 +898,7 @@ class Api extends CI_Controller {
 
             $dateObject = DateTime::createFromFormat('d-m-Y', $date);
 
-            if ($dateObject) {
+            if ($dateObject !== false) {
 
                 $converted_date = $dateObject->format('Y-m-d');
 
@@ -911,81 +913,88 @@ class Api extends CI_Controller {
 
         $affected = $this->db->affected_rows() + $inserted;
 
-        // -----------------------------------------
-        // IF ORDER DELIVERED - UPDATE MAIN ORDERS
-        // -----------------------------------------
-        $webshop_order_id = null;
-        $orderData = null;
+        // =========================================
+        // 5. DELIVERED STATUS = 8
+        // =========================================
+        if ($type === 'delivery' && $status == 8 && !empty($order_id)) {
 
-        if ($status == 8 && $type === 'delivery') {
+            $webshop_order_id = null;
 
+            // -------------------------------------
+            // UPDATE B2B ORDERS
+            // -------------------------------------
             $b2b_update = [
                 'status' => 8,
                 'updated_at' => date('Y-m-d H:i:s')
             ];
 
-            if (!empty($order_id)) {
+            if ($is_parent_level == 1) {
 
-                if ($is_parent_level == 1) {
+                $this->db
+                    ->where('webshop_order_id', $order_id)
+                    ->update('b2b_orders', $b2b_update);
 
-                    $this->db
-                        ->where('webshop_order_id', $order_id)
-                        ->update('b2b_orders', $b2b_update);
+                $webshop_order_id = $order_id;
 
-                    $webshop_order_id = $order_id;
+            } else {
 
-                } else {
+                $this->db
+                    ->where('order_id', $order_id)
+                    ->update('b2b_orders', $b2b_update);
 
-                    $this->db
-                        ->where('order_id', $order_id)
-                        ->update('b2b_orders', $b2b_update);
+                // Get webshop order ID
+                $orderData = $this->CommonModel
+                    ->getOrderDataByb2bOrderId($order_id);
 
-                    // Get webshop order ID
-                    $orderData = $this->CommonModel
-                        ->getOrderDataByb2bOrderId($order_id);
+                if ($orderData && !empty($orderData->webshop_order_id)) {
 
-                    if ($orderData && !empty($orderData->webshop_order_id)) {
-
-                        $webshop_order_id = $orderData->webshop_order_id;
-                    }
+                    $webshop_order_id = $orderData->webshop_order_id;
                 }
             }
 
-            // Update main webshop order status
+            // -------------------------------------
+            // UPDATE MAIN SALES ORDER STATUS
+            // -------------------------------------
             if (!empty($webshop_order_id)) {
 
                 $this->CommonModel
                     ->checkAndUpdateMainOrderStatus($webshop_order_id);
             }
 
-            // =========================================
-            // SHOPPER EMAIL - ORDER DELIVERED
-            // =========================================
+            // =====================================
+            // 6. GET SHOPPER DETAILS
+            // =====================================
             if (!empty($webshop_order_id)) {
 
-                // Get shopper details
                 $salesOrder = $this->db
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
 
-                if ($salesOrder && !empty($salesOrder->customer_email)) {
+                if ($salesOrder) {
 
-                    // ---------------------------------
-                    // GET CUSTOMER NAME
-                    // ---------------------------------
-                    $customerName = !empty($salesOrder->customer_name)
-                        ? $salesOrder->customer_name
-                        : 'Customer';
+                    $customer_id = (int) $salesOrder->customer_id;
 
-                    // ---------------------------------
-                    // GET B2B ORDER BARCODE
-                    // ---------------------------------
+                    $customerEmail = trim($salesOrder->customer_email ?? '');
+
+                    // Customer name
+                    $customerName = 'Customer';
+
+                    if (
+                        $this->db->field_exists('customer_name', 'sales_order')
+                        && !empty($salesOrder->customer_name)
+                    ) {
+                        $customerName = $salesOrder->customer_name;
+                    }
+
+                    // =================================
+                    // 7. GET ES ORDER BARCODE
+                    // =================================
                     $orderBarcodes = [];
 
                     if ($is_parent_level == 1) {
 
-                        // Parent order: get all ES numbers
+                        // Parent level: get all ES numbers
                         $b2bOrders = $this->db
                             ->select('order_barcode')
                             ->where('webshop_order_id', $webshop_order_id)
@@ -1002,7 +1011,7 @@ class Api extends CI_Controller {
 
                     } else {
 
-                        // Child order: get specific ES number
+                        // Child level: get specific ES number
                         $b2bOrder = $this->db
                             ->select('order_barcode')
                             ->where('order_id', $order_id)
@@ -1015,32 +1024,43 @@ class Api extends CI_Controller {
                         }
                     }
 
-                    // ---------------------------------
-                    // SEND EMAIL TO SHOPPER
-                    // ---------------------------------
-                    if (!empty($orderBarcodes)) {
+                    $orderBarcodes = array_values(
+                        array_unique($orderBarcodes)
+                    );
 
-                        $orderNumber = implode(', ', array_unique($orderBarcodes));
+                    $orderNumber = implode(', ', $orderBarcodes);
 
-                        $shopperEmail = trim($salesOrder->customer_email);
+                    // =================================
+                    // 8. SEND EMAIL TO SHOPPER
+                    // =================================
+                    if (
+                        !empty($customerEmail)
+                        && !empty($orderNumber)
+                    ) {
 
-                        // Use the shopper's saved language if available.
-                        // Default language is English.
-                        $emailLanguage = !empty($salesOrder->site_lang)
-                            ? strtolower(trim($salesOrder->site_lang))
-                            : 'en';
+                        $emailLanguage = 'en';
 
-                        if ($emailLanguage === 'english') {
-                            $emailLanguage = 'en';
-                        }
+                        if (
+                            $this->db->field_exists('site_lang', 'sales_order')
+                            && !empty($salesOrder->site_lang)
+                        ) {
 
-                        if ($emailLanguage === 'french') {
-                            $emailLanguage = 'fr';
+                            $emailLanguage = strtolower(
+                                trim($salesOrder->site_lang)
+                            );
+
+                            if ($emailLanguage == 'english') {
+                                $emailLanguage = 'en';
+                            }
+
+                            if ($emailLanguage == 'french') {
+                                $emailLanguage = 'fr';
+                            }
                         }
 
                         $emailSent = $this->CommonModel->sendCommonHTMLEmail(
 
-                            $shopperEmail,
+                            $customerEmail,
 
                             'delivery-order-delivered',
 
@@ -1061,9 +1081,9 @@ class Api extends CI_Controller {
 
                             log_message(
                                 'info',
-                                'Shopper delivered email sent successfully. Email: '
-                                . $shopperEmail
-                                . ' Order: '
+                                'Shopper delivered email sent: '
+                                . $customerEmail
+                                . ' | Order: '
                                 . $orderNumber
                             );
 
@@ -1071,33 +1091,123 @@ class Api extends CI_Controller {
 
                             log_message(
                                 'error',
-                                'Shopper delivered email failed. Email: '
-                                . $shopperEmail
-                                . ' Order: '
+                                'Shopper delivered email failed: '
+                                . $customerEmail
+                                . ' | Order: '
                                 . $orderNumber
                             );
                         }
                     }
+
+                    // =================================
+                    // 9. SHOPPER IN-APP NOTIFICATION
+                    // =================================
+                    if (
+                        !empty($customer_id)
+                        && !empty($orderNumber)
+                    ) {
+
+                        $shopperTitle = 'Order Delivered';
+
+                        $shopperMessage = 'Your order '
+                            . $orderNumber
+                            . ' has been successfully delivered.';
+
+                        $shopperNotification = [
+
+                            'type' => 'order',
+
+                            'subtype' => 'order_delivered',
+
+                            'recipient_type' => 'shopper',
+
+                            'recipient_id' => $customer_id,
+
+                            'title' => $shopperTitle,
+
+                            'message' => $shopperMessage,
+
+                            'data' => json_encode([
+
+                                'order_id' => $orderNumber,
+
+                                'webshop_order_id' => $webshop_order_id,
+
+                                'source' => 'mobile',
+
+                                'delivery_status' => 8
+                            ]),
+
+                            'is_read' => 0,
+
+                            'created_at' => date('Y-m-d H:i:s')
+                        ];
+
+                        $notificationInserted = $this->db->insert(
+                            'notifications',
+                            $shopperNotification
+                        );
+
+                        if ($notificationInserted) {
+
+                            $shopperNotificationSent = true;
+
+                            log_message(
+                                'info',
+                                'Shopper delivered notification inserted. Customer ID: '
+                                . $customer_id
+                                . ' | Order: '
+                                . $orderNumber
+                            );
+
+                        } else {
+
+                            $dbError = $this->db->error();
+
+                            log_message(
+                                'error',
+                                'Shopper notification insert failed: '
+                                . json_encode($dbError)
+                            );
+                        }
+
+                    } else {
+
+                        log_message(
+                            'error',
+                            'Shopper notification skipped. Customer ID or order barcode missing.'
+                        );
+                    }
+
+                } else {
+
+                    log_message(
+                        'error',
+                        'Sales order not found. Webshop Order ID: '
+                        . $webshop_order_id
+                    );
                 }
             }
         }
 
-        // -----------------------------------------
-        // MOBILE PICKUP / DELIVERY NOTIFICATION
-        // -----------------------------------------
+        // =========================================
+        // 10. MOBILE PICKUP / DELIVERY NOTIFICATIONS
+        // =========================================
         if (in_array($type, ['pickup', 'delivery'])) {
+
+            $mobileOrderData = null;
 
             if ($is_parent_level != 1 && !empty($order_id)) {
 
-                $orderData = $this->CommonModel
+                $mobileOrderData = $this->CommonModel
                     ->getOrderDataByb2bOrderId($order_id);
 
-            } else {
-
-                $orderData = null;
             }
 
-            if ($orderData && $orderData->shipment_type == 2) {
+            if (
+                $mobileOrderData
+                && $mobileOrderData->shipment_type == 2
+            ) {
 
                 // ---------------------------------
                 // PICKUP NOTIFICATION
@@ -1107,7 +1217,7 @@ class Api extends CI_Controller {
                     $title = 'Order Picked Up';
 
                     $message = 'Order no '
-                        . $orderData->order_barcode
+                        . $mobileOrderData->order_barcode
                         . ' is Picked Up from Merchant Store.';
 
                     $subtype = 'b2b_pickup_mobile';
@@ -1121,7 +1231,7 @@ class Api extends CI_Controller {
                     $title = 'Order Delivered';
 
                     $message = 'Order no '
-                        . $orderData->order_barcode
+                        . $mobileOrderData->order_barcode
                         . ' is Delivered to Shopper.';
 
                     $subtype = 'b2b_delivery_mobile';
@@ -1132,20 +1242,26 @@ class Api extends CI_Controller {
                     $adminNotification = [
 
                         'type' => 'order',
+
                         'subtype' => $subtype,
 
                         'recipient_type' => 'admin',
+
                         'recipient_id' => 1,
 
                         'title' => $title,
+
                         'message' => $message,
 
                         'data' => json_encode([
-                            'order_id' => $orderData->order_barcode,
+
+                            'order_id' => $mobileOrderData->order_barcode,
+
                             'source' => 'mobile'
                         ]),
 
                         'is_read' => 0,
+
                         'created_at' => date('Y-m-d H:i:s')
                     ];
 
@@ -1157,8 +1273,8 @@ class Api extends CI_Controller {
                     // ---------------------------------
                     // MERCHANT NOTIFICATION
                     // ---------------------------------
-                    $merchant_id = !empty($orderData->publisher_id)
-                        ? $orderData->publisher_id
+                    $merchant_id = !empty($mobileOrderData->publisher_id)
+                        ? $mobileOrderData->publisher_id
                         : 0;
 
                     if (!empty($merchant_id)) {
@@ -1166,20 +1282,26 @@ class Api extends CI_Controller {
                         $merchantNotification = [
 
                             'type' => 'order',
+
                             'subtype' => $subtype,
 
                             'recipient_type' => 'merchant',
+
                             'recipient_id' => $merchant_id,
 
                             'title' => $title,
+
                             'message' => $message,
 
                             'data' => json_encode([
-                                'order_id' => $orderData->order_barcode,
+
+                                'order_id' => $mobileOrderData->order_barcode,
+
                                 'source' => 'mobile'
                             ]),
 
                             'is_read' => 0,
+
                             'created_at' => date('Y-m-d H:i:s')
                         ];
 
@@ -1192,14 +1314,15 @@ class Api extends CI_Controller {
             }
         }
 
-        // -----------------------------------------
-        // RESPONSE
-        // -----------------------------------------
+        // =========================================
+        // 11. FINAL API RESPONSE
+        // =========================================
         if ($affected > 0) {
 
             echo json_encode([
 
                 'flag' => 1,
+
                 'status' => 200,
 
                 'msg' => ucfirst($type)
@@ -1208,16 +1331,26 @@ class Api extends CI_Controller {
                 'data' => [
 
                     'status' => $status,
+
                     'orders_updated_count' => $affected,
+
                     'order_id' => $order_id ?? 'all',
 
-                    'email_notification' => (
-                        isset($emailSent) && $emailSent
-                    ) ? 'Sent to shopper' : (
-                        ($status == 8 && $type == 'delivery')
-                            ? 'Not sent - check email/template/logs'
-                            : 'Not applicable'
-                    )
+                    'shopper_email' => $emailSent
+                        ? 'Sent'
+                        : (
+                            ($type == 'delivery' && $status == 8)
+                                ? 'Not sent - check email template/logs'
+                                : 'Not applicable'
+                        ),
+
+                    'shopper_notification' => $shopperNotificationSent
+                        ? 'Inserted successfully'
+                        : (
+                            ($type == 'delivery' && $status == 8)
+                                ? 'Not inserted - check customer ID/database'
+                                : 'Not applicable'
+                        )
                 ]
             ]);
 
@@ -1226,6 +1359,7 @@ class Api extends CI_Controller {
             echo json_encode([
 
                 'flag' => 0,
+
                 'status' => 200,
 
                 'msg' => 'No records updated. Please check order ID, date, or driver assignment.',
@@ -1236,11 +1370,15 @@ class Api extends CI_Controller {
 
     } catch (Exception $e) {
 
-        log_message('error', 'Update order status error: ' . $e->getMessage());
+        log_message(
+            'error',
+            'Update order status error: ' . $e->getMessage()
+        );
 
         echo json_encode([
 
             'flag' => 0,
+
             'status' => 200,
 
             'msg' => 'An error occurred: ' . $e->getMessage(),
