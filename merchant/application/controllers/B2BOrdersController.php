@@ -12788,85 +12788,165 @@ exit;*/
 
 
 
+
 public function InitiateShipment()
-
 {
-
     if (!$this->input->post('hidden_order_id')) {
 
-        echo json_encode(['status' => 400, 'message' => 'Missing required data.']);
-
+        echo json_encode([
+            'status' => 400,
+            'message' => 'Missing required data.'
+        ]);
         return;
-
     }
-
-
 
     $User_id = $this->session->userdata('LoginID');
 
     $order_id = $this->input->post('hidden_order_id');
-
     $increment_id = $this->input->post('hidden_b2b_order_id');
-
     $publisher_id = $this->input->post('hidden_publisher_id');
-
     $remarks = $this->input->post('remarks');
-
     $delivery_person = $this->input->post('delivery_person');
 
-    $delivery_date = date('Y-m-d H:i:s', strtotime($this->input->post('delivery_date')));
+    $delivery_date = date(
+        'Y-m-d H:i:s',
+        strtotime($this->input->post('delivery_date'))
+    );
 
+    $currentDate = date('Y-m-d H:i:s');
 
+    // ==========================================
+    // GET B2B ORDER DETAILS
+    // ==========================================
 
-    $this->B2BOrdersModel->insertData('b2b_order_shipment', [
+    $b2bOrder = $this->db
+        ->where('order_id', $order_id)
+        ->get('b2b_orders')
+        ->row();
 
-        'order_id' => $order_id,
+    if (empty($b2bOrder)) {
 
-        'shipment_id' => 1,
+        echo json_encode([
+            'status' => 404,
+            'message' => 'B2B order not found.'
+        ]);
+        return;
+    }
 
-        'message' => $remarks,
+    $webshop_order_id = $b2bOrder->webshop_order_id ?? 0;
+    $b2bOrderNumber = $b2bOrder->order_barcode ?? '';
 
-        'created_by' => $User_id,
+    // ==========================================
+    // INSERT SHIPMENT DETAILS
+    // ==========================================
 
-        'created_at' => time(),
+    $this->B2BOrdersModel->insertData(
+        'b2b_order_shipment',
+        [
+            'order_id' => $order_id,
+            'shipment_id' => 1,
+            'message' => $remarks,
+            'created_by' => $User_id,
+            'created_at' => time(),
+            'ip' => $this->input->ip_address()
+        ]
+    );
 
-        'ip' => $this->input->ip_address()
+    // ==========================================
+    // UPDATE B2B ORDER STATUS TO SHIPPED (4)
+    // ==========================================
 
+    $updated = $this->CommonModel->updateData(
+        'b2b_orders',
+        ['order_id' => $order_id],
+        ['status' => 4]
+    );
+
+    if (!$updated) {
+
+        echo json_encode([
+            'status' => 500,
+            'message' => 'Failed to update order status.'
+        ]);
+        return;
+    }
+
+    // ==========================================
+    // INSERT DELIVERY DETAILS
+    // ==========================================
+
+    $this->B2BOrdersModel->insertData(
+        'b2b_orders_delivery_details',
+        [
+            'order_id' => $order_id,
+            'delivery_type' => 1,
+            'own_delivery_person_name' => $delivery_person,
+            'delivery_date' => $delivery_date,
+            'remarks' => $remarks,
+            'delivery_attempt_no' => 1,
+            'generate_by' => $User_id,
+            'created_at' => $currentDate,
+            'ip' => $this->input->ip_address()
+        ]
+    );
+
+    // ==========================================
+    // GET SHOPPER DETAILS
+    // ==========================================
+
+    if (!empty($webshop_order_id)) {
+
+        $salesOrder = $this->db
+            ->where('order_id', $webshop_order_id)
+            ->get('sales_order')
+            ->row();
+
+        if (!empty($salesOrder)) {
+
+            $customerId = $salesOrder->customer_id ?? 0;
+
+            // ==========================================
+            // SHOPPER NOTIFICATION
+            // ==========================================
+
+            if (!empty($customerId) && !empty($b2bOrderNumber)) {
+
+                $this->db->insert(
+                    'notifications',
+                    [
+                        'type'           => 'order',
+                        'subtype'        => 'order_shipped',
+                        'recipient_type' => 'shopper',
+                        'recipient_id'   => $customerId,
+                        'title'          => 'Order Shipped',
+                        'message'        => 'Your order no. ' .
+                                            $b2bOrderNumber .
+                                            ' is shipped',
+                        'data'           => json_encode([
+                            'order_id'     => $webshop_order_id,
+                            'b2b_order_id' => $order_id,
+                            'b2b_order_no' => $b2bOrderNumber,
+                            'status'       => 4
+                        ]),
+                        'is_read'        => 0,
+                        'created_at'     => $currentDate,
+                        'updated_at'     => $currentDate
+                    ]
+                );
+            }
+        }
+    }
+
+    // ==========================================
+    // SUCCESS RESPONSE
+    // ==========================================
+
+    echo json_encode([
+        'status' => 200,
+        'message' => 'Shipment created successfully.'
     ]);
-
-
-
-    $this->CommonModel->updateData('b2b_orders', ['order_id' => $order_id], ['status' => '4']);
-
-
-
-    $this->B2BOrdersModel->insertData('b2b_orders_delivery_details', [
-
-        'order_id' => $order_id,
-
-        'delivery_type' => 1,
-
-        'own_delivery_person_name' => $delivery_person,
-
-        'delivery_date' => $delivery_date,
-
-        'remarks' => $remarks,
-
-        'delivery_attempt_no' => 1,
-
-        'generate_by' => $User_id,
-
-        'created_at' => date('Y-m-d H:i:s'),
-
-        'ip' => $this->input->ip_address()
-
-    ]);
-
-
-
-    echo json_encode(['status' => 200, 'message' => 'Shipment created successfully.']);
-
 }
+
 
 
 
