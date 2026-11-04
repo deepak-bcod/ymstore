@@ -18636,8 +18636,6 @@ public function MarkAsFailedPopup() {
 
 public function markDelivered()
 {
-    $this->output->set_content_type('application/json');
-
     if ($this->input->post('order_id')) {
 
         $order_id = $this->input->post('order_id');
@@ -18770,23 +18768,29 @@ public function markDelivered()
                             )
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
+
                         $notif_params = [
                             'order',
                             'order_delivered',
                             'shopper',
                             $customerId,
+
                             'Order delivered',
+
                             'Your order no. ' . $b2bOrderNumber . ' is delivered.',
+
                             json_encode([
                                 'order_id'      => $webshop_order_id,
                                 'b2b_order_id'  => $order_id,
                                 'b2b_order_no'  => $b2bOrderNumber,
                                 'status'        => 8
                             ]),
+
                             0,
                             date('Y-m-d H:i:s'),
                             date('Y-m-d H:i:s')
                         ];
+
 
                         // Insert notification
                         $this->db->query(
@@ -18799,56 +18803,37 @@ public function markDelivered()
                         // SEND ORDER DELIVERED EMAIL TO SHOPPER
                         // ==========================================
 
-                        $customerData = $this->db
-                            ->select('customer_email, customer_firstname, customer_lastname')
+                        $emailData = $this->db
+                            ->select('customer_email, customer_name')
                             ->where('order_id', $webshop_order_id)
                             ->get('sales_order')
                             ->row();
 
-                        if ($customerData && !empty($customerData->customer_email)) {
+                        if ($emailData && !empty($emailData->customer_email)) {
 
-                            $emailTo = $customerData->customer_email;
+                            $EmailTo = $emailData->customer_email;
 
-                            // Email template identifier
-                            $emailCode = 'order-delivered';
+                            $identifier = 'delivery-order-delivered';
 
-                            // Get email template
-                            $emailTemplate = $this->CommonModel
-                                ->getEmailTemplateByIdentifier($emailCode);
+                            $TempVars = [
+                                '##CUSTOMERNAME##',
+                                '##ORDERNO##'
+                            ];
 
-                            if ($emailTemplate) {
+                            $DynamicVars = [
+                                !empty($emailData->customer_name)
+                                    ? $emailData->customer_name
+                                    : 'Customer',
 
-                                $TempVars = [
-                                    '{{customer_name}}',
-                                    '{{order_number}}'
-                                ];
+                                $b2bOrderNumber
+                            ];
 
-                                $DynamicVars = [
-                                    trim(
-                                        $customerData->customer_firstname . ' ' .
-                                        $customerData->customer_lastname
-                                    ),
-                                    $b2bOrderNumber
-                                ];
-
-                                // Shopper language
-                                $lang_code = $this->session->userdata('site_lang');
-
-                                if ($lang_code === 'french') {
-                                    $lang_code = 'fr';
-                                } else {
-                                    $lang_code = 'en';
-                                }
-
-                                // Send email
-                                $this->CommonModel->sendCommonHTMLEmail(
-                                    $emailTo,
-                                    $emailCode,
-                                    $TempVars,
-                                    $DynamicVars,
-                                    $lang_code
-                                );
-                            }
+                            $this->sendCommonHTMLEmail(
+                                $EmailTo,
+                                $identifier,
+                                $TempVars,
+                                $DynamicVars
+                            );
                         }
                     }
                 }

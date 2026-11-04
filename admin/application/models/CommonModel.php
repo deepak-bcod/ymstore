@@ -413,7 +413,7 @@ class CommonModel extends CI_Model
 		$webshop_smtp_password = 'fkyvohootmnwylkg'; //$this->getCustomVariableByIdentifier('smtp_password') ?? 
 		$webshop_smtp_secure = 'ssl';
         
-		$from_email='info@yellowmarkets.com';
+		$from_email='noreply@yellowmarkets.com';
 
 		$this->load->library('email');
 
