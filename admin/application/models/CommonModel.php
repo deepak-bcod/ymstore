@@ -407,10 +407,10 @@ class CommonModel extends CI_Model
 
 		// $email='ranjana.patel@bcod.co.in';
 		$email = 'ranjana.patel@bcod.co.in';
-		$webshop_smtp_host = 'smtp.gmail.com'; // $this->getCustomVariableByIdentifier('smtp_host');
-		$webshop_smtp_port =  465; // $this->getCustomVariableByIdentifier('smtp_port') ??
-		$webshop_smtp_username = 'noreply@yellowmarkets.com'; //$this->getCustomVariableByIdentifier('smtp_username') ?? 
-		$webshop_smtp_password = 'fkyvohootmnwylkg'; //$this->getCustomVariableByIdentifier('smtp_password') ?? 
+		$webshop_smtp_host = SMTP_HOST; // $this->getCustomVariableByIdentifier('smtp_host');
+		$webshop_smtp_port =  SMTP_PORT; // $this->getCustomVariableByIdentifier('smtp_port') ??
+		$webshop_smtp_username = SMTP_UNAME; //$this->getCustomVariableByIdentifier('smtp_username') ?? 
+		$webshop_smtp_password = SMTP_PWORD; //$this->getCustomVariableByIdentifier('smtp_password') ?? 
 		$webshop_smtp_secure = 'ssl';
         
 		$from_email='info@yellowmarkets.com';
