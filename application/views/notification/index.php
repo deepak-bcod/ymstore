@@ -196,6 +196,7 @@ if ($current_lang === 'french') {
     }
 
     // 4. Orders (Delivered, Shipped, Processing)
+    // 4. Orders (Delivered, Shipped, Processing)
     if ($type === 'order' && $subtype !== 'delivery_failed' && $subtype !== 'new_sales_order') {
         if ($row->title === 'Order delivered') {
             $title = 'Commande livrée';
@@ -205,11 +206,11 @@ if ($current_lang === 'french') {
             $title = 'Commande en cours de traitement';
         }
 
-        if (strpos($row->message, 'is delivered') !== false) {
-            $message = str_replace(['Your order no.', 'is delivered.'], ['Votre commande n°', 'a été livrée.'], $row->message);
-        } elseif (strpos($row->message, 'is shipped') !== false) {
-            $message = str_replace(['Your order no.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.'], $row->message);
-        } elseif (strpos($row->message, 'is under process') !== false) {
+        if (strpos($row->message, 'delivered') !== false) {
+            $message = str_replace(['Your order no.', 'has been delivered.', 'is delivered.'], ['Votre commande n°', 'a été livrée.', 'a été livrée.'], $row->message);
+        } elseif (strpos($row->message, 'shipped') !== false) {
+            $message = str_replace(['Your order no.', 'has been shipped.', 'is shipped.'], ['Votre commande n°', 'a été expédiée.', 'a été expédiée.'], $row->message);
+        } elseif (strpos($row->message, 'under process') !== false) {
             $message = str_replace(['Your order no.', 'is under process.'], ['Votre commande n°', 'est en cours de traitement.'], $row->message);
         }
     }
