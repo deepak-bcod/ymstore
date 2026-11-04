@@ -869,7 +869,7 @@ class Api extends CI_Controller {
                 $insertData
             );
 
-            $inserted = $this->db->affected_rows();
+            $inserted = $this->db->affected_rows()
         }
 
         // =========================================

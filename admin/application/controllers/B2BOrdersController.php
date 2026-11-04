@@ -18639,8 +18639,7 @@ public function markDelivered()
     if ($this->input->post('order_id')) {
 
         $order_id = $this->input->post('order_id');
-
-        $User_id = $this->session->userdata('LoginID');
+        $User_id  = $this->session->userdata('LoginID');
 
         // ==========================================
         // GET LAST DELIVERY ATTEMPT
@@ -18718,11 +18717,10 @@ public function markDelivered()
 
 
                 // ==========================================
-                // GET SHOPPER CUSTOMER ID
+                // GET SHOPPER CUSTOMER DETAILS & LANGUAGE
                 // ==========================================
 
                 $salesOrder = $this->db
-                    ->select('customer_id')
                     ->where('order_id', $webshop_order_id)
                     ->get('sales_order')
                     ->row();
@@ -18730,7 +18728,17 @@ public function markDelivered()
 
                 if ($salesOrder) {
 
-                    $customerId = $salesOrder->customer_id;
+                    $customer_id   = (int) $salesOrder->customer_id;
+                    $customerEmail = trim($salesOrder->customer_email ?? '');
+
+                    // Fetch customer name safely
+                    $customerName = 'Customer';
+                    if (
+                        $this->db->field_exists('customer_name', 'sales_order')
+                        && !empty($salesOrder->customer_name)
+                    ) {
+                        $customerName = $salesOrder->customer_name;
+                    }
 
 
                     // ==========================================
@@ -18750,54 +18758,76 @@ public function markDelivered()
 
 
                         // ==========================================
-                        // SHOPPER NOTIFICATION - ORDER DELIVERED
+                        // 1. SHOPPER IN-APP NOTIFICATION
                         // ==========================================
 
-                        $notif_sql = "INSERT INTO notifications
-                            (
-                                type,
-                                subtype,
-                                recipient_type,
-                                recipient_id,
-                                title,
-                                message,
-                                data,
-                                is_read,
-                                created_at,
-                                updated_at
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        $shopperTitle   = 'Order Delivered';
+                        $shopperMessage = 'Your order no. ' . $b2bOrderNumber . ' is delivered.';
 
-
-                        $notif_params = [
-                            'order',
-                            'order_delivered',
-                            'shopper',
-                            $customerId,
-
-                            'Order delivered',
-
-                            // ONLY B2B ORDER NUMBER
-                            'Your order no. ' . $b2bOrderNumber . ' is delivered.',
-
-                            json_encode([
-                                'order_id'      => $webshop_order_id,
-                                'b2b_order_id'  => $order_id,
-                                'b2b_order_no'  => $b2bOrderNumber,
-                                'status'        => 8
+                        $shopperNotification = [
+                            'type'           => 'order',
+                            'subtype'        => 'order_delivered',
+                            'recipient_type' => 'shopper',
+                            'recipient_id'   => $customer_id,
+                            'title'          => $shopperTitle,
+                            'message'        => $shopperMessage,
+                            'data'           => json_encode([
+                                'order_id'         => $webshop_order_id,
+                                'b2b_order_id'     => $order_id,
+                                'b2b_order_no'     => $b2bOrderNumber,
+                                'source'           => 'pc',
+                                'delivery_status'  => 8
                             ]),
-
-                            0,
-                            date('Y-m-d H:i:s'),
-                            date('Y-m-d H:i:s')
+                            'is_read'        => 0,
+                            'created_at'     => date('Y-m-d H:i:s')
                         ];
 
+                        $this->db->insert('notifications', $shopperNotification);
 
-                        // Insert notification
-                        $this->db->query(
-                            $notif_sql,
-                            $notif_params
-                        );
+
+                        // ==========================================
+                        // 2. SHOPPER EMAIL NOTIFICATION (HTML TEMPLATE)
+                        // ==========================================
+
+                        if (!empty($customerEmail)) {
+
+                            $emailLanguage = 'en';
+
+                            if (
+                                $this->db->field_exists('site_lang', 'sales_order')
+                                && !empty($salesOrder->site_lang)
+                            ) {
+                                $emailLanguage = strtolower(trim($salesOrder->site_lang));
+
+                                if ($emailLanguage == 'english') {
+                                    $emailLanguage = 'en';
+                                }
+                                if ($emailLanguage == 'french') {
+                                    $emailLanguage = 'fr';
+                                }
+                            }
+
+                            // Calls your reusable template function matching mobile behavior
+                            $emailSent = $this->CommonModel->sendCommonHTMLEmail(
+                                $customerEmail,
+                                'delivery-order-delivered', // Make sure this matches your email_code in email_template table
+                                [
+                                    '##CUSTOMERNAME##',
+                                    '##ORDERNO##'
+                                ],
+                                [
+                                    $customerName,
+                                    $b2bOrderNumber
+                                ],
+                                $emailLanguage
+                            );
+
+                            if ($emailSent) {
+                                log_message('info', 'PC Shopper delivered email sent: ' . $customerEmail . ' | Order: ' . $b2bOrderNumber);
+                            } else {
+                                log_message('error', 'PC Shopper delivered email failed: ' . $customerEmail . ' | Order: ' . $b2bOrderNumber);
+                            }
+                        }
                     }
                 }
             }
