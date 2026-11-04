@@ -18777,6 +18777,7 @@ public function markDelivered()
 
                             'Order delivered',
 
+                            // ONLY B2B ORDER NUMBER
                             'Your order no. ' . $b2bOrderNumber . ' is delivered.',
 
                             json_encode([
@@ -18797,44 +18798,6 @@ public function markDelivered()
                             $notif_sql,
                             $notif_params
                         );
-
-
-                        // ==========================================
-                        // SEND ORDER DELIVERED EMAIL TO SHOPPER
-                        // ==========================================
-
-                        $emailData = $this->db
-                            ->select('customer_email, customer_name')
-                            ->where('order_id', $webshop_order_id)
-                            ->get('sales_order')
-                            ->row();
-
-                        if ($emailData && !empty($emailData->customer_email)) {
-
-                            $EmailTo = $emailData->customer_email;
-
-                            $identifier = 'delivery-order-delivered';
-
-                            $TempVars = [
-                                '##CUSTOMERNAME##',
-                                '##ORDERNO##'
-                            ];
-
-                            $DynamicVars = [
-                                !empty($emailData->customer_name)
-                                    ? $emailData->customer_name
-                                    : 'Customer',
-
-                                $b2bOrderNumber
-                            ];
-
-                            $this->sendCommonHTMLEmail(
-                                $EmailTo,
-                                $identifier,
-                                $TempVars,
-                                $DynamicVars
-                            );
-                        }
                     }
                 }
             }
