@@ -183,9 +183,10 @@ class Shop_model extends CI_Model {
     }
 
     public function get_avg_ratings_by_merchant($merchant_id) {
-        $this->db->select('merchant_id, AVG(rating) as avg_rating');
-        $this->db->from('product_reviews');
+        $this->db->select('merchant_id, AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+        $this->db->from('ym_merchant_reviews');
         $this->db->where('merchant_id', $merchant_id);
+        $this->db->where('status', 'published');
         $this->db->group_by('merchant_id');
         $query = $this->db->get();
         return $query->row(); // one merchant

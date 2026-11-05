@@ -1980,4 +1980,69 @@ class CommonModel extends CI_Model
 
 		return false;
 	}
+
+	/**
+	 * Get published product reviews (pending and rejected are excluded)
+	 */
+	public function get_product_published_reviews($product_id, $limit = 50)
+	{
+		$this->db->select('pr.*, mr.order_id, mr.B2B_order_id, mr.customer_id, mr.is_anonymous');
+		$this->db->from('ym_product_reviews pr');
+		$this->db->join('ym_merchant_reviews mr', 'mr.id = pr.review_id');
+		$this->db->where('pr.product_id', (int)$product_id);
+		$this->db->where('pr.status', 'published');
+		$this->db->order_by('pr.created_at', 'DESC');
+		if (!empty($limit)) {
+			$this->db->limit((int)$limit);
+		}
+		return $this->db->get()->result_array();
+	}
+
+	/**
+	 * Get published product rating statistics
+	 */
+	public function get_product_avg_rating($product_id)
+	{
+		$this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+		$this->db->from('ym_product_reviews');
+		$this->db->where('product_id', (int)$product_id);
+		$this->db->where('status', 'published');
+		$row = $this->db->get()->row();
+		return array(
+			'avg_rating'    => !empty($row && $row->avg_rating) ? round((float)$row->avg_rating, 1) : 0,
+			'total_reviews' => !empty($row && $row->total_reviews) ? (int)$row->total_reviews : 0
+		);
+	}
+
+	/**
+	 * Get published merchant reviews (pending and rejected are excluded)
+	 */
+	public function get_merchant_published_reviews($merchant_id, $limit = 50)
+	{
+		$this->db->select('mr.*');
+		$this->db->from('ym_merchant_reviews mr');
+		$this->db->where('mr.merchant_id', (int)$merchant_id);
+		$this->db->where('mr.status', 'published');
+		$this->db->order_by('mr.created_at', 'DESC');
+		if (!empty($limit)) {
+			$this->db->limit((int)$limit);
+		}
+		return $this->db->get()->result_array();
+	}
+
+	/**
+	 * Get published merchant rating statistics
+	 */
+	public function get_merchant_avg_rating($merchant_id)
+	{
+		$this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+		$this->db->from('ym_merchant_reviews');
+		$this->db->where('merchant_id', (int)$merchant_id);
+		$this->db->where('status', 'published');
+		$row = $this->db->get()->row();
+		return array(
+			'avg_rating'    => !empty($row && $row->avg_rating) ? round((float)$row->avg_rating, 1) : 0,
+			'total_reviews' => !empty($row && $row->total_reviews) ? (int)$row->total_reviews : 0
+		);
+	}
 }

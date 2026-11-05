@@ -423,12 +423,12 @@ class CustomerController extends CI_Controller
         $this->db->trans_start();
 
         if (!empty($existing_merchant_review)) {
-            // Update existing merchant review
+            // Update existing merchant review (reset to pending upon edit)
             $this->db->where('id', $existing_merchant_review->id);
             $this->db->update('ym_merchant_reviews', array(
                 'rating'     => $merchant_rating,
                 'comments'   => !empty($merchant_comments) ? $merchant_comments : null,
-                'status'     => 'published',
+                'status'     => 'pending',
                 'updated_at' => date('Y-m-d H:i:s')
             ));
             $review_id = $existing_merchant_review->id;
@@ -457,6 +457,7 @@ class CustomerController extends CI_Controller
                         $this->db->update('ym_product_reviews', array(
                             'rating'     => $p_rating,
                             'comments'   => !empty($p_comment) ? $p_comment : null,
+                            'status'     => 'pending',
                             'updated_at' => date('Y-m-d H:i:s')
                         ));
                     } else {
@@ -466,13 +467,14 @@ class CustomerController extends CI_Controller
                             'product_name' => $p_name,
                             'rating'       => $p_rating,
                             'comments'     => !empty($p_comment) ? $p_comment : null,
+                            'status'       => 'pending',
                             'created_at'   => date('Y-m-d H:i:s')
                         ));
                     }
                 }
             }
         } else {
-            // Insert new merchant review
+            // Insert new merchant review (default status: pending)
             $this->db->insert('ym_merchant_reviews', array(
                 'order_id'     => $order_id,
                 'B2B_order_id' => $order_barcode,
@@ -480,13 +482,13 @@ class CustomerController extends CI_Controller
                 'merchant_id'  => $merchant_id,
                 'rating'       => $merchant_rating,
                 'comments'     => !empty($merchant_comments) ? $merchant_comments : null,
-                'status'       => 'published',
+                'status'       => 'pending',
                 'is_anonymous' => 1,
                 'created_at'   => date('Y-m-d H:i:s')
             ));
             $review_id = $this->db->insert_id();
 
-            // Insert individual product reviews (deduplicating product_id)
+            // Insert individual product reviews (default status: pending)
             if (!empty($items)) {
                 $processed_products = array();
                 foreach ($items as $item) {
@@ -506,6 +508,7 @@ class CustomerController extends CI_Controller
                         'product_name' => $p_name,
                         'rating'       => $p_rating,
                         'comments'     => !empty($p_comment) ? $p_comment : null,
+                        'status'       => 'pending',
                         'created_at'   => date('Y-m-d H:i:s')
                     ));
                 }
