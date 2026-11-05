@@ -181,8 +181,7 @@ class MyOrdersController extends CI_Controller
 
                     if ($item_st == 21) {
                         $is_in_process = true;
-                        $process_status_label = "$this->lang->line('replacement_rejected') ?: 'Replacement Rejected'";
-                        $process_status_label = "";
+                        $process_status_label = $this->lang->line('replacement_rejected') ?: 'Replacement Rejected';
                         $b2b_order_id = (int)$bi->b2b_order_id;
                         $b2b_item_id = (int)$bi->b2b_item_id;
                         $publisher_id = (int)$bi->publisher_id;
@@ -190,7 +189,6 @@ class MyOrdersController extends CI_Controller
                     } elseif ($item_st == 20) {
                         $is_in_process = true;
                         $process_status_label = $this->lang->line('return_rejected') ?: 'Return Rejected';
-                        $process_status_label = "";
                         $b2b_order_id = (int)$bi->b2b_order_id;
                         $b2b_item_id = (int)$bi->b2b_item_id;
                         $publisher_id = (int)$bi->publisher_id;
@@ -198,7 +196,6 @@ class MyOrdersController extends CI_Controller
                     } elseif ($item_st == 19) {
                         $is_in_process = true;
                         $process_status_label = $this->lang->line('replaced') ?: 'Replaced';
-                        $process_status_label = "";
                         $b2b_order_id = (int)$bi->b2b_order_id;
                         $b2b_item_id = (int)$bi->b2b_item_id;
                         $publisher_id = (int)$bi->publisher_id;
@@ -206,7 +203,6 @@ class MyOrdersController extends CI_Controller
                     } elseif ($item_st == 18) {
                         $is_in_process = true;
                         $process_status_label = $this->lang->line('replacement_approved') ?: 'Replacement Approved';
-                        $process_status_label = "";
                         $b2b_order_id = (int)$bi->b2b_order_id;
                         $b2b_item_id = (int)$bi->b2b_item_id;
                         $publisher_id = (int)$bi->publisher_id;
@@ -214,7 +210,6 @@ class MyOrdersController extends CI_Controller
                     } elseif ($item_st == 17) {
                         $is_in_process = true;
                         $process_status_label = $this->lang->line('refund_paid') ?: 'Refund Paid';
-                        $process_status_label = "";
                         $b2b_order_id = (int)$bi->b2b_order_id;
                         $b2b_item_id = (int)$bi->b2b_item_id;
                         $publisher_id = (int)$bi->publisher_id;
@@ -222,7 +217,6 @@ class MyOrdersController extends CI_Controller
                     } elseif ($item_st == 22 || $item_st == 16) {
                         $is_in_process = true;
                         $process_status_label = $this->lang->line('return_approved') ?: 'Return Approved';
-                        $process_status_label = "";
                         $b2b_order_id = (int)$bi->b2b_order_id;
                         $b2b_item_id = (int)$bi->b2b_item_id;
                         $publisher_id = (int)$bi->publisher_id;
@@ -230,7 +224,6 @@ class MyOrdersController extends CI_Controller
                     } elseif ($item_st == 15) {
                         $is_in_process = true;
                         $process_status_label = $this->lang->line('replacement_requested') ?: 'Replacement Requested';
-                        $process_status_label = "";
                         $b2b_order_id = (int)$bi->b2b_order_id;
                         $b2b_item_id = (int)$bi->b2b_item_id;
                         $publisher_id = (int)$bi->publisher_id;
@@ -238,7 +231,6 @@ class MyOrdersController extends CI_Controller
                     } elseif ($item_st == 14) {
                         $is_in_process = true;
                         $process_status_label = $this->lang->line('return_requested') ?: 'Return Requested';
-                        $process_status_label = "";
                         $b2b_order_id = (int)$bi->b2b_order_id;
                         $b2b_item_id = (int)$bi->b2b_item_id;
                         $publisher_id = (int)$bi->publisher_id;
@@ -279,16 +271,12 @@ class MyOrdersController extends CI_Controller
 
                     if ($r_ord == 4 || $r_itm == 4 || $r_ord == 21 || $r_itm == 21) {
                         $process_status_label = $this->lang->line('replacement_rejected') ?: 'Replacement Rejected';
-                        $process_status_label = "";
                     } elseif (in_array($r_ord, [3, 5, 6, 19]) || in_array($r_itm, [3, 5, 6, 19])) {
                         $process_status_label = $this->lang->line('replaced') ?: 'Replaced';
-                        $process_status_label = "";
                     } elseif (in_array($r_ord, [1, 2, 18]) || in_array($r_itm, [1, 2, 18])) {
                         $process_status_label = $this->lang->line('replacement_approved') ?: 'Replacement Approved';
-                        $process_status_label = "";
                     } else {
                         $process_status_label = $this->lang->line('replacement_requested') ?: 'Replacement Requested';
-                        $process_status_label = "";
                     }
                 }
             }
@@ -326,16 +314,12 @@ class MyOrdersController extends CI_Controller
 
                     if ($ret_ref == 1 || in_array($ret_ord, [4, 17]) || in_array($ret_itm, [4, 17])) {
                         $process_status_label = $this->lang->line('refund_paid') ?: 'Refund Paid';
-                        $process_status_label = "";
                     } elseif ($ret_ref == 2 || in_array($ret_ord, [2, 5, 20]) || in_array($ret_itm, [2, 5, 20])) {
                         $process_status_label = $this->lang->line('return_rejected') ?: 'Return Rejected';
-                        $process_status_label = "";
                     } elseif (in_array($ret_ord, [1, 3, 16, 22]) || in_array($ret_itm, [1, 3, 16, 22])) {
                         $process_status_label = $this->lang->line('return_approved') ?: 'Return Approved';
-                        $process_status_label = "";
                     } else {
                         $process_status_label = $this->lang->line('return_requested') ?: 'Return Requested';
-                        $process_status_label = "";
                     }
                 }
             }
