@@ -31,8 +31,8 @@ $lang['dashboard'] = "Dashboard";
 $lang['products'] = "Products";
 $lang['no_products_found'] = "No Products found";
 
-$lang['total_active_daily_deals'] = "Total Active Daily Deals";
-$lang['current_active_daily_deals'] = "Current Active Daily Deals";
+$lang['total_active_daily_deals'] = "Total Purchased Active Daily Deals Slot ";
+$lang['current_active_daily_deals'] = "Current Assigned Daily Deals Slot ";
 $lang['remaining_daily_deals_slots'] = "Remaining Daily Deals Slots";
 
 $lang['total_active_flash_sale'] = "Total Active Flash Sale";
