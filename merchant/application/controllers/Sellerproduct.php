@@ -19725,7 +19725,7 @@ class Sellerproduct extends CI_Controller {
 
 								/*--------------------Main product created-------------------------------------------------------*/
 
-								if ($product_type == 'simple' && $stock_qty !== null) {
+								if ($product_type == 'simple' && $stock_qty !== null && is_numeric($stock_qty)) {
 
     $clean_qty = max(0, (int)$stock_qty);
 
@@ -19750,11 +19750,9 @@ class Sellerproduct extends CI_Controller {
             'is_in_stock' => ($new_available_qty > 0) ? 1 : 2
         );
 
-        $whr_qty_arr = array('product_id' => $product_id);
-
         $this->SellerProductModel->updateData(
             'products_inventory',
-            $whr_qty_arr,
+            array('product_id' => $product_id),
             $stock_update
         );
     }
