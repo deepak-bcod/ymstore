@@ -1,5 +1,58 @@
 <?php $this->load->view('common/fbc-user/header'); ?>
 
+<style>
+    /* Horizontal scroller styling for Review Management */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    .dataTables_wrapper .dataTables_scroll {
+        width: 100%;
+    }
+    .dataTables_wrapper .dataTables_scrollBody {
+        overflow-x: auto !important;
+        width: 100% !important;
+        border-bottom: 1px solid #dee2e6;
+    }
+    #DataTables_Table_Project_Review_list {
+        min-width: 1450px !important;
+        width: 100% !important;
+        margin-bottom: 0 !important;
+    }
+    #DataTables_Table_Project_Review_list th,
+    #DataTables_Table_Project_Review_list td {
+        vertical-align: middle !important;
+        white-space: nowrap !important;
+    }
+    #DataTables_Table_Project_Review_list th:nth-child(8),
+    #DataTables_Table_Project_Review_list td:nth-child(8) {
+        white-space: normal !important;
+        min-width: 220px !important;
+        max-width: 320px !important;
+    }
+
+    /* Custom visible horizontal scrollbar */
+    .dataTables_scrollBody::-webkit-scrollbar,
+    .table-responsive::-webkit-scrollbar {
+        height: 10px;
+    }
+    .dataTables_scrollBody::-webkit-scrollbar-track,
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f3f5;
+        border-radius: 6px;
+    }
+    .dataTables_scrollBody::-webkit-scrollbar-thumb,
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #adb5bd;
+        border-radius: 6px;
+    }
+    .dataTables_scrollBody::-webkit-scrollbar-thumb:hover,
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #6c757d;
+    }
+</style>
+
 <main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <div>

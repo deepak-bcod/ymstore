@@ -10,6 +10,12 @@ $(document).ready(function() {
     $('#ckbCheckAllReviews').on('click', function() {
         $('input[name="chk_review[]"]').prop('checked', $(this).prop('checked'));
     });
+
+    $(window).on('resize', function() {
+        if (reviewTable) {
+            reviewTable.columns.adjust();
+        }
+    });
 });
 
 function initReviewDataTable() {
@@ -21,6 +27,9 @@ function initReviewDataTable() {
         'processing': true,
         'serverSide': true,
         'serverMethod': 'post',
+        'scrollX': true,
+        'scrollCollapse': true,
+        'autoWidth': false,
         'language': {
             search: "",
             searchPlaceholder: "Search reviews, orders, customers...",
