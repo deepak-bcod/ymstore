@@ -334,10 +334,7 @@ class MyOrdersController extends CI_Controller
                             <div class="col-md-2 text-center">';
 
             if ($is_in_process) {
-                // When sub-order is in Return or Replacement process: do not display checkbox
-                if (!empty($process_status_label)) {
-                    $html .= '<span class="badge" style="background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; font-size:11px; padding:4px 6px; border-radius:3px; display:inline-block; line-height:1.2;">' . htmlspecialchars($process_status_label) . '</span>';
-                }
+                // When sub-order is in Return or Replacement process: leave blank (no checkbox, no badge)
             } else {
                 $html .= '<input type="checkbox"
                             class="return_chk"
