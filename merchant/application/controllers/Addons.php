@@ -80,35 +80,42 @@ class Addons extends CI_Controller
         }
     }
 
-    public function index()
-    {
-        $addons = $this->Addon_model->get_addons_with_services();
-        $data['addon_data'] = [];
-        $site_lang = $this->session->userdata('site_lang');
+    
+public function index()
+{
+    $addons = $this->Addon_model->get_addons_with_services();
 
-        foreach ($addons as $row) {
-           
-            if ($site_lang == 'french' && !empty($row['category_name_fr'])) {
-                $category_key = $row['category_name_fr'];
-            } else {
-                $category_key = $row['category_name'];
+    $data['addon_data'] = [];
+
+    $site_lang = $this->session->userdata('site_lang');
+
+    if (!is_array($addons)) {
+        $addons = [];
+    }
+
+    foreach ($addons as $row) {
+
+        $category_key = ($site_lang === 'french' && !empty($row['category_name_fr']))
+            ? $row['category_name_fr']
+            : $row['category_name'];
+
+        if ($site_lang === 'french') {
+
+            if (!empty($row['title_fr'])) {
+                $row['title'] = $row['title_fr'];
             }
 
-           
-            if ($site_lang == 'french') {
-                if (!empty($row['title_fr'])) {
-                    $row['title'] = $row['title_fr'];
-                }
-                if (!empty($row['description_fr'])) {
-                    $row['description'] = $row['description_fr'];
-                }
+            if (!empty($row['description_fr'])) {
+                $row['description'] = $row['description_fr'];
             }
-
-            $data['addon_data'][$category_key][] = $row;
         }
 
-        $this->load->view('addons/index', $data);
+        $data['addon_data'][$category_key][] = $row;
     }
+
+    $this->load->view('addons/index', $data);
+}
+
 
     public function buy($service_id)
     {
@@ -621,13 +628,27 @@ class Addons extends CI_Controller
             ->set_output(json_encode($response));
     }
 
-    public function details($service_id)
-    {
-        $service = $this->Addon_model->get_service_by_id($service_id);
-        if (!$service) show_404();
-        $data['service'] = $service;
-        $this->load->view('addons/service_details', $data);
+    
+public function details($service_id)
+{
+    $service_id = (int) $service_id;
+
+    $this->load->model('Addon_model');
+
+    $service = $this->Addon_model->get_service_by_id($service_id);
+
+    if (empty($service)) {
+        show_404();
+        return;
     }
+
+    $data['service'] = $service;
+    $data['side_menu'] = 'addons';
+
+    $this->load->view('addons/service_details', $data);
+}
+
+    
 
     public function manage() {
         $data['side_menu'] = 'manage_addons';
