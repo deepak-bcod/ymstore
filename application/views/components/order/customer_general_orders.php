@@ -692,9 +692,19 @@ function getSubOrderStatusText($status) {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
+
 function downloadInvoice(orderId) {
+
     if (!orderId) {
         alert('No Order ID found.');
+        return;
+    }
+
+    // Open a new tab immediately on button click
+    var newTab = window.open('about:blank', '_blank');
+
+    if (!newTab) {
+        alert('Please allow pop-ups for this website.');
         return;
     }
 
@@ -702,19 +712,28 @@ function downloadInvoice(orderId) {
         url: '<?php echo site_url("MyOrdersController/download_document/"); ?>' + orderId,
         type: 'GET',
         dataType: 'json',
+
         success: function(response) {
-            if (response.status) {
-                // Fixed syntax: directly update window.location.href to trigger download
-                window.location.href = response.file_url;
+
+            if (response.status && response.file_url) {
+
+                // Open invoice URL in the already opened new tab
+                newTab.location.href = response.file_url;
+
             } else {
-                // Shows the pop-up alert message and stays on the same page
-                alert(response.message);
+
+                newTab.close();
+                alert(response.message || 'Invoice not found.');
             }
         },
+
         error: function() {
+
+            newTab.close();
             alert('An error occurred while processing your request.');
         }
     });
 }
+
 </script>
 
