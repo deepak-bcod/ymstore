@@ -11310,42 +11310,72 @@ class Sellerproduct extends CI_Controller {
 
 								if ($product_type == 'simple') {
 
-		if ($product_type == 'simple') {
+									$OldProductQtyData = $this->SellerProductModel->getSingleDataByID('products_inventory', array('product_id' => $product_id), 'qty,available_qty');
 
-    $OldProductQtyData = $this->SellerProductModel->getSingleDataByID(
-        'products_inventory',
-        array('product_id' => $product_id),
-        'qty,available_qty'
-    );
 
-    if (!empty($OldProductQtyData)) {
 
-        $old_qty = (int)$OldProductQtyData->qty;
-        $old_available_qty = (int)$OldProductQtyData->available_qty;
 
-        $stock_qty = max(0, (int)$stock_qty);
 
-        // Already ordered quantity
-        $old_ordered_qty = max(0, $old_qty - $old_available_qty);
+									if ($OldProductQtyData->qty == $stock_qty) {
 
-        // New available quantity
-        $new_available_qty = max(0, $stock_qty - $old_ordered_qty);
+									} else {
 
-        $is_in_stock = ($new_available_qty > 0) ? 1 : 2;
 
-        $stock_update = array(
-            'qty' => $stock_qty,
-            'available_qty' => $new_available_qty,
-            'is_in_stock' => $is_in_stock
-        );
 
-        $this->SellerProductModel->updateData(
-            'products_inventory',
-            array('product_id' => $product_id),
-            $stock_update
-        );
-    }
-}
+										if ($OldProductQtyData->available_qty == $OldProductQtyData->qty) {
+
+											$new_available_qty = $stock_qty;
+
+										} else {
+
+											if (isset($OldProductQtyData) && $OldProductQtyData->available_qty > 0) {
+
+												$old_available_qty = $OldProductQtyData->available_qty;
+
+
+
+												$old_ordered_qty = $OldProductQtyData->qty - $old_available_qty;
+
+											} else {
+
+												$old_ordered_qty = 0;
+
+											}
+
+
+
+											if ($stock_qty == 0) {
+
+												$new_available_qty = 0;
+
+											} else if ($stock_qty > 0 && $stock_qty > $OldProductQtyData->qty) {
+
+												$new_available_qty = $stock_qty - $old_ordered_qty;
+
+											} else {
+
+												$new_available_qty = $stock_qty - $old_ordered_qty;
+
+												$new_available_qty = ($new_available_qty <= 0) ? 0 : $new_available_qty;
+
+											}
+
+										}
+
+
+
+
+
+										$stock_update = array('qty' => $stock_qty, 'available_qty' => $new_available_qty);
+
+										$whr_qty_arr = array('product_id' => $product_id);
+
+										$this->SellerProductModel->updateData('products_inventory', $whr_qty_arr, $stock_update);
+
+									}
+
+								}
+
 								if (!empty($_POST['conf_simple'])) {
 
 									foreach ($_POST['conf_simple'] as $key => $prod_id) {
