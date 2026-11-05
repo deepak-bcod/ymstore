@@ -3,7 +3,26 @@
 <?php
 $is_view_mode = (isset($mode) && $mode === 'view');
 $is_edit_mode = (isset($mode) && $mode === 'edit');
-$merchant_trade_name = !empty($merchant->trade_name) ? $merchant->trade_name : (!empty($merchant->vendor_name) ? $merchant->vendor_name : (!empty($merchant->publication_name) ? $merchant->publication_name : 'Yellow Markets Merchant'));
+
+$merchant_name = '';
+if (!empty($merchant)) {
+    if (!empty($merchant->publication_name)) {
+        $merchant_name = $merchant->publication_name;
+    } elseif (!empty($merchant->company_name)) {
+        $merchant_name = $merchant->company_name;
+    } elseif (!empty($merchant->trade_name)) {
+        $merchant_name = $merchant->trade_name;
+    } elseif (!empty($merchant->vendor_name)) {
+        $merchant_name = $merchant->vendor_name;
+    }
+}
+if (empty($merchant_name) && !empty($b2b_order->company_name)) {
+    $merchant_name = $b2b_order->company_name;
+}
+if (empty($merchant_name)) {
+    $merchant_name = 'Yellow Markets Merchant';
+}
+
 $merchant_rating_val = isset($existing_merchant_review->rating) ? (int)$existing_merchant_review->rating : 0;
 $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_merchant_review->comments : '';
 ?>
@@ -65,7 +84,7 @@ $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_m
                 <!-- MERCHANT CUSTOMER SERVICE SECTION -->
                 <div class="ym-review-section ym-merchant-section">
                     <div class="ym-field-pill ym-trade-name-pill">
-                        <?= htmlspecialchars($merchant_trade_name) ?>
+                        <?= htmlspecialchars($merchant_name) ?>
                     </div>
 
                     <div class="ym-rating-row">
@@ -119,12 +138,12 @@ $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_m
                         <div class="ym-review-section ym-product-section">
                             <input type="hidden" name="product_names[<?= $p_id ?>]" value="<?= htmlspecialchars($p_name) ?>">
 
-                            <div class="ym-field-pill ym-product-name-pill">
-                                <?= htmlspecialchars($p_name) ?>
-                            </div>
-
                             <div class="ym-rating-row">
-                                <div class="ym-rating-controls-wrapper ym-product-rating-wrapper">
+                                <div class="ym-field-pill ym-product-name-pill" title="<?= htmlspecialchars($p_name) ?>">
+                                    <?= htmlspecialchars($p_name) ?>
+                                </div>
+
+                                <div class="ym-rating-controls-wrapper">
                                     <label class="ym-rating-prompt">How was the product purchased?</label>
                                     
                                     <input type="hidden" name="ratings[<?= $p_id ?>]" id="rating_product_<?= $p_id ?>" value="<?= $p_rating_val ?>" class="ym-required-product-rating" data-product="<?= htmlspecialchars($p_name) ?>" required>
@@ -136,7 +155,7 @@ $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_m
                                                     data-val="<?= $i ?>" 
                                                     data-target="rating_product_<?= $p_id ?>"
                                                     <?= $is_view_mode ? 'disabled' : '' ?>>
-                                                <?= $i ?>
+                                        <?= $i ?>
                                             </button>
                                         <?php endfor; ?>
                                     </div>
@@ -351,31 +370,37 @@ $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_m
 /* Field Pills */
 .ym-field-pill {
     display: inline-block;
-    padding: 6px 14px;
+    padding: 7px 14px;
     background-color: #ffffff;
     border: 1px solid #d1d5db;
     border-radius: 4px;
     font-size: 13.5px;
     color: #1f2937;
-    margin-bottom: 14px;
+    box-sizing: border-box;
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
 }
 
 .ym-trade-name-pill {
     font-weight: 600;
-    min-width: 170px;
+    min-width: 200px;
+    margin-bottom: 18px;
 }
 
-.ym-service-label-pill {
+.ym-service-label-pill,
+.ym-product-name-pill {
+    width: 200px;
+    min-width: 200px;
+    max-width: 220px;
     font-weight: 500;
-    min-width: 170px;
     margin-bottom: 0;
     align-self: flex-start;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ym-product-name-pill {
     font-weight: 600;
-    min-width: 220px;
 }
 
 /* Rating Controls */
@@ -390,10 +415,7 @@ $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_m
 .ym-rating-controls-wrapper {
     display: flex;
     flex-direction: column;
-}
-
-.ym-product-rating-wrapper {
-    width: 100%;
+    flex: 1;
 }
 
 .ym-rating-prompt {
@@ -517,6 +539,11 @@ $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_m
     .ym-rating-row {
         flex-direction: column;
         gap: 12px;
+    }
+    .ym-service-label-pill,
+    .ym-product-name-pill {
+        width: 100%;
+        max-width: none;
     }
     .ym-scale-labels-row {
         width: 100%;
