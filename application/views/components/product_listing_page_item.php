@@ -72,7 +72,7 @@ if ($active_promos_cache === null) {
         }
         $ci->Product_model->auto_expire_deals($now);
 
-        $query = $ci->db->select('p.id, p.daily_deals, p.daily_deal_starts_at, p.daily_deal_ends_at, p.flash_sale, p.flash_sale_starts_at, p.flash_sale_ends_at, inv.available_qty as stock_qty, p.qty, p.webshop_price, p.special_price, inv.available_qty as inv_available_qty, inv.qty as inv_qty')
+        $query = $ci->db->select('p.id, p.daily_deals, p.daily_deal_starts_at, p.daily_deal_ends_at, p.flash_sale, p.flash_sale_starts_at, p.flash_sale_ends_at, inv.available_qty as stock_qty, inv.qty as qty, p.webshop_price, p.special_price, inv.available_qty as inv_available_qty, inv.qty as inv_qty')
             ->from('products p')
             ->join('products_inventory inv', 'inv.product_id = p.id', 'left')
             ->group_start()
