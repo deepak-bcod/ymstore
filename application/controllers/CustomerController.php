@@ -293,140 +293,273 @@ class CustomerController extends CI_Controller
 
     public function form($order_id) 
     {
-        
-        $order = $this->CommonModel->get_order_by_id($order_id);
-
-        if (!$order) {
-            show_404();
-        }
-
-        
-        if (isset($order->review_submitted) && $order->review_submitted == 1) {
-            echo "<h3>This review link has already been used. Thank you for your feedback!</h3>";
-            return;
-        }
-
-        
-        if ($this->input->post()) {
-            
-
-            
-            $this->CommonModel->updateData(
-                'b2b_orders',
-                ['order_id' => $order_id],
-                ['review_submitted' => 1]
-            );
-
-        
-            return;
-        }
-
-        
-        $this->load->view('review_form_view', ['order' => $order]);
+        redirect(base_url('review/form/' . $order_id));
     }
 
     public function review_form($order_id)
     {
-        // Check if review has already been submitted for this order
-        $existing_review = $this->db->get_where('product_reviews', array('order_id' => $order_id))->row();
-        // if (empty($existing_review)) {
-        //     $b2b_order = $this->CommonModel->get_b2b_orders($order_id);
-        //     if (!empty($b2b_order) && isset($b2b_order->reveiw_sent) && $b2b_order->reveiw_sent == 1) {
-        //         $existing_review = true;
-        //     }
-        // }
+        // Fetch order from b2b_orders
+        $b2b_order = $this->CommonModel->get_b2b_orders($order_id);
+        if (empty($b2b_order)) {
+            // Check if order_barcode was passed
+            $b2b_order = $this->db->get_where('b2b_orders', array('order_barcode' => $order_id))->row();
+        }
 
-        if (!empty($existing_review)) {
-            $data['already_submitted'] = true;
-            $this->load->view('review_thank_you', $data);
+        if (empty($b2b_order)) {
+            show_404();
             return;
+        }
+
+        $order_id = $b2b_order->order_id;
+
+        // Fetch merchant details
+        $merchant = $this->db->get_where('publisher', array('id' => $b2b_order->publisher_id))->row();
+
+        // Fetch order items with product details
+        $items = $this->CommonModel->get_order_with_items($order_id);
+        if (empty($items)) {
+            if (!empty($b2b_order->webshop_order_id)) {
+                $this->db->select('soi.item_id, soi.product_id, soi.name as product_name, p.name');
+                $this->db->from('sales_order_items soi');
+                $this->db->join('products p', 'soi.product_id = p.id', 'left');
+                $this->db->where('soi.order_id', $b2b_order->webshop_order_id);
+                $items = $this->db->get()->result();
+            }
+        }
+
+        // Check if review already exists in ym_merchant_reviews
+        $existing_merchant_review = $this->db->get_where('ym_merchant_reviews', array('order_id' => $order_id))->row();
+
+        $mode = $this->input->get('mode'); // 'view' or 'edit'
+
+        if (!empty($existing_merchant_review)) {
+            // Fetch product reviews
+            $existing_product_reviews = $this->db->get_where('ym_product_reviews', array('review_id' => $existing_merchant_review->id))->result();
+            $product_review_map = array();
+            if (!empty($existing_product_reviews)) {
+                foreach ($existing_product_reviews as $pr) {
+                    $product_review_map[$pr->product_id] = $pr;
+                }
+            }
+
+            // If user did not request view or edit mode explicitly, redirect to published / thank-you page
+            if (empty($mode)) {
+                redirect(base_url('review/thank-you?order_id=' . $order_id));
+                return;
+            }
+
+            $data['existing_merchant_review'] = $existing_merchant_review;
+            $data['product_review_map'] = $product_review_map;
+            $data['mode'] = $mode;
+        } else {
+            $data['existing_merchant_review'] = null;
+            $data['product_review_map'] = array();
+            $data['mode'] = 'create';
         }
 
         $data['order_id'] = $order_id;
-        $data['customer_order_id'] = $this->CommonModel->get_customer_order_id($order_id);
-        $data['items'] = $this->CommonModel->get_order_with_items($order_id);
+        $data['b2b_order'] = $b2b_order;
+        $data['merchant_id'] = $b2b_order->publisher_id;
+        $data['merchant'] = $merchant;
+        $data['items'] = $items;
+        $data['customer_order_id'] = !empty($b2b_order->order_barcode) ? $b2b_order->order_barcode : $this->CommonModel->get_customer_order_id($order_id);
 
-        if (empty($data['items'])) {
-            $data['already_submitted'] = true;
-            $this->load->view('review_thank_you', $data);
-            return;
-        }
-
-        // Load the review form view
         $this->load->view('review_form', $data);
     }
 
     public function review_save($order_id) 
     {
-        // Check if review has already been submitted
-        $existing_review = $this->db->get_where('product_reviews', array('order_id' => $order_id))->row();
-        if (!empty($existing_review)) {
-            $this->session->set_flashdata('already_submitted', true);
-            redirect(base_url('review/thank-you'));
-            exit;
+        $b2b_order = $this->CommonModel->get_b2b_orders($order_id);
+        if (empty($b2b_order)) {
+            $b2b_order = $this->db->get_where('b2b_orders', array('order_barcode' => $order_id))->row();
         }
 
-        $ratings  = $this->input->post('ratings');
+        if (empty($b2b_order)) {
+            show_404();
+            return;
+        }
+
+        $order_id = $b2b_order->order_id;
+
+        $merchant_rating = (int)$this->input->post('merchant_rating');
+        $merchant_comments = trim((string)$this->input->post('merchant_comments'));
+        $ratings = $this->input->post('ratings');
         $comments = $this->input->post('comments');
+        $product_names = $this->input->post('product_names');
 
-        $data = $this->CommonModel->get_b2b_orders($order_id);
-        $sale_orders_data = !empty($data) ? $this->CommonModel->get_sale_orders($data->webshop_order_id) : null;
-        $customer_data = !empty($sale_orders_data) ? $this->CommonModel->get_customer_data($sale_orders_data->customer_email) : null;
-
-        // ✅ Fix arrays to single values
-        if (is_array($ratings)) {
-            $ratings = reset($ratings);
+        // Validation: merchant service rating
+        if ($merchant_rating < 1 || $merchant_rating > 5) {
+            $this->session->set_flashdata('form_data', $this->input->post());
+            $this->session->set_flashdata('error', 'Please provide a valid Customer Service rating (1 to 5).');
+            redirect(base_url('review/form/' . $order_id));
+            return;
         }
 
-        if (is_array($comments)) {
-            $comments = reset($comments);
+        // Fetch order items to validate each product has a rating
+        $items = $this->CommonModel->get_order_with_items($order_id);
+        if (!empty($items)) {
+            foreach ($items as $item) {
+                $p_rating = isset($ratings[$item->product_id]) ? (int)$ratings[$item->product_id] : 0;
+                if ($p_rating < 1 || $p_rating > 5) {
+                    $prod_label = !empty($item->product_name) ? $item->product_name : 'product';
+                    $this->session->set_flashdata('form_data', $this->input->post());
+                    $this->session->set_flashdata('error', 'Please provide a rating (1 to 5) for: ' . $prod_label);
+                    redirect(base_url('review/form/' . $order_id));
+                    return;
+                }
+            }
         }
 
-        // ✅ Validate rating
-        if (empty($ratings)) {
-            $this->session->set_flashdata('error', 'Rating is required.');
-            redirect(base_url('review/thank-you'));
-            exit;
+        $customer_id = !empty($b2b_order->customer_id) ? (string)$b2b_order->customer_id : (string)$this->session->userdata('LoginID');
+        if (empty($customer_id)) {
+            $customer_id = '0';
+        }
+        $merchant_id = !empty($b2b_order->publisher_id) ? (string)$b2b_order->publisher_id : '0';
+        $order_barcode = !empty($b2b_order->order_barcode) ? $b2b_order->order_barcode : null;
+
+        // Check if an existing review is present for this order
+        $existing_merchant_review = $this->db->get_where('ym_merchant_reviews', array('order_id' => $order_id))->row();
+
+        $this->db->trans_start();
+
+        if (!empty($existing_merchant_review)) {
+            // Update existing merchant review
+            $this->db->where('id', $existing_merchant_review->id);
+            $this->db->update('ym_merchant_reviews', array(
+                'rating'     => $merchant_rating,
+                'comments'   => !empty($merchant_comments) ? $merchant_comments : null,
+                'status'     => 'published',
+                'updated_at' => date('Y-m-d H:i:s')
+            ));
+            $review_id = $existing_merchant_review->id;
+
+            // Update or insert individual product reviews (deduplicating product_id)
+            if (!empty($items)) {
+                $processed_products = array();
+                foreach ($items as $item) {
+                    $p_id = (int)$item->product_id;
+                    if (in_array($p_id, $processed_products)) {
+                        continue;
+                    }
+                    $processed_products[] = $p_id;
+
+                    $p_rating = isset($ratings[$p_id]) ? (int)$ratings[$p_id] : 5;
+                    $p_comment = isset($comments[$p_id]) ? trim((string)$comments[$p_id]) : null;
+                    $p_name = isset($product_names[$p_id]) ? $product_names[$p_id] : (!empty($item->product_name) ? $item->product_name : '');
+
+                    $existing_pr = $this->db->get_where('ym_product_reviews', array(
+                        'review_id'  => $review_id,
+                        'product_id' => $p_id
+                    ))->row();
+
+                    if (!empty($existing_pr)) {
+                        $this->db->where('id', $existing_pr->id);
+                        $this->db->update('ym_product_reviews', array(
+                            'rating'     => $p_rating,
+                            'comments'   => !empty($p_comment) ? $p_comment : null,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ));
+                    } else {
+                        $this->db->insert('ym_product_reviews', array(
+                            'review_id'    => $review_id,
+                            'product_id'   => $p_id,
+                            'product_name' => $p_name,
+                            'rating'       => $p_rating,
+                            'comments'     => !empty($p_comment) ? $p_comment : null,
+                            'created_at'   => date('Y-m-d H:i:s')
+                        ));
+                    }
+                }
+            }
+        } else {
+            // Insert new merchant review
+            $this->db->insert('ym_merchant_reviews', array(
+                'order_id'     => $order_id,
+                'B2B_order_id' => $order_barcode,
+                'customer_id'  => $customer_id,
+                'merchant_id'  => $merchant_id,
+                'rating'       => $merchant_rating,
+                'comments'     => !empty($merchant_comments) ? $merchant_comments : null,
+                'status'       => 'published',
+                'is_anonymous' => 1,
+                'created_at'   => date('Y-m-d H:i:s')
+            ));
+            $review_id = $this->db->insert_id();
+
+            // Insert individual product reviews (deduplicating product_id)
+            if (!empty($items)) {
+                $processed_products = array();
+                foreach ($items as $item) {
+                    $p_id = (int)$item->product_id;
+                    if (in_array($p_id, $processed_products)) {
+                        continue;
+                    }
+                    $processed_products[] = $p_id;
+
+                    $p_rating = isset($ratings[$p_id]) ? (int)$ratings[$p_id] : 5;
+                    $p_comment = isset($comments[$p_id]) ? trim((string)$comments[$p_id]) : null;
+                    $p_name = isset($product_names[$p_id]) ? $product_names[$p_id] : (!empty($item->product_name) ? $item->product_name : '');
+
+                    $this->db->insert('ym_product_reviews', array(
+                        'review_id'    => $review_id,
+                        'product_id'   => $p_id,
+                        'product_name' => $p_name,
+                        'rating'       => $p_rating,
+                        'comments'     => !empty($p_comment) ? $p_comment : null,
+                        'created_at'   => date('Y-m-d H:i:s')
+                    ));
+                }
+            }
         }
 
-        $customer_id = !empty($customer_data->id) ? $customer_data->id : 0;
-        $merchant_id = !empty($data->publisher_id) ? $data->publisher_id : 0;
-        $order_barcode = !empty($data->order_barcode) ? $data->order_barcode : '';
+        // Mark order as reviewed in b2b_orders (only reveiw_sent column exists in b2b_orders)
+        $this->db->where('order_id', $order_id);
+        $this->db->update('b2b_orders', array(
+            'reveiw_sent' => 1
+        ));
 
-        // ✅ Insert review
-        $this->db->insert('product_reviews', [
-            'order_id'       => $order_id,
-            'B2B_order_id'   => $order_barcode,
-            'customer_id'    => $customer_id,
-            'merchant_id'    => $merchant_id,
-            'rating'         => $ratings,
-            'comments'       => !empty($comments) ? $comments : null,
-            'created_at'     => date('Y-m-d H:i:s')
-        ]);
+        $this->db->trans_complete();
 
-        if ($this->db->error()['code'] != 0) {
-            echo "DB Error: " . $this->db->error()['message'];
-            exit;
+        if ($this->db->trans_status() === false) {
+            $db_error = $this->db->error();
+            $err_msg = 'Could not save review. Please try again.';
+            if (!empty($db_error['message'])) {
+                $err_msg .= ' (' . $db_error['message'] . ')';
+            }
+            $this->session->set_flashdata('form_data', $this->input->post());
+            $this->session->set_flashdata('error', $err_msg);
+            redirect(base_url('review/form/' . $order_id));
+            return;
         }
 
-        // Mark order as reviewed in b2b_orders
-        if (!empty($order_id)) {
-            $this->db->where('order_id', $order_id);
-            $this->db->update('b2b_orders', ['reveiw_sent' => 1]);
-        }
-
-        // ✅ Success — redirect ONCE
-        $this->session->set_flashdata('success', 'Thanks for your feedback!');
-        redirect(base_url('review/thank-you'));
+        $this->session->set_flashdata('success', 'Thank you! Your review was published.');
+        redirect(base_url('review/thank-you?order_id=' . $order_id));
         exit;
     }
 
-    public function review_thank_you()
+    public function review_thank_you($order_id = null)
     {
-        $data = array();
-        if ($this->session->flashdata('already_submitted')) {
-            $data['already_submitted'] = true;
+        if (empty($order_id)) {
+            $order_id = $this->input->get('order_id');
         }
+
+        $data = array();
+        $data['order_id'] = $order_id;
+        $data['merchant_id'] = 0;
+        $data['merchant'] = null;
+
+        if (!empty($order_id)) {
+            $b2b_order = $this->CommonModel->get_b2b_orders($order_id);
+            if (empty($b2b_order)) {
+                $b2b_order = $this->db->get_where('b2b_orders', array('order_barcode' => $order_id))->row();
+            }
+
+            if (!empty($b2b_order)) {
+                $data['merchant_id'] = $b2b_order->publisher_id;
+                $data['merchant'] = $this->db->get_where('publisher', array('id' => $b2b_order->publisher_id))->row();
+            }
+        }
+
         $this->load->view('review_thank_you', $data);
     }
 
