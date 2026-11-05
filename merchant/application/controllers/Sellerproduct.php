@@ -19732,40 +19732,44 @@ class Sellerproduct extends CI_Controller {
 
 								/*--------------------Main product created-------------------------------------------------------*/
 
-								if ($product_type == 'simple' && $stock_qty !== null) {
+								if ($product_type == 'simple') {
 
-    $clean_qty = max(0, (int)$stock_qty);
+									$OldProductQtyData = $this->SellerProductModel->getSingleDataByID('products_inventory', array('product_id' => $product_id), 'qty,available_qty');
 
-    $OldProductQtyData = $this->SellerProductModel->getSingleDataByID(
-        'products_inventory',
-        array('product_id' => $product_id),
-        'qty,available_qty'
-    );
+									if ($OldProductQtyData->qty == $stock_qty) {
+									} else {
 
-    if (!empty($OldProductQtyData)) {
+										if ($OldProductQtyData->available_qty == $OldProductQtyData->qty) {
+											$new_available_qty = $stock_qty;
+										} else {
 
-        $old_ordered_qty = max(
-            0,
-            (int)$OldProductQtyData->qty - (int)$OldProductQtyData->available_qty
-        );
+											if (isset($OldProductQtyData) && $OldProductQtyData->available_qty > 0) {
+												$old_available_qty = $OldProductQtyData->available_qty;
 
-        $new_available_qty = max(0, $clean_qty - $old_ordered_qty);
+												$old_ordered_qty = $OldProductQtyData->qty - $old_available_qty;
+											} else {
+												$old_ordered_qty = 0;
+											}
 
-        $stock_update = array(
-            'qty' => $clean_qty,
-            'available_qty' => $new_available_qty,
-            'is_in_stock' => ($new_available_qty > 0) ? 1 : 2
-        );
+											if ($stock_qty == '' || $stock_qty == 0) {
+												$new_available_qty = 0;
+											} else if ($stock_qty > 0 && $stock_qty > $OldProductQtyData->qty) {
+												$new_available_qty = $stock_qty - $old_ordered_qty;
+											} else {
+												$new_available_qty = $stock_qty - $old_ordered_qty;
+												$new_available_qty = ($new_available_qty <= 0) ? 0 : $new_available_qty;
+											}
+										}
 
-        $whr_qty_arr = array('product_id' => $product_id);
 
-        $this->SellerProductModel->updateData(
-            'products_inventory',
-            $whr_qty_arr,
-            $stock_update
-        );
-    }
-}
+										$clean_qty = max(0, (int)$stock_qty);
+										$clean_avail = max(0, (int)$new_available_qty);
+										$is_in_stock = ($clean_qty > 0 && $clean_avail > 0) ? 1 : 2;
+										$stock_update = array('qty' => $clean_qty, 'available_qty' => $clean_avail, 'is_in_stock' => $is_in_stock);
+										$whr_qty_arr = array('product_id' => $product_id);
+										$this->SellerProductModel->updateData('products_inventory', $whr_qty_arr, $stock_update);
+									}
+								}
 							}
 
 							if (isset($attr_list) && count($attr_list) > 0) {
