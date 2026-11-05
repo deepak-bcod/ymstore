@@ -14,7 +14,44 @@
 .badge-action-completed { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
 .badge-action-pending { background-color: #ffc107 !important; color: #212529 !important; border: 1px solid #e0a800 !important; }
 
-.table-resolution-list > tbody > tr > td { vertical-align: middle !important; }
+/* Horizontal scroller styling */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 25px;
+}
+.table-resolution-list {
+    min-width: 1350px !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+}
+.table-resolution-list th,
+.table-resolution-list td {
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+.table-resolution-list td:nth-child(5) {
+    white-space: normal !important;
+    min-width: 180px;
+    max-width: 250px;
+}
+
+/* Prominent custom horizontal scrollbar */
+.table-responsive::-webkit-scrollbar {
+    height: 10px;
+}
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 6px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 6px;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
 </style>
 
 <main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
