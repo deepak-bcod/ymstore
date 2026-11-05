@@ -152,40 +152,178 @@ class CustomerController extends CI_Controller
             }
         }
     }
+
+    public function form1($order_id) 
+    {
+        
+        $order = $this->CommonModel->get_order_by_id($order_id);
+
+        if (!$order) {
+            show_404();
+        }
+
+        
+        if (isset($order->review_submitted) && $order->review_submitted == 1) {
+            echo "<h3>This review link has already been used. Thank you for your feedback!</h3>";
+            return;
+        }
+
+        
+        if ($this->input->post()) {
+            
+
+            
+            $this->CommonModel->updateData(
+                'b2b_orders',
+                ['order_id' => $order_id],
+                ['review_submitted' => 1]
+            );
+
+        
+            return;
+        }
+
+        
+        $this->load->view('review_form_view', ['order' => $order]);
+    }
+
+    public function review_form1($order_id)
+    {
+        // Check if review has already been submitted for this order
+        $existing_review = $this->db->get_where('product_reviews', array('order_id' => $order_id))->row();
+        // if (empty($existing_review)) {
+        //     $b2b_order = $this->CommonModel->get_b2b_orders($order_id);
+        //     if (!empty($b2b_order) && isset($b2b_order->reveiw_sent) && $b2b_order->reveiw_sent == 1) {
+        //         $existing_review = true;
+        //     }
+        // }
+
+        if (!empty($existing_review)) {
+            $data['already_submitted'] = true;
+            $this->load->view('review_thank_you', $data);
+            return;
+        }
+
+        $data['order_id'] = $order_id;
+        $data['customer_order_id'] = $this->CommonModel->get_customer_order_id($order_id);
+        $data['items'] = $this->CommonModel->get_order_with_items($order_id);
+
+        if (empty($data['items'])) {
+            $data['already_submitted'] = true;
+            $this->load->view('review_thank_you', $data);
+            return;
+        }
+
+        // Load the review form view
+        $this->load->view('review_form', $data);
+    }
+
+    public function review_save1($order_id) {
+        // Check if review has already been submitted
+        $existing_review = $this->db->get_where('product_reviews', array('order_id' => $order_id))->row();
+        if (!empty($existing_review)) {
+            $this->session->set_flashdata('already_submitted', true);
+            redirect(base_url('review/thank-you'));
+            exit;
+        }
+
+        $ratings  = $this->input->post('ratings');
+        $comments = $this->input->post('comments');
+
+        $data = $this->CommonModel->get_b2b_orders($order_id);
+        $sale_orders_data = !empty($data) ? $this->CommonModel->get_sale_orders($data->webshop_order_id) : null;
+        $customer_data = !empty($sale_orders_data) ? $this->CommonModel->get_customer_data($sale_orders_data->customer_email) : null;
+
+        // ✅ Fix arrays to single values
+        if (is_array($ratings)) {
+            $ratings = reset($ratings);
+        }
+
+        if (is_array($comments)) {
+            $comments = reset($comments);
+        }
+
+        // ✅ Validate rating
+        if (empty($ratings)) {
+            $this->session->set_flashdata('error', 'Rating is required.');
+            redirect(base_url('review/thank-you'));
+            exit;
+        }
+
+        $customer_id = !empty($customer_data->id) ? $customer_data->id : 0;
+        $merchant_id = !empty($data->publisher_id) ? $data->publisher_id : 0;
+        $order_barcode = !empty($data->order_barcode) ? $data->order_barcode : '';
+
+        // ✅ Insert review
+        $this->db->insert('product_reviews', [
+            'order_id'       => $order_id,
+            'B2B_order_id'   => $order_barcode,
+            'customer_id'    => $customer_id,
+            'merchant_id'    => $merchant_id,
+            'rating'         => $ratings,
+            'comments'       => !empty($comments) ? $comments : null,
+            'created_at'     => date('Y-m-d H:i:s')
+        ]);
+
+        if ($this->db->error()['code'] != 0) {
+            echo "DB Error: " . $this->db->error()['message'];
+            exit;
+        }
+
+        // Mark order as reviewed in b2b_orders
+        if (!empty($order_id)) {
+            $this->db->where('order_id', $order_id);
+            $this->db->update('b2b_orders', ['reveiw_sent' => 1]);
+        }
+
+        // ✅ Success — redirect ONCE
+        $this->session->set_flashdata('success', 'Thanks for your feedback!');
+        redirect(base_url('review/thank-you'));
+        exit;
+    }
+
+    public function review_thank_you1()
+    {
+        $data = array();
+        if ($this->session->flashdata('already_submitted')) {
+            $data['already_submitted'] = true;
+        }
+        $this->load->view('review_thank_you', $data);
+    }
+
     public function form($order_id) 
-{
-    
-    $order = $this->CommonModel->get_order_by_id($order_id);
-
-    if (!$order) {
-        show_404();
-    }
-
-    
-    if (isset($order->review_submitted) && $order->review_submitted == 1) {
-        echo "<h3>This review link has already been used. Thank you for your feedback!</h3>";
-        return;
-    }
-
-    
-    if ($this->input->post()) {
+    {
         
+        $order = $this->CommonModel->get_order_by_id($order_id);
+
+        if (!$order) {
+            show_404();
+        }
 
         
-        $this->CommonModel->updateData(
-            'b2b_orders',
-            ['order_id' => $order_id],
-            ['review_submitted' => 1]
-        );
+        if (isset($order->review_submitted) && $order->review_submitted == 1) {
+            echo "<h3>This review link has already been used. Thank you for your feedback!</h3>";
+            return;
+        }
 
-       
-        return;
+        
+        if ($this->input->post()) {
+            
+
+            
+            $this->CommonModel->updateData(
+                'b2b_orders',
+                ['order_id' => $order_id],
+                ['review_submitted' => 1]
+            );
+
+        
+            return;
+        }
+
+        
+        $this->load->view('review_form_view', ['order' => $order]);
     }
-
-    
-    $this->load->view('review_form_view', ['order' => $order]);
-}
-
 
     public function review_form($order_id)
     {
@@ -218,9 +356,8 @@ class CustomerController extends CI_Controller
         $this->load->view('review_form', $data);
     }
 
-
-
-    public function review_save($order_id) {
+    public function review_save($order_id) 
+    {
         // Check if review has already been submitted
         $existing_review = $this->db->get_where('product_reviews', array('order_id' => $order_id))->row();
         if (!empty($existing_review)) {
