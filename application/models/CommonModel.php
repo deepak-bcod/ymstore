@@ -1990,7 +1990,11 @@ class CommonModel extends CI_Model
 		$this->db->from('ym_product_reviews pr');
 		$this->db->join('ym_merchant_reviews mr', 'mr.id = pr.review_id');
 		$this->db->where('pr.product_id', (int)$product_id);
-		$this->db->where('pr.status', 'published');
+		if ($this->db->field_exists('status', 'ym_product_reviews')) {
+			$this->db->where('pr.status', 'published');
+		} else {
+			$this->db->where('mr.status', 'published');
+		}
 		$this->db->order_by('pr.created_at', 'DESC');
 		if (!empty($limit)) {
 			$this->db->limit((int)$limit);
@@ -2003,10 +2007,18 @@ class CommonModel extends CI_Model
 	 */
 	public function get_product_avg_rating($product_id)
 	{
-		$this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
-		$this->db->from('ym_product_reviews');
-		$this->db->where('product_id', (int)$product_id);
-		$this->db->where('status', 'published');
+		if ($this->db->field_exists('status', 'ym_product_reviews')) {
+			$this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+			$this->db->from('ym_product_reviews');
+			$this->db->where('product_id', (int)$product_id);
+			$this->db->where('status', 'published');
+		} else {
+			$this->db->select('AVG(pr.rating) as avg_rating, COUNT(pr.id) as total_reviews');
+			$this->db->from('ym_product_reviews pr');
+			$this->db->join('ym_merchant_reviews mr', 'mr.id = pr.review_id');
+			$this->db->where('pr.product_id', (int)$product_id);
+			$this->db->where('mr.status', 'published');
+		}
 		$row = $this->db->get()->row();
 		return array(
 			'avg_rating'    => !empty($row && $row->avg_rating) ? round((float)$row->avg_rating, 1) : 0,
