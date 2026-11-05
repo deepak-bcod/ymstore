@@ -80,35 +80,42 @@ class Addons extends CI_Controller
         }
     }
 
-    public function index()
-    {
-        $addons = $this->Addon_model->get_addons_with_services();
-        $data['addon_data'] = [];
-        $site_lang = $this->session->userdata('site_lang');
+    
+public function index()
+{
+    $addons = $this->Addon_model->get_addons_with_services();
 
-        foreach ($addons as $row) {
-           
-            if ($site_lang == 'french' && !empty($row['category_name_fr'])) {
-                $category_key = $row['category_name_fr'];
-            } else {
-                $category_key = $row['category_name'];
+    $data['addon_data'] = [];
+
+    $site_lang = $this->session->userdata('site_lang');
+
+    if (!is_array($addons)) {
+        $addons = [];
+    }
+
+    foreach ($addons as $row) {
+
+        $category_key = ($site_lang === 'french' && !empty($row['category_name_fr']))
+            ? $row['category_name_fr']
+            : $row['category_name'];
+
+        if ($site_lang === 'french') {
+
+            if (!empty($row['title_fr'])) {
+                $row['title'] = $row['title_fr'];
             }
 
-           
-            if ($site_lang == 'french') {
-                if (!empty($row['title_fr'])) {
-                    $row['title'] = $row['title_fr'];
-                }
-                if (!empty($row['description_fr'])) {
-                    $row['description'] = $row['description_fr'];
-                }
+            if (!empty($row['description_fr'])) {
+                $row['description'] = $row['description_fr'];
             }
-
-            $data['addon_data'][$category_key][] = $row;
         }
 
-        $this->load->view('addons/index', $data);
+        $data['addon_data'][$category_key][] = $row;
     }
+
+    $this->load->view('addons/index', $data);
+}
+
 
     public function buy($service_id)
     {

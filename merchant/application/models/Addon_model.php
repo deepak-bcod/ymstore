@@ -3,19 +3,62 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Addon_model extends CI_Model {
 
-    public function get_addons_with_services()
-    {
-        $this->db->select('ac.id as cat_id, ac.name as cat_name, ac.name_fr as cat_name_fr, as.id as service_id, as.title as service_title, as.title_fr as service_title_fr, as.description as service_desc, as.description_fr as service_desc_fr, as.final_price, as.image');
-        $this->db->from('addon_categories ac');
-        $this->db->join('addon_services as', 'ac.id = as.category_id', 'left');
-        $this->db->where('ac.status', 1);
-        $this->db->where('as.status', 1);
-        $this->db->order_by('ac.id', 'ASC');
-        $this->db->order_by('as.id', 'ASC');
+    
+public function get_addons_with_services()
+{
+    $this->db->select('
+        ac.id AS cat_id,
+        ac.name AS category_name,
+        ac.name_fr AS category_name_fr,
+        s.id AS service_id,
+        s.title AS title,
+        s.title_fr AS title_fr,
+        s.description AS description,
+        s.description_fr AS description_fr,
+        s.final_price AS final_price,
+        s.image AS image
+    ');
 
-        $query = $this->db->get();
-        return $query->result();
+    $this->db->from('addon_categories ac');
+    $this->db->join(
+        'addon_services s',
+        'ac.id = s.category_id',
+        'inner'
+    );
+
+    $this->db->where('ac.status', 1);
+    $this->db->where('s.status', 1);
+
+    $this->db->order_by('ac.id', 'ASC');
+    $this->db->order_by('s.id', 'ASC');
+
+    // Prevent database errors from directly terminating the page
+    $old_debug = $this->db->db_debug;
+    $this->db->db_debug = FALSE;
+
+    $query = $this->db->get();
+
+    $this->db->db_debug = $old_debug;
+
+    if ($query === FALSE) {
+        $error = $this->db->error();
+
+        log_message(
+            'error',
+            'BROWSE ADDONS ERROR: ' . $error['message']
+        );
+
+        log_message(
+            'error',
+            'BROWSE ADDONS SQL: ' . $this->db->last_query()
+        );
+
+        return [];
     }
+
+    return $query->result_array();
+}
+
 
     public function get_service_by_id($service_id)
     {
