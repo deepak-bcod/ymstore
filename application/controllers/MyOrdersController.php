@@ -89,48 +89,37 @@ class MyOrdersController extends CI_Controller
     {
         $order_id = $this->input->post('order_id');
 
-        // STEP 1: GET ALL B2B ORDER IDS MAPPED BY PRODUCT
+        if (empty($order_id)) {
+            echo json_encode(['status' => 0, 'html' => '<p>Invalid Order ID.</p>']);
+            return;
+        }
+
+        // Support increment_id if passed
+        if (!is_numeric($order_id)) {
+            $ord = $this->db->select('order_id')->where('increment_id', $order_id)->get('sales_order')->row();
+            if ($ord) {
+                $order_id = $ord->order_id;
+            }
+        }
+
+        // STEP 1: GET ALL B2B ORDER ITEMS WITH STATUSES & PUBLISHER MAPPED BY PRODUCT
         $b2b_items = $this->db->select('
                 boi.product_id AS product_id,
+                boi.product_name AS product_name,
                 boi.order_id AS b2b_order_id,
-                boi.item_id AS b2b_item_id
+                boi.item_id AS b2b_item_id,
+                boi.status AS b2b_item_status,
+                bo.status AS b2b_order_status,
+                bo.publisher_id AS publisher_id
             ')
             ->from('b2b_orders AS bo')
-            ->join('b2b_order_items AS boi', 'boi.order_id = bo.order_id', 'left')
+            ->join('b2b_order_items AS boi', 'boi.order_id = bo.order_id', 'inner')
             ->where('bo.webshop_order_id', $order_id)
             ->get()
             ->result();
 
-        // MAP B2B ITEMS BY PRODUCT
-        $b2b_map = [];
-        foreach ($b2b_items as $bi) {
-            if (!isset($b2b_map[$bi->product_id])) {
-                $b2b_map[$bi->product_id] = [];
-            }
-            $b2b_map[$bi->product_id][] = [
-                'b2b_order_id' => $bi->b2b_order_id,
-                'b2b_item_id'  => $bi->b2b_item_id
-            ];
-        }
-
-        // STEP 2: FETCH RETURNABLE ITEMS
-        /*$items = $this->db->select('
-                soi.item_id,
-                soi.product_id,
-                soi.product_name,
-                soi.qty_ordered,
-                soi.price,
-                soi.barcode,
-                p.base_image
-            ')
-            ->from('sales_order_items AS soi')
-            ->join('products AS p', 'p.id = soi.product_id', 'left')
-            ->where('soi.order_id', $order_id)
-            ->where('soi.can_be_returned', 1)
-            ->get()
-            ->result();*/
-
-            $items = $this->db->select('
+        // STEP 2: FETCH RETURNABLE ITEMS FROM SALES ORDER
+        $items = $this->db->select('
                 soi.item_id,
                 soi.product_id,
                 soi.product_name,
@@ -155,92 +144,186 @@ class MyOrdersController extends CI_Controller
         }
 
         $html = '';
-      
+
         foreach ($items as $item) {
             $b2b_order_id = 0;
             $b2b_item_id  = 0;
-            $is_requested = false;
-            $is_refund_paid = false; 
-            $is_replacement_done = false;//default to requested
+            $publisher_id = 0;
+            $is_in_process = false;
+            $process_status_label = '';
 
-            // STEP 3: CHECK EACH B2B ITEM FOR THIS PRODUCT
-            if (isset($b2b_map[$item->product_id]) && is_array($b2b_map[$item->product_id])) {
-
-                    foreach ($b2b_map[$item->product_id] as $pair) {
-
-                    // Check latest return status
-                    $return = $this->db
-                        ->select('r.status')
-                        ->from('sales_order_return_items ri')
-                        ->join('sales_order_return r', 'r.return_order_id = ri.return_order_id')
-                        ->where('ri.order_item_id', $pair['b2b_item_id'])
-                        ->order_by('r.return_order_id', 'DESC')
-                        ->limit(1)
-                        ->get()
-                        ->row();
-
-                    if ($return) {
-
-                        if ($return->status == 4) {
-                            // Refund Paid
-                            $is_refund_paid = true;
-                            $b2b_order_id = $pair['b2b_order_id'];
-                            $b2b_item_id  = $pair['b2b_item_id'];
-                            $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
-                            break;
-                        }
-
-                        if ($return->status != 2) {
-                            // Pending / Approved
-                            $is_requested = true;
-                            $b2b_order_id = $pair['b2b_order_id'];
-                            $b2b_item_id  = $pair['b2b_item_id'];
-                            $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
-                            break;
-                        }
+            // Find all matching B2B items for this sales order item
+            $matched_b2b = [];
+            if (!empty($b2b_items)) {
+                foreach ($b2b_items as $bi) {
+                    if ((int)$bi->product_id === (int)$item->product_id) {
+                        $matched_b2b[] = $bi;
+                    } elseif (!empty($item->product_name) && !empty($bi->product_name) && trim($item->product_name) === trim($bi->product_name)) {
+                        $matched_b2b[] = $bi;
                     }
+                }
+            }
 
-                    // Check replacement
-                    $replacement = $this->db
-                    ->select('r.status')
+            if (!empty($matched_b2b)) {
+                $b2b_order_id = (int)$matched_b2b[0]->b2b_order_id;
+                $b2b_item_id  = (int)$matched_b2b[0]->b2b_item_id;
+                $publisher_id = (int)$matched_b2b[0]->publisher_id;
+            }
+
+            // Candidate IDs for checking return / replacement records
+            $candidate_item_ids = array_values(array_unique(array_filter([$b2b_item_id, (int)$item->item_id])));
+            $candidate_order_ids = array_values(array_unique(array_filter([$b2b_order_id, (int)$order_id])));
+
+            // 1. Check B2B item status directly
+            if (!empty($matched_b2b)) {
+                foreach ($matched_b2b as $bi) {
+                    $item_st = (int)($bi->b2b_item_status ?? 0);
+
+                    if ($item_st == 21) {
+                        $is_in_process = true;
+                        $process_status_label = $this->lang->line('replacement_rejected') ?: 'Replacement Rejected';
+                        $b2b_order_id = (int)$bi->b2b_order_id;
+                        $b2b_item_id = (int)$bi->b2b_item_id;
+                        $publisher_id = (int)$bi->publisher_id;
+                        break;
+                    } elseif ($item_st == 20) {
+                        $is_in_process = true;
+                        $process_status_label = $this->lang->line('return_rejected') ?: 'Return Rejected';
+                        $b2b_order_id = (int)$bi->b2b_order_id;
+                        $b2b_item_id = (int)$bi->b2b_item_id;
+                        $publisher_id = (int)$bi->publisher_id;
+                        break;
+                    } elseif ($item_st == 19) {
+                        $is_in_process = true;
+                        $process_status_label = $this->lang->line('replaced') ?: 'Replaced';
+                        $b2b_order_id = (int)$bi->b2b_order_id;
+                        $b2b_item_id = (int)$bi->b2b_item_id;
+                        $publisher_id = (int)$bi->publisher_id;
+                        break;
+                    } elseif ($item_st == 18) {
+                        $is_in_process = true;
+                        $process_status_label = $this->lang->line('replacement_approved') ?: 'Replacement Approved';
+                        $b2b_order_id = (int)$bi->b2b_order_id;
+                        $b2b_item_id = (int)$bi->b2b_item_id;
+                        $publisher_id = (int)$bi->publisher_id;
+                        break;
+                    } elseif ($item_st == 17) {
+                        $is_in_process = true;
+                        $process_status_label = $this->lang->line('refund_paid') ?: 'Refund Paid';
+                        $b2b_order_id = (int)$bi->b2b_order_id;
+                        $b2b_item_id = (int)$bi->b2b_item_id;
+                        $publisher_id = (int)$bi->publisher_id;
+                        break;
+                    } elseif ($item_st == 22 || $item_st == 16) {
+                        $is_in_process = true;
+                        $process_status_label = $this->lang->line('return_approved') ?: 'Return Approved';
+                        $b2b_order_id = (int)$bi->b2b_order_id;
+                        $b2b_item_id = (int)$bi->b2b_item_id;
+                        $publisher_id = (int)$bi->publisher_id;
+                        break;
+                    } elseif ($item_st == 15) {
+                        $is_in_process = true;
+                        $process_status_label = $this->lang->line('replacement_requested') ?: 'Replacement Requested';
+                        $b2b_order_id = (int)$bi->b2b_order_id;
+                        $b2b_item_id = (int)$bi->b2b_item_id;
+                        $publisher_id = (int)$bi->publisher_id;
+                        break;
+                    } elseif ($item_st == 14) {
+                        $is_in_process = true;
+                        $process_status_label = $this->lang->line('return_requested') ?: 'Return Requested';
+                        $b2b_order_id = (int)$bi->b2b_order_id;
+                        $b2b_item_id = (int)$bi->b2b_item_id;
+                        $publisher_id = (int)$bi->publisher_id;
+                        break;
+                    }
+                }
+            }
+
+            // 2. Check sales_order_replacement table
+            if (!$is_in_process && !empty($candidate_item_ids)) {
+                $rep = $this->db
+                    ->select('r.replacement_order_id, r.status as order_status, ri.status as item_status')
                     ->from('sales_order_replacement_items ri')
                     ->join('sales_order_replacement r', 'r.replacement_order_id = ri.replacement_order_id')
-                    ->where('ri.order_item_id', $pair['b2b_item_id'])
+                    ->where_in('ri.order_item_id', $candidate_item_ids)
                     ->order_by('r.replacement_order_id', 'DESC')
                     ->limit(1)
                     ->get()
                     ->row();
 
-                if ($replacement) {
-
-                    // Replacement completed / rejected
-                    if (in_array($replacement->status, array(3,5,6))) {
-
-                        $is_replacement_done = true;
-                        $b2b_order_id = $pair['b2b_order_id'];
-                        $b2b_item_id  = $pair['b2b_item_id'];
-                        $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
-                        break;
-                    }
-
-                    // Pending replacement
-                    if (!in_array($replacement->status, array(4))) {
-
-                        $is_requested = true;
-                        $b2b_order_id = $pair['b2b_order_id'];
-                        $b2b_item_id  = $pair['b2b_item_id'];
-                        $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
-                        break;
-                    }
+                if (!$rep && !empty($candidate_order_ids)) {
+                    $rep = $this->db
+                        ->select('r.replacement_order_id, r.status as order_status, ri.status as item_status')
+                        ->from('sales_order_replacement_items ri')
+                        ->join('sales_order_replacement r', 'r.replacement_order_id = ri.replacement_order_id')
+                        ->where_in('r.order_id', $candidate_order_ids)
+                        ->where_in('ri.order_item_id', $candidate_item_ids)
+                        ->order_by('r.replacement_order_id', 'DESC')
+                        ->limit(1)
+                        ->get()
+                        ->row();
                 }
 
-                    // No request
-                    $b2b_order_id = $pair['b2b_order_id'];
-                    $b2b_item_id  = $pair['b2b_item_id'];
-                    $publisher_id = !empty($pair['publisher_id']) ? $pair['publisher_id'] : 0;
+                if ($rep) {
+                    $is_in_process = true;
+                    $r_ord = (int)$rep->order_status;
+                    $r_itm = (int)($rep->item_status ?? 0);
+
+                    if ($r_ord == 4 || $r_itm == 4 || $r_ord == 21 || $r_itm == 21) {
+                        $process_status_label = $this->lang->line('replacement_rejected') ?: 'Replacement Rejected';
+                    } elseif (in_array($r_ord, [3, 5, 6, 19]) || in_array($r_itm, [3, 5, 6, 19])) {
+                        $process_status_label = $this->lang->line('replaced') ?: 'Replaced';
+                    } elseif (in_array($r_ord, [1, 2, 18]) || in_array($r_itm, [1, 2, 18])) {
+                        $process_status_label = $this->lang->line('replacement_approved') ?: 'Replacement Approved';
+                    } else {
+                        $process_status_label = $this->lang->line('replacement_requested') ?: 'Replacement Requested';
+                    }
                 }
             }
-           
+
+            // 3. Check sales_order_return table
+            if (!$is_in_process && !empty($candidate_item_ids)) {
+                $ret = $this->db
+                    ->select('r.return_order_id, r.status as order_status, r.refund_status, ri.status as item_status')
+                    ->from('sales_order_return_items ri')
+                    ->join('sales_order_return r', 'r.return_order_id = ri.return_order_id')
+                    ->where_in('ri.order_item_id', $candidate_item_ids)
+                    ->order_by('r.return_order_id', 'DESC')
+                    ->limit(1)
+                    ->get()
+                    ->row();
+
+                if (!$ret && !empty($candidate_order_ids)) {
+                    $ret = $this->db
+                        ->select('r.return_order_id, r.status as order_status, r.refund_status, ri.status as item_status')
+                        ->from('sales_order_return_items ri')
+                        ->join('sales_order_return r', 'r.return_order_id = ri.return_order_id')
+                        ->where_in('r.order_id', $candidate_order_ids)
+                        ->where_in('ri.order_item_id', $candidate_item_ids)
+                        ->order_by('r.return_order_id', 'DESC')
+                        ->limit(1)
+                        ->get()
+                        ->row();
+                }
+
+                if ($ret) {
+                    $is_in_process = true;
+                    $ret_ord = (int)$ret->order_status;
+                    $ret_itm = (int)($ret->item_status ?? 0);
+                    $ret_ref = (int)($ret->refund_status ?? -1);
+
+                    if ($ret_ref == 1 || in_array($ret_ord, [4, 17]) || in_array($ret_itm, [4, 17])) {
+                        $process_status_label = $this->lang->line('refund_paid') ?: 'Refund Paid';
+                    } elseif ($ret_ref == 2 || in_array($ret_ord, [2, 5, 20]) || in_array($ret_itm, [2, 5, 20])) {
+                        $process_status_label = $this->lang->line('return_rejected') ?: 'Return Rejected';
+                    } elseif (in_array($ret_ord, [1, 3, 16, 22]) || in_array($ret_itm, [1, 3, 16, 22])) {
+                        $process_status_label = $this->lang->line('return_approved') ?: 'Return Approved';
+                    } else {
+                        $process_status_label = $this->lang->line('return_requested') ?: 'Return Requested';
+                    }
+                }
+            }
+
             $product_image_url = !empty($item->base_image)
                 ? PRODUCT_THUMB_IMG . $item->base_image
                 : base_url('assets/images/noimage.png');
@@ -249,22 +332,21 @@ class MyOrdersController extends CI_Controller
                         <div class="row align-items-center">
 
                             <div class="col-md-2 text-center">';
-           
 
-                if ($is_refund_paid || $is_replacement_done || $is_requested) {
-
-                    // Show blank
-
-                } else {
-
-                    $html .= '<input type="checkbox"
-                                class="return_chk"
-                                data-id="' . $item->item_id . '"
-                                data-b2b="' . $b2b_order_id . '"
-                                data-b2b-item="' . $b2b_item_id . '"
-                                data-publisher="' . $publisher_id . '"
-                                id="return_chk_' . $item->item_id . '">';
+            if ($is_in_process) {
+                // When sub-order is in Return or Replacement process: do not display checkbox
+                if (!empty($process_status_label)) {
+                    $html .= '<span class="badge" style="background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; font-size:11px; padding:4px 6px; border-radius:3px; display:inline-block; line-height:1.2;">' . htmlspecialchars($process_status_label) . '</span>';
                 }
+            } else {
+                $html .= '<input type="checkbox"
+                            class="return_chk"
+                            data-id="' . $item->item_id . '"
+                            data-b2b="' . $b2b_order_id . '"
+                            data-b2b-item="' . $b2b_item_id . '"
+                            data-publisher="' . $publisher_id . '"
+                            id="return_chk_' . $item->item_id . '">';
+            }
 
             $html .= '<input type="hidden"
                         id="b2b_order_id_' . $item->item_id . '"
@@ -280,12 +362,12 @@ class MyOrdersController extends CI_Controller
 
                     <div class="col-md-7">
                         <p><b>' . $item->product_name . '</b></p>';
-            
+
             // Display variants if available
             if (isset($item->product_variants) && $item->product_variants != '' && $item->product_type == 'conf-simple') {
                 $product_variants = json_decode($item->product_variants);
                 $variants = [];
-                
+
                 if (isset($product_variants) && $product_variants != '') {
                     foreach ($product_variants as $pk => $single_variant) {
                         foreach ($single_variant as $key => $val) {
@@ -293,12 +375,12 @@ class MyOrdersController extends CI_Controller
                         }
                     }
                 }
-                
+
                 if (!empty($variants)) {
                     $html .= '<p style="color: #666; font-size: 12px; margin: 5px 0;">' . implode(', ', $variants) . '</p>';
                 }
             }
-            
+
             $html .= '<p>Qty Ordered: ' . $item->qty_ordered . '</p>
 
                         <input type="number"
@@ -307,7 +389,7 @@ class MyOrdersController extends CI_Controller
                             id="return_qty_' . $item->item_id . '"
                             class="form-control"
                             value="1"
-                            ' . ($is_requested ? 'disabled' : 'disabled') . '>
+                            disabled>
                     </div>
 
                 </div>
