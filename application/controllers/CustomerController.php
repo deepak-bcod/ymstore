@@ -417,6 +417,13 @@ class CustomerController extends CI_Controller
         $merchant_id = !empty($b2b_order->publisher_id) ? (string)$b2b_order->publisher_id : '0';
         $order_barcode = !empty($b2b_order->order_barcode) ? $b2b_order->order_barcode : null;
 
+        // Check if status column exists on ym_product_reviews, attempt auto-migration if missing
+        $has_pr_status = $this->db->field_exists('status', 'ym_product_reviews');
+        if (!$has_pr_status) {
+            @$this->db->query("ALTER TABLE `ym_product_reviews` ADD COLUMN `status` ENUM('pending', 'published', 'rejected') NOT NULL DEFAULT 'pending' AFTER `comments`");
+            $has_pr_status = $this->db->field_exists('status', 'ym_product_reviews');
+        }
+
         // Check if an existing review is present for this order
         $existing_merchant_review = $this->db->get_where('ym_merchant_reviews', array('order_id' => $order_id))->row();
 
@@ -454,22 +461,28 @@ class CustomerController extends CI_Controller
 
                     if (!empty($existing_pr)) {
                         $this->db->where('id', $existing_pr->id);
-                        $this->db->update('ym_product_reviews', array(
+                        $pr_update = array(
                             'rating'     => $p_rating,
                             'comments'   => !empty($p_comment) ? $p_comment : null,
-                            'status'     => 'pending',
                             'updated_at' => date('Y-m-d H:i:s')
-                        ));
+                        );
+                        if ($has_pr_status) {
+                            $pr_update['status'] = 'pending';
+                        }
+                        $this->db->update('ym_product_reviews', $pr_update);
                     } else {
-                        $this->db->insert('ym_product_reviews', array(
+                        $pr_insert = array(
                             'review_id'    => $review_id,
                             'product_id'   => $p_id,
                             'product_name' => $p_name,
                             'rating'       => $p_rating,
                             'comments'     => !empty($p_comment) ? $p_comment : null,
-                            'status'       => 'pending',
                             'created_at'   => date('Y-m-d H:i:s')
-                        ));
+                        );
+                        if ($has_pr_status) {
+                            $pr_insert['status'] = 'pending';
+                        }
+                        $this->db->insert('ym_product_reviews', $pr_insert);
                     }
                 }
             }
@@ -502,15 +515,18 @@ class CustomerController extends CI_Controller
                     $p_comment = isset($comments[$p_id]) ? trim((string)$comments[$p_id]) : null;
                     $p_name = isset($product_names[$p_id]) ? $product_names[$p_id] : (!empty($item->product_name) ? $item->product_name : '');
 
-                    $this->db->insert('ym_product_reviews', array(
+                    $pr_insert = array(
                         'review_id'    => $review_id,
                         'product_id'   => $p_id,
                         'product_name' => $p_name,
                         'rating'       => $p_rating,
                         'comments'     => !empty($p_comment) ? $p_comment : null,
-                        'status'       => 'pending',
                         'created_at'   => date('Y-m-d H:i:s')
-                    ));
+                    );
+                    if ($has_pr_status) {
+                        $pr_insert['status'] = 'pending';
+                    }
+                    $this->db->insert('ym_product_reviews', $pr_insert);
                 }
             }
         }

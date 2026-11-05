@@ -4,6 +4,20 @@ class ProductReviewModel extends CI_Model
     public function __construct()
     {
         parent::__construct();
+        $this->_ensure_schema_compatibility();
+    }
+
+    /**
+     * Auto-migrate missing columns or tables safely
+     */
+    private function _ensure_schema_compatibility()
+    {
+        if ($this->db->table_exists('ym_product_reviews')) {
+            if (!$this->db->field_exists('status', 'ym_product_reviews')) {
+                @$this->db->query("ALTER TABLE `ym_product_reviews` ADD COLUMN `status` ENUM('pending', 'published', 'rejected') NOT NULL DEFAULT 'pending' AFTER `comments`");
+                @$this->db->query("ALTER TABLE `ym_product_reviews` ADD INDEX `idx_product_status` (`product_id`, `status`)");
+            }
+        }
     }
 
     /**
@@ -34,6 +48,9 @@ class ProductReviewModel extends CI_Model
             LEFT JOIN b2b_orders bo ON bo.order_id = mr.order_id
         ";
 
+        $has_pr_status = $this->db->field_exists('status', 'ym_product_reviews');
+        $pr_status_expr = $has_pr_status ? 'pr.status' : 'mr.status AS status';
+
         $product_sql = "
             SELECT 
                 'product' AS review_type,
@@ -49,7 +66,7 @@ class ProductReviewModel extends CI_Model
                 COALESCE(c.email_id, bo.customer_email, '') AS customer_email,
                 pr.rating,
                 pr.comments,
-                pr.status,
+                " . $pr_status_expr . ",
                 pr.created_at
             FROM ym_product_reviews pr
             JOIN ym_merchant_reviews mr ON mr.id = pr.review_id
@@ -136,15 +153,25 @@ class ProductReviewModel extends CI_Model
         }
 
         // Counts from ym_product_reviews
-        $q2 = $this->db->query("SELECT status, COUNT(*) as cnt FROM ym_product_reviews GROUP BY status");
-        if ($q2) {
-            foreach ($q2->result_array() as $r) {
-                $st = strtolower($r['status']);
-                if (isset($counts[$st])) {
-                    $counts[$st] += (int)$r['cnt'];
+        if ($this->db->field_exists('status', 'ym_product_reviews')) {
+            $q2 = $this->db->query("SELECT status, COUNT(*) as cnt FROM ym_product_reviews GROUP BY status");
+            if ($q2) {
+                foreach ($q2->result_array() as $r) {
+                    $st = strtolower($r['status']);
+                    if (isset($counts[$st])) {
+                        $counts[$st] += (int)$r['cnt'];
+                    }
+                    $counts['all'] += (int)$r['cnt'];
+                    $counts['product'] += (int)$r['cnt'];
                 }
-                $counts['all'] += (int)$r['cnt'];
-                $counts['product'] += (int)$r['cnt'];
+            }
+        } else {
+            // Safe fallback if status column is not present yet
+            $q2 = $this->db->query("SELECT COUNT(*) as cnt FROM ym_product_reviews");
+            if ($q2 && $r = $q2->row()) {
+                $counts['all'] += (int)$r->cnt;
+                $counts['product'] += (int)$r->cnt;
+                $counts['pending'] += (int)$r->cnt;
             }
         }
 
@@ -165,11 +192,17 @@ class ProductReviewModel extends CI_Model
                 'updated_at' => date('Y-m-d H:i:s')
             ));
         } elseif ($type === 'product') {
-            $this->db->where('id', (int)$id);
-            return $this->db->update('ym_product_reviews', array(
-                'status'     => $status,
-                'updated_at' => date('Y-m-d H:i:s')
-            ));
+            if (!$this->db->field_exists('status', 'ym_product_reviews')) {
+                @$this->db->query("ALTER TABLE `ym_product_reviews` ADD COLUMN `status` ENUM('pending', 'published', 'rejected') NOT NULL DEFAULT 'pending' AFTER `comments`");
+            }
+            if ($this->db->field_exists('status', 'ym_product_reviews')) {
+                $this->db->where('id', (int)$id);
+                return $this->db->update('ym_product_reviews', array(
+                    'status'     => $status,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ));
+            }
+            return false;
         }
         return false;
     }
