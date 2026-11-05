@@ -332,6 +332,8 @@ $route['order/ipn'] = 'CheckoutController/ipn';
 $route['review/form/(:any)'] = 'CustomerController/review_form/$1';
 $route['review/save/(:any)'] = 'CustomerController/review_save/$1';
 $route['review/thank-you'] = 'CustomerController/review_thank_you';
+$route['review/thank-you/(:any)'] = 'CustomerController/review_thank_you/$1';
+$route['form/(:any)'] = 'CustomerController/form/$1';
 
 
 
