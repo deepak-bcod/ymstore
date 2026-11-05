@@ -239,30 +239,18 @@ class MyOrdersController extends CI_Controller
                 }
             }
 
-            // 2. Check sales_order_replacement table
-            if (!$is_in_process && !empty($candidate_item_ids)) {
+            // 2. Check sales_order_replacement table BOUND TO ORDER
+            if (!$is_in_process && !empty($candidate_order_ids) && !empty($candidate_item_ids)) {
                 $rep = $this->db
                     ->select('r.replacement_order_id, r.status as order_status, ri.status as item_status')
                     ->from('sales_order_replacement_items ri')
                     ->join('sales_order_replacement r', 'r.replacement_order_id = ri.replacement_order_id')
+                    ->where_in('r.order_id', $candidate_order_ids)
                     ->where_in('ri.order_item_id', $candidate_item_ids)
                     ->order_by('r.replacement_order_id', 'DESC')
                     ->limit(1)
                     ->get()
                     ->row();
-
-                if (!$rep && !empty($candidate_order_ids)) {
-                    $rep = $this->db
-                        ->select('r.replacement_order_id, r.status as order_status, ri.status as item_status')
-                        ->from('sales_order_replacement_items ri')
-                        ->join('sales_order_replacement r', 'r.replacement_order_id = ri.replacement_order_id')
-                        ->where_in('r.order_id', $candidate_order_ids)
-                        ->where_in('ri.order_item_id', $candidate_item_ids)
-                        ->order_by('r.replacement_order_id', 'DESC')
-                        ->limit(1)
-                        ->get()
-                        ->row();
-                }
 
                 if ($rep) {
                     $is_in_process = true;
@@ -281,30 +269,18 @@ class MyOrdersController extends CI_Controller
                 }
             }
 
-            // 3. Check sales_order_return table
-            if (!$is_in_process && !empty($candidate_item_ids)) {
+            // 3. Check sales_order_return table BOUND TO ORDER
+            if (!$is_in_process && !empty($candidate_order_ids) && !empty($candidate_item_ids)) {
                 $ret = $this->db
                     ->select('r.return_order_id, r.status as order_status, r.refund_status, ri.status as item_status')
                     ->from('sales_order_return_items ri')
                     ->join('sales_order_return r', 'r.return_order_id = ri.return_order_id')
+                    ->where_in('r.order_id', $candidate_order_ids)
                     ->where_in('ri.order_item_id', $candidate_item_ids)
                     ->order_by('r.return_order_id', 'DESC')
                     ->limit(1)
                     ->get()
                     ->row();
-
-                if (!$ret && !empty($candidate_order_ids)) {
-                    $ret = $this->db
-                        ->select('r.return_order_id, r.status as order_status, r.refund_status, ri.status as item_status')
-                        ->from('sales_order_return_items ri')
-                        ->join('sales_order_return r', 'r.return_order_id = ri.return_order_id')
-                        ->where_in('r.order_id', $candidate_order_ids)
-                        ->where_in('ri.order_item_id', $candidate_item_ids)
-                        ->order_by('r.return_order_id', 'DESC')
-                        ->limit(1)
-                        ->get()
-                        ->row();
-                }
 
                 if ($ret) {
                     $is_in_process = true;
