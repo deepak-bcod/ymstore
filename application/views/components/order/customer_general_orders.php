@@ -580,11 +580,23 @@ function getSubOrderStatusText($status) {
                                         <div class="d-none" id="tracking_details_div_<?php echo $order->order_id; ?>"></div>
                                     <?php }
                                 }
-                                if (isset($order->invoice_file) && $order->invoice_file != '' && $order->invoice_self == 1) {
-                                    ?>
-                                    <a class="blue-btn-order download-invoice btn " href="<?php echo INVOICE_FILE . $order->invoice_file; ?>" target="_blank"><button type="submit" class="btn btn-primary"><?php echo $this->lang->line('download_invoice'); ?></button></a>
-                                <?php
-                                }
+                               if (
+    isset($order->invoice_file) &&
+    $order->invoice_file != '' &&
+    $order->invoice_self == 1
+) {
+?>
+    <a class="blue-btn-order download-invoice btn btn-primary"
+       href="<?php echo INVOICE_FILE . $order->invoice_file; ?>"
+       target="_blank"
+       rel="noopener noreferrer">
+
+        <i class="fa fa-file-pdf-o"></i>
+        <?php echo $this->lang->line('download_invoice'); ?>
+
+    </a>
+<?php
+}
                                 if ($order->status != 3) {
                                     $encoded_id = base64_encode($order->order_id);
                                     $encoded_id = urlencode($encoded_id);
@@ -693,7 +705,7 @@ function downloadInvoice(orderId) {
         success: function(response) {
             if (response.status) {
                 // Fixed syntax: directly update window.location.href to trigger download
-                window.open(response.file_url, '_self');
+                window.location.href = response.file_url;
             } else {
                 // Shows the pop-up alert message and stays on the same page
                 alert(response.message);
