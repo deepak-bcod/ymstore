@@ -11310,60 +11310,42 @@ class Sellerproduct extends CI_Controller {
 
 								if ($product_type == 'simple') {
 
-									$OldProductQtyData = $this->SellerProductModel->getSingleDataByID(
-										'products_inventory',
-										array('product_id' => $product_id),
-										'qty,available_qty'
-									);
+		if ($product_type == 'simple') {
 
-									if (isset($OldProductQtyData) && $OldProductQtyData) {
+    $OldProductQtyData = $this->SellerProductModel->getSingleDataByID(
+        'products_inventory',
+        array('product_id' => $product_id),
+        'qty,available_qty'
+    );
 
-										$old_qty = (int)$OldProductQtyData->qty;
-										$old_available_qty = (int)$OldProductQtyData->available_qty;
-										$stock_qty = max(0, (int)$stock_qty);
+    if (!empty($OldProductQtyData)) {
 
-										// If stock is zero, available stock must also be zero
-										if ($stock_qty == 0) {
+        $old_qty = (int)$OldProductQtyData->qty;
+        $old_available_qty = (int)$OldProductQtyData->available_qty;
 
-											$new_available_qty = 0;
+        $stock_qty = max(0, (int)$stock_qty);
 
-										} else {
+        // Already ordered quantity
+        $old_ordered_qty = max(0, $old_qty - $old_available_qty);
 
-											// Calculate already ordered quantity
-											$old_ordered_qty = $old_qty - $old_available_qty;
+        // New available quantity
+        $new_available_qty = max(0, $stock_qty - $old_ordered_qty);
 
-											if ($old_ordered_qty < 0) {
-												$old_ordered_qty = 0;
-											}
+        $is_in_stock = ($new_available_qty > 0) ? 1 : 2;
 
-											// Calculate new available stock
-											$new_available_qty = $stock_qty - $old_ordered_qty;
+        $stock_update = array(
+            'qty' => $stock_qty,
+            'available_qty' => $new_available_qty,
+            'is_in_stock' => $is_in_stock
+        );
 
-											if ($new_available_qty < 0) {
-												$new_available_qty = 0;
-											}
-										}
-
-										// Update if either quantity has changed
-										if (
-											$old_qty != $stock_qty ||
-											$old_available_qty != $new_available_qty
-										) {
-
-											$stock_update = array(
-												'qty' => $stock_qty,
-												'available_qty' => $new_available_qty
-											);
-
-											$this->SellerProductModel->updateData(
-												'products_inventory',
-												array('product_id' => $product_id),
-												$stock_update
-											);
-										}
-									}
-								}
-
+        $this->SellerProductModel->updateData(
+            'products_inventory',
+            array('product_id' => $product_id),
+            $stock_update
+        );
+    }
+}
 								if (!empty($_POST['conf_simple'])) {
 
 									foreach ($_POST['conf_simple'] as $key => $prod_id) {
