@@ -60,17 +60,35 @@ public function get_addons_with_services()
 }
 
 
-    public function get_service_by_id($service_id)
-    {
-        $this->db->select('as.*, ac.name as category_name, ac.name_fr as category_name_fr');
-        $this->db->from('addon_services as');
-        $this->db->join('addon_categories ac', 'ac.id = as.category_id', 'left');
-        $this->db->where('as.id', $service_id);
-        $this->db->where('as.status', 1);
+public function get_service_by_id($service_id)
+{
+    $this->db->select('
+        s.*,
+        ac.name AS category_name,
+        ac.name_fr AS category_name_fr
+    ');
 
-        $query = $this->db->get();
-        return $query->row();
+    $this->db->from('addon_services s');
+
+    $this->db->join(
+        'addon_categories ac',
+        'ac.id = s.category_id',
+        'left'
+    );
+
+    $this->db->where('s.id', (int) $service_id);
+    $this->db->where('s.status', 1);
+
+    $query = $this->db->get();
+
+    if (!$query) {
+        log_message('error', 'Addon detail SQL error: ' . json_encode($this->db->error()));
+        return [];
     }
+
+    return $query->row_array();
+}
+
 
     public function get_merchant_addons() {
         // Get the currently logged-in merchant ID from the session

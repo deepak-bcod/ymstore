@@ -628,13 +628,27 @@ public function index()
             ->set_output(json_encode($response));
     }
 
-    public function details($service_id)
-    {
-        $service = $this->Addon_model->get_service_by_id($service_id);
-        if (!$service) show_404();
-        $data['service'] = $service;
-        $this->load->view('addons/service_details', $data);
+    
+public function details($service_id)
+{
+    $service_id = (int) $service_id;
+
+    $this->load->model('Addon_model');
+
+    $service = $this->Addon_model->get_service_by_id($service_id);
+
+    if (empty($service)) {
+        show_404();
+        return;
     }
+
+    $data['service'] = $service;
+    $data['side_menu'] = 'addons';
+
+    $this->load->view('addons/service_details', $data);
+}
+
+    
 
     public function manage() {
         $data['side_menu'] = 'manage_addons';
