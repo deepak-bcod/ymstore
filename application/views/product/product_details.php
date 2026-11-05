@@ -61,6 +61,27 @@ $lang = $this->session->userdata('site_lang');
                                 }
                                 ?>
                             </h1>
+                            <?php 
+                                $top_p_avg = !empty($product_rating->avg_rating) ? (float)$product_rating->avg_rating : 0;
+                                $top_p_total = !empty($product_rating->total_reviews) ? (int)$product_rating->total_reviews : 0;
+                                $top_p_half = round($top_p_avg * 2) / 2;
+                            ?>
+                            <div class="product-top-rating" style="margin: 6px 0 14px; display: flex; align-items: center; gap: 8px;">
+                                <div style="color: #ffbf00; font-size: 16px; letter-spacing: 2px;" title="Rating: <?= $top_p_avg ?> / 5 (<?= $top_p_total ?> reviews)">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <?php if ($top_p_half >= $i): ?>
+                                            <i class="fa fa-star"></i>
+                                        <?php elseif ($top_p_half == $i - 0.5): ?>
+                                            <i class="fa fa-star-half-alt"></i>
+                                        <?php else: ?>
+                                            <i class="fa-regular fa-star" style="color: #ddd;"></i>
+                                        <?php endif; ?>
+                                    <?php endfor; ?>
+                                </div>
+                                <a href="#reviews" class="jump-to-reviews-btn" style="font-size: 13px; color: #087bf3; text-decoration: none; font-weight: 500;">
+                                    (<?= $top_p_total ?> <?= $top_p_total == 1 ? 'review' : 'reviews' ?>)
+                                </a>
+                            </div>
                         </div>
 
                         <div class="col-md-4 col-sm-4">
@@ -494,6 +515,12 @@ $lang = $this->session->userdata('site_lang');
                                         <li><a href="#technical_specification"
                                                 data-toggle="tab"><?= $this->lang->line('technical_specification_tab'); ?></a></li>
                                     <?php } ?>
+                                    <li id="tab-reviews-link">
+                                        <a href="#reviews" data-toggle="tab">
+                                            <?= $this->lang->line('reviews_tab') ?? 'Reviews'; ?> 
+                                            (<?= !empty($product_rating->total_reviews) ? (int)$product_rating->total_reviews : 0; ?>)
+                                        </a>
+                                    </li>
                                 </ul>
 
                                 <div id="myTabContent" class="tab-content">
@@ -554,7 +581,168 @@ $lang = $this->session->userdata('site_lang');
                                         }
                                         ?>
                                     </div>
+                                    <!-- Reviews Tab Pane -->
+                                    <div class="tab-pane fade" id="reviews">
+                                        <?php
+                                            $prod_avg = !empty($product_rating->avg_rating) ? (float)$product_rating->avg_rating : 0;
+                                            $prod_total = !empty($product_rating->total_reviews) ? (int)$product_rating->total_reviews : 0;
+                                            $prod_half = round($prod_avg * 2) / 2;
+
+                                            $merch_avg = !empty($merchant_rating->avg_rating) ? (float)$merchant_rating->avg_rating : (!empty($rating->avg_rating) ? (float)$rating->avg_rating : 0);
+                                            $merch_total = !empty($merchant_rating->total_reviews) ? (int)$merchant_rating->total_reviews : (!empty($rating->total_reviews) ? (int)$rating->total_reviews : 0);
+
+                                            // Determine Merchant Badge
+                                            $m_badge_img = '';
+                                            if ($merch_avg >= 4.5) {
+                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                            } elseif ($merch_avg >= 3.5) {
+                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                            } elseif ($merch_avg >= 2.5) {
+                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                            }
+
+                                            // Determine Product Badge
+                                            $p_badge_img = '';
+                                            if ($prod_avg >= 4.5) {
+                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                            } elseif ($prod_avg >= 3.5) {
+                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                            } elseif ($prod_avg >= 2.5) {
+                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                            }
+
+                                            // Featured testimony
+                                            $feat = !empty($product_rating->featured_review) ? $product_rating->featured_review : null;
+                                            $feat_name = !empty($feat->customer_name) ? $feat->customer_name : 'Verified Customer';
+                                            $feat_rating = !empty($feat->rating) ? (int)$feat->rating : 5;
+                                            $feat_text = !empty($feat->comments) ? $feat->comments : 'Highly recommended product and reliable service on Yellow Markets.';
+                                            $feat_initials = '';
+                                            $words = explode(' ', trim($feat_name));
+                                            if (count($words) >= 2) {
+                                                $feat_initials = strtoupper(substr($words[0], 0, 1) . substr($words[count($words)-1], 0, 1));
+                                            } else {
+                                                $feat_initials = strtoupper(substr($feat_name, 0, 2));
+                                            }
+                                        ?>
+                                        <div class="review-summary">
+                                            <div>
+                                                <small><?= strtoupper(htmlspecialchars(($ProductData->publication_name ?? 'MERCHANT') . ' + ' . (!empty($category_name) ? $category_name : 'PRODUCT') . ' REVIEW')) ?></small>
+                                                <h1><?= htmlspecialchars($ProductData->name) ?></h1>
+                                                <div class="stars" aria-label="<?= $prod_avg ?> out of 5 stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <?php if ($prod_half >= $i): ?>
+                                                            <span style="color:#ffce00;">★</span>
+                                                        <?php elseif ($prod_half == $i - 0.5): ?>
+                                                            <span style="color:#ffce00;">★</span>
+                                                        <?php else: ?>
+                                                            <span style="color:#ddd;">★</span>
+                                                        <?php endif; ?>
+                                                    <?php endfor; ?>
+                                                    <span>(<?= $prod_total ?>)</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="circle-pair" aria-label="Merchant and Product badges">
+                                                <?php if (!empty($m_badge_img)): ?>
+                                                    <img src="<?= $m_badge_img ?>" width="120" height="120" alt="Merchant Badge" title="Merchant Average Rating: <?= $merch_avg ?> / 5">
+                                                <?php else: ?>
+                                                    <div class="badge-placeholder" title="Merchant rating unrated"><i></i></div>
+                                                <?php endif; ?>
+
+                                                <?php if (!empty($p_badge_img)): ?>
+                                                    <img src="<?= $p_badge_img ?>" width="120" height="120" alt="Product Badge" title="Product Average Rating: <?= $prod_avg ?> / 5">
+                                                <?php else: ?>
+                                                    <div class="badge-placeholder" title="Product rating unrated"><i></i></div>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <div class="testimony">
+                                                <span class="shopper-avatar"><?= $feat_initials ?></span>
+                                                <div>
+                                                    <div style="font-weight: bold;"><?= htmlspecialchars($feat_name) ?></div>
+                                                    <div class="mini-stars">
+                                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                            <?= ($feat_rating >= $i) ? '★' : '☆' ?>
+                                                        <?php endfor; ?>
+                                                    </div>
+                                                    <small><?= htmlspecialchars($feat_text) ?></small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="review-list">
+                                            <div class="list-heading">
+                                                <span><strong id="reviews-count-display"><?= $prod_total ?></strong> <?= $prod_total == 1 ? 'review' : 'reviews' ?></span>
+                                                <div class="review-sort-wrap">
+                                                    <select id="review-sort-select" style="background:#fff; border:1px solid #ccc; border-radius:4px; padding:6px 12px; font-size:14px; cursor:pointer;">
+                                                        <option value="newest">Sort: Newest</option>
+                                                        <option value="highest">Sort: Highest Rating</option>
+                                                        <option value="lowest">Sort: Lowest Rating</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div id="reviews-container">
+                                                <?php if (!empty($product_reviews)): ?>
+                                                    <?php foreach ($product_reviews as $idx => $rev): ?>
+                                                        <?php 
+                                                            $shopper_name = !empty($rev->customer_name) ? $rev->customer_name : 'Shopper';
+                                                            $words = explode(' ', trim($shopper_name));
+                                                            $initials = '';
+                                                            if (count($words) >= 2) {
+                                                                $initials = strtoupper(substr($words[0], 0, 1) . substr($words[count($words)-1], 0, 1));
+                                                            } else {
+                                                                $initials = strtoupper(substr($shopper_name, 0, 2));
+                                                            }
+                                                            $item_r = (int)$rev->item_rating;
+                                                            $service_r = (int)$rev->service_rating;
+                                                            $rev_time = strtotime($rev->created_at);
+                                                            $time_ago = date('d M Y', $rev_time);
+                                                            if (time() - $rev_time < 31536000) {
+                                                                $diff_d = round((time() - $rev_time) / 86400);
+                                                                if ($diff_d == 0) $time_ago = 'Today';
+                                                                elseif ($diff_d == 1) $time_ago = 'Yesterday';
+                                                                elseif ($diff_d < 30) $time_ago = $diff_d . ' days ago';
+                                                                elseif ($diff_d < 365) $time_ago = round($diff_d / 30) . ' months ago';
+                                                            } else {
+                                                                $time_ago = round((time() - $rev_time) / 31536000) . ' year ago';
+                                                            }
+                                                            $colors = ['#8d36ef', '#087bf3', '#27ae60', '#e67e22', '#d35400', '#2980b9'];
+                                                            $avatar_bg = $colors[$idx % count($colors)];
+                                                        ?>
+                                                        <article class="review" data-rating="<?= $item_r ?>" data-time="<?= $rev_time ?>">
+                                                            <div class="review-head">
+                                                                <span class="avatar" style="background-color: <?= $avatar_bg ?>;"><?= $initials ?></span>
+                                                                <div>
+                                                                    <b><?= htmlspecialchars($shopper_name) ?></b>
+                                                                    <span class="verified">Verified Shopper</span>
+                                                                </div>
+                                                                <time><?= $time_ago ?></time>
+                                                            </div>
+                                                            <p class="item-score">
+                                                                ITEM: &nbsp;<?= $item_r ?> <span>★</span> &nbsp;|&nbsp; SERVICE: &nbsp;<?= $service_r ?> <span>★</span>
+                                                            </p>
+                                                            <p><?= nl2br(htmlspecialchars($rev->comments)) ?></p>
+                                                            <div class="helpful">
+                                                                Was this helpful? 
+                                                                <button type="button" class="btn-helpful-toggle" data-helpful aria-label="Helpful review" aria-pressed="false"><i class="fa fa-thumbs-up"></i></button>
+                                                                <button type="button" class="btn-helpful-toggle" data-helpful aria-label="Not helpful review" aria-pressed="false"><i class="fa fa-thumbs-down"></i></button>
+                                                            </div>
+                                                        </article>
+                                                    <?php endforeach; ?>
+                                                <?php else: ?>
+                                                    <div style="padding: 40px 0; text-align: center; color: #777;">
+                                                        <i class="fa fa-comment-dots" style="font-size: 36px; color: #ffcd00; margin-bottom: 12px; display: block;"></i>
+                                                        <h4 style="color: #444; margin-bottom: 6px;">No published reviews yet</h4>
+                                                        <p style="font-size: 14px;">Be the first to review this product after purchase!</p>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+
+                            </form>
 
                             </form>
                             <!-- Ask a Question Modal -->
@@ -2213,4 +2401,306 @@ $lang = $this->session->userdata('site_lang');
             }
         })();
     }
+</script>
+
+<!-- Floating Reviews Ribbon -->
+<a class="reviews-ribbon" id="open-reviews-ribbon" href="#reviews" title="View Customer Reviews">REVIEWS</a>
+
+<style>
+/* Reviews Tab Figma Wireframe Styles */
+#reviews {
+    background: #ffffff;
+    padding: 10px 0;
+}
+.review-summary {
+    margin: 20px 0 30px;
+    border-top: 1px solid #eaeaea;
+    border-bottom: 1px solid #eaeaea;
+    padding: 30px 15px;
+    display: grid;
+    grid-template-columns: 320px 257px 1fr;
+    gap: 24px;
+    align-items: center;
+}
+.review-summary h1 {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 10px 0 16px;
+    line-height: 1.25;
+    color: #111;
+}
+.review-summary small {
+    font-size: 11px;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    display: block;
+}
+.review-summary .stars {
+    font-size: 24px;
+    white-space: nowrap;
+    letter-spacing: 3px;
+    color: #ffce00;
+}
+.review-summary .stars span {
+    font-size: 14px;
+    letter-spacing: 0;
+    color: #333;
+    margin-left: 8px;
+    font-weight: 600;
+}
+.circle-pair {
+    display: flex !important;
+    gap: 17px;
+    width: 257px;
+    align-items: flex-start;
+}
+.circle-pair img {
+    flex: 0 0 120px;
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+}
+.circle-pair .badge-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 2px dashed #ddd;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.testimony {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #ffce00;
+    border-radius: 55px;
+    padding: 16px 22px;
+    font-size: 14px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+}
+.shopper-avatar {
+    height: 64px;
+    width: 64px;
+    border-radius: 50%;
+    background: #24272b;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+.mini-stars {
+    font-size: 13px;
+    margin: 3px 0 4px;
+    color: #111;
+    letter-spacing: 1px;
+}
+.testimony small {
+    font-size: 12px;
+    color: #222;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.review-list {
+    margin: 10px 15px 30px;
+}
+.list-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ccc;
+    padding: 14px 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+.review {
+    padding: 22px 0 18px;
+    border-bottom: 1px solid #e5e5e5;
+}
+.review-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+}
+.review-head .avatar {
+    color: white;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.review-head .verified {
+    color: #2683b7;
+    border-left: 1px solid #ccc;
+    margin-left: 8px;
+    padding-left: 10px;
+    font-size: 13px;
+    font-weight: normal;
+}
+.review-head time {
+    margin-left: auto;
+    font-size: 12px;
+    color: #888;
+}
+.item-score {
+    font-size: 13px;
+    margin: 14px 0 8px;
+    font-weight: 600;
+    color: #444;
+}
+.item-score span {
+    color: #ffbf00;
+    font-size: 16px;
+}
+.review p:not(.item-score) {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444;
+    margin-bottom: 12px;
+}
+.helpful {
+    font-size: 12px;
+    color: #777;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+}
+.helpful button {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    color: #555;
+    width: 30px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.helpful button:hover {
+    background: #e4e4e4;
+}
+.helpful button[aria-pressed=true] {
+    background: #ffce00;
+    border-color: #e5b900;
+    color: #111;
+}
+.reviews-ribbon {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    background: #ffce00;
+    padding: 16px 8px;
+    border-radius: 8px 0 0 8px;
+    text-decoration: none !important;
+    font-size: 12px;
+    font-weight: bold;
+    color: #111 !important;
+    letter-spacing: 3px;
+    box-shadow: -2px 3px 10px rgba(0,0,0,0.2);
+    z-index: 999;
+    cursor: pointer;
+}
+.reviews-ribbon:hover {
+    background: #f0c000;
+}
+@media (max-width: 1100px) {
+    .review-summary {
+        grid-template-columns: 1fr 257px;
+    }
+    .testimony {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 768px) {
+    .review-summary {
+        display: block;
+    }
+    .circle-pair {
+        margin: 20px 0;
+    }
+    .testimony {
+        border-radius: 20px;
+        padding: 14px 18px;
+    }
+    .reviews-ribbon {
+        display: none;
+    }
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    // Jump to reviews tab and scroll
+    function goToReviewsTab() {
+        $('a[href="#reviews"]').tab('show');
+        if ($('#reviews').length) {
+            $('html, body').animate({
+                scrollTop: $('#reviews').offset().top - 100
+            }, 500);
+        }
+    }
+
+    $('#open-reviews-ribbon, .jump-to-reviews-btn').on('click', function(e) {
+        e.preventDefault();
+        goToReviewsTab();
+    });
+
+    // Check hash on page load
+    if (window.location.hash === '#reviews') {
+        goToReviewsTab();
+    }
+
+    // Helpful button feedback
+    $(document).on('click', '[data-helpful]', function() {
+        var $btn = $(this);
+        var isPressed = $btn.attr('aria-pressed') === 'true';
+        $btn.closest('.helpful').find('button').attr('aria-pressed', 'false');
+        $btn.attr('aria-pressed', (!isPressed).toString());
+    });
+
+    // Sort reviews client-side
+    $('#review-sort-select').on('change', function() {
+        var sortType = $(this).val();
+        var $container = $('#reviews-container');
+        var $items = $container.children('article.review').get();
+
+        $items.sort(function(a, b) {
+            var ratingA = parseInt($(a).data('rating')) || 0;
+            var ratingB = parseInt($(b).data('rating')) || 0;
+            var timeA = parseInt($(a).data('time')) || 0;
+            var timeB = parseInt($(b).data('time')) || 0;
+
+            if (sortType === 'highest') {
+                return (ratingB - ratingA) || (timeB - timeA);
+            } else if (sortType === 'lowest') {
+                return (ratingA - ratingB) || (timeB - timeA);
+            } else {
+                // newest
+                return timeB - timeA;
+            }
+        });
+
+        $.each($items, function(idx, item) {
+            $container.append(item);
+        });
+    });
+});
 </script>

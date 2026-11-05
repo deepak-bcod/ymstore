@@ -31,7 +31,10 @@ class Shop_model extends CI_Model {
 
     public function get_shops($limit, $offset, $state = null, $city = null, $zipcode = null)
     {
-        $this->db->select('*')->from('publisher');
+        $this->db->select('publisher.*');
+        $this->db->select('(SELECT ROUND(AVG(mr.rating), 1) FROM ym_merchant_reviews mr WHERE mr.merchant_id = publisher.id AND mr.status = \'published\') AS avg_rating');
+        $this->db->select('(SELECT COUNT(mr.id) FROM ym_merchant_reviews mr WHERE mr.merchant_id = publisher.id AND mr.status = \'published\') AS total_reviews');
+        $this->db->from('publisher');
 
         if (!empty($state)) $this->db->where('state', $state);
         if (!empty($city)) $this->db->where('city', $city);
@@ -183,13 +186,22 @@ class Shop_model extends CI_Model {
     }
 
     public function get_avg_ratings_by_merchant($merchant_id) {
+        if (empty($merchant_id)) {
+            return (object)['merchant_id' => 0, 'avg_rating' => 0, 'total_reviews' => 0];
+        }
         $this->db->select('merchant_id, AVG(rating) as avg_rating, COUNT(id) as total_reviews');
         $this->db->from('ym_merchant_reviews');
         $this->db->where('merchant_id', $merchant_id);
         $this->db->where('status', 'published');
         $this->db->group_by('merchant_id');
         $query = $this->db->get();
-        return $query->row(); // one merchant
+        $row = $query->row();
+        if ($row) {
+            $row->avg_rating = round((float)$row->avg_rating, 1);
+            $row->total_reviews = (int)$row->total_reviews;
+            return $row;
+        }
+        return (object)['merchant_id' => $merchant_id, 'avg_rating' => 0, 'total_reviews' => 0];
     }
 
     /**

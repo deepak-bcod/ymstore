@@ -93,27 +93,28 @@
 								<img src="<?php echo $shop_image; ?>" alt="<?php echo $shop->vendor_name; ?>" class="imagebox">
 
 								<div class="badge-shop-left">
-																			<?php 
-											$avg = round($rating->avg_rating); // average rating from model
+										<?php 
+											$merchant_avg = !empty($rating->avg_rating) ? (float)$rating->avg_rating : 0;
+											$merchant_total = !empty($rating->total_reviews) ? (int)$rating->total_reviews : 0;
 
-											// Only assign badge if avg rating is 3 or above
-											$badge = '';
-											if ($avg >= 3) {
-												if ($avg == 3) {
-													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_3_stars.svg';
-												} elseif ($avg == 4) {
-													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_4_stars.svg';
-												} elseif ($avg == 5) {
-													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_5_stars.svg';
-												}
+											// Determine badge dynamically based on published review average rating
+											$badge_src = '';
+											$badge_alt = '';
+											if ($merchant_avg >= 4.5) {
+												$badge_src = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+												$badge_alt = 'Merchant 5 Stars Trusted Badge';
+											} elseif ($merchant_avg >= 3.5) {
+												$badge_src = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+												$badge_alt = 'Merchant 4 Stars Trusted Badge';
+											} elseif ($merchant_avg >= 2.5) {
+												$badge_src = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+												$badge_alt = 'Merchant 3 Stars Trusted Badge';
 											}
-
 										?>
-
-										<?php if($badge): ?>
-											<img src="<?= $badge; ?>" alt="Trust Badge" width="100">
+										<?php if (!empty($badge_src)): ?>
+											<img src="<?= $badge_src; ?>" alt="<?= $badge_alt; ?>" width="120" height="120" style="width: 120px; height: auto; object-fit: contain;">
 										<?php endif; ?>
-										</div>
+									</div>
 									</div>
 								<ul>
 									<li>
