@@ -693,7 +693,7 @@ function downloadInvoice(orderId) {
         success: function(response) {
             if (response.status) {
                 // Fixed syntax: directly update window.location.href to trigger download
-                window.location.href = response.file_url;
+                window.open(response.file_url, '_self');
             } else {
                 // Shows the pop-up alert message and stays on the same page
                 alert(response.message);
