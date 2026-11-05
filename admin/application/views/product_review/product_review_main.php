@@ -1,6 +1,27 @@
 <?php $this->load->view('common/fbc-user/header'); ?>
 
 <style>
+    /* Tab Navigation for Review Categories */
+    #reviewMainCategoryTabs .nav-link {
+        color: #4b5563;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-bottom: none;
+        margin-right: 6px;
+        transition: all 0.2s ease-in-out;
+    }
+    #reviewMainCategoryTabs .nav-link:hover {
+        background: #ffffff;
+        color: #007bff;
+    }
+    #reviewMainCategoryTabs .nav-link.active {
+        color: #1e293b !important;
+        background: #ffffff !important;
+        border-color: #cbd5e1 #cbd5e1 #ffffff !important;
+        border-top: 3px solid #ff9e0c !important;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.03);
+    }
+
     /* Horizontal scroller styling for Review Management */
     .table-responsive {
         width: 100%;
@@ -16,7 +37,7 @@
         border-bottom: 1px solid #dee2e6;
     }
     #DataTables_Table_Project_Review_list {
-        min-width: 1450px !important;
+        min-width: 1350px !important;
         width: 100% !important;
         margin-bottom: 0 !important;
     }
@@ -25,8 +46,8 @@
         vertical-align: middle !important;
         white-space: nowrap !important;
     }
-    #DataTables_Table_Project_Review_list th:nth-child(8),
-    #DataTables_Table_Project_Review_list td:nth-child(8) {
+    #DataTables_Table_Project_Review_list th:nth-child(7),
+    #DataTables_Table_Project_Review_list td:nth-child(7) {
         white-space: normal !important;
         min-width: 220px !important;
         max-width: 320px !important;
@@ -53,6 +74,10 @@
     }
 </style>
 
+<script>
+    window.reviewStatusCounts = <?= json_encode($status_counts); ?>;
+</script>
+
 <main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <div>
@@ -61,42 +86,53 @@
         </div>
     </div>
 
-    <!-- Status Filter Tabs & Type Selector -->
+    <!-- 2 Top-Level Tabs: 1. Merchant Service Reviews, 2. Product Reviews -->
+    <ul class="nav nav-tabs mb-4" id="reviewMainCategoryTabs" style="border-bottom: 2px solid #e2e8f0; font-size: 15px;">
+        <li class="nav-item">
+            <a class="nav-link active font-weight-bold" id="tab-merchant-reviews" href="javascript:void(0)" onclick="switchReviewCategory('merchant', this)" style="padding: 12px 26px; border-radius: 8px 8px 0 0; cursor: pointer;">
+                <i class="fa fa-store text-info mr-2"></i> 1. Merchant Service Reviews
+                <span class="badge badge-info ml-2" id="badge-tab-merchant"><?= $status_counts['merchant_all'] ?? 0 ?></span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link font-weight-bold text-muted" id="tab-product-reviews" href="javascript:void(0)" onclick="switchReviewCategory('product', this)" style="padding: 12px 26px; border-radius: 8px 8px 0 0; cursor: pointer;">
+                <i class="fa fa-box mr-2" style="color: #6f42c1;"></i> 2. Product Reviews
+                <span class="badge ml-2" id="badge-tab-product" style="background:#6f42c1; color:#fff;"><?= $status_counts['product_all'] ?? 0 ?></span>
+            </a>
+        </li>
+    </ul>
+
+    <!-- Status Filter Pills for Active Tab -->
     <div class="row mb-3 align-items-center" style="margin-bottom: 20px;">
         <div class="col-md-8">
             <ul class="nav nav-pills" id="reviewStatusTabs" style="gap: 8px;">
                 <li class="nav-item">
-                    <a class="nav-link active" href="javascript:void(0)" onclick="filterByStatus('all', this)" style="border-radius: 20px; font-weight: 600; padding: 8px 18px;">
-                        All <span class="badge badge-secondary ml-1"><?= $status_counts['all'] ?? 0 ?></span>
+                    <a class="nav-link active" href="javascript:void(0)" onclick="filterByStatus('all', this)" style="border-radius: 20px; font-weight: 600; padding: 7px 18px;">
+                        All <span class="badge badge-secondary ml-1" id="badge-status-all"><?= $status_counts['merchant_all'] ?? 0 ?></span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-warning" href="javascript:void(0)" onclick="filterByStatus('pending', this)" style="border-radius: 20px; font-weight: 600; padding: 8px 18px;">
-                        <i class="fa fa-clock"></i> Pending <span class="badge badge-warning ml-1" style="background:#ffc107;color:#212529;"><?= $status_counts['pending'] ?? 0 ?></span>
+                    <a class="nav-link text-warning" href="javascript:void(0)" onclick="filterByStatus('pending', this)" style="border-radius: 20px; font-weight: 600; padding: 7px 18px;">
+                        <i class="fa fa-clock"></i> Pending <span class="badge badge-warning ml-1" id="badge-status-pending" style="background:#ffc107;color:#212529;"><?= $status_counts['merchant_pending'] ?? 0 ?></span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-success" href="javascript:void(0)" onclick="filterByStatus('published', this)" style="border-radius: 20px; font-weight: 600; padding: 8px 18px;">
-                        <i class="fa fa-check-circle"></i> Published <span class="badge badge-success ml-1" style="background:#28a745;"><?= $status_counts['published'] ?? 0 ?></span>
+                    <a class="nav-link text-success" href="javascript:void(0)" onclick="filterByStatus('published', this)" style="border-radius: 20px; font-weight: 600; padding: 7px 18px;">
+                        <i class="fa fa-check-circle"></i> Published <span class="badge badge-success ml-1" id="badge-status-published" style="background:#28a745;"><?= $status_counts['merchant_published'] ?? 0 ?></span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-danger" href="javascript:void(0)" onclick="filterByStatus('rejected', this)" style="border-radius: 20px; font-weight: 600; padding: 8px 18px;">
-                        <i class="fa fa-times-circle"></i> Rejected <span class="badge badge-danger ml-1" style="background:#dc3545;"><?= $status_counts['rejected'] ?? 0 ?></span>
+                    <a class="nav-link text-danger" href="javascript:void(0)" onclick="filterByStatus('rejected', this)" style="border-radius: 20px; font-weight: 600; padding: 7px 18px;">
+                        <i class="fa fa-times-circle"></i> Rejected <span class="badge badge-danger ml-1" id="badge-status-rejected" style="background:#dc3545;"><?= $status_counts['merchant_rejected'] ?? 0 ?></span>
                     </a>
                 </li>
             </ul>
         </div>
 
         <div class="col-md-4 text-right">
-            <div class="d-inline-flex align-items-center" style="gap: 10px;">
-                <label for="reviewTypeFilter" class="mb-0 text-muted" style="font-weight: 600; white-space: nowrap;">Type:</label>
-                <select id="reviewTypeFilter" class="form-control form-control-sm" onchange="filterByType(this.value)" style="width: auto; min-width: 170px; display: inline-block;">
-                    <option value="all">All Review Types</option>
-                    <option value="merchant">Merchant Service Only</option>
-                    <option value="product">Product Reviews Only</option>
-                </select>
-            </div>
+            <span class="badge badge-light border py-2 px-3 text-secondary" style="font-size: 13px; font-weight: 600;">
+                Viewing: <span id="indicator-text" class="text-dark font-weight-bold">Merchant Service Reviews</span>
+            </span>
         </div>
     </div>
 

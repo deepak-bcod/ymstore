@@ -131,12 +131,20 @@ class ProductReviewModel extends CI_Model
     public function getStatusCounts()
     {
         $counts = array(
-            'all'       => 0,
-            'pending'   => 0,
-            'published' => 0,
-            'rejected'  => 0,
-            'merchant'  => 0,
-            'product'   => 0,
+            'all'                => 0,
+            'pending'            => 0,
+            'published'          => 0,
+            'rejected'           => 0,
+            'merchant'           => 0,
+            'product'            => 0,
+            'merchant_all'       => 0,
+            'merchant_pending'   => 0,
+            'merchant_published' => 0,
+            'merchant_rejected'  => 0,
+            'product_all'        => 0,
+            'product_pending'    => 0,
+            'product_published'  => 0,
+            'product_rejected'   => 0,
         );
 
         // Counts from ym_merchant_reviews
@@ -147,8 +155,12 @@ class ProductReviewModel extends CI_Model
                 if (isset($counts[$st])) {
                     $counts[$st] += (int)$r['cnt'];
                 }
+                if (isset($counts['merchant_' . $st])) {
+                    $counts['merchant_' . $st] += (int)$r['cnt'];
+                }
                 $counts['all'] += (int)$r['cnt'];
                 $counts['merchant'] += (int)$r['cnt'];
+                $counts['merchant_all'] += (int)$r['cnt'];
             }
         }
 
@@ -161,8 +173,12 @@ class ProductReviewModel extends CI_Model
                     if (isset($counts[$st])) {
                         $counts[$st] += (int)$r['cnt'];
                     }
+                    if (isset($counts['product_' . $st])) {
+                        $counts['product_' . $st] += (int)$r['cnt'];
+                    }
                     $counts['all'] += (int)$r['cnt'];
                     $counts['product'] += (int)$r['cnt'];
+                    $counts['product_all'] += (int)$r['cnt'];
                 }
             }
         } else {
@@ -171,7 +187,9 @@ class ProductReviewModel extends CI_Model
             if ($q2 && $r = $q2->row()) {
                 $counts['all'] += (int)$r->cnt;
                 $counts['product'] += (int)$r->cnt;
+                $counts['product_all'] += (int)$r->cnt;
                 $counts['pending'] += (int)$r->cnt;
+                $counts['product_pending'] += (int)$r->cnt;
             }
         }
 

@@ -49,7 +49,7 @@ class ProductReviewController extends CI_Controller {
         }
 
         $status_filter = isset($_POST['status_filter']) ? trim($_POST['status_filter']) : 'all';
-        $type_filter = isset($_POST['type_filter']) ? trim($_POST['type_filter']) : 'all';
+        $type_filter = isset($_POST['type_filter']) && in_array($_POST['type_filter'], array('merchant', 'product', 'all')) ? trim($_POST['type_filter']) : 'merchant';
 
         $reviewList = $this->ProductReviewModel->getReviewsList($row, $rowperpage, $search_param, $status_filter, $type_filter);
         $totalRecords = $this->ProductReviewModel->getReviewsCount(array(), '', '');
@@ -182,7 +182,8 @@ class ProductReviewController extends CI_Controller {
             echo json_encode(array(
                 "flag"   => 1,
                 "msg"    => ucfirst($type) . " review status updated to " . ucfirst($status) . " successfully.",
-                "status" => $status
+                "status" => $status,
+                "counts" => $this->ProductReviewModel->getStatusCounts()
             ));
         } else {
             echo json_encode(array("flag" => 0, "msg" => "Failed to update review status."));
@@ -223,7 +224,11 @@ class ProductReviewController extends CI_Controller {
 
         $deleted = $this->ProductReviewModel->deleteReview($type, $id);
         if ($deleted) {
-            echo json_encode(array("flag" => 1, "msg" => ucfirst($type) . " review deleted successfully."));
+            echo json_encode(array(
+                "flag"   => 1,
+                "msg"    => ucfirst($type) . " review deleted successfully.",
+                "counts" => $this->ProductReviewModel->getStatusCounts()
+            ));
         } else {
             echo json_encode(array("flag" => 0, "msg" => "Failed to delete review."));
         }
@@ -249,7 +254,11 @@ class ProductReviewController extends CI_Controller {
             }
         }
 
-        echo json_encode(array("flag" => 1, "msg" => "Updated " . $count . " review(s) to " . ucfirst($status) . "."));
+        echo json_encode(array(
+            "flag"   => 1,
+            "msg"    => "Updated " . $count . " review(s) to " . ucfirst($status) . ".",
+            "counts" => $this->ProductReviewModel->getStatusCounts()
+        ));
         exit;
     }
 }

@@ -1,6 +1,6 @@
 var reviewTable = null;
 window.currentStatusFilter = 'all';
-window.currentTypeFilter = 'all';
+window.currentTypeFilter = 'merchant';
 window.activeParentReviewId = null;
 
 $(document).ready(function() {
@@ -16,6 +16,11 @@ $(document).ready(function() {
             reviewTable.columns.adjust();
         }
     });
+
+    // Initialize counts for merchant tab on load
+    if (window.reviewStatusCounts) {
+        updateStatusCountBadges('merchant');
+    }
 });
 
 function initReviewDataTable() {
@@ -46,13 +51,12 @@ function initReviewDataTable() {
             'type': 'POST',
             'data': function(d) {
                 d.status_filter = window.currentStatusFilter || 'all';
-                d.type_filter = window.currentTypeFilter || 'all';
+                d.type_filter = window.currentTypeFilter || 'merchant';
             }
         },
         'columns': [
             { data: 'id' },
             { data: 'order_id' },
-            { data: 'type' },
             { data: 'target_name' },
             { data: 'customer_name' },
             { data: 'email_id' },
@@ -64,12 +68,57 @@ function initReviewDataTable() {
             { data: 'view_url' },
             { data: 'delete' }
         ],
-        'order': [[8, 'desc']],
+        'order': [[7, 'desc']],
         'columnDefs': [
-            { 'targets': [0, 10, 11, 12], 'orderable': false },
-            { 'className': 'text-center', 'targets': [0, 1, 2, 6, 9, 10, 11, 12] }
+            { 'targets': [0, 9, 10, 11], 'orderable': false },
+            { 'className': 'text-center', 'targets': [0, 1, 5, 8, 9, 10, 11] }
         ]
     });
+}
+
+function switchReviewCategory(category, elem) {
+    window.currentTypeFilter = category;
+
+    // Update tab styling
+    $('#reviewMainCategoryTabs .nav-link').removeClass('active').addClass('text-muted');
+    $(elem).addClass('active').removeClass('text-muted');
+
+    // Update column headers & indicator
+    if (category === 'merchant') {
+        $('#col-target-header').text('Merchant Name');
+        $('#col-rating-header').text('Service Rating');
+        $('#indicator-text').text('Merchant Service Reviews');
+    } else {
+        $('#col-target-header').text('Product Name');
+        $('#col-rating-header').text('Product Rating');
+        $('#indicator-text').text('Product Reviews');
+    }
+
+    // Update status badge counts
+    updateStatusCountBadges(category);
+
+    // Reset status filter to 'all'
+    window.currentStatusFilter = 'all';
+    $('#reviewStatusTabs .nav-link').removeClass('active');
+    $('#reviewStatusTabs .nav-link').first().addClass('active');
+
+    if (reviewTable) {
+        reviewTable.ajax.reload();
+    }
+}
+
+function updateStatusCountBadges(category) {
+    if (!window.reviewStatusCounts) return;
+    var counts = window.reviewStatusCounts;
+    var prefix = (category === 'product') ? 'product_' : 'merchant_';
+
+    $('#badge-status-all').text(counts[prefix + 'all'] !== undefined ? counts[prefix + 'all'] : 0);
+    $('#badge-status-pending').text(counts[prefix + 'pending'] !== undefined ? counts[prefix + 'pending'] : 0);
+    $('#badge-status-published').text(counts[prefix + 'published'] !== undefined ? counts[prefix + 'published'] : 0);
+    $('#badge-status-rejected').text(counts[prefix + 'rejected'] !== undefined ? counts[prefix + 'rejected'] : 0);
+
+    if (counts.merchant_all !== undefined) $('#badge-tab-merchant').text(counts.merchant_all);
+    if (counts.product_all !== undefined) $('#badge-tab-product').text(counts.product_all);
 }
 
 function filterByStatus(status, elem) {
@@ -112,6 +161,10 @@ function changeReviewStatus(type, id, status, fromModal) {
             }
 
             if (response.flag == 1) {
+                if (response.counts) {
+                    window.reviewStatusCounts = response.counts;
+                    updateStatusCountBadges(window.currentTypeFilter);
+                }
                 if (typeof swal !== 'undefined') {
                     swal({
                         title: "Updated!",
@@ -187,6 +240,10 @@ function deleteReviewItem(type, id) {
             data: { type: type, id: id },
             success: function(response) {
                 if (response.flag == 1) {
+                    if (response.counts) {
+                        window.reviewStatusCounts = response.counts;
+                        updateStatusCountBadges(window.currentTypeFilter);
+                    }
                     if (typeof swal !== 'undefined') {
                         swal({ title: "", text: response.msg, icon: "success", timer: 1500, buttons: false });
                     }
@@ -232,6 +289,10 @@ function bulkAction(status) {
             },
             success: function(response) {
                 if (response.flag == 1) {
+                    if (response.counts) {
+                        window.reviewStatusCounts = response.counts;
+                        updateStatusCountBadges(window.currentTypeFilter);
+                    }
                     if (typeof swal !== 'undefined') {
                         swal({ title: "Success", text: response.msg, icon: "success", timer: 1800, buttons: false });
                     } else {
