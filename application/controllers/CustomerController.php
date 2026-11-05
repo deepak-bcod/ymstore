@@ -389,6 +389,7 @@ class CustomerController extends CI_Controller
 
         // Validation: merchant service rating
         if ($merchant_rating < 1 || $merchant_rating > 5) {
+            $this->session->set_flashdata('form_data', $this->input->post());
             $this->session->set_flashdata('error', 'Please provide a valid Customer Service rating (1 to 5).');
             redirect(base_url('review/form/' . $order_id));
             return;
@@ -401,6 +402,7 @@ class CustomerController extends CI_Controller
                 $p_rating = isset($ratings[$item->product_id]) ? (int)$ratings[$item->product_id] : 0;
                 if ($p_rating < 1 || $p_rating > 5) {
                     $prod_label = !empty($item->product_name) ? $item->product_name : 'product';
+                    $this->session->set_flashdata('form_data', $this->input->post());
                     $this->session->set_flashdata('error', 'Please provide a rating (1 to 5) for: ' . $prod_label);
                     redirect(base_url('review/form/' . $order_id));
                     return;
@@ -431,10 +433,16 @@ class CustomerController extends CI_Controller
             ));
             $review_id = $existing_merchant_review->id;
 
-            // Update or insert individual product reviews
+            // Update or insert individual product reviews (deduplicating product_id)
             if (!empty($items)) {
+                $processed_products = array();
                 foreach ($items as $item) {
-                    $p_id = $item->product_id;
+                    $p_id = (int)$item->product_id;
+                    if (in_array($p_id, $processed_products)) {
+                        continue;
+                    }
+                    $processed_products[] = $p_id;
+
                     $p_rating = isset($ratings[$p_id]) ? (int)$ratings[$p_id] : 5;
                     $p_comment = isset($comments[$p_id]) ? trim((string)$comments[$p_id]) : null;
                     $p_name = isset($product_names[$p_id]) ? $product_names[$p_id] : (!empty($item->product_name) ? $item->product_name : '');
@@ -478,10 +486,16 @@ class CustomerController extends CI_Controller
             ));
             $review_id = $this->db->insert_id();
 
-            // Insert individual product reviews
+            // Insert individual product reviews (deduplicating product_id)
             if (!empty($items)) {
+                $processed_products = array();
                 foreach ($items as $item) {
-                    $p_id = $item->product_id;
+                    $p_id = (int)$item->product_id;
+                    if (in_array($p_id, $processed_products)) {
+                        continue;
+                    }
+                    $processed_products[] = $p_id;
+
                     $p_rating = isset($ratings[$p_id]) ? (int)$ratings[$p_id] : 5;
                     $p_comment = isset($comments[$p_id]) ? trim((string)$comments[$p_id]) : null;
                     $p_name = isset($product_names[$p_id]) ? $product_names[$p_id] : (!empty($item->product_name) ? $item->product_name : '');
@@ -498,17 +512,22 @@ class CustomerController extends CI_Controller
             }
         }
 
-        // Mark order as reviewed in b2b_orders
+        // Mark order as reviewed in b2b_orders (only reveiw_sent column exists in b2b_orders)
         $this->db->where('order_id', $order_id);
         $this->db->update('b2b_orders', array(
-            'reveiw_sent' => 1,
-            'review_submitted' => 1
+            'reveiw_sent' => 1
         ));
 
         $this->db->trans_complete();
 
         if ($this->db->trans_status() === false) {
-            $this->session->set_flashdata('error', 'Could not save review. Please try again.');
+            $db_error = $this->db->error();
+            $err_msg = 'Could not save review. Please try again.';
+            if (!empty($db_error['message'])) {
+                $err_msg .= ' (' . $db_error['message'] . ')';
+            }
+            $this->session->set_flashdata('form_data', $this->input->post());
+            $this->session->set_flashdata('error', $err_msg);
             redirect(base_url('review/form/' . $order_id));
             return;
         }

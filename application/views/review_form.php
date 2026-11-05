@@ -23,8 +23,22 @@ if (empty($merchant_name)) {
     $merchant_name = 'Yellow Markets Merchant';
 }
 
+$form_data = $this->session->flashdata('form_data');
+if (empty($form_data) && !empty($_POST)) {
+    $form_data = $_POST;
+}
+
 $merchant_rating_val = isset($existing_merchant_review->rating) ? (int)$existing_merchant_review->rating : 0;
 $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_merchant_review->comments : '';
+
+if (!empty($form_data) && is_array($form_data)) {
+    if (isset($form_data['merchant_rating'])) {
+        $merchant_rating_val = (int)$form_data['merchant_rating'];
+    }
+    if (isset($form_data['merchant_comments'])) {
+        $merchant_comment_val = $form_data['merchant_comments'];
+    }
+}
 ?>
 
 <div class="ym-review-page-container">
@@ -134,6 +148,15 @@ $merchant_comment_val = isset($existing_merchant_review->comments) ? $existing_m
                         $p_name = !empty($item->product_name) ? $item->product_name : (!empty($item->name) ? $item->name : 'Product #' . ($idx + 1));
                         $p_rating_val = isset($product_review_map[$p_id]->rating) ? (int)$product_review_map[$p_id]->rating : 0;
                         $p_comment_val = isset($product_review_map[$p_id]->comments) ? $product_review_map[$p_id]->comments : '';
+
+                        if (!empty($form_data) && is_array($form_data)) {
+                            if (isset($form_data['ratings'][$p_id])) {
+                                $p_rating_val = (int)$form_data['ratings'][$p_id];
+                            }
+                            if (isset($form_data['comments'][$p_id])) {
+                                $p_comment_val = $form_data['comments'][$p_id];
+                            }
+                        }
                         ?>
                         <div class="ym-review-section ym-product-section">
                             <input type="hidden" name="product_names[<?= $p_id ?>]" value="<?= htmlspecialchars($p_name) ?>">
