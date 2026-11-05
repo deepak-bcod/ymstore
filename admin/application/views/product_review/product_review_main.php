@@ -185,6 +185,294 @@
     </div>
 </div>
 
-<script type="text/javascript" src="<?php echo SKIN_JS; ?>project_review.js?v=<?php echo CSSJS_VERSION; ?>"></script>
+<script type="text/javascript">
+var reviewTable = null;
+window.currentStatusFilter = 'all';
+window.currentTypeFilter = 'merchant';
+window.activeParentReviewId = null;
+
+$(document).ready(function() {
+    initReviewDataTable();
+
+    // Select all checkbox
+    $('#ckbCheckAllReviews').on('click', function() {
+        $('input[name="chk_review[]"]').prop('checked', $(this).prop('checked'));
+    });
+
+    $(window).on('resize', function() {
+        if (reviewTable) {
+            reviewTable.columns.adjust();
+        }
+    });
+
+    if (window.reviewStatusCounts) {
+        updateStatusCountBadges('merchant');
+    }
+});
+
+function initReviewDataTable() {
+    if ($.fn.dataTable.isDataTable('#DataTables_Table_Project_Review_list')) {
+        $('#DataTables_Table_Project_Review_list').DataTable().destroy();
+    }
+
+    reviewTable = $('#DataTables_Table_Project_Review_list').DataTable({
+        'processing': true,
+        'serverSide': true,
+        'serverMethod': 'post',
+        'scrollX': true,
+        'scrollCollapse': true,
+        'autoWidth': false,
+        'language': {
+            search: "",
+            searchPlaceholder: "Search reviews, orders, customers...",
+            paginate: {
+                previous: '<i class="fas fa-angle-left"></i>',
+                next: '<i class="fas fa-angle-right"></i>'
+            }
+        },
+        'iDisplayLength': 50,
+        'pageLength': 50,
+        'lengthMenu': [[10, 25, 50, 100, 200], [10, 25, 50, 100, 200]],
+        'ajax': {
+            'url': BASE_URL + 'ProductReviewController/ajaxreviewlist',
+            'type': 'POST',
+            'data': function(d) {
+                d.status_filter = window.currentStatusFilter || 'all';
+                d.type_filter = window.currentTypeFilter || 'merchant';
+            },
+            'error': function(xhr, error, thrown) {
+                console.error("Review DataTable error: ", xhr.responseText);
+            }
+        },
+        'columns': [
+            { data: 'id' },
+            { data: 'order_id' },
+            { data: 'target_name' },
+            { data: 'customer_name' },
+            { data: 'email_id' },
+            { data: 'rating' },
+            { data: 'review' },
+            { data: 'created_at' },
+            { data: 'status' },
+            { data: 'action' },
+            { data: 'view_url' },
+            { data: 'delete' }
+        ],
+        'order': [[7, 'desc']],
+        'columnDefs': [
+            { 'targets': [0, 9, 10, 11], 'orderable': false },
+            { 'className': 'text-center', 'targets': [0, 1, 5, 8, 9, 10, 11] }
+        ]
+    });
+}
+
+function switchReviewCategory(category, elem) {
+    window.currentTypeFilter = category;
+
+    // Update main tab active classes
+    $('#reviewMainCategoryTabs .nav-link').removeClass('active').addClass('text-muted');
+    $('#tab-' + category + '-reviews').addClass('active').removeClass('text-muted');
+
+    // Update column headers & indicator across all header elements (including DataTables scroll clone)
+    if (category === 'merchant') {
+        $('[id="col-target-header"]').text('Merchant Name');
+        $('[id="col-rating-header"]').text('Service Rating');
+        $('#indicator-text').text('Merchant Service Reviews');
+    } else {
+        $('[id="col-target-header"]').text('Product Name');
+        $('[id="col-rating-header"]').text('Product Rating');
+        $('#indicator-text').text('Product Reviews');
+    }
+
+    // Update status badge counts
+    updateStatusCountBadges(category);
+
+    // Reset status filter to 'all'
+    window.currentStatusFilter = 'all';
+    $('#reviewStatusTabs .nav-link').removeClass('active');
+    $('#reviewStatusTabs .nav-link').first().addClass('active');
+
+    // Uncheck check-all
+    $('#ckbCheckAllReviews').prop('checked', false);
+
+    if (reviewTable) {
+        reviewTable.ajax.reload();
+    }
+}
+
+function updateStatusCountBadges(category) {
+    if (!window.reviewStatusCounts) return;
+    var counts = window.reviewStatusCounts;
+    var prefix = (category === 'product') ? 'product_' : 'merchant_';
+
+    $('#badge-status-all').text(counts[prefix + 'all'] !== undefined ? counts[prefix + 'all'] : 0);
+    $('#badge-status-pending').text(counts[prefix + 'pending'] !== undefined ? counts[prefix + 'pending'] : 0);
+    $('#badge-status-published').text(counts[prefix + 'published'] !== undefined ? counts[prefix + 'published'] : 0);
+    $('#badge-status-rejected').text(counts[prefix + 'rejected'] !== undefined ? counts[prefix + 'rejected'] : 0);
+
+    if (counts.merchant_all !== undefined) $('#badge-tab-merchant').text(counts.merchant_all);
+    if (counts.product_all !== undefined) $('#badge-tab-product').text(counts.product_all);
+}
+
+function filterByStatus(status, elem) {
+    window.currentStatusFilter = status;
+    $('#reviewStatusTabs .nav-link').removeClass('active');
+    $(elem).addClass('active');
+
+    $('#ckbCheckAllReviews').prop('checked', false);
+
+    if (reviewTable) {
+        reviewTable.ajax.reload();
+    }
+}
+
+function changeReviewStatus(type, id, status, fromModal) {
+    $.ajax({
+        type: 'POST',
+        url: BASE_URL + 'ProductReviewController/change_reviews_status',
+        dataType: 'json',
+        data: {
+            type: type,
+            id: id,
+            status: status
+        },
+        success: function(response) {
+            if (response.flag == 1) {
+                if (response.counts) {
+                    window.reviewStatusCounts = response.counts;
+                    updateStatusCountBadges(window.currentTypeFilter);
+                }
+                if (typeof swal !== 'undefined') {
+                    swal({
+                        title: "Updated!",
+                        text: response.msg,
+                        icon: "success",
+                        timer: 1600,
+                        buttons: false
+                    });
+                } else {
+                    alert(response.msg);
+                }
+
+                if (fromModal && window.activeParentReviewId) {
+                    viewOrderReviews(window.activeParentReviewId);
+                }
+
+                if (reviewTable) {
+                    reviewTable.ajax.reload(null, false);
+                }
+            } else {
+                alert(response.msg || "Failed to update review status.");
+            }
+        },
+        error: function() {
+            alert("Error communicating with server.");
+        }
+    });
+}
+
+function viewOrderReviews(parentReviewId) {
+    window.activeParentReviewId = parentReviewId;
+    $.ajax({
+        type: 'POST',
+        url: BASE_URL + 'ProductReviewController/viewOrderReviews',
+        dataType: 'json',
+        data: { review_id: parentReviewId },
+        beforeSend: function() {
+            $('#pro-review-popup').html('<div class="text-center py-4"><i class="fa fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Loading review details...</p></div>');
+            $('#review_details').modal('show');
+        },
+        success: function(response) {
+            if (response.flag == 1) {
+                $('#pro-review-popup').html(response.data);
+            } else {
+                $('#pro-review-popup').html('<div class="alert alert-danger">' + (response.msg || 'Failed to load details') + '</div>');
+            }
+        },
+        error: function() {
+            $('#pro-review-popup').html('<div class="alert alert-danger">Error fetching review details.</div>');
+        }
+    });
+}
+
+function deleteReviewItem(type, id) {
+    if (confirm("Are you sure you want to delete this " + type + " review?")) {
+        $.ajax({
+            type: 'POST',
+            url: BASE_URL + 'ProductReviewController/delete_review',
+            dataType: 'json',
+            data: { type: type, id: id },
+            success: function(response) {
+                if (response.flag == 1) {
+                    if (response.counts) {
+                        window.reviewStatusCounts = response.counts;
+                        updateStatusCountBadges(window.currentTypeFilter);
+                    }
+                    if (typeof swal !== 'undefined') {
+                        swal({ title: "", text: response.msg, icon: "success", timer: 1500, buttons: false });
+                    }
+                    if (reviewTable) {
+                        reviewTable.ajax.reload(null, false);
+                    }
+                } else {
+                    alert(response.msg || "Failed to delete review.");
+                }
+            }
+        });
+    }
+}
+
+function bulkAction(status) {
+    var checked = $('input[name="chk_review[]"]:checked');
+    if (checked.length === 0) {
+        if (typeof swal !== 'undefined') {
+            swal({ title: "Selection Required", text: "Please select at least one review using the checkboxes.", icon: "warning" });
+        } else {
+            alert("Please select at least one review.");
+        }
+        return;
+    }
+
+    var reviews = [];
+    checked.each(function() {
+        reviews.push({
+            id: $(this).val(),
+            type: $(this).data('type') || window.currentTypeFilter
+        });
+    });
+
+    var statusTitle = status.charAt(0).toUpperCase() + status.slice(1);
+    if (confirm("Are you sure you want to mark " + reviews.length + " selected review(s) as " + statusTitle + "?")) {
+        $.ajax({
+            type: 'POST',
+            url: BASE_URL + 'ProductReviewController/bulk_update_status',
+            dataType: 'json',
+            data: {
+                reviews: reviews,
+                status: status
+            },
+            success: function(response) {
+                if (response.flag == 1) {
+                    if (response.counts) {
+                        window.reviewStatusCounts = response.counts;
+                        updateStatusCountBadges(window.currentTypeFilter);
+                    }
+                    if (typeof swal !== 'undefined') {
+                        swal({ title: "Success", text: response.msg, icon: "success", timer: 1800, buttons: false });
+                    } else {
+                        alert(response.msg);
+                    }
+                    $('#ckbCheckAllReviews').prop('checked', false);
+                    if (reviewTable) {
+                        reviewTable.ajax.reload(null, false);
+                    }
+                } else {
+                    alert(response.msg || "Bulk action failed.");
+                }
+            }
+        });
+    }
+}
+</script>
 
 <?php $this->load->view('common/fbc-user/footer'); ?>

@@ -538,24 +538,24 @@ function buildCategoryTree($categories, $parent_id = 0)
                                             ?>
 
                                             <!-- Badges inside product image at TOP (Daily Deals, Flash Sales, Discount Pill, Out of Stock) -->
-                                            <span class="pi-img-top-badges" style="position: absolute !important; top: 6px !important; left: 6px !important; right: 6px !important; display: flex !important; align-items: flex-start !important; justify-content: space-between !important; gap: 4px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 12px) !important; background: transparent !important;">
-                                                <span style="display: flex !important; align-items: center !important; gap: 4px !important; flex-wrap: wrap !important;">
+                                            <span class="pi-img-top-badges" style="position: absolute !important; top: 6px !important; left: 6px !important; right: 6px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 4px !important; z-index: 8 !important; pointer-events: none !important; margin: 0 !important; padding: 0 !important; width: calc(100% - 12px) !important; background: transparent !important; box-sizing: border-box !important;">
+                                                <span style="display: inline-flex !important; align-items: center !important; gap: 4px !important; flex-wrap: wrap !important;">
                                                     <?php if ($is_out_of_stock): ?>
-                                                        <span class="badge-out-of-stock" style="background-color: #dc3545 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-block !important;">OUT OF STOCK</span>
+                                                        <span class="badge-out-of-stock" style="background-color: #dc3545 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 0 6px !important; height: 20px !important; line-height: 20px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important;">OUT OF STOCK</span>
                                                     <?php else: ?>
                                                         <?php if ($is_flash_active): ?>
-                                                            <span class="badge-deal-flash" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-bolt" style="color: #ffd200 !important; font-size: 11px !important;"></i> FLASH SALE</span>
+                                                            <span class="badge-deal-flash" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 0 6px !important; height: 20px !important; line-height: 20px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 4px !important; box-sizing: border-box !important;"><i class="fa fa-bolt" style="color: #ffd200 !important; font-size: 11px !important; line-height: 1 !important;"></i> FLASH SALE</span>
                                                         <?php endif; ?>
                                                         <?php if ($is_deal_active): ?>
-                                                            <span class="badge-deal-daily" style="background-color: #ffd200 !important; color: #000000 !important; font-size: 10px !important; font-weight: 800 !important; padding: 2.5px 7px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; line-height: 1.25 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;"><i class="fa fa-star" style="color: #000000 !important; font-size: 10px !important;"></i> DAILY DEAL</span>
+                                                            <span class="badge-deal-daily" style="background-color: #ffd200 !important; color: #000000 !important; font-size: 10px !important; font-weight: 800 !important; padding: 0 6px !important; height: 20px !important; line-height: 20px !important; border-radius: 3px !important; text-transform: uppercase !important; letter-spacing: 0.3px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 4px !important; box-sizing: border-box !important;"><i class="fa fa-star" style="color: #000000 !important; font-size: 10px !important; line-height: 1 !important;"></i> DAILY DEAL</span>
                                                         <?php endif; ?>
                                                     <?php endif; ?>
                                                 </span>
 
                                                 <?php if ($discount_percent > 0 && !$is_out_of_stock): ?>
-                                                    <span style="margin-left: auto !important; display: inline-block !important;">
-                                                        <span class="badge-discount-pill" style="background-color: #ff0000 !important; color: #ffffff !important; font-size: 11px !important; font-weight: 800 !important; padding: 2px 7px !important; border-radius: 12px !important; line-height: 1.2 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-block !important;">-<?= $discount_percent ?>%</span>
-                                                    </span>
+
+                                                    <span class="badge-discount-pill" style="margin-left: auto !important; background-color: #ff0000 !important; color: #ffffff !important; font-size: 10px !important; font-weight: 800 !important; padding: 0 6px !important; height: 20px !important; line-height: 20px !important; border-radius: 3px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important; white-space: nowrap !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important;">-<?= $discount_percent ?>%</span>
+
                                                 <?php endif; ?>
                                             </span>
 
@@ -592,6 +592,7 @@ function buildCategoryTree($categories, $parent_id = 0)
                                                         ?>
 
                                                     </span>
+
 
 
                                                     <span class="old-price text-muted">

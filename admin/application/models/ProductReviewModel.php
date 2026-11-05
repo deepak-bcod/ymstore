@@ -49,19 +49,19 @@ class ProductReviewModel extends CI_Model
         ";
 
         $has_pr_status = $this->db->field_exists('status', 'ym_product_reviews');
-        $pr_status_expr = $has_pr_status ? 'pr.status' : 'mr.status AS status';
+        $pr_status_expr = $has_pr_status ? "COALESCE(pr.status, mr.status, 'pending') AS status" : "COALESCE(mr.status, 'pending') AS status";
 
         $product_sql = "
             SELECT 
                 'product' AS review_type,
                 pr.id AS review_id,
-                pr.review_id AS parent_review_id,
-                mr.order_id,
-                mr.B2B_order_id,
-                mr.merchant_id,
+                COALESCE(pr.review_id, 0) AS parent_review_id,
+                COALESCE(mr.order_id, 0) AS order_id,
+                COALESCE(mr.B2B_order_id, '') AS B2B_order_id,
+                COALESCE(mr.merchant_id, 0) AS merchant_id,
                 COALESCE(pr.product_name, p.name, 'Product') AS target_name,
                 pr.product_id AS target_id,
-                mr.customer_id,
+                COALESCE(mr.customer_id, 0) AS customer_id,
                 COALESCE(CONCAT(c.first_name, ' ', c.last_name), CONCAT(bo.customer_firstname, ' ', bo.customer_lastname), 'Shopper') AS customer_name,
                 COALESCE(c.email_id, bo.customer_email, '') AS customer_email,
                 pr.rating,
@@ -69,7 +69,7 @@ class ProductReviewModel extends CI_Model
                 " . $pr_status_expr . ",
                 pr.created_at
             FROM ym_product_reviews pr
-            JOIN ym_merchant_reviews mr ON mr.id = pr.review_id
+            LEFT JOIN ym_merchant_reviews mr ON mr.id = pr.review_id
             LEFT JOIN products p ON p.id = pr.product_id
             LEFT JOIN publisher pub ON pub.id = mr.merchant_id
             LEFT JOIN customers c ON c.id = mr.customer_id
@@ -109,7 +109,7 @@ class ProductReviewModel extends CI_Model
         $sql = $this->_build_base_query($search_param, $status_filter, $type_filter);
         $sql .= " ORDER BY created_at DESC";
 
-        if (!empty($limit)) {
+        if (!empty($limit) && (int)$limit > 0) {
             $sql .= " LIMIT " . (int)$page . ", " . (int)$limit;
         }
 

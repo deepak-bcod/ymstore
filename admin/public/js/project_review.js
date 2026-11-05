@@ -52,6 +52,9 @@ function initReviewDataTable() {
             'data': function(d) {
                 d.status_filter = window.currentStatusFilter || 'all';
                 d.type_filter = window.currentTypeFilter || 'merchant';
+            },
+            'error': function(xhr, error, thrown) {
+                console.error("Review DataTable error: ", xhr.responseText);
             }
         },
         'columns': [
@@ -79,18 +82,18 @@ function initReviewDataTable() {
 function switchReviewCategory(category, elem) {
     window.currentTypeFilter = category;
 
-    // Update tab styling
+    // Update main tab active classes
     $('#reviewMainCategoryTabs .nav-link').removeClass('active').addClass('text-muted');
-    $(elem).addClass('active').removeClass('text-muted');
+    $('#tab-' + category + '-reviews').addClass('active').removeClass('text-muted');
 
-    // Update column headers & indicator
+    // Update column headers & indicator across all header elements (including DataTables scroll clone)
     if (category === 'merchant') {
-        $('#col-target-header').text('Merchant Name');
-        $('#col-rating-header').text('Service Rating');
+        $('[id="col-target-header"]').text('Merchant Name');
+        $('[id="col-rating-header"]').text('Service Rating');
         $('#indicator-text').text('Merchant Service Reviews');
     } else {
-        $('#col-target-header').text('Product Name');
-        $('#col-rating-header').text('Product Rating');
+        $('[id="col-target-header"]').text('Product Name');
+        $('[id="col-rating-header"]').text('Product Rating');
         $('#indicator-text').text('Product Reviews');
     }
 
