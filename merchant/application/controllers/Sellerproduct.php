@@ -19347,16 +19347,9 @@ class Sellerproduct extends CI_Controller {
 					// 	$barcode = $product[$key15];
 					// }
 					if (in_array("inventory", $headers)) {
-    $key12 = array_search('inventory', $headers);
-
-    if (
-        isset($product[$key12]) &&
-        trim($product[$key12]) !== '' &&
-        is_numeric($product[$key12])
-    ) {
-        $stock_qty = max(0, (int)$product[$key12]);
-    }
-}
+						$key12 = array_search('inventory', $headers);
+						$stock_qty = $product[$key12];
+					}
 
 					if (in_array("cost_price", $headers)) {
 						$key13 = array_search('cost_price', $headers);
@@ -19594,7 +19587,7 @@ class Sellerproduct extends CI_Controller {
 								'ip' => $_SERVER['REMOTE_ADDR']
 							);
 							//echo "<pre>";print_r($updatedata);die;
-							$where_arr = aray('id' => $product_id);
+							$where_arr = array('id' => $product_id);
 							$this->SellerProductModel->updateData('products', $where_arr, $updatedata);
 
 							if ($product_id) {
