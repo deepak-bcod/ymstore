@@ -39,119 +39,140 @@ class ProductReviewController extends CI_Controller {
 
     public function ajaxreviewlist()
     {
-        $draw = isset($_POST['draw']) ? (int)$_POST['draw'] : 1;
-        $row = isset($_POST['start']) ? (int)$_POST['start'] : 0;
-        $rowperpage = isset($_POST['length']) ? (int)$_POST['length'] : 50;
+        try {
+            $draw = isset($_POST['draw']) ? (int)$_POST['draw'] : 1;
+            $row = isset($_POST['start']) ? (int)$_POST['start'] : 0;
+            $rowperpage = isset($_POST['length']) ? (int)$_POST['length'] : 50;
 
-        $search_param = array();
-        if (!empty($_POST['search']['value'])) {
-            $search_param['keyword'] = trim($_POST['search']['value']);
-        }
-
-        $status_filter = isset($_POST['status_filter']) ? trim($_POST['status_filter']) : 'all';
-        $type_filter = isset($_POST['type_filter']) && in_array($_POST['type_filter'], array('merchant', 'product', 'all')) ? trim($_POST['type_filter']) : 'merchant';
-
-        $reviewList = $this->ProductReviewModel->getReviewsList($row, $rowperpage, $search_param, $status_filter, $type_filter);
-        $totalRecords = $this->ProductReviewModel->getReviewsCount(array(), '', '');
-        $totalRecordwithFilter = $this->ProductReviewModel->getReviewsCount($search_param, $status_filter, $type_filter);
-
-        $data = array();
-
-        if (!empty($reviewList)) {
-            foreach ($reviewList as $r) {
-                $type = $r['review_type'];
-                $id = (int)$r['review_id'];
-                $parent_id = (int)$r['parent_review_id'];
-                $current_status = strtolower($r['status']);
-
-                // Status Badge
-                if ($current_status === 'published') {
-                    $status_badge = '<span class="badge badge-success" style="background:#28a745;color:#fff;padding:6px 10px;font-size:12px;border-radius:4px;font-weight:600;"><i class="fa fa-check-circle"></i> Published</span>';
-                } elseif ($current_status === 'rejected') {
-                    $status_badge = '<span class="badge badge-danger" style="background:#dc3545;color:#fff;padding:6px 10px;font-size:12px;border-radius:4px;font-weight:600;"><i class="fa fa-times-circle"></i> Rejected</span>';
-                } else {
-                    $status_badge = '<span class="badge badge-warning" style="background:#ffc107;color:#212529;padding:6px 10px;font-size:12px;border-radius:4px;font-weight:600;"><i class="fa fa-clock"></i> Pending</span>';
-                }
-
-                // Type Badge
-                if ($type === 'merchant') {
-                    $type_badge = '<span class="badge" style="background:#17a2b8;color:#fff;padding:4px 8px;font-size:11px;border-radius:3px;">Merchant Service</span>';
-                } else {
-                    $type_badge = '<span class="badge" style="background:#6f42c1;color:#fff;padding:4px 8px;font-size:11px;border-radius:3px;">Product</span>';
-                }
-
-                // Stars display
-                $rating_num = (int)$r['rating'];
-                $stars_html = '<span style="color:#f59e0b;font-size:14px;white-space:nowrap;">';
-                for ($s = 1; $s <= 5; $s++) {
-                    $stars_html .= ($s <= $rating_num) ? '★' : '<span style="color:#d1d5db;">★</span>';
-                }
-                $stars_html .= '</span> <small style="font-weight:600;color:#333;">(' . $rating_num . '/5)</small>';
-
-                // Review comments with ellipsis
-                $comment_text = !empty($r['comments']) ? htmlspecialchars($r['comments']) : '<em style="color:#9ca3af;">No comments</em>';
-                if (mb_strlen($r['comments'] ?? '') > 70) {
-                    $comment_preview = '<span title="' . htmlspecialchars($r['comments']) . '">' . htmlspecialchars(mb_substr($r['comments'], 0, 70)) . '...</span>';
-                } else {
-                    $comment_preview = $comment_text;
-                }
-
-                // Created date
-                $created_date = !empty($r['created_at']) ? date("d M Y, h:i A", strtotime($r['created_at'])) : '-';
-
-                // Order link / display
-                $order_display = !empty($r['B2B_order_id']) ? htmlspecialchars($r['B2B_order_id']) : ('#' . $r['order_id']);
-
-                // Action buttons (Independent Publish / Reject / Pending)
-                $action_btns = '<div class="btn-group btn-group-sm" role="group" style="gap:4px;">';
-                if ($current_status !== 'published') {
-                    $action_btns .= '<button type="button" class="btn btn-sm btn-outline-success" onclick="changeReviewStatus(\'' . $type . '\', ' . $id . ', \'published\')" title="Publish Review" style="padding:3px 8px;font-size:11px;font-weight:600;"><i class="fa fa-check"></i> Publish</button>';
-                }
-                if ($current_status !== 'rejected') {
-                    $action_btns .= '<button type="button" class="btn btn-sm btn-outline-danger" onclick="changeReviewStatus(\'' . $type . '\', ' . $id . ', \'rejected\')" title="Reject Review" style="padding:3px 8px;font-size:11px;font-weight:600;"><i class="fa fa-times"></i> Reject</button>';
-                }
-                if ($current_status !== 'pending') {
-                    $action_btns .= '<button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="changeReviewStatus(\'' . $type . '\', ' . $id . ', \'pending\')" title="Mark as Pending" style="padding:3px 8px;font-size:11px;font-weight:600;"><i class="fa fa-clock"></i> Pending</button>';
-                }
-                $action_btns .= '</div>';
-
-                // View Details Button
-                $view_btn = '<button type="button" class="btn btn-sm btn-info text-white" onclick="viewOrderReviews(' . $parent_id . ')" title="View Order Reviews" style="padding:4px 10px;font-size:12px;"><i class="fa fa-eye"></i> View</button>';
-
-                // Delete button
-                if (empty($this->session->userdata('userPermission')) || in_array('webshop/product_reviews/write', $this->session->userdata('userPermission'))) {
-                    $delete_btn = '<a href="javascript:void(0)" onclick="deleteReviewItem(\'' . $type . '\', ' . $id . ')" class="text-danger" title="Delete Review"><i class="fa fa-trash-alt"></i></a>';
-                } else {
-                    $delete_btn = '-';
-                }
-
-                $data[] = array(
-                    "id"            => '<input type="checkbox" name="chk_review[]" data-type="' . $type . '" value="' . $id . '">',
-                    "order_id"      => '<strong style="color:#007bff;">' . $order_display . '</strong>',
-                    "type"          => $type_badge,
-                    "target_name"   => '<strong>' . htmlspecialchars($r['target_name']) . '</strong>',
-                    "customer_name" => htmlspecialchars($r['customer_name']),
-                    "email_id"      => htmlspecialchars($r['customer_email']),
-                    "rating"        => $stars_html,
-                    "review"        => $comment_preview,
-                    "created_at"    => '<small>' . $created_date . '</small>',
-                    "status"        => $status_badge,
-                    "action"        => $action_btns,
-                    "view_url"      => $view_btn,
-                    "delete"        => $delete_btn
-                );
+            $search_param = array();
+            if (!empty($_POST['search']['value'])) {
+                $search_param['keyword'] = trim($_POST['search']['value']);
             }
+
+            $status_filter = isset($_POST['status_filter']) ? trim($_POST['status_filter']) : 'all';
+            $type_filter = isset($_POST['type_filter']) && in_array($_POST['type_filter'], array('merchant', 'product', 'all')) ? trim($_POST['type_filter']) : 'merchant';
+
+            $reviewList = $this->ProductReviewModel->getReviewsList($row, $rowperpage, $search_param, $status_filter, $type_filter);
+            $totalRecords = $this->ProductReviewModel->getReviewsCount(array(), '', $type_filter);
+            $totalRecordwithFilter = $this->ProductReviewModel->getReviewsCount($search_param, $status_filter, $type_filter);
+
+            $data = array();
+
+            if (!empty($reviewList)) {
+                foreach ($reviewList as $r) {
+                    $type = $r['review_type'] ?? 'product';
+                    $id = (int)($r['review_id'] ?? 0);
+                    $parent_id = (int)($r['parent_review_id'] ?? 0);
+                    $current_status = strtolower($r['status'] ?? 'pending');
+
+                    // Status Badge
+                    if ($current_status === 'published') {
+                        $status_badge = '<span class="badge badge-success" style="background:#28a745;color:#fff;padding:6px 10px;font-size:12px;border-radius:4px;font-weight:600;"><i class="fa fa-check-circle"></i> Published</span>';
+                    } elseif ($current_status === 'rejected') {
+                        $status_badge = '<span class="badge badge-danger" style="background:#dc3545;color:#fff;padding:6px 10px;font-size:12px;border-radius:4px;font-weight:600;"><i class="fa fa-times-circle"></i> Rejected</span>';
+                    } else {
+                        $status_badge = '<span class="badge badge-warning" style="background:#ffc107;color:#212529;padding:6px 10px;font-size:12px;border-radius:4px;font-weight:600;"><i class="fa fa-clock"></i> Pending</span>';
+                    }
+
+                    // Type Badge
+                    if ($type === 'merchant') {
+                        $type_badge = '<span class="badge" style="background:#17a2b8;color:#fff;padding:4px 8px;font-size:11px;border-radius:3px;">Merchant Service</span>';
+                    } else {
+                        $type_badge = '<span class="badge" style="background:#6f42c1;color:#fff;padding:4px 8px;font-size:11px;border-radius:3px;">Product</span>';
+                    }
+
+                    // Stars display
+                    $rating_num = (int)($r['rating'] ?? 5);
+                    $stars_html = '<span style="color:#f59e0b;font-size:14px;white-space:nowrap;">';
+                    for ($s = 1; $s <= 5; $s++) {
+                        $stars_html .= ($s <= $rating_num) ? '★' : '<span style="color:#d1d5db;">★</span>';
+                    }
+                    $stars_html .= '</span> <small style="font-weight:600;color:#333;">(' . $rating_num . '/5)</small>';
+
+                    // Review comments with ellipsis
+                    $raw_comments = trim((string)($r['comments'] ?? ''));
+                    if (!empty($raw_comments)) {
+                        if (mb_strlen($raw_comments) > 70) {
+                            $comment_preview = '<span title="' . htmlspecialchars($raw_comments) . '">' . htmlspecialchars(mb_substr($raw_comments, 0, 70)) . '...</span>';
+                        } else {
+                            $comment_preview = htmlspecialchars($raw_comments);
+                        }
+                    } else {
+                        $comment_preview = '<em style="color:#9ca3af;">No comments</em>';
+                    }
+
+                    // Created date
+                    $created_date = !empty($r['created_at']) ? date("d M Y, h:i A", strtotime($r['created_at'])) : '-';
+
+                    // Order link / display
+                    $order_display = !empty($r['B2B_order_id']) ? htmlspecialchars($r['B2B_order_id']) : ('#' . ($r['order_id'] ?? ''));
+
+                    // Action buttons (Independent Publish / Reject / Pending)
+                    $action_btns = '<div class="btn-group btn-group-sm" role="group" style="gap:4px;">';
+                    if ($current_status !== 'published') {
+                        $action_btns .= '<button type="button" class="btn btn-sm btn-outline-success" onclick="changeReviewStatus(\'' . $type . '\', ' . $id . ', \'published\')" title="Publish Review" style="padding:3px 8px;font-size:11px;font-weight:600;"><i class="fa fa-check"></i> Publish</button>';
+                    }
+                    if ($current_status !== 'rejected') {
+                        $action_btns .= '<button type="button" class="btn btn-sm btn-outline-danger" onclick="changeReviewStatus(\'' . $type . '\', ' . $id . ', \'rejected\')" title="Reject Review" style="padding:3px 8px;font-size:11px;font-weight:600;"><i class="fa fa-times"></i> Reject</button>';
+                    }
+                    if ($current_status !== 'pending') {
+                        $action_btns .= '<button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="changeReviewStatus(\'' . $type . '\', ' . $id . ', \'pending\')" title="Mark as Pending" style="padding:3px 8px;font-size:11px;font-weight:600;"><i class="fa fa-clock"></i> Pending</button>';
+                    }
+                    $action_btns .= '</div>';
+
+                    // View Details Button
+                    $view_btn = '<button type="button" class="btn btn-sm btn-info text-white" onclick="viewOrderReviews(' . $parent_id . ')" title="View Order Reviews" style="padding:4px 10px;font-size:12px;"><i class="fa fa-eye"></i> View</button>';
+
+                    // Delete button
+                    if (empty($this->session->userdata('userPermission')) || in_array('webshop/product_reviews/write', $this->session->userdata('userPermission'))) {
+                        $delete_btn = '<a href="javascript:void(0)" onclick="deleteReviewItem(\'' . $type . '\', ' . $id . ')" class="text-danger" title="Delete Review"><i class="fa fa-trash-alt"></i></a>';
+                    } else {
+                        $delete_btn = '-';
+                    }
+
+                    $data[] = array(
+                        "id"            => '<input type="checkbox" name="chk_review[]" data-type="' . $type . '" value="' . $id . '">',
+                        "order_id"      => '<strong style="color:#007bff;">' . $order_display . '</strong>',
+                        "type"          => $type_badge,
+                        "target_name"   => '<strong>' . htmlspecialchars($r['target_name'] ?? '') . '</strong>',
+                        "customer_name" => htmlspecialchars($r['customer_name'] ?? ''),
+                        "email_id"      => htmlspecialchars($r['customer_email'] ?? ''),
+                        "rating"        => $stars_html,
+                        "review"        => $comment_preview,
+                        "created_at"    => '<small>' . $created_date . '</small>',
+                        "status"        => $status_badge,
+                        "action"        => $action_btns,
+                        "view_url"      => $view_btn,
+                        "delete"        => $delete_btn
+                    );
+                }
+            }
+
+            $response = array(
+                "draw"                 => intval($draw),
+                "recordsTotal"         => intval($totalRecords),
+                "recordsFiltered"      => intval($totalRecordwithFilter),
+                "iTotalRecords"        => intval($totalRecords),
+                "iTotalDisplayRecords" => intval($totalRecordwithFilter),
+                "data"                 => $data,
+                "aaData"               => $data
+            );
+
+            echo json_encode($response);
+            exit;
+        } catch (Throwable $e) {
+            echo json_encode(array(
+                "draw"                 => isset($_POST['draw']) ? intval($_POST['draw']) : 1,
+                "recordsTotal"         => 0,
+                "recordsFiltered"      => 0,
+                "iTotalRecords"        => 0,
+                "iTotalDisplayRecords" => 0,
+                "data"                 => array(),
+                "aaData"               => array(),
+                "error"                => $e->getMessage()
+            ));
+            exit;
         }
-
-        $response = array(
-            "draw"            => intval($draw),
-            "iTotalRecords"   => intval($totalRecords),
-            "iTotalDisplayRecords" => intval($totalRecordwithFilter),
-            "aaData"          => $data
-        );
-
-        echo json_encode($response);
-        exit;
     }
 
     public function change_reviews_status()
