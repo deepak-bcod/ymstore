@@ -10,6 +10,40 @@ $this->load->view('common/fbc-user/header');
 .badge-status-close { background-color: #6c757d; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
 .badge-status-reopen { background-color: #fd7e14; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
 .badge-status-close-final { background-color: #343a40; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+
+/* Horizontal scroller styling */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 25px;
+}
+.table-acct-resolution-list {
+    min-width: 1200px !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+}
+.table-acct-resolution-list th,
+.table-acct-resolution-list td {
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+
+/* Custom horizontal scrollbar */
+.table-responsive::-webkit-scrollbar {
+    height: 10px;
+}
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f3f5;
+    border-radius: 6px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 6px;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
 </style>
 
 <main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
@@ -42,7 +76,7 @@ $this->load->view('common/fbc-user/header');
         <?php endif; ?>
 
         <div class="table-responsive">
-            <table class="table table-bordered table-hover text-center">
+            <table class="table table-bordered table-hover text-center table-acct-resolution-list">
                 <thead class="thead-light">
                     <tr>
                         <th>Ticket #</th>
