@@ -1,41 +1,24 @@
-
-    <table id="DataTables_Table_Project_Review_list" class="table table-bordered table-style">
-        <thead>
-            <tr>
-                <th data-orderable="false">
-                    <input type="checkbox" id="ckbCheckAllSP"> Select All
-                </th>
-                <th>Product Name </th>
-                <th>Customer Name </th>
-                <th>Customer Email </th>
-                <th>Rating Given </th>
-                <th>Review Given </th>
-                <th>Review Date </th>
-                <th>View </th>
-                <th>Action</th>
-                <th>Delete </th>
-            </tr>
-        </thead>
-        <tbody>
-
-        </tbody>
-    </table>
-
-<!-- //model\\ -->
-
-    <div class="modal fade show" tabindex="-1" id="review_details" role="dialog">
-        <div class="modal-dialog change-pass-modal" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="head-name">Product Review</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body pro-review-popup" id="pro-review-popup">
-
-                </div>
-            </div>
-        </div>
-    </div>
-
+<table id="DataTables_Table_Project_Review_list" class="table table-bordered table-hover table-striped" style="width: 100%; font-size: 13px;">
+    <thead class="thead-light">
+        <tr>
+            <th data-orderable="false" style="width: 30px; text-align: center;">
+                <input type="checkbox" id="ckbCheckAllReviews">
+            </th>
+            <th style="width: 90px;">Sub-Order</th>
+            <th style="width: 110px;">Review Type</th>
+            <th style="min-width: 160px;">Target Name</th>
+            <th style="width: 130px;">Customer</th>
+            <th style="width: 150px;">Email</th>
+            <th style="width: 110px; text-align: center;">Rating</th>
+            <th style="min-width: 180px;">Comments</th>
+            <th style="width: 120px;">Submitted On</th>
+            <th style="width: 95px; text-align: center;">Status</th>
+            <th data-orderable="false" style="min-width: 170px; text-align: center;">Quick Action</th>
+            <th data-orderable="false" style="width: 70px; text-align: center;">Details</th>
+            <th data-orderable="false" style="width: 40px; text-align: center;"><i class="fa fa-trash-alt text-muted"></i></th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Populated via DataTables Server-Side AJAX -->
+    </tbody>
+</table>

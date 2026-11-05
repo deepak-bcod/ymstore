@@ -1,64 +1,101 @@
 <?php $this->load->view('common/fbc-user/header'); ?>
 
 <main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
-
-<!-- <ul class="nav nav-pills">
-
-    <li class="active"><a data-toggle="pill" href="#customer-listing-tab">Customer Listing</a></li>
-
-	<li><a data-toggle="pill" href="#customer-type-tab">Customer Type</a></li>
-
-  </ul> -->
-
-   <div class="tab-content">
-
-    <div id="customer-listing-tab" class="tab-pane fade in active min-height-480  common-tab-section admin-shop-details-table" style="opacity:1;">
-
-      <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
-          <h1 class="head-name">Product Reviews</h1>
-
-          <!-- <div class="float-right product-filter-div">
-            <button class="white-btn" onclick="window.location.href='<?php //echo base_url(); ?>add-customer';"> +  Add New</button>
-          </div> -->
-          <!-- product filter div -->
-      </div>
-
-      <form method="POST" id="pr_listing_Form">
-        <?php if(empty($this->session->userdata('userPermission')) || in_array('webshop/product_reviews/write',$this->session->userdata('userPermission'))){ ?>
-        <div class="float-right product-filter-div">
-          <a class="white-btn delete-all-btn" id="deleteall" data-toggle="modal" data-target="#deleteALLModal">Delete ALL</a>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="head-name" style="margin-bottom: 5px;">Review Management</h1>
+            <p class="text-muted" style="margin-bottom: 0;">Moderate merchant customer service ratings and individual product reviews independently.</p>
         </div>
-      <?php } ?>
-        <!-- form -->
-        <div class="content-main form-dashboard">
-          <div class="table-responsive text-center"  id="reviewListBlock">
-            <?php include('product_review_list.php');?>
-          </div>
-        </div>
-      </form>
     </div>
-  </div>
+
+    <!-- Status Filter Tabs & Type Selector -->
+    <div class="row mb-3 align-items-center" style="margin-bottom: 20px;">
+        <div class="col-md-8">
+            <ul class="nav nav-pills" id="reviewStatusTabs" style="gap: 8px;">
+                <li class="nav-item">
+                    <a class="nav-link active" href="javascript:void(0)" onclick="filterByStatus('all', this)" style="border-radius: 20px; font-weight: 600; padding: 8px 18px;">
+                        All <span class="badge badge-secondary ml-1"><?= $status_counts['all'] ?? 0 ?></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-warning" href="javascript:void(0)" onclick="filterByStatus('pending', this)" style="border-radius: 20px; font-weight: 600; padding: 8px 18px;">
+                        <i class="fa fa-clock"></i> Pending <span class="badge badge-warning ml-1" style="background:#ffc107;color:#212529;"><?= $status_counts['pending'] ?? 0 ?></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-success" href="javascript:void(0)" onclick="filterByStatus('published', this)" style="border-radius: 20px; font-weight: 600; padding: 8px 18px;">
+                        <i class="fa fa-check-circle"></i> Published <span class="badge badge-success ml-1" style="background:#28a745;"><?= $status_counts['published'] ?? 0 ?></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-danger" href="javascript:void(0)" onclick="filterByStatus('rejected', this)" style="border-radius: 20px; font-weight: 600; padding: 8px 18px;">
+                        <i class="fa fa-times-circle"></i> Rejected <span class="badge badge-danger ml-1" style="background:#dc3545;"><?= $status_counts['rejected'] ?? 0 ?></span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="col-md-4 text-right">
+            <div class="d-inline-flex align-items-center" style="gap: 10px;">
+                <label for="reviewTypeFilter" class="mb-0 text-muted" style="font-weight: 600; white-space: nowrap;">Type:</label>
+                <select id="reviewTypeFilter" class="form-control form-control-sm" onchange="filterByType(this.value)" style="width: auto; min-width: 170px; display: inline-block;">
+                    <option value="all">All Review Types</option>
+                    <option value="merchant">Merchant Service Only</option>
+                    <option value="product">Product Reviews Only</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table Container -->
+    <div class="card shadow-sm" style="border: 1px solid #e5e7eb; border-radius: 8px;">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #e5e7eb;">
+            <div class="d-flex align-items-center" style="gap: 10px;">
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="bulkAction('published')" style="font-weight: 600;">
+                    <i class="fa fa-check"></i> Bulk Publish
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkAction('rejected')" style="font-weight: 600;">
+                    <i class="fa fa-times"></i> Bulk Reject
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="bulkAction('pending')" style="font-weight: 600;">
+                    <i class="fa fa-clock"></i> Bulk Set Pending
+                </button>
+            </div>
+            <div class="text-muted small">
+                * Pending and Rejected reviews are strictly hidden from public store and product pages.
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive" style="padding: 15px;">
+                <?php include('product_review_list.php'); ?>
+            </div>
+        </div>
+    </div>
 </main>
 
-<div class="modal fade" id="deleteALLModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-        <!-- <form id="deleteAllModalForm" method="POST" > -->
-            <!-- <input type="hidden" name="row_id" id="row_id" value=""> -->
-            <div class="modal-header">
-            <h1 class="head-name">Are you sure you want to delete selected special pricings ?</h1>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
+<!-- MODAL: Order Review Full Detail Popup -->
+<div class="modal fade" id="review_details" tabindex="-1" role="dialog" aria-labelledby="reviewDetailsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document" style="max-width: 850px;">
+        <div class="modal-content" style="border-radius: 8px; overflow: hidden;">
+            <div class="modal-header bg-light py-3">
+                <h5 class="modal-title font-weight-bold" id="reviewDetailsLabel">
+                    <i class="fa fa-star text-warning"></i> Order Reviews & Moderation
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <div class="modal-footer">
-            <button type="button" data-dismiss="modal" aria-label="Close" class="white-btn">No</button>
-            <button type="button" class="purple-btn" onclick="OpenBulkDeletePopup(event);">Delete</button>
+            <div class="modal-body p-4" id="pro-review-popup">
+                <!-- Dynamically loaded via AJAX -->
             </div>
-        <!-- </form> -->
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
+
 <script type="text/javascript" src="<?php echo SKIN_JS; ?>project_review.js?v=<?php echo CSSJS_VERSION; ?>"></script>
 
 <?php $this->load->view('common/fbc-user/footer'); ?>
