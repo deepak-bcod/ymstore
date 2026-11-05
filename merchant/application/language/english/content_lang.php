@@ -31,12 +31,12 @@ $lang['dashboard'] = "Dashboard";
 $lang['products'] = "Products";
 $lang['no_products_found'] = "No Products found";
 
-$lang['total_active_daily_deals'] = "Total Purchased Daily Deals Slot";
-$lang['current_active_daily_deals'] = "Current Assigned Daily Deals Slot";
+$lang['total_active_daily_deals'] = "Purchased Daily Deals Slot";
+$lang['current_active_daily_deals'] = "Assigned Daily Deals Slot";
 $lang['remaining_daily_deals_slots'] = "Remaining Daily Deals Slots";
 
-$lang['total_active_flash_sale'] = "Total Purchased Flash Sale Slot";
-$lang['current_active_flash_sale'] = "Current Assigned Flash Sale Slot";
+$lang['total_active_flash_sale'] = "Purchased Flash Sale Slot";
+$lang['current_active_flash_sale'] = "Assigned Flash Sale Slot";
 $lang['remaining_flash_sale_slots'] = "Remaining Flash Sale Slots";
 
 $lang['my_achievements'] = "My Achievements";
