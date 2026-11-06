@@ -681,22 +681,13 @@ $(document).ready(function () {
       }
 
     },
-errorClass: "error text-danger",
-    submitHandler: function (form) {
-      var $btn = $('#place_order');
-      
-      // ✅ Prevent double submission if already disabled or processing flag is set
-      if ($btn.prop('disabled') || $btn.data('submitting')) {
-          return false;
-      }
-      
-      // Mark as submitting and disable instantly
-      $btn.data('submitting', true);
-      $btn.prop('disabled', true);
-      $btn.text(isFrench ? 'Traitement en cours...' : 'Processing...');
 
-      // Continue normal submit once
-      form.submit();
+    errorClass: "error text-danger",
+    submitHandler: function (form) {
+      // ✅ Disable button only when form is valid
+      $('#place_order').prop('disabled', true);
+
+      form.submit(); // continue normal submit
     },
 
     messages: {
