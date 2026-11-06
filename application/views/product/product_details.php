@@ -335,22 +335,20 @@ $lang = $this->session->userdata('site_lang');
                                                                 <!-- Right: badge -->
                                                                 <div class="right-badge">
                                                                     <?php
-                                                                    $avg = round($rating->avg_rating); // average rating
-                                                                    $badge = '';
-                                                                    if ($avg >= 3) {
-                                                                        if ($avg == 3) {
-                                                                            $badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_3_stars.svg';
-                                                                        } elseif ($avg == 4) {
-                                                                            $badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_4_stars.svg';
-                                                                        } elseif ($avg == 5) {
-                                                                            $badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_5_stars.svg';
-                                                                        }
+                                                                    $avg_badge_val = !empty($rating->avg_rating) ? (float)$rating->avg_rating : (!empty($merchant_rating->avg_rating) ? (float)$merchant_rating->avg_rating : 0);
+                                                                    if ($avg_badge_val >= 4.5) {
+                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                                                    } elseif ($avg_badge_val >= 3.5) {
+                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                                                    } elseif ($avg_badge_val >= 2.5) {
+                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                                                    } else {
+                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
                                                                     }
-                                                                    if ($badge): ?>
-                                                                        <img src="<?= $badge; ?>"
-                                                                            alt="<?php echo $this->lang->line('trust_badge'); ?>"
-                                                                            width="100" class="badge-product-details">
-                                                                    <?php endif; ?>
+                                                                    ?>
+                                                                    <img src="<?= $badge; ?>"
+                                                                        alt="<?php echo $this->lang->line('trust_badge'); ?>"
+                                                                        width="100" class="badge-product-details">
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -363,22 +361,20 @@ $lang = $this->session->userdata('site_lang');
                                                                 <!-- Right: badge -->
                                                                 <div class="right-badge">
                                                                     <?php
-                                                                    $avg = round($rating->avg_rating); // average rating
-                                                                    $badge = '';
-                                                                    if ($avg >= 3) {
-                                                                        if ($avg == 3) {
-                                                                            $badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_3_stars.svg';
-                                                                        } elseif ($avg == 4) {
-                                                                            $badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_4_stars.svg';
-                                                                        } elseif ($avg == 5) {
-                                                                            $badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_5_stars.svg';
-                                                                        }
+                                                                    $avg_badge_val = !empty($rating->avg_rating) ? (float)$rating->avg_rating : (!empty($merchant_rating->avg_rating) ? (float)$merchant_rating->avg_rating : 0);
+                                                                    if ($avg_badge_val >= 4.5) {
+                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                                                    } elseif ($avg_badge_val >= 3.5) {
+                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                                                    } elseif ($avg_badge_val >= 2.5) {
+                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                                                    } else {
+                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
                                                                     }
-                                                                    if ($badge): ?>
-                                                                        <img src="<?= $badge; ?>"
-                                                                            alt="<?php echo $this->lang->line('trust_badge'); ?>"
-                                                                            width="100" class="badge-product-details">
-                                                                    <?php endif; ?>
+                                                                    ?>
+                                                                    <img src="<?= $badge; ?>"
+                                                                        alt="<?php echo $this->lang->line('trust_badge'); ?>"
+                                                                        width="100" class="badge-product-details">
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -592,24 +588,34 @@ $lang = $this->session->userdata('site_lang');
                                             $merch_avg = !empty($merchant_rating->avg_rating) ? (float)$merchant_rating->avg_rating : (!empty($rating->avg_rating) ? (float)$rating->avg_rating : 0);
                                             $merch_total = !empty($merchant_rating->total_reviews) ? (int)$merchant_rating->total_reviews : (!empty($rating->total_reviews) ? (int)$rating->total_reviews : 0);
 
-                                            // Determine Merchant Badge
-                                            $m_badge_img = '';
+                                            // Determine Merchant Badge from uploads/trust_badges
                                             if ($merch_avg >= 4.5) {
                                                 $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                                $m_badge_alt = 'Merchant 5 Stars Trusted Badge';
                                             } elseif ($merch_avg >= 3.5) {
                                                 $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                                $m_badge_alt = 'Merchant 4 Stars Trusted Badge';
                                             } elseif ($merch_avg >= 2.5) {
                                                 $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                                $m_badge_alt = 'Merchant 3 Stars Trusted Badge';
+                                            } else {
+                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                                $m_badge_alt = 'Merchant Trusted Badge';
                                             }
 
-                                            // Determine Product Badge
-                                            $p_badge_img = '';
+                                            // Determine Product Badge from uploads/trust_badges
                                             if ($prod_avg >= 4.5) {
                                                 $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                                $p_badge_alt = 'Product 5 Stars Trusted Badge';
                                             } elseif ($prod_avg >= 3.5) {
                                                 $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                                $p_badge_alt = 'Product 4 Stars Trusted Badge';
                                             } elseif ($prod_avg >= 2.5) {
                                                 $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                                $p_badge_alt = 'Product 3 Stars Trusted Badge';
+                                            } else {
+                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                                $p_badge_alt = 'Product Trusted Badge';
                                             }
 
                                             // Featured testimony
@@ -648,21 +654,8 @@ $lang = $this->session->userdata('site_lang');
                                             </div>
 
                                             <div class="circle-pair" aria-label="Illustrative Merchant and Product badges">
-                                                <?php if (!empty($m_badge_img)): ?>
-                                                    <img src="<?= $m_badge_img ?>" width="120" height="120" alt="Merchant <?= $merch_avg ?> Stars Badge" title="Merchant Average Rating: <?= $merch_avg ?> / 5">
-                                                <?php else: ?>
-                                                    <div class="badge-placeholder" title="Merchant rating unrated">
-                                                        <i class="fa fa-shield-alt" style="color: #bbb; font-size: 32px;"></i>
-                                                    </div>
-                                                <?php endif; ?>
-
-                                                <?php if (!empty($p_badge_img)): ?>
-                                                    <img src="<?= $p_badge_img ?>" width="120" height="120" alt="Product <?= $prod_avg ?> Stars Badge" title="Product Average Rating: <?= $prod_avg ?> / 5">
-                                                <?php else: ?>
-                                                    <div class="badge-placeholder" title="Product rating unrated">
-                                                        <i class="fa fa-award" style="color: #bbb; font-size: 32px;"></i>
-                                                    </div>
-                                                <?php endif; ?>
+                                                <img src="<?= $m_badge_img ?>" width="120" height="120" alt="<?= $m_badge_alt ?>" title="Merchant Service Rating: <?= $merch_avg ?> / 5" style="width: 120px; height: 120px; object-fit: contain;">
+                                                <img src="<?= $p_badge_img ?>" width="120" height="120" alt="<?= $p_badge_alt ?>" title="Product Rating: <?= $prod_avg ?> / 5" style="width: 120px; height: 120px; object-fit: contain;">
                                             </div>
 
                                             <div class="testimony">
