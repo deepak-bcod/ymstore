@@ -660,6 +660,7 @@ $lang['days_label'] = 'Jours';
 $lang['description_tab'] = 'Description';
 $lang['specifications_tab'] = 'Spécifications';
 $lang['technical_specification_tab'] = 'Spécifications techniques';
+$lang['reviews_tab'] = 'Avis';
 $lang['additional_features_label'] = 'Caractéristiques supplémentaires';
 $lang['merchant_label'] = 'Marchand';
 

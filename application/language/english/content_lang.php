@@ -1341,6 +1341,7 @@ $lang['description_tab'] = 'Description';
 
 $lang['specifications_tab'] = 'Specifications';
 $lang['technical_specification_tab'] = 'Technical Specification';
+$lang['reviews_tab'] = 'Reviews';
 
 
 $lang['additional_features_label'] = 'Additional Features';
