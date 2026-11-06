@@ -182,14 +182,39 @@ class Shop_model extends CI_Model {
 
     }
 
+    /**
+     * Get average rating and total review count for a merchant
+     * Strictly calculates from admin-approved (Published) reviews
+     *
+     * @param int $merchant_id
+     * @return object (merchant_id, avg_rating, total_reviews)
+     */
     public function get_avg_ratings_by_merchant($merchant_id) {
-        $this->db->select('merchant_id, AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+        if (empty($merchant_id) || !$this->db->table_exists('ym_merchant_reviews')) {
+            return (object)[
+                'merchant_id'   => (int)$merchant_id,
+                'avg_rating'    => 0.0,
+                'total_reviews' => 0
+            ];
+        }
+
+        $m_id = (int)$merchant_id;
+
+        // Query average rating and count of published merchant reviews
+        $this->db->select('AVG(rating) AS avg_rating, COUNT(id) AS total_reviews');
         $this->db->from('ym_merchant_reviews');
-        $this->db->where('merchant_id', $merchant_id);
+        $this->db->where('merchant_id', $m_id);
         $this->db->where('status', 'published');
-        $this->db->group_by('merchant_id');
-        $query = $this->db->get();
-        return $query->row(); // one merchant
+        $row = $this->db->get()->row();
+
+        $avg   = (!empty($row) && $row->avg_rating !== null) ? round((float)$row->avg_rating, 1) : 0.0;
+        $total = (!empty($row) && $row->total_reviews !== null) ? (int)$row->total_reviews : 0;
+
+        return (object)[
+            'merchant_id'   => $m_id,
+            'avg_rating'    => $avg,
+            'total_reviews' => $total
+        ];
     }
 
     /**

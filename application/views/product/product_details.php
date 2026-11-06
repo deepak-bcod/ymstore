@@ -61,6 +61,27 @@ $lang = $this->session->userdata('site_lang');
                                 }
                                 ?>
                             </h1>
+                            <?php 
+                                $top_p_avg = !empty($product_rating->avg_rating) ? (float)$product_rating->avg_rating : 0;
+                                $top_p_total = !empty($product_rating->total_reviews) ? (int)$product_rating->total_reviews : 0;
+                                $top_p_half = round($top_p_avg * 2) / 2;
+                            ?>
+                            <div class="product-top-rating" style="margin: 6px 0 14px; display: flex; align-items: center; gap: 8px;">
+                                <div style="color: #ffbf00; font-size: 16px; letter-spacing: 2px;" title="Rating: <?= $top_p_avg ?> / 5 (<?= $top_p_total ?> reviews)">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <?php if ($top_p_half >= $i): ?>
+                                            <i class="fa fa-star"></i>
+                                        <?php elseif ($top_p_half == $i - 0.5): ?>
+                                            <i class="fa fa-star-half-alt"></i>
+                                        <?php else: ?>
+                                            <i class="fa-regular fa-star" style="color: #ddd;"></i>
+                                        <?php endif; ?>
+                                    <?php endfor; ?>
+                                </div>
+                                <a href="#reviews" class="jump-to-reviews-btn" style="font-size: 13px; color: #087bf3; text-decoration: none; font-weight: 500;">
+                                    (<?= $top_p_total ?> <?= $top_p_total == 1 ? 'review' : 'reviews' ?>)
+                                </a>
+                            </div>
                         </div>
 
                         <div class="col-md-4 col-sm-4">
@@ -494,6 +515,12 @@ $lang = $this->session->userdata('site_lang');
                                         <li><a href="#technical_specification"
                                                 data-toggle="tab"><?= $this->lang->line('technical_specification_tab'); ?></a></li>
                                     <?php } ?>
+                                    <li id="tab-reviews-link">
+                                        <a href="#reviews" data-toggle="tab">
+                                            <?= $this->lang->line('reviews_tab') ?? 'Reviews'; ?> 
+                                            (<?= !empty($product_rating->total_reviews) ? (int)$product_rating->total_reviews : 0; ?>)
+                                        </a>
+                                    </li>
                                 </ul>
 
                                 <div id="myTabContent" class="tab-content">
@@ -553,6 +580,195 @@ $lang = $this->session->userdata('site_lang');
                                             echo $ProductData->highlights;
                                         }
                                         ?>
+                                    </div>
+
+                                    <!-- Reviews Tab Pane (YM Review Figma UI) -->
+                                    <div class="tab-pane fade" id="reviews">
+                                        <?php
+                                            $prod_avg = !empty($product_rating->avg_rating) ? (float)$product_rating->avg_rating : 0;
+                                            $prod_total = !empty($product_rating->total_reviews) ? (int)$product_rating->total_reviews : 0;
+                                            $prod_half = round($prod_avg * 2) / 2;
+
+                                            $merch_avg = !empty($merchant_rating->avg_rating) ? (float)$merchant_rating->avg_rating : (!empty($rating->avg_rating) ? (float)$rating->avg_rating : 0);
+                                            $merch_total = !empty($merchant_rating->total_reviews) ? (int)$merchant_rating->total_reviews : (!empty($rating->total_reviews) ? (int)$rating->total_reviews : 0);
+
+                                            // Determine Merchant Badge
+                                            $m_badge_img = '';
+                                            if ($merch_avg >= 4.5) {
+                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                            } elseif ($merch_avg >= 3.5) {
+                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                            } elseif ($merch_avg >= 2.5) {
+                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                            }
+
+                                            // Determine Product Badge
+                                            $p_badge_img = '';
+                                            if ($prod_avg >= 4.5) {
+                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                            } elseif ($prod_avg >= 3.5) {
+                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                            } elseif ($prod_avg >= 2.5) {
+                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                            }
+
+                                            // Featured testimony
+                                            $feat = !empty($product_rating->featured_review) ? $product_rating->featured_review : null;
+                                            $feat_name = !empty($feat->customer_name) ? $feat->customer_name : ($prod_total > 0 ? 'Verified Shopper' : 'Shopper Feedback');
+                                            $feat_rating = !empty($feat->rating) ? (int)$feat->rating : ($prod_total > 0 ? 5 : 5);
+                                            $feat_text = !empty($feat->comments) ? $feat->comments : ($prod_total > 0 ? 'Great product and excellent customer service on Yellow Markets.' : 'Be the first to review this product after purchase to help our community of shoppers!');
+                                            $feat_initials = '';
+                                            $words = explode(' ', trim($feat_name));
+                                            if (count($words) >= 2) {
+                                                $feat_initials = strtoupper(substr($words[0], 0, 1) . substr($words[count($words)-1], 0, 1));
+                                            } else {
+                                                $feat_initials = strtoupper(substr($feat_name, 0, 2));
+                                            }
+
+                                            // Header company + category label
+                                            $company_name = !empty($ProductData->publication_name) ? $ProductData->publication_name : 'MERCHANT';
+                                            $cat_label = 'PRODUCT';
+                                            if (!empty($categoryListSub->CategoryDetails->cat_name)) {
+                                                $cat_label = $categoryListSub->CategoryDetails->cat_name;
+                                            } elseif (!empty($categoryList->CategoryDetails->cat_name)) {
+                                                $cat_label = $categoryList->CategoryDetails->cat_name;
+                                            }
+                                            $header_breadcrumb = strtoupper($company_name . ' | ' . $cat_label . ' REVIEW');
+                                        ?>
+                                        <div class="review-summary">
+                                            <div>
+                                                <small><?= htmlspecialchars($header_breadcrumb) ?></small>
+                                                <h1><?= htmlspecialchars($ProductData->name) ?></h1>
+                                                <div class="stars" aria-label="<?= $prod_avg ?> out of 5 stars">
+                                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                        <?= ($prod_half >= $i) ? '★' : (($prod_half == $i - 0.5) ? '★' : '☆') ?>
+                                                    <?php endfor; ?>
+                                                    <span>(<?= $prod_total ?>)</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="circle-pair" aria-label="Illustrative Merchant and Product badges">
+                                                <?php if (!empty($m_badge_img)): ?>
+                                                    <img src="<?= $m_badge_img ?>" width="120" height="120" alt="Merchant <?= $merch_avg ?> Stars Badge" title="Merchant Average Rating: <?= $merch_avg ?> / 5">
+                                                <?php else: ?>
+                                                    <div class="badge-placeholder" title="Merchant rating unrated">
+                                                        <i class="fa fa-shield-alt" style="color: #bbb; font-size: 32px;"></i>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <?php if (!empty($p_badge_img)): ?>
+                                                    <img src="<?= $p_badge_img ?>" width="120" height="120" alt="Product <?= $prod_avg ?> Stars Badge" title="Product Average Rating: <?= $prod_avg ?> / 5">
+                                                <?php else: ?>
+                                                    <div class="badge-placeholder" title="Product rating unrated">
+                                                        <i class="fa fa-award" style="color: #bbb; font-size: 32px;"></i>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <div class="testimony">
+                                                <span class="shopper-avatar"><?= !empty($feat_initials) ? $feat_initials : '' ?></span>
+                                                <div>
+                                                    <div style="font-weight: bold; font-size: 15px; color: #111;"><?= htmlspecialchars($feat_name) ?></div>
+                                                    <div class="mini-stars">
+                                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                            <?= ($feat_rating >= $i) ? '★' : '☆' ?>
+                                                        <?php endfor; ?>
+                                                    </div>
+                                                    <small><?= htmlspecialchars($feat_text) ?></small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="review-list">
+                                            <div class="list-heading">
+                                                <span><strong id="reviews-count-display"><?= $prod_total ?></strong> <?= $prod_total == 1 ? 'review' : 'reviews' ?></span>
+                                                <div class="review-sort-wrap" style="position: relative;">
+                                                    <button type="button" class="sort-btn" id="review-sort-btn">
+                                                        <span id="sort-current-text">Sort</span> <i class="fa fa-angle-down" style="margin-left: 4px;"></i>
+                                                    </button>
+                                                    <ul id="review-sort-dropdown" style="display: none; position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); list-style: none; padding: 6px 0; margin: 4px 0 0; z-index: 100; min-width: 140px; font-size: 13px;">
+                                                        <li><a href="javascript:void(0)" class="sort-option active" data-sort="newest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;">Newest</a></li>
+                                                        <li><a href="javascript:void(0)" class="sort-option" data-sort="highest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;">Highest Rating</a></li>
+                                                        <li><a href="javascript:void(0)" class="sort-option" data-sort="lowest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;">Lowest Rating</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            <div id="reviews-container">
+                                                <?php if (!empty($product_reviews)): ?>
+                                                    <?php foreach ($product_reviews as $idx => $rev): ?>
+                                                        <?php 
+                                                            $shopper_name = !empty($rev->customer_name) ? $rev->customer_name : 'Shopper';
+                                                            $words = explode(' ', trim($shopper_name));
+                                                            $initials = '';
+                                                            if (count($words) >= 2) {
+                                                                $initials = strtoupper(substr($words[0], 0, 1) . substr($words[count($words)-1], 0, 1));
+                                                            } else {
+                                                                $initials = strtoupper(substr($shopper_name, 0, 2));
+                                                            }
+                                                            $item_r = (int)$rev->item_rating;
+                                                            $service_r = (int)$rev->service_rating;
+                                                            $rev_time = strtotime($rev->created_at);
+                                                            $time_ago = date('d M Y', $rev_time);
+                                                            if (time() - $rev_time < 31536000) {
+                                                                $diff_d = round((time() - $rev_time) / 86400);
+                                                                if ($diff_d == 0) $time_ago = 'Today';
+                                                                elseif ($diff_d == 1) $time_ago = 'Yesterday';
+                                                                elseif ($diff_d < 30) $time_ago = $diff_d . ' days ago';
+                                                                elseif ($diff_d < 365) $time_ago = round($diff_d / 30) . ' months ago';
+                                                            } else {
+                                                                $time_ago = round((time() - $rev_time) / 31536000) . ' year ago';
+                                                            }
+
+                                                            // Generate a review headline / title
+                                                            $review_title = 'Great Product';
+                                                            if ($item_r == 5) {
+                                                                $review_title = ($idx % 2 == 1) ? 'They Are Just The Best' : 'Great Product';
+                                                            } elseif ($item_r == 4) {
+                                                                $review_title = 'Good Quality and Fit';
+                                                            } elseif ($item_r == 3) {
+                                                                $review_title = 'Satisfactory Experience';
+                                                            } else {
+                                                                $review_title = 'Product Review';
+                                                            }
+                                                        ?>
+                                                        <article class="review" data-rating="<?= $item_r ?>" data-time="<?= $rev_time ?>">
+                                                            <div class="review-head">
+                                                                <span class="avatar"><?= $initials ?></span>
+                                                                <div>
+                                                                    <b><?= htmlspecialchars($shopper_name) ?></b>
+                                                                    <span class="verified">Verified Shopper</span>
+                                                                    <?php if (!empty($ProductData->AttributesWithOptions)): ?>
+                                                                        <p><?= htmlspecialchars($ProductData->name) ?></p>
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                                <time><?= $time_ago ?></time>
+                                                            </div>
+                                                            <p class="item-score">
+                                                                ITEM: &nbsp;<?= $item_r ?> <span>★</span> &nbsp;|&nbsp; SERVICE: <?= $service_r ?> <span>★</span>
+                                                            </p>
+                                                            <h3><?= htmlspecialchars($review_title) ?></h3>
+                                                            <p><?= nl2br(htmlspecialchars($rev->comments)) ?></p>
+                                                            <div class="helpful">
+                                                                Was this helpful? 
+                                                                <button type="button" class="btn-helpful" data-helpful aria-label="Helpful review" aria-pressed="false">↑</button>
+                                                                <button type="button" class="btn-helpful" data-helpful aria-label="Not helpful review" aria-pressed="false">↓</button>
+                                                            </div>
+                                                        </article>
+                                                    <?php endforeach; ?>
+                                                <?php else: ?>
+                                                    <div style="padding: 40px 15px; text-align: center; color: #777;">
+                                                        <i class="fa fa-comment-dots" style="font-size: 38px; color: #ffce00; margin-bottom: 12px; display: block;"></i>
+                                                        <h4 style="color: #333; margin-bottom: 6px; font-weight: bold;">No published reviews yet</h4>
+                                                        <p style="font-size: 14px; color: #666;">Be the first to review this product after purchase!</p>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <?php if (!empty($product_reviews) && count($product_reviews) > 2): ?>
+                                                <button type="button" class="show-more-btn" id="reviews-show-more">Show More</button>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -2213,4 +2429,375 @@ $lang = $this->session->userdata('site_lang');
             }
         })();
     }
+</script>
+
+<!-- Floating Reviews Ribbon -->
+<a class="reviews-ribbon" id="open-reviews-ribbon" href="#reviews" title="View Customer Reviews">REVIEWS</a>
+
+<style>
+/* Reviews Tab Figma Wireframe Styles */
+#reviews {
+    background: #ffffff;
+    padding: 10px 0;
+}
+.review-summary {
+    margin: 35px 0 0;
+    border-top: 1px solid #ddd;
+    padding: 40px 0 35px;
+    display: grid;
+    grid-template-columns: 351px 257px 1fr;
+    gap: 28px;
+    align-items: center;
+}
+.review-summary small {
+    font-size: 12px;
+    color: #444;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    display: block;
+}
+.review-summary h1 {
+    font-size: 34px;
+    font-weight: 500;
+    margin: 18px 0 24px;
+    line-height: 1.2;
+    color: #111;
+}
+.stars {
+    font-size: 26px;
+    white-space: nowrap;
+    letter-spacing: 3px;
+    color: #111;
+    background: #ffce00;
+    padding: 3px 10px;
+    display: inline-block;
+    line-height: 1.2;
+    border-radius: 2px;
+}
+.stars span {
+    font-size: 14px;
+    letter-spacing: 0;
+    color: #111;
+    margin-left: 8px;
+    font-weight: 500;
+}
+.circle-pair {
+    display: flex !important;
+    gap: 17px;
+    width: 257px;
+    align-items: flex-start;
+}
+.circle-pair img {
+    flex: 0 0 120px;
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+}
+.circle-pair .badge-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 2px dashed #ccc;
+    background: #fbfbfb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.testimony {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #ffce00;
+    border-radius: 55px;
+    padding: 16px 24px;
+    font-size: 15px;
+}
+.shopper-avatar {
+    height: 68px;
+    width: 68px;
+    border-radius: 50%;
+    background: #d0d0d0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 20px;
+    color: #555;
+}
+.mini-stars {
+    font-size: 13px;
+    margin: 4px 0;
+    color: #111;
+    letter-spacing: 1px;
+}
+.testimony small {
+    font-size: 11px;
+    color: #222;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.review-list {
+    margin: 0 0 40px;
+}
+.list-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #aaa;
+    padding: 16px 0;
+    font-size: 14px;
+    color: #333;
+}
+.list-heading .sort-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    color: #333;
+    font-weight: 500;
+    padding: 4px 8px;
+}
+.list-heading .sort-btn:focus {
+    outline: none;
+}
+.review {
+    padding: 25px 0 20px;
+    border-bottom: 1px solid #bbb;
+}
+.review-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+}
+.avatar {
+    background: #8d36ef;
+    color: white;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 3px;
+    display: inline-block;
+    line-height: 1;
+}
+.verified {
+    color: #2683b7;
+    border-left: 1px solid #777;
+    margin-left: 10px;
+    padding-left: 12px;
+    font-size: 13px;
+    font-weight: normal;
+}
+.review-head p {
+    font-size: 12px;
+    color: #777;
+    margin: 6px 0 0;
+}
+.review-head time {
+    margin-left: auto;
+    font-size: 13px;
+    color: #777;
+}
+.item-score {
+    font-size: 12px;
+    margin: 18px 0 10px;
+    color: #333;
+    font-weight: 500;
+}
+.item-score span {
+    color: #ffbf00;
+    font-size: 16px;
+}
+.review h3 {
+    font-size: 18px;
+    margin: 10px 0 8px;
+    font-weight: bold;
+    color: #111;
+}
+.review p:not(.item-score) {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444;
+}
+.helpful {
+    font-size: 12px;
+    color: #777;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+.helpful button {
+    background: #eee;
+    border: 0;
+    color: #666;
+    width: 26px;
+    height: 24px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+.helpful button[aria-pressed=true] {
+    background: #ffce00;
+    color: #111;
+}
+.show-more-btn {
+    font-size: 14px;
+    padding: 10px 28px;
+    margin: 32px auto 10px;
+    display: block;
+    background: #087bf3;
+    color: white;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+.show-more-btn:hover {
+    background: #006ce0;
+}
+.reviews-ribbon {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    background: #ffce00;
+    padding: 16px 8px;
+    border-radius: 8px 0 0 8px;
+    text-decoration: none !important;
+    font-size: 12px;
+    font-weight: bold;
+    color: #111 !important;
+    letter-spacing: 2px;
+    box-shadow: -2px 3px 10px rgba(0,0,0,0.18);
+    z-index: 999;
+    cursor: pointer;
+}
+.reviews-ribbon:hover {
+    background: #e6b800;
+}
+@media (max-width: 1000px) {
+    .review-summary {
+        grid-template-columns: 1fr 257px;
+    }
+    .testimony {
+        grid-column: 1 / -1;
+    }
+}
+@media (max-width: 700px) {
+    .review-summary {
+        display: block;
+    }
+    .circle-pair {
+        margin: 20px 0;
+    }
+    .testimony {
+        margin-top: 20px;
+    }
+    .reviews-ribbon {
+        display: none;
+    }
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    function activateReviewsTab() {
+        $('a[href="#reviews"]').tab('show');
+        if ($('#reviews').length) {
+            $('html, body').animate({
+                scrollTop: $('#reviews').offset().top - 90
+            }, 500);
+        }
+    }
+
+    $('#open-reviews-ribbon, .jump-to-reviews-btn').on('click', function(e) {
+        e.preventDefault();
+        activateReviewsTab();
+    });
+
+    if (window.location.hash === '#reviews') {
+        activateReviewsTab();
+    }
+
+    // Toggle sort dropdown
+    $('#review-sort-btn').on('click', function(e) {
+        e.stopPropagation();
+        $('#review-sort-dropdown').toggle();
+    });
+
+    $(document).on('click', function() {
+        $('#review-sort-dropdown').hide();
+    });
+
+    // Handle sort options
+    $('.sort-option').on('click', function(e) {
+        e.preventDefault();
+        var sortType = $(this).data('sort');
+        var sortText = $(this).text();
+        $('#sort-current-text').text('Sort: ' + sortText);
+        $('.sort-option').removeClass('active');
+        $(this).addClass('active');
+        $('#review-sort-dropdown').hide();
+
+        var $container = $('#reviews-container');
+        var $items = $container.children('article.review').get();
+
+        $items.sort(function(a, b) {
+            var ratingA = parseInt($(a).data('rating')) || 0;
+            var ratingB = parseInt($(b).data('rating')) || 0;
+            var timeA = parseInt($(a).data('time')) || 0;
+            var timeB = parseInt($(b).data('time')) || 0;
+
+            if (sortType === 'highest') {
+                return (ratingB - ratingA) || (timeB - timeA);
+            } else if (sortType === 'lowest') {
+                return (ratingA - ratingB) || (timeB - timeA);
+            } else {
+                return timeB - timeA;
+            }
+        });
+
+        $.each($items, function(idx, item) {
+            $container.append(item);
+        });
+    });
+
+    // Helpful button feedback
+    $(document).on('click', '[data-helpful]', function() {
+        var $btn = $(this);
+        var isPressed = $btn.attr('aria-pressed') === 'true';
+        $btn.closest('.helpful').find('button').attr('aria-pressed', 'false');
+        $btn.attr('aria-pressed', (!isPressed).toString());
+    });
+
+    // Show More pagination for reviews list
+    var initialVisible = 2;
+    var $allReviews = $('#reviews-container article.review');
+    if ($allReviews.length > initialVisible) {
+        $allReviews.slice(initialVisible).hide();
+        $('#reviews-show-more').show();
+    } else {
+        $('#reviews-show-more').hide();
+    }
+
+    $('#reviews-show-more').on('click', function() {
+        var $hidden = $('#reviews-container article.review:hidden');
+        $hidden.slice(0, 5).fadeIn();
+        if ($('#reviews-container article.review:hidden').length === 0) {
+            $(this).hide();
+        }
+    });
+});
 </script>

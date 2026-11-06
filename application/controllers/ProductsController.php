@@ -855,7 +855,11 @@ class ProductsController extends CI_Controller
                     $restricted_access = 'no';
                 }
                 $data['restricted_access'] = $restricted_access;
-                $data['rating'] = $this->Shop_model->get_avg_ratings_by_merchant($ProductData->publisher_id);
+                $merchant_rating_data = $this->Shop_model->get_avg_ratings_by_merchant($ProductData->publisher_id);
+                $data['rating'] = $merchant_rating_data;
+                $data['merchant_rating'] = $merchant_rating_data;
+                $data['product_rating'] = $this->Product_model->get_product_review_summary($ProductData->id);
+                $data['product_reviews'] = $this->Product_model->get_product_published_reviews($ProductData->id, 50, 0, 'newest');
                 // echo "<pre>";
                 // print_r($data['rating']);
                 // die();
