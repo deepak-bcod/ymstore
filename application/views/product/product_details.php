@@ -66,7 +66,7 @@ $lang = $this->session->userdata('site_lang');
                                 $top_p_total = !empty($product_rating->total_reviews) ? (int)$product_rating->total_reviews : 0;
                                 $top_p_half = round($top_p_avg * 2) / 2;
                             ?>
-                            <div class="product-top-rating" style="margin: 6px 0 14px; display: flex; align-items: center; gap: 8px;">
+                            <!--div class="product-top-rating" style="margin: 6px 0 14px; display: flex; align-items: center; gap: 8px;">
                                 <div style="color: #ffbf00; font-size: 16px; letter-spacing: 2px;" title="Rating: <?= $top_p_avg ?> / 5 (<?= $top_p_total ?> reviews)">
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
                                         <?php if ($top_p_half >= $i): ?>
@@ -81,7 +81,7 @@ $lang = $this->session->userdata('site_lang');
                                 <a href="#reviews" class="jump-to-reviews-btn" style="font-size: 13px; color: #087bf3; text-decoration: none; font-weight: 500;">
                                     (<?= $top_p_total ?> <?= $top_p_total == 1 ? 'review' : 'reviews' ?>)
                                 </a>
-                            </div>
+                            </div-->
                         </div>
 
                         <div class="col-md-4 col-sm-4">

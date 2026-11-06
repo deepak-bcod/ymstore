@@ -10,6 +10,8 @@ Protocol: SFTP
 User: root
 
 Password: tJ8ow?a1bOEhGsef;vX&
+
+ssh -p'tJ8ow?a1bOEhGsef;vX&' 22 root@31.97.202.117
  
 Port: 22
 ---------------
