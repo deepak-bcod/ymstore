@@ -545,18 +545,19 @@ $app->post('/webshop/place_order', function (Request $request, Response $respons
 								}
 
 								// Safely decrement inventory during order placement
-								if ($item['product_type'] === 'bundle') {
-									$bundle_child_details = json_decode($item['bundle_child_details'], true);
-									if (is_array($bundle_child_details)) {
-										foreach ($bundle_child_details as $child) {
-											$child_id = (int)$child['product_id'];
-											$needed_qty = (int)$child['default_qty'] * (int)$item['qty_ordered'];
-											$ch_obj->decrementProductStock($child_id, $needed_qty);
-										}
-									}
-								} else {
-									$ch_obj->decrementProductStock((int)$item['product_id'], (int)$item['qty_ordered']);
-								}
+								// if ($item['product_type'] === 'bundle') {
+								// 	$bundle_child_details = json_decode($item['bundle_child_details'], true);
+								// 	if (is_array($bundle_child_details)) {
+								// 		foreach ($bundle_child_details as $child) {
+								// 			$child_id = (int)$child['product_id'];
+								// 			$needed_qty = (int)$child['default_qty'] * (int)$item['qty_ordered'];
+								// 			$ch_obj->decrementProductStock($child_id, $needed_qty);
+								// 		}
+								// 	}
+								// } 
+								// else {
+								// 	$ch_obj->decrementProductStock((int)$item['product_id'], (int)$item['qty_ordered']);
+								// }
 							}
 
 							if ($error != '') {
