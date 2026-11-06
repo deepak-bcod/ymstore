@@ -6185,22 +6185,29 @@ class DbCheckout
 	}
 
 	public function decrementProductStock($product_id, $quantity)
-	{
-		$qty = (int)$quantity;
-		$pid = (int)$product_id;
-		if ($qty <= 0 || $pid <= 0) {
-			return false;
-		}
+{
+    $qty = (int)$quantity;
+    $pid = (int)$product_id;
+    if ($qty <= 0 || $pid <= 0) {
+        return false;
+    }
 
-		$params = array($qty, $qty, $qty, $qty, $qty, $pid);
-		$sql = "UPDATE products_inventory 
-				SET qty = CASE WHEN qty > ? THEN qty - ? ELSE 0 END,
-					available_qty = CASE WHEN available_qty > ? THEN available_qty - ? ELSE 0 END,
-					is_in_stock = CASE WHEN available_qty <= ? THEN 2 ELSE 1 END 
-				WHERE product_id = ?";
-		$this->dbl->dbl_conn->rawQuery($sql, $params);
-		return true;
-	}
+    // Pass parameters: 
+    // 1 & 2 for qty decrement
+    // 3 & 4 for available_qty decrement
+    // 5 for checking if (available_qty - qty) is less than or equal to 0
+    // 6 for product_id
+    $params = array($qty, $qty, $qty, $qty, $qty, $pid);
+    
+    $sql = "UPDATE products_inventory 
+            SET qty = CASE WHEN qty >= ? THEN qty - ? ELSE 0 END,
+                available_qty = CASE WHEN available_qty >= ? THEN available_qty - ? ELSE 0 END,
+                is_in_stock = CASE WHEN (available_qty - ?) <= 0 THEN 2 ELSE 1 END 
+            WHERE product_id = ?";
+            
+    $this->dbl->dbl_conn->rawQuery($sql, $params);
+    return true;
+}
 
 	public function restoreProductStock($product_id, $quantity)
 	{
