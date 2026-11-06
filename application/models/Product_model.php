@@ -485,5 +485,125 @@ class Product_model extends CI_Model {
 
 
 
-}
 
+    /* ==========================
+        ⭐ PRODUCT REVIEW METHODS (STRICTLY PUBLISHED)
+       ========================== */
+
+    /**
+     * Get review summary (avg_rating, total_reviews, featured_testimony) for a product
+     * Only calculates and includes reviews where status = 'published'
+     */
+    public function get_product_review_summary($product_id) {
+        if (empty($product_id) || !$this->db->table_exists('ym_product_reviews')) {
+            return (object)[
+                'avg_rating'      => 0,
+                'total_reviews'   => 0,
+                'featured_review' => null
+            ];
+        }
+
+        $p_id = (int)$product_id;
+
+        // Calculate average rating and total review count
+        $this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+        $this->db->from('ym_product_reviews');
+        $this->db->where('product_id', $p_id);
+        $this->db->where('status', 'published');
+        $row = $this->db->get()->row();
+
+        $avg = (!empty($row) && $row->avg_rating !== null) ? round((float)$row->avg_rating, 1) : 0;
+        $total = (!empty($row) && $row->total_reviews !== null) ? (int)$row->total_reviews : 0;
+
+        // If parent product has 0 direct reviews, check if variant children have published reviews
+        if ($total === 0) {
+            $this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+            $this->db->from('ym_product_reviews');
+            $this->db->where("product_id IN (SELECT id FROM products WHERE parent_id = {$p_id})", NULL, FALSE);
+            $this->db->where('status', 'published');
+            $v_row = $this->db->get()->row();
+            if (!empty($v_row) && (int)$v_row->total_reviews > 0) {
+                $avg = round((float)$v_row->avg_rating, 1);
+                $total = (int)$v_row->total_reviews;
+            }
+        }
+
+        // Fetch top featured testimony (highest rating with comment)
+        $this->db->select("
+            pr.id,
+            pr.rating,
+            pr.comments,
+            pr.created_at,
+            COALESCE(CONCAT(c.first_name, ' ', c.last_name), CONCAT(bo.customer_firstname, ' ', bo.customer_lastname), 'Shopper') AS customer_name
+        ");
+        $this->db->from('ym_product_reviews pr');
+        $this->db->join('ym_merchant_reviews mr', 'mr.id = pr.review_id', 'left');
+        $this->db->join('customers c', 'c.id = mr.customer_id', 'left');
+        $this->db->join('b2b_orders bo', 'bo.order_id = mr.order_id', 'left');
+        $this->db->group_start();
+            $this->db->where('pr.product_id', $p_id);
+            $this->db->or_where("pr.product_id IN (SELECT id FROM products WHERE parent_id = {$p_id})", NULL, FALSE);
+        $this->db->group_end();
+        $this->db->where('pr.status', 'published');
+        $this->db->where('pr.comments IS NOT NULL', NULL, FALSE);
+        $this->db->where("TRIM(pr.comments) != ''", NULL, FALSE);
+        $this->db->order_by('pr.rating', 'DESC');
+        $this->db->order_by('pr.id', 'DESC');
+        $this->db->limit(1);
+        $featured = $this->db->get()->row();
+
+        return (object)[
+            'avg_rating'      => $avg,
+            'total_reviews'   => $total,
+            'featured_review' => $featured
+        ];
+    }
+
+    /**
+     * Get published review records for a product
+     */
+    public function get_product_published_reviews($product_id, $limit = 50, $offset = 0, $sort = 'newest') {
+        if (empty($product_id) || !$this->db->table_exists('ym_product_reviews')) {
+            return [];
+        }
+
+        $p_id = (int)$product_id;
+
+        $this->db->select("
+            pr.id,
+            pr.product_id,
+            pr.product_name,
+            pr.rating AS item_rating,
+            COALESCE(mr.rating, pr.rating) AS service_rating,
+            pr.comments,
+            pr.created_at,
+            COALESCE(CONCAT(c.first_name, ' ', c.last_name), CONCAT(bo.customer_firstname, ' ', bo.customer_lastname), 'Shopper') AS customer_name,
+            c.email_id AS customer_email
+        ");
+        $this->db->from('ym_product_reviews pr');
+        $this->db->join('ym_merchant_reviews mr', 'mr.id = pr.review_id', 'left');
+        $this->db->join('customers c', 'c.id = mr.customer_id', 'left');
+        $this->db->join('b2b_orders bo', 'bo.order_id = mr.order_id', 'left');
+        $this->db->group_start();
+            $this->db->where('pr.product_id', $p_id);
+            $this->db->or_where("pr.product_id IN (SELECT id FROM products WHERE parent_id = {$p_id})", NULL, FALSE);
+        $this->db->group_end();
+        $this->db->where('pr.status', 'published');
+
+        if ($sort === 'highest') {
+            $this->db->order_by('pr.rating', 'DESC');
+            $this->db->order_by('pr.id', 'DESC');
+        } elseif ($sort === 'lowest') {
+            $this->db->order_by('pr.rating', 'ASC');
+            $this->db->order_by('pr.id', 'DESC');
+        } else {
+            $this->db->order_by('pr.id', 'DESC');
+        }
+
+        if ($limit > 0) {
+            $this->db->limit($limit, $offset);
+        }
+
+        return $this->db->get()->result();
+    }
+}
