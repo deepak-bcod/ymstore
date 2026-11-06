@@ -347,6 +347,21 @@ $app->post('/webshop/place_order', function (Request $request, Response $respons
 				$QuoteData = $ch_obj->getQuoteDataById($quote_id);
 
 				//echo "<pre>";print_r($QuoteData);die;
+				// 🛑 STOP DOUBLE ORDER CREATION & STOCK DECREMENT: Check if an order already exists for this quote
+$existing_order = $ch_obj->getOrderByQuoteId($quote_id); 
+if ($existing_order) {
+    $message['statusCode'] = '200';
+    $message['is_success'] = 'true';
+    $message['order_id'] = $existing_order['order_id'] ?? '';
+    $message['increment_id'] = $existing_order['increment_id'] ?? '';
+    $existing_grand_total = isset($existing_order['grand_total']) ? $existing_order['grand_total'] : 0;
+    $message['grand_total'] = $existing_grand_total;
+    $message['voucher_code'] = $existing_order['voucher_code'] ?? '';
+    $message['voucher_amount'] = isset($existing_order['voucher_amount']) ? (float)$existing_order['voucher_amount'] : 0;
+    $message['order_barcode'] = isset($existing_order['order_barcode']) ? (float)$existing_order['order_barcode'] : 0;
+    $message['message'] = ($lang_code == "fr") ? "Commande déjà créée." : "Order already placed.";
+    exit(json_encode($message));
+}
 
 				$save_in_addressbook = (isset($save_in_addressbook) && $save_in_addressbook == '1') ? 1 : '';
 

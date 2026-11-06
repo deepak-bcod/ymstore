@@ -6303,6 +6303,22 @@ class DbCheckout
 		}
 		return array('status' => true);
 	}
+	public function getOrderByQuoteId($quote_id)
+    {
+        $sql = "SELECT * FROM sales_orders WHERE `quote_id` = '$quote_id'";
+        
+        $row = $this->dbl->dbl_conn->rawQueryOne($sql);
+
+        if ($this->dbl->dbl_conn->getLastErrno() === 0) {
+            if ($this->dbl->dbl_conn->count > 0) {
+                return $row;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
 
 }
 
