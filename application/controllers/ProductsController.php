@@ -14,6 +14,7 @@ class ProductsController extends CI_Controller
 
         //$this->load->library('pagination');
         $this->load->model('Shop_model');
+        $this->load->model('Product_model');
         $this->load->library('Ajax_pagination');
 
         // $this->perPage = 3;
@@ -855,6 +856,12 @@ class ProductsController extends CI_Controller
                     $restricted_access = 'no';
                 }
                 $data['restricted_access'] = $restricted_access;
+                if (!isset($this->Shop_model)) {
+                    $this->load->model('Shop_model');
+                }
+                if (!isset($this->Product_model)) {
+                    $this->load->model('Product_model');
+                }
                 $merchant_rating_data = $this->Shop_model->get_avg_ratings_by_merchant($ProductData->publisher_id);
                 $data['rating'] = $merchant_rating_data;
                 $data['merchant_rating'] = $merchant_rating_data;
