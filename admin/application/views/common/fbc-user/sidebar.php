@@ -183,7 +183,7 @@
 
                   <?php if (empty($this->session->userdata('userPermission')) || in_array('webshop/product_reviews', $this->session->userdata('userPermission'))) { ?>
 
-                     <a href="<?php echo base_url(); ?>product-reviews" class="list-submenu" data-parent="#SubMenu2">Review Management</a>
+                     <!--a href="<?php echo base_url(); ?>product-reviews" class="list-submenu" data-parent="#SubMenu2">Review Management</a-->
 
                   <?php } ?>
 
