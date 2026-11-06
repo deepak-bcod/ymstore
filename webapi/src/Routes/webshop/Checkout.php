@@ -266,445 +266,445 @@ $app->post('/webshop/update_quote_customer_id', function (Request $request, Resp
 
 
 
-$app->post('/webshop/place_order', function (Request $request, Response $response, $args) {
+	$app->post('/webshop/place_order', function (Request $request, Response $response, $args) {
 
-	try {
-		$data = $request->getParsedBody();
+		try {
+			$data = $request->getParsedBody();
 
-		extract($data);
+			extract($data);
 
-		$lang_code = (isset($lang_code) && $lang_code != '') ? $lang_code : '';
+			$lang_code = (isset($lang_code) && $lang_code != '') ? $lang_code : '';
 
-		$lis_default_language = (isset($lis_default_language) && $lis_default_language != '') ? $lis_default_language : 0;
+			$lis_default_language = (isset($lis_default_language) && $lis_default_language != '') ? $lis_default_language : 0;
 
 
-		$error = '';
+			$error = '';
 
-		if (empty($quote_id) || empty($address_options) || empty($payment_method)) {
-			if ($lang_code == "fr") {
-				$error = "Veuillez renseigner tous les champs obligatoires.";
-			} else {
-				$error = "Please pass all the mandatory values";
-			}
-		} else {
-
-			
-			$ch_obj = new DbCheckout();
-
-			if ($address_options != 'new') {
-
-				$AddressInfo = $ch_obj->get_customer_address_by_id($customer_id, $address_options);
-
-			} else {
-
-				$AddressInfo = false;
-
-			}
-
-			if ($billing_address_options != 'new') {
-
-				$BillingAddressInfo = $ch_obj->get_customer_address_by_id($customer_id, $billing_address_options);
-
-			} else {
-
-				$BillingAddressInfo = false;
-
-			}
-
-			if ($address_options == 'new' && (empty($shipping_first_name) || empty($shipping_last_name)  || empty($shipping_address)  || empty($shipping_country) || empty($shipping_pincode) || empty($shipping_city))) {
+			if (empty($quote_id) || empty($address_options) || empty($payment_method)) {
 				if ($lang_code == "fr") {
-					$error = "Veuillez renseigner tous les champs de l'adresse de livraison.";
+					$error = "Veuillez renseigner tous les champs obligatoires.";
 				} else {
-					$error = "Please pass all the shipping address";
-				}
-			} else if ($address_options != 'new' && $AddressInfo == false) {
-				if ($lang_code == "fr") {
-					$error = "Veuillez sélectionner une adresse de livraison valide.";
-				} else {
-					$error = "Please select proper shipping address";
+					$error = "Please pass all the mandatory values";
 				}
 			} else {
 
-				$increment_id = '';
-				$voucher_code = '';
-				$voucher_amount = '';
-				$order_barcode = "";
+				
+				$ch_obj = new DbCheckout();
 
-				$company_name = $company_name ?? '';
+				if ($address_options != 'new') {
 
-				$Shippingcompany_name = $Shippingcompany_name ?? '';
+					$AddressInfo = $ch_obj->get_customer_address_by_id($customer_id, $address_options);
 
-				$vat_no = $vat_no ?? '';
+				} else {
 
-				// $consulation_no = $consulation_no ?? '';
+					$AddressInfo = false;
 
-				// $res_company_name = $res_company_name ?? '';
+				}
 
-				// $res_company_address = $res_company_address ?? '';
+				if ($billing_address_options != 'new') {
 
-				// $vat_vies_valid_flag = $vat_flag ?? '';
+					$BillingAddressInfo = $ch_obj->get_customer_address_by_id($customer_id, $billing_address_options);
 
-				$QuoteData = $ch_obj->getQuoteDataById($quote_id);
+				} else {
 
-				//echo "<pre>";print_r($QuoteData);die;
+					$BillingAddressInfo = false;
 
-				$save_in_addressbook = (isset($save_in_addressbook) && $save_in_addressbook == '1') ? 1 : '';
+				}
 
-				$same_as_billing = (isset($same_as_billing) && $same_as_billing != '') ? $same_as_billing : 0;
-
-				if ($QuoteData == false) {
-
+				if ($address_options == 'new' && (empty($shipping_first_name) || empty($shipping_last_name)  || empty($shipping_address)  || empty($shipping_country) || empty($shipping_pincode) || empty($shipping_city))) {
 					if ($lang_code == "fr") {
-						$error = "Devis introuvable.";
+						$error = "Veuillez renseigner tous les champs de l'adresse de livraison.";
 					} else {
-						$error = "Quote not found";
+						$error = "Please pass all the shipping address";
 					}
-
+				} else if ($address_options != 'new' && $AddressInfo == false) {
+					if ($lang_code == "fr") {
+						$error = "Veuillez sélectionner une adresse de livraison valide.";
+					} else {
+						$error = "Please select proper shipping address";
+					}
 				} else {
 
-					
-					$checkout_method = $QuoteData['checkout_method'];
+					$increment_id = '';
+					$voucher_code = '';
+					$voucher_amount = '';
+					$order_barcode = "";
 
-					$customer_id = $QuoteData['customer_id'];
+					$company_name = $company_name ?? '';
 
-					if ($checkout_method == '') {
+					$Shippingcompany_name = $Shippingcompany_name ?? '';
 
-						$checkout_method = 'guest';
+					$vat_no = $vat_no ?? '';
 
-						if ($customer_id > 0) {
+					// $consulation_no = $consulation_no ?? '';
 
-							$checkout_method = 'login';
+					// $res_company_name = $res_company_name ?? '';
 
-						}
+					// $res_company_address = $res_company_address ?? '';
 
-					}
+					// $vat_vies_valid_flag = $vat_flag ?? '';
 
-					$customer_group_id = $QuoteData['customer_group_id'];
+					$QuoteData = $ch_obj->getQuoteDataById($quote_id);
 
-					$customer_email = $QuoteData['customer_email'];
+					//echo "<pre>";print_r($QuoteData);die;
 
-					$customer_firstname = $QuoteData['customer_firstname'];
+					$save_in_addressbook = (isset($save_in_addressbook) && $save_in_addressbook == '1') ? 1 : '';
 
-					$customer_lastname = $QuoteData['customer_lastname'];
+					$same_as_billing = (isset($same_as_billing) && $same_as_billing != '') ? $same_as_billing : 0;
 
-					$applied_rule_ids = $QuoteData['applied_rule_ids'];
+					if ($QuoteData == false) {
 
-					$coupon_code = $QuoteData['coupon_code'];
-
-					$base_discount_amount = $QuoteData['base_discount_amount'];
-
-					$base_grand_total = $QuoteData['base_grand_total'];
-
-					$base_shipping_amount = $QuoteData['base_shipping_amount'];
-
-					$base_shipping_tax_amount = $QuoteData['base_shipping_tax_amount'];
-
-					$base_subtotal = $QuoteData['base_subtotal'];
-
-					$base_tax_amount = $QuoteData['base_tax_amount'];
-
-					$discount_amount = $QuoteData['discount_amount'];
-
-					$grand_total = $QuoteData['grand_total'];
-
-					$ym_charge = $QuoteData['ym_charge'];
-
-					$shipping_amount = $QuoteData['shipping_amount'];
-
-					$shipping_tax_amount = $QuoteData['shipping_tax_amount'];
-
-					$shipping_charge = $QuoteData['shipping_charge'];
-
-					$shipping_tax_percent = $QuoteData['shipping_tax_percent'];
-
-					$ship_method_id = $QuoteData['ship_method_id'];
-
-					$ship_method_name = $QuoteData['ship_method_name'];
-
-					$subtotal = $QuoteData['subtotal'];
-
-					$tax_amount = $QuoteData['tax_amount'];
-
-					$total_qty_ordered = $QuoteData['total_qty_ordered'];
-
-					$voucher_code = $QuoteData['voucher_code'];
-
-					$voucher_amount = $QuoteData['voucher_amount'];
-
-					$customer_is_guest = $QuoteData['customer_is_guest'];
-
-					$payment_tax_percent = $QuoteData['payment_tax_percent'];
-
-					$payment_charge = $QuoteData['payment_charge'];
-
-					$payment_tax_amount = $QuoteData['payment_tax_amount'];
-
-					$payment_final_charge = $QuoteData['payment_final_charge'];
-
-					$payment_gateway_charges = $QuoteData['payment_gateway_charges'];
-
-					$currency_name = $QuoteData['currency_name'];
-
-					$currency_code_session = $QuoteData['currency_code_session'];
-
-					$currency_conversion_rate = $QuoteData['currency_conversion_rate'];
-
-					$currency_symbol = $QuoteData['currency_symbol'];
-
-					$default_currency_flag = $QuoteData['default_currency_flag'];
-
-					$WebshopFbcData = $ch_obj->getFbcUserShopDataByShopId();
-
-					//echo "<pre>";print_r($WebshopFbcData);die;
-
-
-					$zumba_shop_flag = '';
-
-					if (isset($subscribe_newsletter)) {
-
-						if ($subscribe_newsletter == 1) {
-
-							$email = $customer_email;
-
-							// $shopcode;
-
-							// $shopid;
-
-							$webshop_obj = new DbHomeFeature();
-
-							$Record = $webshop_obj->getDataByEmail($email);
-
-							if ($Record != false) {
-
-								if ($Record['status'] == 2) {
-
-									$updateData = $webshop_obj->updateDataByEmail($email);
-
-								} else {
-
-									$updateData = $webshop_obj->updateDataByEmail($email);
-
-								}
-
-							} else {
-
-								$insertData = $webshop_obj->insertData($email);
-
-							}
-
-						}
-
-					}
-
-					$ch_obj->startTransaction();
-
-					$QuoteItems = $ch_obj->get_sales_quote_items($quote_id);
-
-					if (empty($QuoteItems) || !is_array($QuoteItems) || count($QuoteItems) === 0) {
 						if ($lang_code == "fr") {
-							$error = "Votre panier est vide.";
+							$error = "Devis introuvable.";
 						} else {
-							$error = "Your cart is empty.";
+							$error = "Quote not found";
 						}
-						$ch_obj->rollback();
+
 					} else {
-						$stockCheck = $ch_obj->checkAndLockStockForItems($QuoteItems);
-						if ($stockCheck['status'] === false) {
-							$prodName = !empty($stockCheck['product_name']) ? $stockCheck['product_name'] : 'Item';
-							if ($lang_code == "fr") {
-								$error = "Stock insuffisant pour le produit : " . $prodName;
-							} else {
-								$error = "Insufficient stock for product: " . $prodName;
+
+						
+						$checkout_method = $QuoteData['checkout_method'];
+
+						$customer_id = $QuoteData['customer_id'];
+
+						if ($checkout_method == '') {
+
+							$checkout_method = 'guest';
+
+							if ($customer_id > 0) {
+
+								$checkout_method = 'login';
+
 							}
-							$ch_obj->rollback();
+
 						}
-					}
 
-					if ($error == '') {
-						$invoice_self = 0;
+						$customer_group_id = $QuoteData['customer_group_id'];
 
-						$order_id = $ch_obj->add_to_sales_order($checkout_method, $customer_id, $customer_group_id, $customer_email, $customer_firstname, $customer_lastname, $applied_rule_ids, $coupon_code, $base_discount_amount, $base_grand_total, $base_shipping_amount, $base_shipping_tax_amount, $base_subtotal, $base_tax_amount, $discount_amount, $grand_total, $ym_charge, $shipping_amount, $shipping_tax_amount, $shipping_charge, $shipping_tax_percent, $subtotal, $tax_amount, $total_qty_ordered, $voucher_code, $voucher_amount, $customer_is_guest, $invoice_self, $payment_tax_percent, $payment_charge, $payment_tax_amount, $payment_final_charge, $payment_gateway_charges, $ship_method_id, $ship_method_name, '', $lang_code, $lis_default_language);
+						$customer_email = $QuoteData['customer_email'];
 
-						if ($order_id == false) {
+						$customer_firstname = $QuoteData['customer_firstname'];
+
+						$customer_lastname = $QuoteData['customer_lastname'];
+
+						$applied_rule_ids = $QuoteData['applied_rule_ids'];
+
+						$coupon_code = $QuoteData['coupon_code'];
+
+						$base_discount_amount = $QuoteData['base_discount_amount'];
+
+						$base_grand_total = $QuoteData['base_grand_total'];
+
+						$base_shipping_amount = $QuoteData['base_shipping_amount'];
+
+						$base_shipping_tax_amount = $QuoteData['base_shipping_tax_amount'];
+
+						$base_subtotal = $QuoteData['base_subtotal'];
+
+						$base_tax_amount = $QuoteData['base_tax_amount'];
+
+						$discount_amount = $QuoteData['discount_amount'];
+
+						$grand_total = $QuoteData['grand_total'];
+
+						$ym_charge = $QuoteData['ym_charge'];
+
+						$shipping_amount = $QuoteData['shipping_amount'];
+
+						$shipping_tax_amount = $QuoteData['shipping_tax_amount'];
+
+						$shipping_charge = $QuoteData['shipping_charge'];
+
+						$shipping_tax_percent = $QuoteData['shipping_tax_percent'];
+
+						$ship_method_id = $QuoteData['ship_method_id'];
+
+						$ship_method_name = $QuoteData['ship_method_name'];
+
+						$subtotal = $QuoteData['subtotal'];
+
+						$tax_amount = $QuoteData['tax_amount'];
+
+						$total_qty_ordered = $QuoteData['total_qty_ordered'];
+
+						$voucher_code = $QuoteData['voucher_code'];
+
+						$voucher_amount = $QuoteData['voucher_amount'];
+
+						$customer_is_guest = $QuoteData['customer_is_guest'];
+
+						$payment_tax_percent = $QuoteData['payment_tax_percent'];
+
+						$payment_charge = $QuoteData['payment_charge'];
+
+						$payment_tax_amount = $QuoteData['payment_tax_amount'];
+
+						$payment_final_charge = $QuoteData['payment_final_charge'];
+
+						$payment_gateway_charges = $QuoteData['payment_gateway_charges'];
+
+						$currency_name = $QuoteData['currency_name'];
+
+						$currency_code_session = $QuoteData['currency_code_session'];
+
+						$currency_conversion_rate = $QuoteData['currency_conversion_rate'];
+
+						$currency_symbol = $QuoteData['currency_symbol'];
+
+						$default_currency_flag = $QuoteData['default_currency_flag'];
+
+						$WebshopFbcData = $ch_obj->getFbcUserShopDataByShopId();
+
+						//echo "<pre>";print_r($WebshopFbcData);die;
+
+
+						$zumba_shop_flag = '';
+
+						if (isset($subscribe_newsletter)) {
+
+							if ($subscribe_newsletter == 1) {
+
+								$email = $customer_email;
+
+								// $shopcode;
+
+								// $shopid;
+
+								$webshop_obj = new DbHomeFeature();
+
+								$Record = $webshop_obj->getDataByEmail($email);
+
+								if ($Record != false) {
+
+									if ($Record['status'] == 2) {
+
+										$updateData = $webshop_obj->updateDataByEmail($email);
+
+									} else {
+
+										$updateData = $webshop_obj->updateDataByEmail($email);
+
+									}
+
+								} else {
+
+									$insertData = $webshop_obj->insertData($email);
+
+								}
+
+							}
+
+						}
+
+						$ch_obj->startTransaction();
+
+						$QuoteItems = $ch_obj->get_sales_quote_items($quote_id);
+
+						if (empty($QuoteItems) || !is_array($QuoteItems) || count($QuoteItems) === 0) {
 							if ($lang_code == "fr") {
-								$error = "Impossible de créer la commande.";
+								$error = "Votre panier est vide.";
 							} else {
-								$error = "Unable to create order.";
+								$error = "Your cart is empty.";
 							}
 							$ch_obj->rollback();
 						} else {
-							foreach ($QuoteItems as $item) {
-								$item_res = $ch_obj->add_to_sales_order_item($order_id, $item['product_type'], $item['product_inv_type'], $item['product_id'], $item['product_name'], $item['product_code'], $item['qty_ordered'], $item['sku'], $item['barcode'], $item['price'], $item['total_price'], $item['created_by'], $item['parent_product_id'], $item['product_variants'], $item['estimate_delivery_time'], $item['applied_rule_ids'], $item['tax_percent'], $item['tax_amount'], $item['discount_amount'], $item['discount_percent'], $item['total_discount_amount'], $item['is_fragile_flag'], $coupon_code, $zumba_shop_flag, $item['bundle_child_details'], $ship_method_id, $shipping_tax_percent);
-								if ($item_res == false) {
-									if ($lang_code == "fr") {
-										$error = "Impossible d'ajouter les articles de la commande.";
-									} else {
-										$error = "Unable to add order items.";
-									}
-									break;
-								}
-
-								// Safely decrement inventory during order placement
-								if ($item['product_type'] === 'bundle') {
-									$bundle_child_details = json_decode($item['bundle_child_details'], true);
-									if (is_array($bundle_child_details)) {
-										foreach ($bundle_child_details as $child) {
-											$child_id = (int)$child['product_id'];
-											$needed_qty = (int)$child['default_qty'] * (int)$item['qty_ordered'];
-											$ch_obj->decrementProductStock($child_id, $needed_qty);
-										}
-									}
+							$stockCheck = $ch_obj->checkAndLockStockForItems($QuoteItems);
+							if ($stockCheck['status'] === false) {
+								$prodName = !empty($stockCheck['product_name']) ? $stockCheck['product_name'] : 'Item';
+								if ($lang_code == "fr") {
+									$error = "Stock insuffisant pour le produit : " . $prodName;
 								} else {
-									$ch_obj->decrementProductStock((int)$item['product_id'], (int)$item['qty_ordered']);
+									$error = "Insufficient stock for product: " . $prodName;
 								}
+								$ch_obj->rollback();
 							}
+						}
 
-							if ($error != '') {
+						if ($error == '') {
+							$invoice_self = 0;
+
+							$order_id = $ch_obj->add_to_sales_order($checkout_method, $customer_id, $customer_group_id, $customer_email, $customer_firstname, $customer_lastname, $applied_rule_ids, $coupon_code, $base_discount_amount, $base_grand_total, $base_shipping_amount, $base_shipping_tax_amount, $base_subtotal, $base_tax_amount, $discount_amount, $grand_total, $ym_charge, $shipping_amount, $shipping_tax_amount, $shipping_charge, $shipping_tax_percent, $subtotal, $tax_amount, $total_qty_ordered, $voucher_code, $voucher_amount, $customer_is_guest, $invoice_self, $payment_tax_percent, $payment_charge, $payment_tax_amount, $payment_final_charge, $payment_gateway_charges, $ship_method_id, $ship_method_name, '', $lang_code, $lis_default_language);
+
+							if ($order_id == false) {
+								if ($lang_code == "fr") {
+									$error = "Impossible de créer la commande.";
+								} else {
+									$error = "Unable to create order.";
+								}
 								$ch_obj->rollback();
 							} else {
-								if ($address_options == 'new') {
-									$save_in_address_book = (isset($save_in_address_book) && $save_in_address_book == 1) ? 1 : 0;
-								} else {
-									if ($AddressInfo != false) {
-										$save_in_address_book = '0';
-										$shipping_first_name = $AddressInfo['first_name'];
-										$shipping_last_name = $AddressInfo['last_name'];
-										$shipping_mobile_no = $AddressInfo['mobile_no'];
-										$shipping_city = $AddressInfo['city'];
-										$shipping_state = $AddressInfo['state'];
-										$shipping_address = $AddressInfo['address_line1'];
-										$shipping_address_1 = $AddressInfo['address_line2'];
-										$shipping_country = $AddressInfo['country'];
-										$shipping_pincode = $AddressInfo['pincode'];
-										$Shippingcompany_name = ((isset($AddressInfo['company_name']) && $AddressInfo['company_name'] != '') ? $AddressInfo['company_name'] : '');
+								foreach ($QuoteItems as $item) {
+									$item_res = $ch_obj->add_to_sales_order_item($order_id, $item['product_type'], $item['product_inv_type'], $item['product_id'], $item['product_name'], $item['product_code'], $item['qty_ordered'], $item['sku'], $item['barcode'], $item['price'], $item['total_price'], $item['created_by'], $item['parent_product_id'], $item['product_variants'], $item['estimate_delivery_time'], $item['applied_rule_ids'], $item['tax_percent'], $item['tax_amount'], $item['discount_amount'], $item['discount_percent'], $item['total_discount_amount'], $item['is_fragile_flag'], $coupon_code, $zumba_shop_flag, $item['bundle_child_details'], $ship_method_id, $shipping_tax_percent);
+									if ($item_res == false) {
+										if ($lang_code == "fr") {
+											$error = "Impossible d'ajouter les articles de la commande.";
+										} else {
+											$error = "Unable to add order items.";
+										}
+										break;
+									}
+
+									// Safely decrement inventory during order placement
+									if ($item['product_type'] === 'bundle') {
+										$bundle_child_details = json_decode($item['bundle_child_details'], true);
+										if (is_array($bundle_child_details)) {
+											foreach ($bundle_child_details as $child) {
+												$child_id = (int)$child['product_id'];
+												$needed_qty = (int)$child['default_qty'] * (int)$item['qty_ordered'];
+												$ch_obj->decrementProductStock($child_id, $needed_qty);
+											}
+										}
+									} else {
+										$ch_obj->decrementProductStock((int)$item['product_id'], (int)$item['qty_ordered']);
 									}
 								}
 
-								if ($billing_address_options == 'new') {
-									$billing_save_in_address_book = (isset($billing_save_in_address_book) && $billing_save_in_address_book == 1) ? 1 : 0;
+								if ($error != '') {
+									$ch_obj->rollback();
 								} else {
-									if ($BillingAddressInfo != false) {
-										$billing_save_in_address_book = '0';
-										$billing_first_name = $BillingAddressInfo['first_name'];
-										$billing_last_name = $BillingAddressInfo['last_name'];
-										$billing_mobile_no = $BillingAddressInfo['mobile_no'];
-										$billing_city = $BillingAddressInfo['city'];
-										$billing_state = $BillingAddressInfo['state'];
-										$billing_address = $BillingAddressInfo['address_line1'];
-										$billing_address_1 = $BillingAddressInfo['address_line2'];
-										$billing_country = $BillingAddressInfo['country'];
-										$billing_pincode = $BillingAddressInfo['pincode'];
-										$company_name = ((isset($BillingAddressInfo['company_name']) && $BillingAddressInfo['company_name'] != '') ? $BillingAddressInfo['company_name'] : '');
-										$vat_no = ((isset($BillingAddressInfo['vat_no']) && $BillingAddressInfo['vat_no'] != '') ? $BillingAddressInfo['vat_no'] : '');
-										$billing_email_id = $customer_email;
+									if ($address_options == 'new') {
+										$save_in_address_book = (isset($save_in_address_book) && $save_in_address_book == 1) ? 1 : 0;
+									} else {
+										if ($AddressInfo != false) {
+											$save_in_address_book = '0';
+											$shipping_first_name = $AddressInfo['first_name'];
+											$shipping_last_name = $AddressInfo['last_name'];
+											$shipping_mobile_no = $AddressInfo['mobile_no'];
+											$shipping_city = $AddressInfo['city'];
+											$shipping_state = $AddressInfo['state'];
+											$shipping_address = $AddressInfo['address_line1'];
+											$shipping_address_1 = $AddressInfo['address_line2'];
+											$shipping_country = $AddressInfo['country'];
+											$shipping_pincode = $AddressInfo['pincode'];
+											$Shippingcompany_name = ((isset($AddressInfo['company_name']) && $AddressInfo['company_name'] != '') ? $AddressInfo['company_name'] : '');
+										}
 									}
+
+									if ($billing_address_options == 'new') {
+										$billing_save_in_address_book = (isset($billing_save_in_address_book) && $billing_save_in_address_book == 1) ? 1 : 0;
+									} else {
+										if ($BillingAddressInfo != false) {
+											$billing_save_in_address_book = '0';
+											$billing_first_name = $BillingAddressInfo['first_name'];
+											$billing_last_name = $BillingAddressInfo['last_name'];
+											$billing_mobile_no = $BillingAddressInfo['mobile_no'];
+											$billing_city = $BillingAddressInfo['city'];
+											$billing_state = $BillingAddressInfo['state'];
+											$billing_address = $BillingAddressInfo['address_line1'];
+											$billing_address_1 = $BillingAddressInfo['address_line2'];
+											$billing_country = $BillingAddressInfo['country'];
+											$billing_pincode = $BillingAddressInfo['pincode'];
+											$company_name = ((isset($BillingAddressInfo['company_name']) && $BillingAddressInfo['company_name'] != '') ? $BillingAddressInfo['company_name'] : '');
+											$vat_no = ((isset($BillingAddressInfo['vat_no']) && $BillingAddressInfo['vat_no'] != '') ? $BillingAddressInfo['vat_no'] : '');
+											$billing_email_id = $customer_email;
+										}
+									}
+
+									if ($same_as_billing == '') {
+										$same_as_billing = 0;
+									}
+
+									$ch_obj->add_to_sales_order_address($order_id, 1, $billing_first_name, $billing_last_name, $billing_address_options, $billing_mobile_no, $billing_address, $billing_address_1, $billing_city, $billing_state, $billing_country, $billing_pincode, $billing_save_in_address_book, $company_name, $vat_no, $same_as_billing);
+
+									$ch_obj->add_to_sales_order_address($order_id, 2, $shipping_first_name, $shipping_last_name, $address_options, $shipping_mobile_no, $shipping_address, $shipping_address_1, $shipping_city, $shipping_state, $shipping_country, $shipping_pincode, $save_in_address_book, $Shippingcompany_name, '', $same_as_billing);
+
+									$ch_obj->update_vatDetails_in_sales_order($order_id, $company_name, $vat_no);
+
+									$QuotePayment = $ch_obj->getQuotePaymentDataById($quote_id);
+
+									if ($QuotePayment != false) {
+										$payment_method_id = $QuotePayment['payment_method_id'];
+										$payment_method = $QuotePayment['payment_method'];
+										$payment_method_name = $QuotePayment['payment_method_name'];
+										$payment_type = $QuotePayment['payment_type'];
+										$currency_code = "MUR";
+										$ch_obj->add_to_sales_order_payment($order_id, $payment_method_id, $payment_method, $payment_method_name, $payment_type, $currency_code);
+									}
+
+									$orderData = $ch_obj->getOrderDataById($order_id);
+
+									$increment_id = $orderData['increment_id'];
+									$voucher_code = isset($orderData['voucher_code']) ? $orderData['voucher_code'] : '';
+									$voucher_amount = isset($orderData['voucher_amount']) ? (float)$orderData['voucher_amount'] : '';
+									$order_barcode = isset($orderData['order_barcode']) ? (float)$orderData['order_barcode'] : '';
+
+									// Commit transaction after everything succeeded
+									$ch_obj->commit();
 								}
-
-								if ($same_as_billing == '') {
-									$same_as_billing = 0;
-								}
-
-								$ch_obj->add_to_sales_order_address($order_id, 1, $billing_first_name, $billing_last_name, $billing_address_options, $billing_mobile_no, $billing_address, $billing_address_1, $billing_city, $billing_state, $billing_country, $billing_pincode, $billing_save_in_address_book, $company_name, $vat_no, $same_as_billing);
-
-								$ch_obj->add_to_sales_order_address($order_id, 2, $shipping_first_name, $shipping_last_name, $address_options, $shipping_mobile_no, $shipping_address, $shipping_address_1, $shipping_city, $shipping_state, $shipping_country, $shipping_pincode, $save_in_address_book, $Shippingcompany_name, '', $same_as_billing);
-
-								$ch_obj->update_vatDetails_in_sales_order($order_id, $company_name, $vat_no);
-
-								$QuotePayment = $ch_obj->getQuotePaymentDataById($quote_id);
-
-								if ($QuotePayment != false) {
-									$payment_method_id = $QuotePayment['payment_method_id'];
-									$payment_method = $QuotePayment['payment_method'];
-									$payment_method_name = $QuotePayment['payment_method_name'];
-									$payment_type = $QuotePayment['payment_type'];
-									$currency_code = "MUR";
-									$ch_obj->add_to_sales_order_payment($order_id, $payment_method_id, $payment_method, $payment_method_name, $payment_type, $currency_code);
-								}
-
-								$orderData = $ch_obj->getOrderDataById($order_id);
-
-								$increment_id = $orderData['increment_id'];
-								$voucher_code = isset($orderData['voucher_code']) ? $orderData['voucher_code'] : '';
-								$voucher_amount = isset($orderData['voucher_amount']) ? (float)$orderData['voucher_amount'] : '';
-								$order_barcode = isset($orderData['order_barcode']) ? (float)$orderData['order_barcode'] : '';
-
-								// Commit transaction after everything succeeded
-								$ch_obj->commit();
 							}
 						}
 					}
+
 				}
 
 			}
 
-		}
+			if ($error != '') {
+				if (isset($ch_obj)) {
+					$ch_obj->rollback();
+				}
 
-		if ($error != '') {
-			if (isset($ch_obj)) {
-				$ch_obj->rollback();
-			}
+				$message['statusCode'] = '500';
 
-			$message['statusCode'] = '500';
+				$message['is_success'] = 'false';
 
-			$message['is_success'] = 'false';
+				$message['message'] = $error;
 
-			$message['message'] = $error;
+				exit(json_encode($message));
 
-			exit(json_encode($message));
-
-		} else {
-
-			$message['statusCode'] = '200';
-
-			$message['is_success'] = 'true';
-
-			$message['order_id'] = $order_id;
-
-			$message['increment_id'] = $increment_id;
-
-			$message['grand_total'] = $grand_total;
-
-			$message['voucher_code'] = $voucher_code;
-
-			$message['voucher_amount'] = $voucher_amount;
-
-			$message['order_barcode'] = $order_barcode;
-
-			if ($lang_code == "fr") {
-				$msg = "Commande créée avec succès.";
 			} else {
-				$msg = "Order created successfully.";
+
+				$message['statusCode'] = '200';
+
+				$message['is_success'] = 'true';
+
+				$message['order_id'] = $order_id;
+
+				$message['increment_id'] = $increment_id;
+
+				$message['grand_total'] = $grand_total;
+
+				$message['voucher_code'] = $voucher_code;
+
+				$message['voucher_amount'] = $voucher_amount;
+
+				$message['order_barcode'] = $order_barcode;
+
+				if ($lang_code == "fr") {
+					$msg = "Commande créée avec succès.";
+				} else {
+					$msg = "Order created successfully.";
+				}
+
+				$message['message'] = $msg;
+
+				exit(json_encode($message));
+
 			}
+		} catch (\Throwable $e) {
+			if (isset($ch_obj)) {
+				try {
+					$ch_obj->rollback();
+				} catch (\Throwable $t) {}
+			}
+			error_log($e->getMessage());
+			error_log($e->getTraceAsString());
+			$errorMsg = ($lang_code == "fr")
+			? "Une erreur s'est produite. Veuillez réessayer."
+			: "Something went wrong. Please try again.";
 
-			$message['message'] = $msg;
-
-			exit(json_encode($message));
+			return $response
+				->withStatus(500)
+				->withJson([
+					'statusCode' => 500,
+					'is_success' => 'false',
+					'message' => !empty($e->getMessage()) ? $e->getMessage() : $errorMsg,
+					'error' => $e->getMessage()
+				]);
 
 		}
-	} catch (\Throwable $e) {
-		if (isset($ch_obj)) {
-			try {
-				$ch_obj->rollback();
-			} catch (\Throwable $t) {}
-		}
-	    error_log($e->getMessage());
-        error_log($e->getTraceAsString());
-		$errorMsg = ($lang_code == "fr")
-		? "Une erreur s'est produite. Veuillez réessayer."
-		: "Something went wrong. Please try again.";
 
-        return $response
-            ->withStatus(500)
-            ->withJson([
-				'statusCode' => 500,
-				'is_success' => 'false',
-				'message' => !empty($e->getMessage()) ? $e->getMessage() : $errorMsg,
-				'error' => $e->getMessage()
-			]);
-
-	}
-
-});
+	});
 
 
 

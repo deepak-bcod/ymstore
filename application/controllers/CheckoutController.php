@@ -1276,52 +1276,52 @@ class CheckoutController extends CI_Controller
 
     // }
 
-    public function order_payment($order_id)
-    {
-        // echo $order_id;die;
-        $order_id = ['order_id' => '2906'];
-        $ResponseArr = CheckoutRepository::get_order_payment($order_id);
+        public function order_payment($order_id)
+        {
+            // echo $order_id;die;
+            $order_id = ['order_id' => '2906'];
+            $ResponseArr = CheckoutRepository::get_order_payment($order_id);
 
-        $data = $ResponseArr->OrderData;
-        // echo "<pre>";
-        // print_r($ResponseArr->OrderData);die;
-        $View =  $this->load->view('checkout/order_payment.php', $data, true);
-        $this->output->set_output($View);
-    }
+            $data = $ResponseArr->OrderData;
+            // echo "<pre>";
+            // print_r($ResponseArr->OrderData);die;
+            $View =  $this->load->view('checkout/order_payment.php', $data, true);
+            $this->output->set_output($View);
+        }
 
-    public function place_order_payment()
-    {
+        public function place_order_payment()
+        {
 
-        $order_id = 2906;
-        $encode_oid = base64_encode(3567);
-        $quote_id = '';
-        $increment_id = '3567';
-        $amount = '23455.00';
-        $Shipping_Name = 'Neha Singh';
-        $shipping_address = '91, Kalpataru synergy, Opposite Grand Hyatt Hotel, Vakola, Santacruz East';
-        $shipping_country = 'IN';
-        $shipping_pincode = '400055';
-        $shipping_city = 'Mumbai';
-        $shipping_mobile_no = '7738750803';
-        $Billing_Name = 'Neha Singh';
-        $billing_address = '91, Kalpataru synergy, Opposite Grand Hyatt Hotel, Vakola, Santacruz East';
-        $billing_city = 'Mumbai';
-        $b_state_dp = 'Maharashtra';
-        $billing_pincode = '400055';
-        $billing_country = 'IN';
-        $billing_mobile_no = '7738750803';
-        $billing_email_id = 'neha.singh@kalpataru.com';
-        $s_state_dp = 'Maharashtra';
+            $order_id = 2906;
+            $encode_oid = base64_encode(3567);
+            $quote_id = '';
+            $increment_id = '3567';
+            $amount = '23455.00';
+            $Shipping_Name = 'Neha Singh';
+            $shipping_address = '91, Kalpataru synergy, Opposite Grand Hyatt Hotel, Vakola, Santacruz East';
+            $shipping_country = 'IN';
+            $shipping_pincode = '400055';
+            $shipping_city = 'Mumbai';
+            $shipping_mobile_no = '7738750803';
+            $Billing_Name = 'Neha Singh';
+            $billing_address = '91, Kalpataru synergy, Opposite Grand Hyatt Hotel, Vakola, Santacruz East';
+            $billing_city = 'Mumbai';
+            $b_state_dp = 'Maharashtra';
+            $billing_pincode = '400055';
+            $billing_country = 'IN';
+            $billing_mobile_no = '7738750803';
+            $billing_email_id = 'neha.singh@kalpataru.com';
+            $s_state_dp = 'Maharashtra';
 
-        $this->test_cc($order_id, $encode_oid, $quote_id, $increment_id, $amount, $Shipping_Name, $shipping_address, $shipping_country, $shipping_pincode,  $shipping_city, $shipping_mobile_no, $Billing_Name, $billing_address, $billing_city, $b_state_dp, $billing_pincode, $billing_country, $billing_mobile_no, $billing_email_id, $s_state_dp);
+            $this->test_cc($order_id, $encode_oid, $quote_id, $increment_id, $amount, $Shipping_Name, $shipping_address, $shipping_country, $shipping_pincode,  $shipping_city, $shipping_mobile_no, $Billing_Name, $billing_address, $billing_city, $b_state_dp, $billing_pincode, $billing_country, $billing_mobile_no, $billing_email_id, $s_state_dp);
 
-        $data['access_code'] =  $access_code = 'AVUC05CH96AM83CUMA';
-        $this->session->set_userdata('checkout_message', 'Order created successfully');
-        // $View =  $this->load->view('checkout/testcc.php', $data, true);
-        // $this->output->set_output($View);
+            $data['access_code'] =  $access_code = 'AVUC05CH96AM83CUMA';
+            $this->session->set_userdata('checkout_message', 'Order created successfully');
+            // $View =  $this->load->view('checkout/testcc.php', $data, true);
+            // $this->output->set_output($View);
 
-        // redirect('order/success/?key=' . $encode_oid);
-    }
+            // redirect('order/success/?key=' . $encode_oid);
+        }
     public function test_cc($order_id = '', $encode_oid = '', $quote_id = '', $increment_id = '', $amount = '', $Shipping_Name = '', $shipping_address = '', $shipping_country = '', $shipping_pincode = '', $shipping_city = '', $shipping_mobile_no = '', $Billing_Name = '', $billing_address = '', $billing_city = '', $billing_state = '', $billing_zip = '', $billing_country = '', $billing_tel = '', $billing_email = '', $delivery_state = '')
     {
         $merchant_id = 21651;
