@@ -1164,7 +1164,11 @@ public function markDelivered()
         }
 
         // 3. Add Notifications for BOTH Admin and Shopper
-        if ($updated && $orderData && $orderData->shipment_type == 2) {
+       if (
+    $updated &&
+    $orderData &&
+    in_array((int)$orderData->shipment_type, [1, 2])
+) {
             
             $current_time = date('Y-m-d H:i:s');
             
