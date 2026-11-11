@@ -358,4 +358,118 @@ class OrderResolutionController extends CI_Controller
         $res = $this->OrderResolutionModel->shopper_resolution_request($ticket_number, $customer_id, $message);
         $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number);
     }
+
+    /**
+     * Authorised Attachment Retrieval & Preview/Download for Shopper
+     */
+    public function attachment($ticket_number = '', $filename = '')
+    {
+        $customer_id = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? '');
+        if (empty($customer_id)) {
+            show_error('You must be logged in as a shopper to view this evidence.', 401, 'Unauthorized Access');
+            return;
+        }
+
+        $ticket_number = trim($ticket_number);
+        $filename = rawurldecode(trim($filename));
+        $clean_filename = basename($filename);
+
+        if (empty($ticket_number) || empty($clean_filename)) {
+            show_error('Invalid ticket number or attachment filename.', 400, 'Bad Request');
+            return;
+        }
+
+        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            show_error('The requested order resolution ticket was not found.', 404, 'Ticket Not Found');
+            return;
+        }
+
+        if ((int)$res->customer_id !== (int)$customer_id) {
+            show_error('You are not authorised to view attachments for this order resolution ticket.', 403, 'Access Forbidden');
+            return;
+        }
+
+        // Verify attachment is linked to this ticket
+        $is_valid = ($res->attachment === $clean_filename);
+        if (!$is_valid) {
+            $count = $this->db->where('resolution_id', $res->id)
+                ->where('attachment', $clean_filename)
+                ->count_all_results('order_resolution_messages');
+            if ($count > 0) {
+                $is_valid = true;
+            }
+        }
+
+        if (!$is_valid) {
+            show_error('The requested attachment does not belong to this order resolution ticket.', 404, 'Attachment Not Found');
+            return;
+        }
+
+        $file_path = $this->resolve_attachment_file_path($clean_filename);
+        if (!$file_path || !file_exists($file_path) || !is_file($file_path)) {
+            show_error('The requested evidence file could not be found on the server. Please contact support.', 404, 'Evidence File Not Found');
+            return;
+        }
+
+        $this->serve_attachment_file($file_path, $clean_filename);
+    }
+
+    protected function resolve_attachment_file_path($clean_filename)
+    {
+        $candidates = [
+            rtrim(FCPATH, '/\\') . '/uploads/order_resolution/' . $clean_filename,
+            rtrim(FCPATH, '/\\') . '/merchant/uploads/order_resolution/' . $clean_filename,
+            rtrim(FCPATH, '/\\') . '/admin/uploads/order_resolution/' . $clean_filename,
+        ];
+        if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+            $doc_root = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
+            $candidates[] = $doc_root . '/uploads/order_resolution/' . $clean_filename;
+            $candidates[] = $doc_root . '/ymstore/uploads/order_resolution/' . $clean_filename;
+            $candidates[] = $doc_root . '/merchant/uploads/order_resolution/' . $clean_filename;
+        }
+
+        foreach ($candidates as $candidate) {
+            if ($candidate && file_exists($candidate) && is_file($candidate)) {
+                return realpath($candidate) ?: $candidate;
+            }
+        }
+        return null;
+    }
+
+    protected function serve_attachment_file($file_path, $clean_filename)
+    {
+        $extension = strtolower(pathinfo($clean_filename, PATHINFO_EXTENSION));
+        $mime_types = [
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+            'gif'  => 'image/gif',
+            'webp' => 'image/webp',
+            'pdf'  => 'application/pdf',
+        ];
+
+        $mime_type = $mime_types[$extension] ?? (function_exists('mime_content_type') ? @mime_content_type($file_path) : 'application/octet-stream');
+        if (empty($mime_type)) {
+            $mime_type = 'application/octet-stream';
+        }
+
+        $is_download = ($this->input->get('download') == 1);
+        $disposition = $is_download ? 'attachment' : 'inline';
+
+        if (ob_get_level()) {
+            @ob_end_clean();
+        }
+
+        header('Content-Type: ' . $mime_type);
+        header('Content-Disposition: ' . $disposition . '; filename="' . $clean_filename . '"');
+        header('Content-Length: ' . filesize($file_path));
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, max-age=86400');
+        header('Pragma: private');
+
+        readfile($file_path);
+        exit;
+    }
+
 }

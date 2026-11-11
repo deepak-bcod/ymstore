@@ -393,11 +393,35 @@ $this->load->view('common/fbc-user/header');
                                                 <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
                                                     <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
                                                 </div>
-                                                <?php if (!empty($msg->attachment)): ?>
-                                                    <div class="mt-2">
-                                                        <a href="<?= base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                                            <i class="fa fa-paperclip"></i> <?= $this->lang->line('view_attachment') ?: 'View Attachment'; ?> (<?= htmlspecialchars($msg->attachment); ?>)
-                                                        </a>
+                                                <?php if (!empty($msg->attachment)): 
+                                                    $att_ext = strtolower(pathinfo($msg->attachment, PATHINFO_EXTENSION));
+                                                    $is_img  = in_array($att_ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+                                                    $is_pdf  = ($att_ext === 'pdf');
+                                                    $att_preview_url  = base_url('order_resolution/attachment/' . rawurlencode($resolution->ticket_number) . '/' . rawurlencode($msg->attachment));
+                                                    $att_download_url = $att_preview_url . '?download=1';
+                                                ?>
+                                                    <div class="chat-attachment-box mt-2 p-2 rounded" style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); display: inline-block; max-width: 100%;">
+                                                        <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                                            <span class="text-muted" style="font-size: 13px;">
+                                                                <i class="fa <?= $is_img ? 'fa-file-image-o text-info' : ($is_pdf ? 'fa-file-pdf-o text-danger' : 'fa-paperclip text-secondary'); ?>"></i>
+                                                                <strong><?= htmlspecialchars($msg->attachment); ?></strong>
+                                                            </span>
+                                                            <div class="btn-group btn-group-sm">
+                                                                <a href="<?= $att_preview_url; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="<?= $this->lang->line('preview') ?: 'Preview Evidence'; ?>">
+                                                                    <i class="fa fa-eye"></i> <?= $this->lang->line('preview') ?: 'Preview'; ?>
+                                                                </a>
+                                                                <a href="<?= $att_download_url; ?>" class="btn btn-sm btn-outline-secondary" title="<?= $this->lang->line('download') ?: 'Download'; ?>">
+                                                                    <i class="fa fa-download"></i> <?= $this->lang->line('download') ?: 'Download'; ?>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <?php if ($is_img): ?>
+                                                            <div class="attachment-preview mt-2" style="max-width: 320px; border-radius: 4px; overflow: hidden; border: 1px solid #ced4da; background: #fff;">
+                                                                <a href="<?= $att_preview_url; ?>" target="_blank" title="<?= $this->lang->line('click_to_view_full') ?: 'Click to view full size'; ?>">
+                                                                    <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.parentElement.parentElement.style.display='none';">
+                                                                </a>
+                                                            </div>
+                                                        <?php endif; ?>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
@@ -453,11 +477,35 @@ $this->load->view('common/fbc-user/header');
                                                 <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
                                                     <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
                                                 </div>
-                                                <?php if (!empty($msg->attachment)): ?>
-                                                    <div class="mt-2">
-                                                        <a href="<?= base_url('uploads/order_resolution/' . $msg->attachment); ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                                            <i class="fa fa-paperclip"></i> <?= $this->lang->line('view_attachment') ?: 'View Attachment'; ?> (<?= htmlspecialchars($msg->attachment); ?>)
-                                                        </a>
+                                                <?php if (!empty($msg->attachment)): 
+                                                    $att_ext = strtolower(pathinfo($msg->attachment, PATHINFO_EXTENSION));
+                                                    $is_img  = in_array($att_ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+                                                    $is_pdf  = ($att_ext === 'pdf');
+                                                    $att_preview_url  = base_url('order_resolution/attachment/' . rawurlencode($resolution->ticket_number) . '/' . rawurlencode($msg->attachment));
+                                                    $att_download_url = $att_preview_url . '?download=1';
+                                                ?>
+                                                    <div class="chat-attachment-box mt-2 p-2 rounded" style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); display: inline-block; max-width: 100%;">
+                                                        <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                                            <span class="text-muted" style="font-size: 13px;">
+                                                                <i class="fa <?= $is_img ? 'fa-file-image-o text-info' : ($is_pdf ? 'fa-file-pdf-o text-danger' : 'fa-paperclip text-secondary'); ?>"></i>
+                                                                <strong><?= htmlspecialchars($msg->attachment); ?></strong>
+                                                            </span>
+                                                            <div class="btn-group btn-group-sm">
+                                                                <a href="<?= $att_preview_url; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="<?= $this->lang->line('preview') ?: 'Preview Evidence'; ?>">
+                                                                    <i class="fa fa-eye"></i> <?= $this->lang->line('preview') ?: 'Preview'; ?>
+                                                                </a>
+                                                                <a href="<?= $att_download_url; ?>" class="btn btn-sm btn-outline-secondary" title="<?= $this->lang->line('download') ?: 'Download'; ?>">
+                                                                    <i class="fa fa-download"></i> <?= $this->lang->line('download') ?: 'Download'; ?>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <?php if ($is_img): ?>
+                                                            <div class="attachment-preview mt-2" style="max-width: 320px; border-radius: 4px; overflow: hidden; border: 1px solid #ced4da; background: #fff;">
+                                                                <a href="<?= $att_preview_url; ?>" target="_blank" title="<?= $this->lang->line('click_to_view_full') ?: 'Click to view full size'; ?>">
+                                                                    <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.parentElement.parentElement.style.display='none';">
+                                                                </a>
+                                                            </div>
+                                                        <?php endif; ?>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
