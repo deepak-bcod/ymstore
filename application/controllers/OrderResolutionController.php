@@ -149,8 +149,22 @@ class OrderResolutionController extends CI_Controller
         $priority    = trim($this->input->post('priority', true));
         $message     = trim($this->input->post('message', true));
 
+        // Fallback: parse rejected_item_selection (format: "order_id:product_id") if hidden inputs were not populated
+        if (empty($order_id) || empty($product_id)) {
+            $item_sel = trim((string)$this->input->post('rejected_item_selection', true));
+            if (!empty($item_sel) && strpos($item_sel, ':') !== false) {
+                list($parsed_order_id, $parsed_prod_id) = explode(':', $item_sel);
+                if (empty($order_id)) {
+                    $order_id = (int)$parsed_order_id;
+                }
+                if (empty($product_id)) {
+                    $product_id = (int)$parsed_prod_id;
+                }
+            }
+        }
+
         // Validation
-        if (empty($order_id)) {
+        if (empty($order_id) || empty($product_id)) {
             $this->json_response(false, 'Please select a valid order item.', [], 'order_resolution/create');
             return;
         }

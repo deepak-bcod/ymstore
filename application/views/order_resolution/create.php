@@ -133,29 +133,6 @@ function handleItemSelect(selectElem) {
         document.getElementById('product_id').value = '';
         return;
     }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
     var orderId = selectedOpt.getAttribute('data-order-id');
     var productId = selectedOpt.getAttribute('data-product-id');
     var category = selectedOpt.getAttribute('data-category');
@@ -170,77 +147,8 @@ function handleItemSelect(selectElem) {
                 catSelect.selectedIndex = i;
                 break;
             }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
         }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
-        }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
     }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -248,29 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sel && sel.value) {
         handleItemSelect(sel);
     }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
 });
 
 $(document).ready(function() {
@@ -285,57 +170,10 @@ $(document).ready(function() {
         $('body').append(html);
         setTimeout(function() {
             $('.resolution-ajax-alert').fadeOut(function() { $(this).remove(); });
-        }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });, 4000);
+        }, 4000);
     }
 
-    
     // Client-side file attachment validation (1 MB limit)
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
-
     $(document).on('change', 'input[type="file"][name="attachment"]', function() {
         var file = this.files && this.files[0];
         if (!file) return;
@@ -367,56 +205,10 @@ $(document).ready(function() {
             $btn = $form.find(':submit');
         }
 
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
-
         // Double-click guard
         if ($btn.prop('disabled')) {
             return false;
         }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
 
         var origHtml = $btn.html();
         $btn.data('original-html', origHtml);
@@ -434,30 +226,7 @@ $(document).ready(function() {
             dataType: 'json',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-            }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });,
+            },
             success: function(res) {
                 if (res && res.status) {
                     $btn.html('<i class="fa fa-check"></i> ' + (<?php echo json_encode($this->lang->line('ajax_done') ?: 'Submitted'); ?>));
@@ -466,103 +235,11 @@ $(document).ready(function() {
                     setTimeout(function() {
                         if (res.redirect) {
                             window.location.href = res.redirect;
-                        }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    }); else {
+                        } else {
                             window.location.reload();
                         }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
-                    }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });, 800);
-                }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    }); else {
+                    }, 800);
+                } else {
                     $btn.prop('disabled', false).html(origHtml);
                     var msg = (res && res.message) ? res.message : (<?php echo json_encode($this->lang->line('ajax_error') ?: 'An error occurred while submitting your ticket.'); ?>);
                     showNotification('error', msg);
@@ -570,204 +247,20 @@ $(document).ready(function() {
                     if (res && res.requires_reload) {
                         setTimeout(function() {
                             window.location.reload();
-                        }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });, 1500);
+                        }, 1500);
                     }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
                 }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
-            }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });,
+            },
             error: function(xhr, status, err) {
                 $btn.prop('disabled', false).html(origHtml);
                 var errMsg = <?php echo json_encode($this->lang->line('ajax_error') ?: 'Unable to submit request. Please check your connection and try again.'); ?>;
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errMsg = xhr.responseJSON.message;
                 }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    });
                 showNotification('error', errMsg);
             }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
+        });
     });
-        }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    }););
-    }
-
-    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
-        var file = this.files && this.files[0];
-        if (!file) return;
-
-        var maxSize = 1024 * 1024; // 1 MB
-        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
-        var fileName = file.name;
-        var ext = fileName.split('.').pop().toLowerCase();
-
-        if ($.inArray(ext, allowedExtensions) === -1) {
-            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
-            $(this).val('');
-            return;
-        }
-
-        if (file.size > maxSize) {
-            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
-            $(this).val('');
-            return;
-        }
-    }););
 });
 </script>
 
