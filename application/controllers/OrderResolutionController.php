@@ -362,9 +362,9 @@ class OrderResolutionController extends CI_Controller
         $c_row = $this->db->select('first_name, last_name')->where('id', $customer_id)->get('customers')->row();
         $shopper_name = $c_row ? trim(($c_row->first_name ?? '') . ' ' . ($c_row->last_name ?? '')) : 'Shopper';
 
-        //$ok = $this->OrderResolutionModel->add_reply($ticket_number, 'shopper', $customer_id, $shopper_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'shopper', $customer_id, $shopper_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
 
-        $ok = 1;
+        // ok
 
         if ($ok) {
             $msg = $this->lang->line('reply_posted_success') ?: 'Your reply has been sent.';
@@ -505,3 +505,4 @@ class OrderResolutionController extends CI_Controller
     }
 
 }
+

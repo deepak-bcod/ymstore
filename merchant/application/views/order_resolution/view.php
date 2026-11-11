@@ -357,6 +357,72 @@ $this->load->view('common/fbc-user/header');
                     }
                     ?>
 
+                    <!-- ================= ORIGINAL DISPUTE CLAIM & SUBMITTED EVIDENCE ================= -->
+                    <div class="card mb-4 shadow-sm" style="border-left: 4px solid #17a2b8;">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
+                            <span class="font-weight-bold text-dark" style="font-size: 14px;">
+                                <i class="fa fa-file-text-o text-info mr-1"></i> <?= $this->lang->line('original_dispute_claim_heading') ?: 'Original Dispute Claim & Submitted Evidence'; ?>
+                            </span>
+                            <div>
+                                <span class="badge badge-info mr-1"><i class="fa fa-gavel"></i> <?= $this->lang->line('dispute_origin') ?: 'Dispute Origin'; ?></span>
+                                <span class="text-muted small"><i class="fa fa-clock-o"></i> <?= $this->lang->line('submitted') ?: 'Submitted'; ?>: <?= date('d M Y, h:i A', $resolution->created_at); ?></span>
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-2">
+                                        <strong class="text-muted small text-uppercase"><?= $this->lang->line('shopper_claim_reason') ?: "Shopper's Original Claim / Reason:"; ?></strong>
+                                        <div class="p-3 mt-1 rounded bg-white border" style="font-size: 14px; line-height: 1.6; min-height: 50px;">
+                                            <?= !empty($resolution->message) ? nl2br(htmlspecialchars($resolution->message, ENT_QUOTES, 'UTF-8')) : '<em class="text-muted">No text statement provided.</em>'; ?>
+                                        </div>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <i class="fa fa-info-circle text-primary"></i> <strong><?= $this->lang->line('shared_dispute_context') ?: 'Shared Dispute Context:'; ?></strong> <?= $this->lang->line('shared_dispute_context_desc') ?: 'This is the initial claim statement submitted by the customer upon dispute creation. Shared across Shopper, Merchant, and Support.'; ?>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong class="text-muted small text-uppercase"><?= $this->lang->line('initial_evidence') ?: 'Initial Evidence:'; ?></strong>
+                                    <?php if (!empty($resolution->attachment)): 
+                                        $att_ext = strtolower(pathinfo($resolution->attachment, PATHINFO_EXTENSION));
+                                        $is_img  = in_array($att_ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+                                        $is_pdf  = ($att_ext === 'pdf');
+                                        $att_preview_url  = base_url('order_resolution/attachment/' . rawurlencode($resolution->ticket_number) . '/' . rawurlencode($resolution->attachment));
+                                        $att_download_url = $att_preview_url . '?download=1';
+                                    ?>
+                                        <div class="p-2 mt-1 rounded bg-white border">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <span class="small font-weight-bold text-truncate mr-2" style="max-width: 160px;" title="<?= htmlspecialchars($resolution->attachment); ?>">
+                                                    <i class="fa <?= $is_img ? 'fa-file-image-o text-info' : ($is_pdf ? 'fa-file-pdf-o text-danger' : 'fa-paperclip text-secondary'); ?>"></i>
+                                                    <?= htmlspecialchars($resolution->attachment); ?>
+                                                </span>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="<?= $att_preview_url; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="<?= $this->lang->line('preview') ?: 'Preview Evidence'; ?>">
+                                                        <i class="fa fa-eye"></i> <?= $this->lang->line('preview') ?: 'Preview'; ?>
+                                                    </a>
+                                                    <a href="<?= $att_download_url; ?>" class="btn btn-sm btn-outline-secondary" title="<?= $this->lang->line('download') ?: 'Download'; ?>">
+                                                        <i class="fa fa-download"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <?php if ($is_img): ?>
+                                                <div style="max-height: 140px; overflow: hidden; border-radius: 4px; border: 1px solid #dee2e6; text-align: center; background: #f8f9fa;">
+                                                    <a href="<?= $att_preview_url; ?>" target="_blank" title="<?= $this->lang->line('click_to_view_full') ?: 'Click to view full size'; ?>">
+                                                        <img src="<?= $att_preview_url; ?>" alt="Evidence" style="max-height: 140px; width: auto; max-width: 100%; object-fit: contain;">
+                                                    </a>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="p-3 mt-1 rounded bg-white border text-muted small">
+                                            <i class="fa fa-ban"></i> <?= $this->lang->line('no_initial_evidence') ?: 'No file attachment uploaded with original claim.'; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Conversation Workflows Navigation Tabs -->
                     <div class="card mb-4 border-0 shadow-sm">
                         <div class="card-header bg-white p-0 border-bottom">
@@ -379,6 +445,10 @@ $this->load->view('common/fbc-user/header');
                         <div class="tab-content card-body p-3" id="merchantConvContent">
                             <!-- Pane 1: Merchant <-> Shopper -->
                             <div class="tab-pane fade show active" id="pane-shopper-conv" role="tabpanel" aria-labelledby="tab-shopper-conv">
+                                <div class="alert alert-info py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; background-color: #f4fbfd; border-color: #bce8f1; color: #245269;">
+                                    <div><i class="fa fa-comments text-info mr-1"></i> <strong>Direct Customer Communication:</strong> Messages exchanged here are sent to the shopper. Support can review for dispute adjudication.</div>
+                                    <span class="badge badge-info"><i class="fa fa-eye"></i> Shopper + Support</span>
+                                </div>
                                 <div class="chat-container mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
                                     <?php if (!empty($shopper_merchant_msgs)): ?>
                                         <?php foreach ($shopper_merchant_msgs as $msg): 
@@ -438,6 +508,12 @@ $this->load->view('common/fbc-user/header');
                                             <strong style="font-size: 13px;"><i class="fa fa-paper-plane text-primary"></i> <?= $this->lang->line('reply_to_shopper') ?: 'Reply to Shopper'; ?></strong>
                                         </div>
                                         <div class="card-body p-3">
+                                            <div class="alert alert-info py-1 px-3 mb-3" style="font-size: 12px; background-color: #ebf7fd; border-color: #bce8f1; color: #245269;">
+                                                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                    <div><i class="fa fa-user mr-1"></i> <strong>Recipient:</strong> <?= htmlspecialchars($customer ? trim($customer->first_name . ' ' . $customer->last_name) : 'Shopper'); ?></div>
+                                                    <div><i class="fa fa-eye mr-1"></i> <strong>Visibility:</strong> Direct communication with Shopper. Support can review for adjudication.</div>
+                                                </div>
+                                            </div>
                                             <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
                                                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                                                 <input type="hidden" name="conversion_type" value="shopper_merchant">
@@ -463,6 +539,10 @@ $this->load->view('common/fbc-user/header');
 
                             <!-- Pane 2: Merchant <-> Admin -->
                             <div class="tab-pane fade" id="pane-admin-conv" role="tabpanel" aria-labelledby="tab-admin-conv">
+                                <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
+                                    <div><i class="fa fa-lock text-warning mr-1"></i> <strong>Private Support Thread:</strong> Confidential coordination with YellowMarkets Support & Accounting.</div>
+                                    <span class="badge badge-warning"><i class="fa fa-eye-slash"></i> Hidden from Shopper</span>
+                                </div>
                                 <div class="chat-container mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
                                     <?php if (!empty($merchant_admin_msgs)): ?>
                                         <?php foreach ($merchant_admin_msgs as $msg): 
@@ -522,6 +602,12 @@ $this->load->view('common/fbc-user/header');
                                             <strong style="font-size: 13px;"><i class="fa fa-envelope text-info"></i> <?= $this->lang->line('message_to_admin') ?: 'Message to YellowMarkets Support & Accounting'; ?></strong>
                                         </div>
                                         <div class="card-body p-3">
+                                            <div class="alert alert-warning py-1 px-3 mb-3" style="font-size: 12px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
+                                                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                    <div><i class="fa fa-shield mr-1"></i> <strong>Recipient:</strong> YellowMarkets Support Team (@Help / @Acct)</div>
+                                                    <div><i class="fa fa-eye-slash mr-1"></i> <strong>Visibility:</strong> Confidential between Merchant and Support. <em>Shopper cannot view this thread.</em></div>
+                                                </div>
+                                            </div>
                                             <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
                                                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                                                 <input type="hidden" name="conversion_type" value="merchant_admin">

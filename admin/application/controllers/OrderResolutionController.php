@@ -225,9 +225,7 @@ class OrderResolutionController extends CI_Controller
         }
 
         $sender_name = ($role === 'acct') ? 'Accounting Team (@Acct)' : 'Support Team (@Help)';
-        //$ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
-
-        $ok = 1 ;
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, $role, $admin_id, $sender_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
 
         if ($ok) {
             if ($conversion_type === 'shopper_admin' && !empty($res->customer_id)) {

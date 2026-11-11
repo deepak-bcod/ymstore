@@ -185,9 +185,9 @@ class OrderResolutionController extends CI_Controller
         $pub = $this->db->select('publication_name')->where('id', $merchant_id)->get('publisher')->row();
         $sender_name = $pub ? $pub->publication_name : 'Merchant';
 
-        //$ok = $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
+        $ok = $this->OrderResolutionModel->add_reply($ticket_number, 'merchant', $merchant_id, $sender_name, $message, $attachment, $this->input->ip_address(), $conversion_type);
 
-        $ok = 1;
+        // ok
 
         if ($ok) {
             if ($conversion_type === 'shopper_merchant') {
@@ -455,3 +455,4 @@ class OrderResolutionController extends CI_Controller
     }
 
 }
+
