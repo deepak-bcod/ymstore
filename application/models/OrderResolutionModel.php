@@ -688,7 +688,7 @@ class OrderResolutionModel extends CI_Model
             'ip'            => $ip,
         ];
         if ($this->db->field_exists('conversion_type', 'order_resolution_messages')) {
-            $msg_data['conversion_type'] = 'shopper_merchant';
+            $msg_data['conversion_type'] = 'shopper_admin';
         }
         $this->db->insert('order_resolution_messages', $msg_data);
 

@@ -185,7 +185,7 @@
                             }
                         }
                     }
-                    $is_escalated = ($resolution->resolution_status === 'resolution_requested' || $resolution->status === 'ReOpen');
+                    $is_escalated = (!empty($shopper_admin_msgs) || $resolution->resolution_status === 'resolution_requested' || in_array($resolution->status, ['Open', 'ReOpen', 'Processing', 'Done'], true));
                     ?>
 
                     <!-- Conversation Workflows Navigation Tabs -->
@@ -271,11 +271,11 @@
                                             </span>
                                         </div>
                                     </div>
-                                <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
+                                <?php elseif ($resolution->resolution_status === 'resolution_requested' || in_array($resolution->status, ['Open', 'ReOpen'], true)): ?>
                                     <div class="alert alert-info" style="margin-bottom: 20px; background-color: #e8f4fd; border-color: #b8daff; color: #004085;">
-                                        <i class="fa fa-info-circle"></i>
-                                        <strong><?php echo $this->lang->line('escalated_badge') ?: 'Escalated'; ?>:</strong>
-                                        <?php echo $this->lang->line('escalation_submitted_confirmation') ?: 'The escalation has been submitted to YellowMarkets support.'; ?>
+                                        <i class="fa fa-shield"></i>
+                                        <strong><?php echo $this->lang->line('direct_investigation_badge') ?: 'Dispute Under Review'; ?>:</strong>
+                                        <?php echo $this->lang->line('direct_investigation_info') ?: 'Your resolution request is under direct investigation by Yellow Markets Support following the merchant\'s rejection. Support will adjudicate the dispute.'; ?>
                                     </div>
                                 <?php endif; ?>
 
@@ -358,8 +358,8 @@
                                             </div>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <div class="alert alert-warning text-center" style="margin: 20px 0;">
-                                            <i class="fa fa-info-circle"></i> <?php echo $this->lang->line('no_messages_support_channel') ?: 'No conversation messages with YellowMarkets Support yet. You can escalate the ticket if you need Support assistance.'; ?>
+                                        <div class="alert alert-info text-center" style="margin: 20px 0;">
+                                            <i class="fa fa-info-circle"></i> <?php echo $this->lang->line('support_channel_ready_info') ?: 'Your dispute is under direct Support investigation. You can post a message directly to Yellow Markets Support below.'; ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>

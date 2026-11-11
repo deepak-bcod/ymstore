@@ -389,10 +389,7 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
-        if (empty($res->merchant_action) || $res->merchant_action === 'none') {
-            $this->json_response(false, 'Cannot close ticket: Merchant has not taken any action on this ticket yet.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
-            return;
-        }
+        // Close ticket directly as requested by Support (@Help)
 
         $result = $this->OrderResolutionModel->admin_close_ticket($ticket_number, $admin_id, $notes);
 
