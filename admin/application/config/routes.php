@@ -498,6 +498,7 @@ $route['notifications/latest'] = 'notifications/latest';
 $route['order_resolution']                          = 'OrderResolutionController/index';
 $route['order_resolution/acct']                     = 'OrderResolutionController/acct_list';
 $route['order_resolution/view/(:any)']              = 'OrderResolutionController/view/$1';
+$route['order_resolution/attachment/(:any)/(:any)'] = 'OrderResolutionController/attachment/$1/$2';
 $route['order_resolution/reply']                    = 'OrderResolutionController/reply';
 $route['order_resolution/assign_to_acct']          = 'OrderResolutionController/assign_to_acct';
 $route['order_resolution/mark_done']               = 'OrderResolutionController/mark_done';
