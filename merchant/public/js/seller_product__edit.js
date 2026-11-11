@@ -223,6 +223,12 @@ $(document).ready(function() {
           //  inputPassword: { "minlength": "Please enter 8 or more characters." },
         },
         submitHandler: function(form) {
+			// Validate deal scheduling before proceeding
+			if (typeof window.validateDealsScheduling === 'function') {
+				if (!window.validateDealsScheduling()) {
+					return false;
+				}
+			}
 			// $('#save_product').attr('disabled',true);
 
 		var form_obj = $('#product-frm-edit')[0];

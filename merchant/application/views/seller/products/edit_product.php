@@ -334,23 +334,40 @@
 				<?php endif; ?>
 
 				<?php
-					$today_min_dt = gmdate('Y-m-d\TH:i');
+					$mut_tz = new DateTimeZone('Indian/Mauritius');
+					$now_mut_dt = new DateTime('now', $mut_tz);
+					$today_min_dt = $now_mut_dt->format('Y-m-d\TH:i');
+					$min_allowed_dt = (clone $now_mut_dt)->modify('-5 minutes');
+					$min_allowed_str = $min_allowed_dt->format('Y-m-d\TH:i');
+
 					$dd_start_ts = !empty($ProductData->daily_deal_starts_at) ? $ProductData->daily_deal_starts_at : null;
 					$dd_end_ts   = !empty($ProductData->daily_deal_ends_at) ? $ProductData->daily_deal_ends_at : null;
-					$dd_start_val = $dd_start_ts ? gmdate('Y-m-d\TH:i', is_numeric($dd_start_ts) ? (int)$dd_start_ts : strtotime($dd_start_ts . ' UTC')) : '';
-					if (!empty($dd_start_val) && empty($dd_end_ts)) {
-						$dd_end_ts = (is_numeric($dd_start_ts) ? (int)$dd_start_ts : strtotime($dd_start_ts . ' UTC')) + 86400;
+					$dd_start_val = '';
+					if (!empty($dd_start_ts)) {
+						$dt = new DateTime('@' . (is_numeric($dd_start_ts) ? (int)$dd_start_ts : strtotime($dd_start_ts)));
+						$dt->setTimezone($mut_tz);
+						$dd_start_val = $dt->format('Y-m-d\TH:i');
 					}
-					$dd_end_val   = $dd_end_ts ? gmdate('Y-m-d\TH:i', is_numeric($dd_end_ts) ? (int)$dd_end_ts : strtotime($dd_end_ts . ' UTC')) : '';
+					$dd_end_val = '';
+					if (!empty($dd_end_ts)) {
+						$dt = new DateTime('@' . (is_numeric($dd_end_ts) ? (int)$dd_end_ts : strtotime($dd_end_ts)));
+						$dt->setTimezone($mut_tz);
+						$dd_end_val = $dt->format('Y-m-d\TH:i');
+					} elseif (!empty($dd_start_val)) {
+						$dt = new DateTime($dd_start_val, $mut_tz);
+						$dt->modify('+24 hours');
+						$dd_end_val = $dt->format('Y-m-d\TH:i');
+					}
 				?>
 				<div id="daily_deals_datetime_box" style="<?php echo ($is_dd_active) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
 					<div class="row">
 						<div class="col-sm-6">
-							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (UTC) <span class="text-danger">*</span></label>
-							<input type="datetime-local" class="form-control" name="daily_deal_starts_at" id="daily_deal_starts_at" value="<?php echo $dd_start_val; ?>" <?php echo ($is_dd_active ? 'required' : ''); ?>>
+							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (MUT) <span class="text-danger">*</span></label>
+							<input type="datetime-local" class="form-control" name="daily_deal_starts_at" id="daily_deal_starts_at" value="<?php echo $dd_start_val; ?>" <?php echo ($is_dd_active ? 'required' : ''); ?> min="<?php echo (!empty($dd_start_val) && $is_dd_active && !empty($dd_end_ts) && $dd_end_ts > time()) ? '' : $min_allowed_str; ?>">
+							<small class="text-danger dd-time-error" style="display: none; font-weight: 600; margin-top: 4px;"></small>
 						</div>
 						<div class="col-sm-6">
-							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (UTC)</label>
+							<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (MUT)</label>
 							<input type="datetime-local" class="form-control" name="daily_deal_ends_at" id="daily_deal_ends_at" value="<?php echo $dd_end_val; ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
 						</div>
 					</div>
@@ -405,20 +422,32 @@
 					<?php
 						$fs_start_ts = !empty($ProductData->flash_sale_starts_at) ? $ProductData->flash_sale_starts_at : null;
 						$fs_end_ts   = !empty($ProductData->flash_sale_ends_at) ? $ProductData->flash_sale_ends_at : null;
-						$fs_start_val = $fs_start_ts ? gmdate('Y-m-d\TH:i', is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts . ' UTC')) : '';
-						if (!empty($fs_start_val) && empty($fs_end_ts)) {
-							$fs_end_ts = (is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts . ' UTC')) + (7 * 86400);
+						$fs_start_val = '';
+						if (!empty($fs_start_ts)) {
+							$dt = new DateTime('@' . (is_numeric($fs_start_ts) ? (int)$fs_start_ts : strtotime($fs_start_ts)));
+							$dt->setTimezone($mut_tz);
+							$fs_start_val = $dt->format('Y-m-d\TH:i');
 						}
-						$fs_end_val   = $fs_end_ts ? gmdate('Y-m-d\TH:i', is_numeric($fs_end_ts) ? (int)$fs_end_ts : strtotime($fs_end_ts . ' UTC')) : '';
+						$fs_end_val = '';
+						if (!empty($fs_end_ts)) {
+							$dt = new DateTime('@' . (is_numeric($fs_end_ts) ? (int)$fs_end_ts : strtotime($fs_end_ts)));
+							$dt->setTimezone($mut_tz);
+							$fs_end_val = $dt->format('Y-m-d\TH:i');
+						} elseif (!empty($fs_start_val)) {
+							$dt = new DateTime($fs_start_val, $mut_tz);
+							$dt->modify('+7 days');
+							$fs_end_val = $dt->format('Y-m-d\TH:i');
+						}
 					?>
 					<div id="flash_sale_datetime_box" style="<?php echo ($is_fs_active) ? '' : 'display: none;'; ?> margin-top: 10px; margin-bottom: 15px;">
 						<div class="row">
 							<div class="col-sm-6">
-								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (UTC) <span class="text-danger">*</span></label>
-								<input type="datetime-local" class="form-control" name="flash_sale_starts_at" id="flash_sale_starts_at" value="<?php echo $fs_start_val; ?>" <?php echo ($is_fs_active ? 'required' : ''); ?>>
+								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">Start Date & Time (MUT) <span class="text-danger">*</span></label>
+								<input type="datetime-local" class="form-control" name="flash_sale_starts_at" id="flash_sale_starts_at" value="<?php echo $fs_start_val; ?>" <?php echo ($is_fs_active ? 'required' : ''); ?> min="<?php echo (!empty($fs_start_val) && $is_fs_active && !empty($fs_end_ts) && $fs_end_ts > time()) ? '' : $min_allowed_str; ?>">
+								<small class="text-danger fs-time-error" style="display: none; font-weight: 600; margin-top: 4px;"></small>
 							</div>
 							<div class="col-sm-6">
-								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (UTC)</label>
+								<label style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 5px;">End Date & Time (MUT)</label>
 								<input type="datetime-local" class="form-control" name="flash_sale_ends_at" id="flash_sale_ends_at" value="<?php echo $fs_end_val; ?>" readonly style="background-color: #f8f9fa; cursor: not-allowed;">
 							</div>
 						</div>
@@ -2079,54 +2108,66 @@ $('.required-field').each(function() {
 
 
 
-	var currentDateTimeStr = '<?php echo gmdate("Y-m-d\TH:i"); ?>';
+	var isExistingDdActive = <?php echo (!empty($is_dd_active) && !empty($dd_end_ts) && $dd_end_ts > time()) ? 'true' : 'false'; ?>;
+	var initialDdStartVal = '<?php echo $dd_start_val ?? ''; ?>';
+	var isExistingFsActive = <?php echo (!empty($is_fs_active) && !empty($fs_end_ts) && $fs_end_ts > time()) ? 'true' : 'false'; ?>;
+	var initialFsStartVal = '<?php echo $fs_start_val ?? ''; ?>';
 
-	function formatDateTimeUTC(d) {
-		var y = d.getUTCFullYear();
-		var m = String(d.getUTCMonth() + 1).padStart(2, '0');
-		var day = String(d.getUTCDate()).padStart(2, '0');
-		var h = String(d.getUTCHours()).padStart(2, '0');
-		var min = String(d.getUTCMinutes()).padStart(2, '0');
+	// Current Mauritius Time (UTC+4)
+	function getNowMUT() {
+		var d = new Date();
+		var utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+		return new Date(utc + (3600000 * 4));
+	}
+
+	function formatDateTimeMUT(d) {
+		var y = d.getFullYear();
+		var m = String(d.getMonth() + 1).padStart(2, '0');
+		var day = String(d.getDate()).padStart(2, '0');
+		var h = String(d.getHours()).padStart(2, '0');
+		var min = String(d.getMinutes()).padStart(2, '0');
 		return y + '-' + m + '-' + day + 'T' + h + ':' + min;
 	}
 
-	function addHoursToDateTimeStringUTC(dtStr, hours) {
+	function addHoursToDateTimeMUT(dtStr, hours) {
 		if (!dtStr) return '';
-		var isoStr = dtStr;
-		if (isoStr.indexOf('Z') === -1) {
-			isoStr = (isoStr.length === 16 ? isoStr + ':00' : isoStr) + 'Z';
-		}
-		var d = new Date(isoStr);
+		var parts = dtStr.split(/[-T:]/);
+		if (parts.length < 5) return '';
+		var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), parseInt(parts[3], 10), parseInt(parts[4], 10));
 		if (isNaN(d.getTime())) return '';
 		d.setTime(d.getTime() + (hours * 3600 * 1000));
-		return formatDateTimeUTC(d);
+		return formatDateTimeMUT(d);
 	}
 
 	$('#daily_deal_starts_at').on('change input', function() {
+		$('.dd-time-error').hide().text('');
 		var startVal = $(this).val();
 		if (startVal) {
-			if (startVal < currentDateTimeStr) {
-				alert('Start date & time (UTC) cannot be in the past.');
-				$(this).val(currentDateTimeStr);
-				startVal = currentDateTimeStr;
+			var nowMUT = getNowMUT();
+			var minAllowedMUT = formatDateTimeMUT(new Date(nowMUT.getTime() - (5 * 60 * 1000)));
+			var isExistingDd = isExistingDdActive && (startVal === initialDdStartVal);
+			if (!isExistingDd && startVal < minAllowedMUT) {
+				$('.dd-time-error').text('Start Date & Time (MUT) cannot be in the past. Please select current or future time.').show();
 			}
-			var endVal = addHoursToDateTimeStringUTC(startVal, 24);
-			$('#daily_deal_ends_at').val(endVal).attr('min', startVal);
+			var endVal = addHoursToDateTimeMUT(startVal, 24);
+			$('#daily_deal_ends_at').val(endVal);
 		} else {
 			$('#daily_deal_ends_at').val('');
 		}
 	});
 
 	$('#flash_sale_starts_at').on('change input', function() {
+		$('.fs-time-error').hide().text('');
 		var startVal = $(this).val();
 		if (startVal) {
-			if (startVal < currentDateTimeStr) {
-				alert('Start date & time (UTC) cannot be in the past.');
-				$(this).val(currentDateTimeStr);
-				startVal = currentDateTimeStr;
+			var nowMUT = getNowMUT();
+			var minAllowedMUT = formatDateTimeMUT(new Date(nowMUT.getTime() - (5 * 60 * 1000)));
+			var isExistingFs = isExistingFsActive && (startVal === initialFsStartVal);
+			if (!isExistingFs && startVal < minAllowedMUT) {
+				$('.fs-time-error').text('Start Date & Time (MUT) cannot be in the past. Please select current or future time.').show();
 			}
-			var endVal = addHoursToDateTimeStringUTC(startVal, 168); // 7 days (168 hours)
-			$('#flash_sale_ends_at').val(endVal).attr('min', startVal);
+			var endVal = addHoursToDateTimeMUT(startVal, 168);
+			$('#flash_sale_ends_at').val(endVal);
 		} else {
 			$('#flash_sale_ends_at').val('');
 		}
@@ -2137,12 +2178,15 @@ $('.required-field').each(function() {
 			$('#daily_deals_datetime_box').slideDown();
 			$('#daily_deal_starts_at').prop('required', true);
 			if (!$('#daily_deal_starts_at').val()) {
-				var nowStr = formatDateTimeUTC(new Date());
+				var nowStr = formatDateTimeMUT(getNowMUT());
 				$('#daily_deal_starts_at').val(nowStr).trigger('change');
 			}
+			var minStr = formatDateTimeMUT(new Date(getNowMUT().getTime() - (5 * 60 * 1000)));
+			$('#daily_deal_starts_at').attr('min', minStr);
 		} else {
 			$('#daily_deals_datetime_box').slideUp();
 			$('#daily_deal_starts_at').prop('required', false);
+			$('.dd-time-error').hide().text('');
 		}
 	});
 
@@ -2151,12 +2195,15 @@ $('.required-field').each(function() {
 			$('#flash_sale_datetime_box').slideDown();
 			$('#flash_sale_starts_at').prop('required', true);
 			if (!$('#flash_sale_starts_at').val()) {
-				var nowStr = formatDateTimeUTC(new Date());
+				var nowStr = formatDateTimeMUT(getNowMUT());
 				$('#flash_sale_starts_at').val(nowStr).trigger('change');
 			}
+			var minStr = formatDateTimeMUT(new Date(getNowMUT().getTime() - (5 * 60 * 1000)));
+			$('#flash_sale_starts_at').attr('min', minStr);
 		} else {
 			$('#flash_sale_datetime_box').slideUp();
 			$('#flash_sale_starts_at').prop('required', false);
+			$('.fs-time-error').hide().text('');
 		}
 	});
 
@@ -2214,20 +2261,9 @@ $('.required-field').each(function() {
 		checkStockForDeals();
 	});
 
-	// Ensure select values are posted even if disabled due to 0 stock
-	$('form').on('submit', function() {
-		if ($('#daily_deals').is(':disabled') && $('#daily_deals').val() == '0') {
-			$('#daily_deals').prop('disabled', false);
-		}
-		if ($('#flash_sale').is(':disabled') && $('#flash_sale').val() == '0') {
-			$('#flash_sale').prop('disabled', false);
-		}
-	});
-
 	var todayDateOnlyStr = '<?php echo date("Y-m-d"); ?>';
-	var todayDateTimeLocalStr = '<?php echo date("Y-m-d\TH:i"); ?>';
 
-	// 1. Disable past dates ONLY when user opens/interacts with the datepicker (focus / click)
+	// Special price past date handling ONLY (not daily deals or flash sales)
 	$(document).on('focus click', '#special_price_from, input[name="variant_special_price_from[]"]', function() {
 		$(this).attr('min', todayDateOnlyStr);
 	});
@@ -2245,12 +2281,24 @@ $('.required-field').each(function() {
 		$(this).attr('min', minDate);
 	});
 
-	$(document).on('focus click', '#daily_deal_starts_at, #flash_sale_starts_at', function() {
-		$(this).attr('min', todayDateTimeLocalStr);
+	$(document).on('focus click', '#daily_deal_starts_at', function() {
+		var isExistingDd = isExistingDdActive && ($(this).val() === initialDdStartVal);
+		if (!isExistingDd) {
+			var minVal = formatDateTimeMUT(new Date(getNowMUT().getTime() - (5 * 60 * 1000)));
+			$(this).attr('min', minVal);
+		}
 	});
 
-	// 2. If user leaves the field without picking a future date (or leaves an existing past date), remove min so save is not blocked
-	$(document).on('blur', 'input[type="date"], input[type="datetime-local"]', function() {
+	$(document).on('focus click', '#flash_sale_starts_at', function() {
+		var isExistingFs = isExistingFsActive && ($(this).val() === initialFsStartVal);
+		if (!isExistingFs) {
+			var minVal = formatDateTimeMUT(new Date(getNowMUT().getTime() - (5 * 60 * 1000)));
+			$(this).attr('min', minVal);
+		}
+	});
+
+	// Remove min from special price dates only on blur if left in past
+	$(document).on('blur', '#special_price_from, #special_price_to, input[name="variant_special_price_from[]"], input[name="variant_special_price_to[]"]', function() {
 		var val = $(this).val();
 		var min = $(this).attr('min');
 		if (val && min && val < min) {
@@ -2258,7 +2306,7 @@ $('.required-field').each(function() {
 		}
 	});
 
-	// 3. Dynamic adjustment when dates change (silently without alerts)
+	// Dynamic adjustment when special price dates change
 	$('#special_price_from').on('change', function() {
 		var fromVal = $(this).val();
 		if (fromVal) {
@@ -2298,9 +2346,8 @@ $('.required-field').each(function() {
 		}
 	});
 
-	// 4. On click of Save button or submit, remove any min attributes that could block past dates
-	function clearPastDateRestrictions() {
-		$('input[type="date"], input[type="datetime-local"]').each(function() {
+	function clearSpecialPricePastDateRestrictions() {
+		$('#special_price_from, #special_price_to, input[name="variant_special_price_from[]"], input[name="variant_special_price_to[]"]').each(function() {
 			var val = $(this).val();
 			var min = $(this).attr('min');
 			if (val && min && val < min) {
@@ -2309,12 +2356,106 @@ $('.required-field').each(function() {
 		});
 	}
 
-	$(document).on('click', 'input[type="submit"], button[type="submit"], .save-discard-btn input, input[name="save_product"]', function() {
-		clearPastDateRestrictions();
+	// Deal scheduling validator (strictly blocks submit if invalid)
+	window.validateDealsScheduling = function() {
+		$('.dd-time-error').hide().text('');
+		$('.fs-time-error').hide().text('');
+
+		var nowMUT = getNowMUT();
+		// 5-minute grace margin
+		var minAllowedMUT = formatDateTimeMUT(new Date(nowMUT.getTime() - (5 * 60 * 1000)));
+
+		if ($('#daily_deals').val() == '1') {
+			var ddStart = $('#daily_deal_starts_at').val();
+			var ddEnd = $('#daily_deal_ends_at').val();
+			if (!ddStart) {
+				var errMsg = 'Please enter a Start Date & Time for Daily Deals (MUT).';
+				$('.dd-time-error').text(errMsg).show();
+				$('#daily_deal_starts_at').focus();
+				if (typeof Swal !== 'undefined' && Swal.fire) {
+					Swal.fire({ title: 'Invalid Schedule Time', text: errMsg, icon: 'warning' });
+				}
+				return false;
+			}
+			var isExistingDd = isExistingDdActive && (ddStart === initialDdStartVal);
+			if (!isExistingDd && ddStart < minAllowedMUT) {
+				var errMsg = 'Start Date & Time (MUT) cannot be in the past. Please select the current time or a future time.';
+				$('.dd-time-error').text(errMsg).show();
+				$('#daily_deal_starts_at').focus();
+				if (typeof Swal !== 'undefined' && Swal.fire) {
+					Swal.fire({ title: 'Invalid Schedule Time', text: errMsg, icon: 'warning' });
+				}
+				return false;
+			}
+			if (ddEnd && ddEnd <= ddStart) {
+				var errMsg = 'End Date & Time must be after Start Date & Time.';
+				$('.dd-time-error').text(errMsg).show();
+				$('#daily_deal_starts_at').focus();
+				if (typeof Swal !== 'undefined' && Swal.fire) {
+					Swal.fire({ title: 'Invalid Schedule Time', text: errMsg, icon: 'warning' });
+				}
+				return false;
+			}
+		}
+
+		if ($('#flash_sale').val() == '1') {
+			var fsStart = $('#flash_sale_starts_at').val();
+			var fsEnd = $('#flash_sale_ends_at').val();
+			if (!fsStart) {
+				var errMsg = 'Please enter a Start Date & Time for Flash Sale (MUT).';
+				$('.fs-time-error').text(errMsg).show();
+				$('#flash_sale_starts_at').focus();
+				if (typeof Swal !== 'undefined' && Swal.fire) {
+					Swal.fire({ title: 'Invalid Schedule Time', text: errMsg, icon: 'warning' });
+				}
+				return false;
+			}
+			var isExistingFs = isExistingFsActive && (fsStart === initialFsStartVal);
+			if (!isExistingFs && fsStart < minAllowedMUT) {
+				var errMsg = 'Start Date & Time (MUT) cannot be in the past. Please select the current time or a future time.';
+				$('.fs-time-error').text(errMsg).show();
+				$('#flash_sale_starts_at').focus();
+				if (typeof Swal !== 'undefined' && Swal.fire) {
+					Swal.fire({ title: 'Invalid Schedule Time', text: errMsg, icon: 'warning' });
+				}
+				return false;
+			}
+			if (fsEnd && fsEnd <= fsStart) {
+				var errMsg = 'End Date & Time must be after Start Date & Time.';
+				$('.fs-time-error').text(errMsg).show();
+				$('#flash_sale_starts_at').focus();
+				if (typeof Swal !== 'undefined' && Swal.fire) {
+					Swal.fire({ title: 'Invalid Schedule Time', text: errMsg, icon: 'warning' });
+				}
+				return false;
+			}
+		}
+
+		return true;
+	};
+
+	$(document).on('click', 'input[type="submit"], button[type="submit"], .save-discard-btn input, input[name="save_product"]', function(e) {
+		clearSpecialPricePastDateRestrictions();
+		if (!window.validateDealsScheduling()) {
+			e.preventDefault();
+			e.stopPropagation();
+			return false;
+		}
 	});
 
-	$('form').on('submit', function() {
-		clearPastDateRestrictions();
+	$('form').on('submit', function(e) {
+		clearSpecialPricePastDateRestrictions();
+		if (!window.validateDealsScheduling()) {
+			e.preventDefault();
+			e.stopPropagation();
+			return false;
+		}
+		if ($('#daily_deals').is(':disabled') && $('#daily_deals').val() == '0') {
+			$('#daily_deals').prop('disabled', false);
+		}
+		if ($('#flash_sale').is(':disabled') && $('#flash_sale').val() == '0') {
+			$('#flash_sale').prop('disabled', false);
+		}
 	});
 
 });
