@@ -463,6 +463,7 @@ $this->load->view('common/fbc-user/header');
                                             <div class="row align-items-center">
                                                 <div class="col-md-8">
                                                     <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                                                    <small class="text-muted">Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)</small>
                                                 </div>
                                                 <div class="col-md-4 text-right">
                                                     <button type="submit" class="btn btn-primary btn-sm px-3">
@@ -554,6 +555,7 @@ $this->load->view('common/fbc-user/header');
                                             <div class="row align-items-center">
                                                 <div class="col-md-8">
                                                     <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                                                    <small class="text-muted">Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)</small>
                                                 </div>
                                                 <div class="col-md-4 text-right">
                                                     <button type="submit" class="btn btn-warning btn-sm px-3 font-weight-bold">
@@ -870,6 +872,31 @@ $(document).ready(function() {
             $('.resolution-ajax-alert').fadeOut(function() { $(this).remove(); });
         }, 4000);
     }
+
+    
+    // Client-side file attachment validation (1 MB limit)
+    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
+        var file = this.files && this.files[0];
+        if (!file) return;
+
+        var maxSize = 1024 * 1024; // 1 MB
+        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+        var fileName = file.name;
+        var ext = fileName.split('.').pop().toLowerCase();
+
+        if ($.inArray(ext, allowedExtensions) === -1) {
+            showNotification('error', 'Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
+            $(this).val('');
+            return;
+        }
+
+        if (file.size > maxSize) {
+            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            showNotification('error', 'File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
+            $(this).val('');
+            return;
+        }
+    });
 
     $(document).on('submit', 'form.ajax-resolution-form', function(e) {
         e.preventDefault();

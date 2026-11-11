@@ -2358,7 +2358,9 @@ $lang['confirm_resolution_request'] = 'Submit Escalation';
 $lang['no_rejected_items_found'] = 'No rejected Return or Replacement requests found.';
 $lang['order_resolution_gate_info'] = 'Order Resolution is only available after a Merchant rejects a Return or Replacement request.';
 $lang['check_existing_orders_info'] = 'You can check your existing requests on your';
-$lang['allowed_formats_msg'] = 'Allowed formats: JPG, PNG, WEBP, PDF. Max size: 5MB.';
+$lang['allowed_formats_msg'] = 'Allowed formats: Images (JPG, PNG, WEBP) & Documents (PDF) — Max size: 1 MB.';
+$lang['optional_attachment'] = 'Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)';
+$lang['upload_size_error_1mb'] = 'File size exceeds 1 MB. Please upload an image or PDF under 1 MB.';
 $lang['replacement_rejected_by_merchant'] = 'Replacement Rejected by Merchant';
 $lang['return_rejected_by_merchant'] = 'Return / Refund Rejected by Merchant';
 

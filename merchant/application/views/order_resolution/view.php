@@ -447,7 +447,7 @@ $this->load->view('common/fbc-user/header');
                                                 <div class="row align-items-center">
                                                     <div class="col-md-8">
                                                         <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
-                                                        <small class="text-muted"><?= $this->lang->line('optional_attachment') ?: 'Optional attachment (Max: 5MB)'; ?></small>
+                                                        <small class="text-muted"><?= $this->lang->line('optional_attachment') ?: 'Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)'; ?></small>
                                                     </div>
                                                     <div class="col-md-4 text-right">
                                                         <button type="submit" class="btn btn-primary btn-sm px-3">
@@ -531,7 +531,7 @@ $this->load->view('common/fbc-user/header');
                                                 <div class="row align-items-center">
                                                     <div class="col-md-8">
                                                         <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
-                                                        <small class="text-muted"><?= $this->lang->line('optional_attachment') ?: 'Optional attachment (Max: 5MB)'; ?></small>
+                                                        <small class="text-muted"><?= $this->lang->line('optional_attachment') ?: 'Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)'; ?></small>
                                                     </div>
                                                     <div class="col-md-4 text-right">
                                                         <button type="submit" class="btn btn-info btn-sm px-3 text-white">
@@ -802,6 +802,31 @@ $this->load->view('common/fbc-user/header');
     });
 
 });
+
+    // Client-side file attachment validation (1 MB limit)
+    $(document).on('change', 'input[type="file"][name="attachment"]', function() {
+        var file = this.files && this.files[0];
+        if (!file) return;
+
+        var maxSize = 1024 * 1024; // 1 MB
+        var allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+        var fileName = file.name;
+        var ext = fileName.split('.').pop().toLowerCase();
+
+        if ($.inArray(ext, allowedExtensions) === -1) {
+            alert('Invalid file format: ' + ext.toUpperCase() + '. Allowed formats: JPG, PNG, WEBP, PDF.');
+            $(this).val('');
+            return;
+        }
+
+        if (file.size > maxSize) {
+            var sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            alert('File size exceeds 1 MB limit (' + sizeMB + ' MB selected). Please choose an image or PDF under 1 MB.');
+            $(this).val('');
+            return;
+        }
+    });
+
 </script>
 
 <?php $this->load->view('common/fbc-user/footer'); ?>

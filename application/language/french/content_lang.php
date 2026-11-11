@@ -1466,7 +1466,9 @@ $lang['confirm_resolution_request'] = 'Soumettre l\'escalade';
 $lang['no_rejected_items_found'] = 'Aucune demande de retour ou de remplacement rejetée trouvée.';
 $lang['order_resolution_gate_info'] = 'La résolution de commande est disponible uniquement après le rejet d\'une demande de retour ou de remplacement par un marchand.';
 $lang['check_existing_orders_info'] = 'Vous pouvez consulter vos demandes existantes sur votre page';
-$lang['allowed_formats_msg'] = 'Formats autorisés : JPG, PNG, WEBP, PDF. Taille max : 5 Mo.';
+$lang['allowed_formats_msg'] = 'Formats autorisés : Images (JPG, PNG, WEBP) & Documents (PDF) — Taille max : 1 Mo.';
+$lang['optional_attachment'] = 'Pièce jointe facultative : JPG, PNG, WEBP, PDF (Max : 1 Mo)';
+$lang['upload_size_error_1mb'] = 'La taille du fichier dépasse 1 Mo. Veuillez télécharger une image ou un PDF de moins de 1 Mo.';
 $lang['replacement_rejected_by_merchant'] = 'Remplacement refusé par le marchand';
 $lang['return_rejected_by_merchant'] = 'Retour / Remboursement refusé par le marchand';
 

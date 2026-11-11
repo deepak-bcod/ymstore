@@ -189,13 +189,20 @@ class OrderResolutionController extends CI_Controller
             }
             $config['upload_path']   = $upload_path;
             $config['allowed_types'] = 'jpg|jpeg|png|pdf|webp';
-            $config['max_size']      = 5120;
+            $config['max_size']      = 1024; // 1MB (1024 KB) - MYP Policy
             $config['encrypt_name']  = true;
             $this->load->library('upload', $config);
 
             if ($this->upload->do_upload('attachment')) {
                 $fileData = $this->upload->data();
                 $attachment = $fileData['file_name'];
+            } else {
+                $upload_err = strip_tags($this->upload->display_errors('', ''));
+                if (empty($upload_err)) {
+                    $upload_err = 'File size exceeds 1 MB. Please upload an image or PDF under 1 MB.';
+                }
+                $this->json_response(false, $upload_err, [], 'order_resolution/view/' . $ticket_number . '?as=help');
+                return;
             }
         }
 
