@@ -11,7 +11,11 @@ User: root
 
 Password: tJ8ow?a1bOEhGsef;vX&
 
-ssh -p'tJ8ow?a1bOEhGsef;vX&' 22 root@31.97.202.117
+ssh -p 22 root@31.97.202.117
+
+sshpass -p 'tJ8ow?a1bOEhGsef;vX&' ssh -p 22 root@31.97.202.117
+
+plink.exe -ssh -P 22 root@31.97.202.117 -pw "tJ8ow?a1bOEhGsef;vX&"
  
 Port: 22
 ---------------

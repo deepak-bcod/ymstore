@@ -10624,17 +10624,38 @@ class Sellerproduct extends CI_Controller {
 							}
 
 							if ($daily_deals == 1) {
+								$mut_tz = new DateTimeZone('Indian/Mauritius');
 								if (!empty($_POST['daily_deal_starts_at'])) {
 									$dd_str = trim($_POST['daily_deal_starts_at']);
-									$daily_deal_starts_at = strtotime($dd_str . (stripos($dd_str, 'Z') === false && stripos($dd_str, 'UTC') === false ? ' UTC' : ''));
+									try {
+										$dt_start = new DateTime($dd_str, $mut_tz);
+										$daily_deal_starts_at = $dt_start->getTimestamp();
+									} catch (Exception $e) {
+										$daily_deal_starts_at = $now;
+									}
 								} else {
 									$daily_deal_starts_at = $now;
 								}
 
 								if (!empty($_POST['daily_deal_ends_at'])) {
 									$dd_end_str = trim($_POST['daily_deal_ends_at']);
-									$daily_deal_ends_at = strtotime($dd_end_str . (stripos($dd_end_str, 'Z') === false && stripos($dd_end_str, 'UTC') === false ? ' UTC' : ''));
+									try {
+										$dt_end = new DateTime($dd_end_str, $mut_tz);
+										$daily_deal_ends_at = $dt_end->getTimestamp();
+									} catch (Exception $e) {
+										$daily_deal_ends_at = $daily_deal_starts_at + 86400;
+									}
 								} else {
+									$daily_deal_ends_at = $daily_deal_starts_at + 86400;
+								}
+
+								$is_existing_active_dd = (!empty($OldProductData->daily_deals) && $OldProductData->daily_deals == 1 && !empty($OldProductData->daily_deal_ends_at) && $OldProductData->daily_deal_ends_at > $now);
+								if (!$is_existing_active_dd && $daily_deal_starts_at < ($now - 300)) {
+									$arrResponse = array('status' => 400, 'message' => 'Start date & time (MUT) cannot be in the past.');
+									echo json_encode($arrResponse);
+									exit;
+								}
+								if ($daily_deal_ends_at <= $daily_deal_starts_at) {
 									$daily_deal_ends_at = $daily_deal_starts_at + 86400;
 								}
 							} else {
@@ -10822,17 +10843,38 @@ class Sellerproduct extends CI_Controller {
 							}
 
 							if ($flash_sale == 1) {
+								$mut_tz = new DateTimeZone('Indian/Mauritius');
 								if (!empty($_POST['flash_sale_starts_at'])) {
 									$fs_str = trim($_POST['flash_sale_starts_at']);
-									$flash_sale_starts_at = strtotime($fs_str . (stripos($fs_str, 'Z') === false && stripos($fs_str, 'UTC') === false ? ' UTC' : ''));
+									try {
+										$dt_fs_start = new DateTime($fs_str, $mut_tz);
+										$flash_sale_starts_at = $dt_fs_start->getTimestamp();
+									} catch (Exception $e) {
+										$flash_sale_starts_at = $now;
+									}
 								} else {
 									$flash_sale_starts_at = $now;
 								}
 
 								if (!empty($_POST['flash_sale_ends_at'])) {
 									$fs_end_str = trim($_POST['flash_sale_ends_at']);
-									$flash_sale_ends_at = strtotime($fs_end_str . (stripos($fs_end_str, 'Z') === false && stripos($fs_end_str, 'UTC') === false ? ' UTC' : ''));
+									try {
+										$dt_fs_end = new DateTime($fs_end_str, $mut_tz);
+										$flash_sale_ends_at = $dt_fs_end->getTimestamp();
+									} catch (Exception $e) {
+										$flash_sale_ends_at = $flash_sale_starts_at + (7 * 86400);
+									}
 								} else {
+									$flash_sale_ends_at = $flash_sale_starts_at + (7 * 86400);
+								}
+
+								$is_existing_active_fs = (!empty($OldProductData->flash_sale) && $OldProductData->flash_sale == 1 && !empty($OldProductData->flash_sale_ends_at) && $OldProductData->flash_sale_ends_at > $now);
+								if (!$is_existing_active_fs && $flash_sale_starts_at < ($now - 300)) {
+									$arrResponse = array('status' => 400, 'message' => 'Start date & time (MUT) cannot be in the past.');
+									echo json_encode($arrResponse);
+									exit;
+								}
+								if ($flash_sale_ends_at <= $flash_sale_starts_at) {
 									$flash_sale_ends_at = $flash_sale_starts_at + (7 * 86400);
 								}
 							} else {
