@@ -428,7 +428,8 @@ $this->load->view('common/fbc-user/header');
                                                     <?php if ($is_img): ?>
                                                         <div class="attachment-preview mt-2" style="max-width: 320px; border-radius: 4px; overflow: hidden; border: 1px solid #ced4da; background: #fff;">
                                                             <a href="<?= $att_preview_url; ?>" target="_blank" title="Click to view full size">
-                                                                <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.parentElement.parentElement.style.display='none';">
+                                                                <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.style.display='none'; if(this.nextElementSibling){this.nextElementSibling.style.display='block';}">
+                                                                <div class="text-muted small p-2" style="display: none; background: #f8f9fa;"><i class="fa fa-info-circle text-info"></i> Thumbnail preview unavailable. Click Preview above to inspect.</div>
                                                             </a>
                                                         </div>
                                                     <?php endif; ?>
@@ -516,7 +517,8 @@ $this->load->view('common/fbc-user/header');
                                                     <?php if ($is_img): ?>
                                                         <div class="attachment-preview mt-2" style="max-width: 320px; border-radius: 4px; overflow: hidden; border: 1px solid #ced4da; background: #fff;">
                                                             <a href="<?= $att_preview_url; ?>" target="_blank" title="Click to view full size">
-                                                                <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.parentElement.parentElement.style.display='none';">
+                                                                <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.style.display='none'; if(this.nextElementSibling){this.nextElementSibling.style.display='block';}">
+                                                                <div class="text-muted small p-2" style="display: none; background: #f8f9fa;"><i class="fa fa-info-circle text-info"></i> Thumbnail preview unavailable. Click Preview above to inspect.</div>
                                                             </a>
                                                         </div>
                                                     <?php endif; ?>

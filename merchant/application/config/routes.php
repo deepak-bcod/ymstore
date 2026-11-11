@@ -866,6 +866,7 @@ $route['UserController/close_ticket/(:any)/(:any)'] = 'UserController/close_tick
 $route['order_resolution']              = 'OrderResolutionController/index';
 $route['order_resolution/view/(:any)']  = 'OrderResolutionController/view/$1';
 $route['order_resolution/attachment/(:any)/(:any)'] = 'OrderResolutionController/attachment/$1/$2';
+$route['uploads/order_resolution/(:any)']            = 'OrderResolutionController/legacy_attachment/$1';
 $route['order_resolution/reply']        = 'OrderResolutionController/reply';
 $route['order_resolution/action']       = 'OrderResolutionController/action';
 

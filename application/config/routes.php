@@ -467,6 +467,7 @@ $route['order_resolution/create/(:num)']                 = 'OrderResolutionContr
 $route['order_resolution/create/(:num)/(:num)']          = 'OrderResolutionController/create/$1/$2';
 $route['order_resolution/store']                         = 'OrderResolutionController/store';
 $route['order_resolution/view/(:any)']                   = 'OrderResolutionController/view/$1';
+$route['order_resolution/attachment/(:any)/(:any)']      = 'OrderResolutionController/attachment/$1/$2';
 $route['order_resolution/reply']                         = 'OrderResolutionController/reply';
 $route['order_resolution/request_resolution']           = 'OrderResolutionController/request_resolution';
 $route['order_resolution/get_order_products_ajax/(:num)'] = 'OrderResolutionController/get_order_products_ajax/$1';

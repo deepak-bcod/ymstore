@@ -312,9 +312,12 @@ class OrderResolutionController extends CI_Controller
         }
 
         // Verify attachment is linked to this ticket
-        $is_valid = ($res->attachment === $clean_filename);
+        $is_valid = (!empty($res->attachment) && $res->attachment === $clean_filename);
         if (!$is_valid) {
-            $count = $this->db->where('resolution_id', $res->id)
+            $count = $this->db->group_start()
+                ->where('resolution_id', $res->id)
+                ->or_where('ticket_number', $res->ticket_number)
+                ->group_end()
                 ->where('attachment', $clean_filename)
                 ->count_all_results('order_resolution_messages');
             if ($count > 0) {
@@ -336,6 +339,52 @@ class OrderResolutionController extends CI_Controller
         $this->serve_attachment_file($file_path, $clean_filename);
     }
 
+    /**
+     * Direct / Legacy Merchant attachment access route
+     * Handles requests directly hitting merchant/uploads/order_resolution/(:any)
+     */
+    public function legacy_attachment($filename = '')
+    {
+        $merchant_id = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? '');
+        if (empty($merchant_id)) {
+            show_error('You must be logged in as an authorised merchant to view this evidence.', 401, 'Unauthorized Access');
+            return;
+        }
+
+        $clean_filename = basename(rawurldecode(trim($filename)));
+        if (empty($clean_filename)) {
+            show_error('Invalid attachment filename.', 400, 'Bad Request');
+            return;
+        }
+
+        // Verify attachment belongs to an order resolution belonging to this merchant
+        $this->db->select('m.id');
+        $this->db->from('order_resolution_messages m');
+        $this->db->join('order_resolutions r', 'r.id = m.resolution_id', 'inner');
+        $this->db->where('m.attachment', $clean_filename);
+        $this->db->where('r.merchant_id', (int)$merchant_id);
+        $count = $this->db->count_all_results();
+
+        if ($count === 0 && $this->db->field_exists('attachment', 'order_resolutions')) {
+            $count = $this->db->where('attachment', $clean_filename)
+                ->where('merchant_id', (int)$merchant_id)
+                ->count_all_results('order_resolutions');
+        }
+
+        if ($count === 0) {
+            show_error('The requested attachment does not belong to your merchant order resolutions.', 404, 'Attachment Not Found');
+            return;
+        }
+
+        $file_path = $this->resolve_attachment_file_path($clean_filename);
+        if (!$file_path || !file_exists($file_path) || !is_file($file_path)) {
+            show_error('The requested evidence file could not be found on the server. Please contact support.', 404, 'Evidence File Not Found');
+            return;
+        }
+
+        $this->serve_attachment_file($file_path, $clean_filename);
+    }
+
     protected function resolve_attachment_file_path($clean_filename)
     {
         $candidates = [
@@ -343,16 +392,19 @@ class OrderResolutionController extends CI_Controller
             rtrim(FCPATH, '/\\') . '/uploads/order_resolution/' . $clean_filename,
             rtrim(FCPATH, '/\\') . '/../merchant/uploads/order_resolution/' . $clean_filename,
             rtrim(FCPATH, '/\\') . '/../admin/uploads/order_resolution/' . $clean_filename,
+            '/var/www/ymstore/uploads/order_resolution/' . $clean_filename,
+            '/var/www/html/uploads/order_resolution/' . $clean_filename,
         ];
         if (!empty($_SERVER['DOCUMENT_ROOT'])) {
             $doc_root = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
             $candidates[] = $doc_root . '/uploads/order_resolution/' . $clean_filename;
             $candidates[] = $doc_root . '/ymstore/uploads/order_resolution/' . $clean_filename;
             $candidates[] = $doc_root . '/merchant/uploads/order_resolution/' . $clean_filename;
+            $candidates[] = $doc_root . '/../uploads/order_resolution/' . $clean_filename;
         }
 
         foreach ($candidates as $candidate) {
-            if ($candidate && file_exists($candidate) && is_file($candidate)) {
+            if ($candidate && file_exists($candidate) && is_file($candidate) && is_readable($candidate)) {
                 return realpath($candidate) ?: $candidate;
             }
         }
@@ -379,7 +431,7 @@ class OrderResolutionController extends CI_Controller
         $is_download = ($this->input->get('download') == 1);
         $disposition = $is_download ? 'attachment' : 'inline';
 
-        if (ob_get_level()) {
+        while (ob_get_level()) {
             @ob_end_clean();
         }
 
@@ -390,6 +442,7 @@ class OrderResolutionController extends CI_Controller
         header('Cache-Control: private, max-age=86400');
         header('Pragma: private');
 
+        flush();
         readfile($file_path);
         exit;
     }

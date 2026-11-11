@@ -421,16 +421,19 @@ class OrderResolutionController extends CI_Controller
             rtrim(FCPATH, '/\\') . '/uploads/order_resolution/' . $clean_filename,
             rtrim(FCPATH, '/\\') . '/merchant/uploads/order_resolution/' . $clean_filename,
             rtrim(FCPATH, '/\\') . '/admin/uploads/order_resolution/' . $clean_filename,
+            '/var/www/ymstore/uploads/order_resolution/' . $clean_filename,
+            '/var/www/html/uploads/order_resolution/' . $clean_filename,
         ];
         if (!empty($_SERVER['DOCUMENT_ROOT'])) {
             $doc_root = rtrim($_SERVER['DOCUMENT_ROOT'], '/\\');
             $candidates[] = $doc_root . '/uploads/order_resolution/' . $clean_filename;
             $candidates[] = $doc_root . '/ymstore/uploads/order_resolution/' . $clean_filename;
             $candidates[] = $doc_root . '/merchant/uploads/order_resolution/' . $clean_filename;
+            $candidates[] = $doc_root . '/../uploads/order_resolution/' . $clean_filename;
         }
 
         foreach ($candidates as $candidate) {
-            if ($candidate && file_exists($candidate) && is_file($candidate)) {
+            if ($candidate && file_exists($candidate) && is_file($candidate) && is_readable($candidate)) {
                 return realpath($candidate) ?: $candidate;
             }
         }
@@ -457,7 +460,7 @@ class OrderResolutionController extends CI_Controller
         $is_download = ($this->input->get('download') == 1);
         $disposition = $is_download ? 'attachment' : 'inline';
 
-        if (ob_get_level()) {
+        while (ob_get_level()) {
             @ob_end_clean();
         }
 
@@ -468,6 +471,7 @@ class OrderResolutionController extends CI_Controller
         header('Cache-Control: private, max-age=86400');
         header('Pragma: private');
 
+        flush();
         readfile($file_path);
         exit;
     }
