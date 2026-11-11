@@ -1,6 +1,7 @@
 <?php $this->load->view('common/header'); ?>
 
 <style>
+/* Status badges */
 .badge-status-open { background-color: #007bff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
 .badge-status-processing { background-color: #17a2b8; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
 .badge-status-done { background-color: #28a745; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
@@ -8,13 +9,225 @@
 .badge-status-reopen { background-color: #fd7e14; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
 .badge-status-close-final { background-color: #343a40; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
 
+/* Merchant action badges */
 .badge-action { font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600; display: inline-block; vertical-align: middle; margin: 0; }
 .badge-action-approved { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 .badge-action-denied { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 .badge-action-completed { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
 .badge-action-pending { background-color: #ffc107 !important; color: #212529 !important; border: 1px solid #e0a800 !important; }
 
-.table-resolution-list > tbody > tr > td { vertical-align: middle !important; }
+/* Mobile layout: Prioritise task above lengthy account navigation */
+@media (max-width: 767px) {
+    .resolution-page-row {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .resolution-page-row .resolution-main-content {
+        order: 1 !important;
+        width: 100% !important;
+        float: none !important;
+    }
+    .resolution-page-row .sidebar {
+        order: 2 !important;
+        width: 100% !important;
+        float: none !important;
+        margin-top: 35px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+    .resolution-page-row .sidebar::before {
+        content: "Account Navigation";
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6c757d;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+    .resolution-header-row {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .resolution-btn-wrap {
+        text-align: left !important;
+    }
+}
+
+/* Toggle table vs card view */
+.resolution-mobile-cards {
+    display: none;
+}
+.resolution-table-view {
+    display: block;
+}
+
+@media (max-width: 767px) {
+    .resolution-table-view {
+        display: none !important;
+    }
+    .resolution-mobile-cards {
+        display: block !important;
+    }
+}
+
+/* Responsive Table Styling (Desktop / Tablet >= 768px) */
+.resolution-table-view .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 25px;
+    position: relative;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+.table-resolution-list {
+    width: 100% !important;
+    min-width: 620px;
+    margin-bottom: 0 !important;
+}
+.table-resolution-list th,
+.table-resolution-list td {
+    vertical-align: middle !important;
+    padding: 10px 8px !important;
+}
+.table-resolution-list thead th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap !important;
+    background-color: #f8f9fa;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6 !important;
+}
+
+/* Sticky Action Column (Persistently visible at all viewports) */
+.sticky-action-col {
+    position: sticky !important;
+    right: 0 !important;
+    background-color: #ffffff !important;
+    box-shadow: -4px 0 8px -2px rgba(0, 0, 0, 0.12) !important;
+    z-index: 2 !important;
+    white-space: nowrap !important;
+    width: 90px;
+    text-align: center;
+}
+thead th.sticky-action-col {
+    background-color: #f1f3f5 !important;
+    z-index: 3 !important;
+}
+tbody tr:hover td.sticky-action-col {
+    background-color: #f8f9fa !important;
+}
+
+/* Custom horizontal scrollbar */
+.resolution-table-view .table-responsive::-webkit-scrollbar {
+    height: 7px;
+}
+.resolution-table-view .table-responsive::-webkit-scrollbar-track {
+    background: #f1f3f5;
+}
+.resolution-table-view .table-responsive::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 4px;
+}
+.resolution-table-view .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+/* Mobile Responsive Card Styling (< 768px) */
+.res-mobile-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.res-mobile-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.res-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+}
+.res-card-ticket {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0284c7;
+    text-decoration: none !important;
+}
+.res-card-ticket:hover {
+    color: #0369a1;
+    text-decoration: underline !important;
+}
+.res-card-date {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+.res-card-body {
+    padding: 14px;
+}
+.res-card-order-row {
+    margin-bottom: 8px;
+}
+.res-card-order-num {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 13px;
+}
+.res-card-prod-name {
+    font-size: 14px;
+    color: #334155;
+    font-weight: 500;
+    margin-top: 3px;
+    word-break: break-word;
+}
+.res-card-merchant-name {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 3px;
+}
+.res-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 8px 0;
+}
+.res-card-merchant-action {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.res-card-footer {
+    padding: 10px 14px 14px 14px;
+    background-color: #ffffff;
+    border-top: 1px solid #f1f5f9;
+}
+.res-card-footer .btn-view-card {
+    display: block;
+    width: 100%;
+    font-weight: 600;
+    padding: 9px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    text-align: center;
+}
 </style>
 
 <div class="breadcrum-section">
@@ -30,19 +243,19 @@
 
 <div class="my-profile-page-full">
     <div class="container">
-        <div class="row">
+        <div class="row resolution-page-row">
             <?php 
             $data['side_tab'] = 'order_resolution';
             $this->load->view('common/profile_sidebar', $data); 
             ?>
 
-            <div class="col-sm-9 col-md-9">
+            <div class="col-sm-9 col-md-9 resolution-main-content">
                 <div class="content-page">
-                    <div class="row" style="margin-bottom: 20px;">
-                        <div class="col-sm-8 col-md-8">
-                            <h1 style="margin: 0;"><?php echo $this->lang->line('order_resolution_requests') ?: 'Order Resolution Requests'; ?></h1>
+                    <div class="row resolution-header-row" style="margin-bottom: 20px;">
+                        <div class="col-xs-12 col-sm-8 col-md-8">
+                            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #212529;"><?php echo $this->lang->line('order_resolution_requests') ?: 'Order Resolution Requests'; ?></h1>
                         </div>
-                        <div class="col-sm-4 col-md-4 text-right">
+                        <div class="col-xs-12 col-sm-4 col-md-4 text-right resolution-btn-wrap">
                             <a href="<?php echo base_url('order_resolution/create'); ?>" class="btn btn-info">
                                 <i class="fa fa-plus"></i> <?php echo $this->lang->line('raise_resolution_request') ?: 'New Resolution Request'; ?>
                             </a>
@@ -56,89 +269,192 @@
                         <div class="alert alert-danger"><?php echo $this->session->flashdata('error'); ?></div>
                     <?php endif; ?>
 
-                    <div class="table-responsive" style="margin-top: 15px;">
-                        <table class="table table-bordered table-striped table-resolution-list">
-                            <thead>
-                                <tr style="background-color: #f9f9f9;">
-                                    <th><?php echo $this->lang->line('ticket_no') ?: 'Ticket #'; ?></th>
-                                    <th><?php echo $this->lang->line('order_number') ?: 'Order #'; ?></th>
-                                    <th><?php echo $this->lang->line('product') ?: 'Product'; ?></th>
-                                    <th><?php echo $this->lang->line('category') ?: 'Category'; ?></th>
-                                    <th><?php echo $this->lang->line('priority') ?: 'Priority'; ?></th>
-                                    <th><?php echo $this->lang->line('escalation_status') ?: 'Escalation Status'; ?></th>
-                                    <th><?php echo $this->lang->line('merchant_status') ?: 'Merchant Status'; ?></th>
-                                    <th><?php echo $this->lang->line('date') ?: 'Date'; ?></th>
-                                    <th style="width: 80px; text-align: center;"><?php echo $this->lang->line('action') ?: 'Action'; ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (!empty($resolutions)): ?>
-                                    <?php foreach ($resolutions as $res): 
-                                        $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $res->status));
-                                        $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $res->status));
-                                        $badge_class = 'badge-status-' . $status_slug;
-                                        $cat_key     = 'category_' . strtolower(trim($res->category ?? ''));
-                                        $pri_key     = 'priority_' . strtolower(trim($res->priority ?? ''));
-                                    ?>
+                    <!-- Desktop / Tablet Table View (>= 768px) with Persistent Sticky Action -->
+                    <div class="resolution-table-view">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-hover text-center table-resolution-list">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th style="width: 110px;"><?php echo $this->lang->line('ticket_no') ?: 'Ticket #'; ?></th>
+                                        <th style="min-width: 170px;" class="text-left"><?php echo $this->lang->line('order_number') ?: 'Order / Product'; ?></th>
+                                        <th style="width: 110px;"><?php echo $this->lang->line('category') ?: 'Category / Priority'; ?></th>
+                                        <th style="width: 140px;"><?php echo $this->lang->line('escalation_status') ?: 'Status'; ?></th>
+                                        <th class="sticky-action-col"><?php echo $this->lang->line('action') ?: 'Action'; ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($resolutions)): ?>
+                                        <?php foreach ($resolutions as $res): 
+                                            $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $res->status));
+                                            $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $res->status));
+                                            $badge_class = 'badge-status-' . $status_slug;
+                                            $cat_key     = 'category_' . strtolower(trim($res->category ?? ''));
+                                            $pri_key     = 'priority_' . strtolower(trim($res->priority ?? ''));
+                                            $view_url    = base_url('order_resolution/view/' . $res->ticket_number);
+
+                                            $mAction = trim($res->merchant_action ?? '');
+                                            $has_mAction = (!empty($mAction) && !in_array(strtolower($mAction), ['none', 'n/a'], true));
+                                            $bClass = 'badge-action-completed';
+                                            if (strpos($mAction, 'approved') !== false) {
+                                                $bClass = 'badge-action-approved';
+                                            } elseif (strpos($mAction, 'denied') !== false) {
+                                                $bClass = 'badge-action-denied';
+                                            }
+
+                                            $p_class = 'label-info';
+                                            if ($res->priority === 'High') {
+                                                $p_class = 'label-danger';
+                                            } elseif ($res->priority === 'Medium') {
+                                                $p_class = 'label-warning';
+                                            }
+                                        ?>
+                                            <tr>
+                                                <td>
+                                                    <a href="<?php echo $view_url; ?>" class="font-weight-bold text-primary text-nowrap" title="<?php echo $this->lang->line('view') ?: 'View'; ?>">
+                                                        <?php echo htmlspecialchars($res->ticket_number); ?>
+                                                    </a>
+                                                    <div class="small text-muted text-nowrap"><?php echo date('d M Y', $res->created_at); ?></div>
+                                                </td>
+                                                <td class="text-left">
+                                                    <div class="font-weight-bold text-dark">#<?php echo htmlspecialchars($res->order_number); ?></div>
+                                                    <div class="small text-muted text-truncate" style="max-width: 220px;" title="<?php echo htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?>">
+                                                        <i class="fa fa-cube text-secondary"></i> <?php echo htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?>
+                                                    </div>
+                                                    <?php if (!empty($res->merchant_name)): ?>
+                                                        <div class="small text-muted text-truncate" style="max-width: 220px;" title="<?php echo htmlspecialchars($res->merchant_name); ?>">
+                                                            <i class="fa fa-shopping-bag"></i> <?php echo htmlspecialchars($res->merchant_name); ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <div><span class="label label-default"><?php echo htmlspecialchars($this->lang->line($cat_key) ?: $res->category); ?></span></div>
+                                                    <div class="mt-1"><span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($this->lang->line($pri_key) ?: ($res->priority ?: 'Medium')); ?></span></div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <span class="<?php echo $badge_class; ?>">
+                                                            <?php echo htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
+                                                        </span>
+                                                    </div>
+                                                    <div class="mt-1">
+                                                        <?php if ($has_mAction): ?>
+                                                            <span class="badge-action <?php echo $bClass; ?>">
+                                                                <?php echo htmlspecialchars($this->lang->line($mAction) ?: ucwords(str_replace('_', ' ', $mAction))); ?>
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <span class="badge-action badge-action-pending label label-warning"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </td>
+                                                <td class="sticky-action-col">
+                                                    <a href="<?php echo $view_url; ?>" class="btn btn-sm btn-info text-nowrap" title="<?php echo $this->lang->line('view') ?: 'View'; ?>">
+                                                        <i class="fa fa-eye"></i> <?php echo $this->lang->line('view') ?: 'View'; ?>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
                                         <tr>
-                                            <td><b><?php echo htmlspecialchars($res->ticket_number); ?></b></td>
-                                            <td><?php echo htmlspecialchars($res->order_number); ?></td>
-                                            <td><?php echo htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?></td>
-                                            <td><span class="label label-default"><?php echo htmlspecialchars($this->lang->line($cat_key) ?: $res->category); ?></span></td>
-                                            <td>
-                                                <?php
-                                                $p_class = 'label-info';
-                                                if ($res->priority === 'High') {
-                                                    $p_class = 'label-danger';
-                                                } elseif ($res->priority === 'Medium') {
-                                                    $p_class = 'label-warning';
-                                                }
-                                                ?>
-                                                <span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($this->lang->line($pri_key) ?: ($res->priority ?: 'Medium')); ?></span>
-                                            </td>
-                                            <td>
-                                                <span class="<?php echo $badge_class; ?>">
-                                                    <?php echo htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <?php
-                                                $mAction = trim($res->merchant_action ?? '');
-                                                if (!empty($mAction) && !in_array(strtolower($mAction), ['none', 'n/a'], true)):
-                                                    $bClass = 'badge-action-completed';
-                                                    if (strpos($mAction, 'approved') !== false) {
-                                                        $bClass = 'badge-action-approved';
-                                                    } elseif (strpos($mAction, 'denied') !== false) {
-                                                        $bClass = 'badge-action-denied';
-                                                    }
-                                                ?>
-                                                    <span class="badge-action <?php echo $bClass; ?>">
-                                                        <?php echo htmlspecialchars($this->lang->line($mAction) ?: ucwords(str_replace('_', ' ', $mAction))); ?>
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="badge-action badge-action-pending label label-warning"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td><?php echo date('d M Y', $res->created_at); ?></td>
-                                            <td style="text-align: center;">
-                                                <a href="<?php echo base_url('order_resolution/view/' . $res->ticket_number); ?>" class="btn btn-sm btn-info" title="<?php echo $this->lang->line('view') ?: 'View'; ?>">
-                                                    <i class="fa fa-eye"></i> <?php echo $this->lang->line('view') ?: 'View'; ?>
+                                            <td colspan="5" class="text-center" style="padding: 30px;">
+                                                <p><?php echo $this->lang->line('no_order_resolution_tickets') ?: 'No Order Resolution requests found.'; ?></p>
+                                                <a href="<?php echo base_url('customer/my-orders'); ?>" class="btn btn-default">
+                                                    <?php echo $this->lang->line('view_my_orders') ?: 'Go to My Orders'; ?>
                                                 </a>
                                             </td>
                                         </tr>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <tr>
-                                        <td colspan="8" class="text-center" style="padding: 30px;">
-                                            <p><?php echo $this->lang->line('no_order_resolution_tickets') ?: 'No Order Resolution requests found.'; ?></p>
-                                            <a href="<?php echo base_url('customer/my-orders'); ?>" class="btn btn-default">
-                                                <?php echo $this->lang->line('view_my_orders') ?: 'Go to My Orders'; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Cards View (< 768px): Compact, readable, touch-friendly with 0 horizontal scroll -->
+                    <div class="resolution-mobile-cards">
+                        <?php if (!empty($resolutions)): ?>
+                            <?php foreach ($resolutions as $res): 
+                                $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $res->status));
+                                $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $res->status));
+                                $badge_class = 'badge-status-' . $status_slug;
+                                $cat_key     = 'category_' . strtolower(trim($res->category ?? ''));
+                                $pri_key     = 'priority_' . strtolower(trim($res->priority ?? ''));
+                                $view_url    = base_url('order_resolution/view/' . $res->ticket_number);
+
+                                $mAction = trim($res->merchant_action ?? '');
+                                $has_mAction = (!empty($mAction) && !in_array(strtolower($mAction), ['none', 'n/a'], true));
+                                $bClass = 'badge-action-completed';
+                                if (strpos($mAction, 'approved') !== false) {
+                                    $bClass = 'badge-action-approved';
+                                } elseif (strpos($mAction, 'denied') !== false) {
+                                    $bClass = 'badge-action-denied';
+                                }
+
+                                $p_class = 'label-info';
+                                if ($res->priority === 'High') {
+                                    $p_class = 'label-danger';
+                                } elseif ($res->priority === 'Medium') {
+                                    $p_class = 'label-warning';
+                                }
+                            ?>
+                                <div class="res-mobile-card">
+                                    <div class="res-card-header">
+                                        <div>
+                                            <a href="<?php echo $view_url; ?>" class="res-card-ticket">
+                                                <i class="fa fa-ticket"></i> <?php echo htmlspecialchars($res->ticket_number); ?>
                                             </a>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+                                            <div class="res-card-date"><i class="fa fa-calendar-o"></i> <?php echo date('d M Y', $res->created_at); ?></div>
+                                        </div>
+                                        <div>
+                                            <span class="<?php echo $badge_class; ?>">
+                                                <?php echo htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="res-card-body">
+                                        <div class="res-card-order-row">
+                                            <span class="res-card-order-num">#<?php echo htmlspecialchars($res->order_number); ?></span>
+                                            <div class="res-card-prod-name">
+                                                <i class="fa fa-cube text-secondary"></i> <?php echo htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?>
+                                            </div>
+                                            <?php if (!empty($res->merchant_name)): ?>
+                                                <div class="res-card-merchant-name">
+                                                    <i class="fa fa-shopping-bag"></i> <?php echo htmlspecialchars($res->merchant_name); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <div class="res-card-tags">
+                                            <span><strong><?php echo $this->lang->line('category') ?: 'Category'; ?>:</strong> <span class="label label-default"><?php echo htmlspecialchars($this->lang->line($cat_key) ?: $res->category); ?></span></span>
+                                            <span><strong><?php echo $this->lang->line('priority') ?: 'Priority'; ?>:</strong> <span class="label <?php echo $p_class; ?>"><?php echo htmlspecialchars($this->lang->line($pri_key) ?: ($res->priority ?: 'Medium')); ?></span></span>
+                                        </div>
+
+                                        <div class="res-card-merchant-action">
+                                            <span class="text-muted"><strong><?php echo $this->lang->line('merchant_status') ?: 'Merchant Status'; ?>:</strong></span>
+                                            <?php if ($has_mAction): ?>
+                                                <span class="badge-action <?php echo $bClass; ?>">
+                                                    <?php echo htmlspecialchars($this->lang->line($mAction) ?: ucwords(str_replace('_', ' ', $mAction))); ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="badge-action badge-action-pending label label-warning"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="res-card-footer">
+                                        <a href="<?php echo $view_url; ?>" class="btn btn-info btn-view-card">
+                                            <i class="fa fa-eye"></i> <?php echo $this->lang->line('view') ?: 'View Ticket Details'; ?>
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="text-center" style="padding: 30px; background: #fff; border: 1px solid #dee2e6; border-radius: 6px;">
+                                <p><?php echo $this->lang->line('no_order_resolution_tickets') ?: 'No Order Resolution requests found.'; ?></p>
+                                <a href="<?php echo base_url('customer/my-orders'); ?>" class="btn btn-default">
+                                    <?php echo $this->lang->line('view_my_orders') ?: 'Go to My Orders'; ?>
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                 </div>
