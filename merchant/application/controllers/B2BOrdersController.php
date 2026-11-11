@@ -771,6 +771,7 @@ public function download_order_document($order_id) {
     exit;
 }
 	
+
 public function markDelivered()
 {
     $order_id = $this->input->post('order_id');
@@ -876,6 +877,35 @@ public function markDelivered()
     }
 
     // ==========================================
+    // ADMIN NOTIFICATION
+    // ==========================================
+
+    if (!empty($b2bOrderNumber)) {
+
+        $this->db->insert(
+            'notifications',
+            [
+                'type'           => 'order',
+                'subtype'        => 'order_delivered',
+                'recipient_type' => 'admin',
+                'recipient_id'   => 1,
+                'title'          => 'Order Delivered',
+                'message'        => $b2bOrderNumber .
+                                    ' Merchant has delivered the order.',
+                'data'           => json_encode([
+                    'order_id'     => $webshop_order_id,
+                    'b2b_order_id' => $order_id,
+                    'b2b_order_no' => $b2bOrderNumber,
+                    'status'       => 8
+                ]),
+                'is_read'        => 0,
+                'created_at'     => $currentDate,
+                'updated_at'     => $currentDate
+            ]
+        );
+    }
+
+    // ==========================================
     // GET SHOPPER DETAILS
     // ==========================================
 
@@ -904,7 +934,7 @@ public function markDelivered()
         }
 
         // ==========================================
-        // SHOPPER NOTIFICATION ONLY
+        // SHOPPER NOTIFICATION
         // ==========================================
 
         if (!empty($customerId) && !empty($b2bOrderNumber)) {
