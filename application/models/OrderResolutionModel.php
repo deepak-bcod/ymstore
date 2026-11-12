@@ -1815,11 +1815,23 @@ class OrderResolutionModel extends CI_Model
         }
 
         $time = time();
-        $this->db->where('id', $res->id)->update('order_resolutions', [
+        $update_data = [
             'merchant_return_confirmed' => 1,
             'merchant_return_notes'     => $evidence,
             'updated_at'                => $time,
-        ]);
+        ];
+        $safe_update = [];
+        foreach ($update_data as $col => $val) {
+            if ($this->db->field_exists($col, 'order_resolutions')) {
+                $safe_update[$col] = $val;
+            }
+        }
+        if (!empty($safe_update)) {
+            $prev_debug = $this->db->db_debug;
+            $this->db->db_debug = FALSE;
+            $this->db->where('id', $res->id)->update('order_resolutions', $safe_update);
+            $this->db->db_debug = $prev_debug;
+        }
 
         $audit_note = "Merchant confirmed receipt of returned item. Evidence/Ref: " . ($evidence ?: 'Confirmed');
         $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Item Return Confirmed by Merchant', 'merchant', $merchant_id, $audit_note, 'merchant', 'merchant_admin');
