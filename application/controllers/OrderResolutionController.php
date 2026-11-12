@@ -348,7 +348,7 @@ class OrderResolutionController extends CI_Controller
         }
 
         if (empty($conversion_type) || !in_array($conversion_type, ['shopper_merchant', 'shopper_admin'], true)) {
-            $conversion_type = ($res->resolution_status === 'resolution_requested' || $res->status === 'ReOpen') ? 'shopper_admin' : 'shopper_merchant';
+            $conversion_type = 'shopper_admin';
         }
 
         if ($res->status === 'Close (Final)') {
