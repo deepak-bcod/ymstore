@@ -294,7 +294,7 @@ $lang = $this->session->userdata('site_lang');
 
                                 <?php if ($ProductData->product_type == 'simple') { ?>
                                     <div class="table-responsive product-price">
-                                        <table class="table" width="100%" cellpadding="3" cellspacing="1" border="0">
+                                        <table class="table" width="100%" cellpadding="3"         cellspacing="1" border="0">
                                             <thead>
                                                 <tr class="active">
                                                     <th><?php echo $this->lang->line('eshop_price'); ?></th>
@@ -381,6 +381,7 @@ $lang = $this->session->userdata('site_lang');
                                                     <?php } ?>
                                                 </tr>
                                             </tbody>
+                                        </table>
                                     </div>
                                 <?php } ?>
 
