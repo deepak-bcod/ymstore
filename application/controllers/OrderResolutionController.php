@@ -298,6 +298,7 @@ class OrderResolutionController extends CI_Controller
         if (!empty($resolution->merchant_id)) {
             $data['merchant'] = $this->db->where('id', $resolution->merchant_id)->get('publisher')->row();
         }
+        $data['item_context'] = $resolution->item_context ?? $this->OrderResolutionModel->get_original_item_context($resolution);
 
         $data['PageTitle'] = 'Order Resolution #' . $resolution->ticket_number;
         $this->load->view('order_resolution/view', $data);

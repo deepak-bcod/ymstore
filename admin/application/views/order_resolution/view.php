@@ -361,6 +361,111 @@ $this->load->view('common/fbc-user/header');
                 $is_acct_active = ($current_role === 'acct');
                 ?>
 
+                                <?php
+                $item_context = $item_context ?? ($resolution->item_context ?? $this->OrderResolutionModel->get_original_item_context($resolution));
+                $currency     = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
+                ?>
+                <!-- ================= LINKED ORIGINAL REQUEST & AFFECTED ITEM CONTEXT (YM-11) ================= -->
+                <div class="card mb-4 shadow-sm border-0" style="border-left: 4px solid #6f42c1 !important;">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
+                        <span class="font-weight-bold text-dark" style="font-size: 14px;">
+                            <i class="fa fa-link mr-1" style="color: #6f42c1;"></i> Linked Original Request & Affected Item Context
+                        </span>
+                        <div>
+                            <span class="badge mr-1" style="background-color: #6f42c1; color: #fff;"><i class="fa fa-history"></i> Original Request Context</span>
+                            <span class="badge badge-danger"><i class="fa fa-times-circle"></i> Merchant Rejected</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row">
+                            <!-- Col 1: Affected Item & Variant -->
+                            <div class="col-md-4 mb-3 mb-md-0 border-right">
+                                <div class="text-muted small text-uppercase font-weight-bold mb-1">Affected Order Item</div>
+                                <div class="font-weight-bold text-dark" style="font-size: 15px;">
+                                    <?= htmlspecialchars($item_context->product_name ?: ($product ? $product->name : 'Item Not Found')); ?>
+                                </div>
+                                
+                                <div class="mt-2 p-2 rounded" style="background: #f8f9fa; border: 1px solid #e9ecef;">
+                                    <div class="small mb-1">
+                                        <strong class="text-secondary"><i class="fa fa-tags"></i> Variant:</strong>
+                                        <?php if ($item_context->has_variant): ?>
+                                            <span class="badge badge-light border text-dark font-weight-normal ml-1" style="font-size: 12px;">
+                                                <?= htmlspecialchars($item_context->variant_display); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted font-italic ml-1"><?= htmlspecialchars($item_context->variant_status_note); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="small mb-1">
+                                        <strong class="text-secondary"><i class="fa fa-cubes"></i> Disputed Quantity:</strong>
+                                        <span class="badge badge-info ml-1 font-weight-bold" style="font-size: 12px;"><?= (int)$item_context->disputed_qty; ?> unit(s)</span>
+                                    </div>
+                                    <div class="small">
+                                        <strong class="text-secondary"><i class="fa fa-money"></i> Item Financial Basis:</strong>
+                                        <span class="font-weight-bold text-dark ml-1"><?= $currency; ?> <?= number_format($item_context->total_price, 2); ?></span>
+                                        <small class="text-muted">(<?= $currency; ?> <?= number_format($item_context->unit_price, 2); ?> / unit)</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Col 2: Order & Reference Mapping -->
+                            <div class="col-md-4 mb-3 mb-md-0 border-right">
+                                <div class="text-muted small text-uppercase font-weight-bold mb-1">Order & Reference Mapping</div>
+                                <table class="table table-sm table-borderless mb-0" style="font-size: 13px;">
+                                    <tr>
+                                        <td class="text-muted py-1" style="width: 48%;"><i class="fa fa-shopping-cart text-primary"></i> Shopper Order:</td>
+                                        <td class="font-weight-bold py-1">#<?= htmlspecialchars($item_context->order_number); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted py-1"><i class="fa fa-building text-info"></i> Merchant Order ID:</td>
+                                        <td class="font-weight-bold py-1"><?= htmlspecialchars($item_context->merchant_order_number); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted py-1"><i class="fa fa-exchange" style="color: #6f42c1;"></i> Original Request:</td>
+                                        <td class="font-weight-bold py-1">
+                                            <span class="badge badge-secondary"><?= htmlspecialchars($item_context->request_reference); ?></span>
+                                            <small class="text-muted">(<?= htmlspecialchars($item_context->request_type_label); ?>)</small>
+                                        </td>
+                                    </tr>
+                                    <?php if (!empty($item_context->request_date)): ?>
+                                    <tr>
+                                        <td class="text-muted py-1"><i class="fa fa-calendar"></i> Request Date:</td>
+                                        <td class="py-1"><?= date('d M Y, h:i A', $item_context->request_date); ?></td>
+                                    </tr>
+                                    <?php endif; ?>
+                                </table>
+                            </div>
+
+                            <!-- Col 3: Original Rejection & History -->
+                            <div class="col-md-4">
+                                <div class="text-muted small text-uppercase font-weight-bold mb-1">Original Rejection Context</div>
+                                <div class="mb-2">
+                                    <span class="badge badge-danger p-1 px-2" style="font-size: 12px;">
+                                        <i class="fa fa-ban mr-1"></i> <?= htmlspecialchars($item_context->rejection_status); ?>
+                                    </span>
+                                    <?php if (!empty($item_context->rejection_date)): ?>
+                                        <small class="text-muted ml-1"><?= date('d M Y', $item_context->rejection_date); ?></small>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div class="small mb-2">
+                                    <strong class="text-secondary">Original Customer Reason:</strong>
+                                    <div class="p-1 px-2 mt-1 rounded bg-light border text-dark" style="font-size: 12px; line-height: 1.4;">
+                                        <?= htmlspecialchars($item_context->customer_reason); ?>
+                                    </div>
+                                </div>
+
+                                <div class="small">
+                                    <strong class="text-secondary">Merchant Rejection Reason / Note:</strong>
+                                    <div class="p-1 px-2 mt-1 rounded bg-light border text-danger" style="font-size: 12px; line-height: 1.4; background-color: #fff9f9 !important;">
+                                        <i class="fa fa-commenting-o mr-1"></i> <?= htmlspecialchars($item_context->rejection_reason); ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ================= ORIGINAL DISPUTE CLAIM & SUBMITTED EVIDENCE ================= -->
                 <div class="card mb-4 shadow-sm border-info" style="border-left: 4px solid #17a2b8;">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
