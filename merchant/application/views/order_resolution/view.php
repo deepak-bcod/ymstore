@@ -172,7 +172,11 @@ span.label,
                     </div>
 
                     <!-- YM Delivery Replacement: AddOn Service Card -->
-                    <?php if ($resolution->delivery_option === 'ym_delivery' && $resolution->merchant_action === 'replacement_approved'): ?>
+                    <?php 
+                    $is_closed_ticket = in_array($resolution->status, ['Close', 'Close (Final)', 'Done'], true);
+                    $is_completed_delivery = ($resolution->merchant_action === 'replacement_completed');
+                    ?>
+                    <?php if ($resolution->delivery_option === 'ym_delivery' && in_array($resolution->merchant_action, ['replacement_approved', 'replacement_completed'], true)): ?>
                         <?php if (!empty($is_addon_paid)): ?>
                             <div class="alert alert-success alert-dismissible fade show mb-4 border-success shadow-sm" role="alert" style="background-color: #d4edda; border-color: #c3e6cb; color: #155724; border-radius: 6px;">
                                 <h5 class="alert-heading font-weight-bold mb-2">
@@ -199,6 +203,10 @@ span.label,
                                 </h6>
                                 <?php if (!empty($is_addon_paid)): ?>
                                     <span class="badge badge-success p-2"><i class="fa fa-check"></i> <?= $this->lang->line('addon_status_paid') ?: 'AddOn Paid'; ?></span>
+                                <?php elseif ($is_completed_delivery): ?>
+                                    <span class="badge badge-success p-2"><i class="fa fa-check-circle"></i> Completed Delivery</span>
+                                <?php elseif ($is_closed_ticket): ?>
+                                    <span class="badge badge-secondary p-2"><i class="fa fa-ban"></i> Cancelled (Ticket Closed)</span>
                                 <?php elseif (!empty($is_addon_failed)): ?>
                                     <span class="badge badge-danger p-2"><i class="fa fa-times"></i> <?= $this->lang->line('payment_failed') ?: 'Payment Failed'; ?></span>
                                 <?php else: ?>
@@ -207,7 +215,15 @@ span.label,
                             </div>
                             <div class="card-body">
                                 <p class="text-muted mb-3">
-                                    <?= $this->lang->line('ym_delivery_addon_desc') ?: 'You selected Yellow Markets delivery for this replacement. Accounting (@Acct) has requested you to purchase the replacement delivery service as an AddOn Service so logistics can collect and deliver the replacement product.'; ?>
+                                    <?php if ($is_closed_ticket && empty($is_addon_paid)): ?>
+                                        This resolution ticket was closed. The pending YellowMarkets delivery service request has been cancelled, and no further payment is required.
+                                    <?php elseif ($is_completed_delivery): ?>
+                                        The replacement product for this order has been marked dispatched / delivered by the Merchant.
+                                    <?php elseif (!empty($is_addon_paid)): ?>
+                                        Your YM Delivery AddOn Service payment has been confirmed. YellowMarkets logistics will collect and deliver the replacement product.
+                                    <?php else: ?>
+                                        <?= $this->lang->line('ym_delivery_addon_desc') ?: 'You selected Yellow Markets delivery for this replacement. Accounting (@Acct) has requested you to purchase the replacement delivery service as an AddOn Service so logistics can collect and deliver the replacement product.'; ?>
+                                    <?php endif; ?>
                                 </p>
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-sm mb-3">
@@ -240,6 +256,10 @@ span.label,
                                                 <td>
                                                     <?php if (!empty($is_addon_paid)): ?>
                                                         <span class="badge badge-success"><i class="fa fa-check"></i> <?= $this->lang->line('paid') ?: 'Paid'; ?></span>
+                                                    <?php elseif ($is_completed_delivery): ?>
+                                                        <span class="badge badge-info"><i class="fa fa-check-circle"></i> Completed</span>
+                                                    <?php elseif ($is_closed_ticket): ?>
+                                                        <span class="badge badge-secondary"><i class="fa fa-ban"></i> Cancelled</span>
                                                     <?php elseif (!empty($is_addon_failed)): ?>
                                                         <span class="badge badge-danger"><i class="fa fa-times"></i> <?= $this->lang->line('failed') ?: 'Failed'; ?></span>
                                                     <?php else: ?>
@@ -247,7 +267,7 @@ span.label,
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <?= !empty($addon_transaction->transaction_ref) ? htmlspecialchars($addon_transaction->transaction_ref) : (!empty($addon_purchase) ? 'Purchase #' . $addon_purchase->id : 'Awaiting Payment'); ?>
+                                                    <?= !empty($addon_transaction->transaction_ref) ? htmlspecialchars($addon_transaction->transaction_ref) : (!empty($addon_purchase) ? 'Purchase #' . $addon_purchase->id : (($is_closed_ticket && empty($is_addon_paid)) ? 'Not Processed' : 'Awaiting Payment')); ?>
                                                 </td>
                                                 <td>
                                                     <?php if (!empty($is_addon_paid)): ?>
@@ -256,6 +276,18 @@ span.label,
                                                         </button>
                                                         <a href="<?= base_url('addons/download_invoice/' . $resolution->addon_purchase_id); ?>" class="btn btn-sm btn-outline-primary ml-1" target="_blank" title="View / Download Invoice">
                                                             <i class="fa fa-file-text-o"></i> <?= $this->lang->line('invoice') ?: 'Invoice'; ?>
+                                                        </a>
+                                                    <?php elseif ($is_completed_delivery): ?>
+                                                        <button class="btn btn-sm btn-secondary disabled" disabled>
+                                                            <i class="fa fa-check"></i> Fulfilment Completed
+                                                        </button>
+                                                    <?php elseif ($is_closed_ticket): ?>
+                                                        <button class="btn btn-sm btn-secondary disabled" disabled title="Ticket is closed; payment no longer available">
+                                                            <i class="fa fa-ban"></i> Cancelled (Ticket Closed)
+                                                        </button>
+                                                    <?php elseif (!empty($is_addon_failed)): ?>
+                                                        <a href="<?= base_url('addons/buy_resolution_delivery/' . $resolution->ticket_number); ?>" class="btn btn-sm btn-warning font-weight-bold">
+                                                            <i class="fa fa-refresh"></i> Retry Payment
                                                         </a>
                                                     <?php else: ?>
                                                         <a href="<?= base_url('addons/buy_resolution_delivery/' . $resolution->ticket_number); ?>" class="btn btn-sm btn-info font-weight-bold">
@@ -269,7 +301,15 @@ span.label,
                                 </div>
                                 <div class="alert alert-light border py-2 mb-0">
                                     <strong><i class="fa fa-info-circle"></i> <?= $this->lang->line('instructions') ?: 'Instructions'; ?>:</strong>
-                                    <?= $this->lang->line('addon_merchant_instruction') ?: 'Click "Purchase AddOn Service" to complete the payment. Once confirmed, YellowMarkets delivery will be scheduled, and our logistics partner will collect and deliver the replacement product.'; ?>
+                                    <?php if ($is_closed_ticket && empty($is_addon_paid)): ?>
+                                        This resolution ticket is closed. No further delivery add-on purchase, payment, or fulfilment action is required.
+                                    <?php elseif ($is_completed_delivery): ?>
+                                        Replacement delivery has been completed. The ticket record is maintained for reference and payout audit.
+                                    <?php elseif (!empty($is_addon_paid)): ?>
+                                        Payment confirmed. YellowMarkets delivery will be scheduled, and our logistics partner will collect and deliver the replacement product.
+                                    <?php else: ?>
+                                        <?= $this->lang->line('addon_merchant_instruction') ?: 'Click "Purchase AddOn Service" to complete the payment. Once confirmed, YellowMarkets delivery will be scheduled, and our logistics partner will collect and deliver the replacement product.'; ?>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -280,9 +320,9 @@ span.label,
                         <i class="fa fa-info-circle text-warning mr-1"></i> <strong>The original Merchant decision has already been made. This Resolution Request is under YM Admin review. Merchant cannot issue a second verdict.</strong>
                     </div>
 
-                    <?php if ($resolution->status === 'Close (Final)'): ?>
+                    <?php if (in_array($resolution->status, ['Close', 'Close (Final)'], true)): ?>
                         <div class="alert alert-secondary py-2 mb-3">
-                            <i class="fa fa-lock"></i> <strong><?= $this->lang->line('closed_final_title') ?: 'Closed (Final):'; ?></strong> <?= $this->lang->line('closed_final_desc') ?: 'This resolution ticket has been closed (Final) with no further options.'; ?>
+                            <i class="fa fa-lock"></i> <strong><?= $this->lang->line('closed_final_title') ?: 'Closed Ticket:'; ?></strong> <?= $this->lang->line('closed_final_desc') ?: 'This resolution ticket has been closed with no further actions required.'; ?>
                         </div>
                     <?php endif; ?>
 
@@ -301,7 +341,7 @@ span.label,
                         $is_replacement_ticket = $is_replacement;
 
                         $is_approved_shopper = ($admin_dec === 'in_favour_shopper' || $res_stat === 'resolution_approved' || $resolution->status === 'Processing');
-                        $is_approved_merchant = ($admin_dec === 'in_favour_merchant' || $res_stat === 'resolution_denied' || ($resolution->status === 'Close (Final)' && !$is_approved_shopper));
+                        $is_approved_merchant = ($admin_dec === 'in_favour_merchant' || $res_stat === 'resolution_denied' || (in_array($resolution->status, ['Close', 'Close (Final)'], true) && !$is_approved_shopper));
                         ?>
 
                         <?php if ($is_approved_shopper): ?>
@@ -354,7 +394,7 @@ span.label,
                             <div class="alert alert-warning py-2 mb-2" style="border-left: 3px solid #d4ac00;">
                                 <i class="fa fa-clock-o"></i> <strong>Admin decision pending.</strong> The Merchant may respond privately but cannot decide the Resolution outcome.
                             </div>
-                            <?php if ($is_replacement && $resolution->status !== 'Close (Final)'): ?>
+                            <?php if ($is_replacement && !in_array($resolution->status, ['Close', 'Close (Final)'], true)): ?>
                                 <div class="mt-2 pt-2 border-top">
                                     <h6 class="font-weight-bold text-dark mb-1">Required Merchant fulfilment</h6>
                                     <p class="text-muted small mb-2">Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) releases hold subject to payout eligibility.</p>
