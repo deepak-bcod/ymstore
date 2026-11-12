@@ -83,6 +83,9 @@ class OrderResolutionController extends CI_Controller
                 return;
             }
 
+            if (!empty($matched_item->order_id)) {
+                $order_id = (int)$matched_item->order_id;
+            }
             if (!empty($matched_item->product_id)) {
                 $product_id = (int)$matched_item->product_id;
             }

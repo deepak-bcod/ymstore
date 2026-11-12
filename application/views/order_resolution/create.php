@@ -57,7 +57,9 @@ if (empty($selected_order_id) && !empty($rejected_items) && count($rejected_item
 ?>
 <?php if (!empty($rejected_items)): ?>
                                         <?php foreach ($rejected_items as $item): 
-                                            $isSelected = ($selected_order_id == $item->order_id && $selected_product_id == $item->product_id);
+                                            $matches_item_order = ($selected_order_id == $item->order_id) || (!empty($item->order_number) && $selected_order_id == $item->order_number);
+                                            $matches_item_prod = (empty($selected_product_id) || (int)$selected_product_id === (int)$item->product_id);
+                                            $isSelected = ($matches_item_order && $matches_item_prod);
                                             $reason_label = ($item->request_type === 'replacement')
                                                 ? ($this->lang->line('replacement_rejected_by_merchant') ?: $item->rejected_status_text)
                                                 : ($this->lang->line('return_rejected_by_merchant') ?: $item->rejected_status_text);

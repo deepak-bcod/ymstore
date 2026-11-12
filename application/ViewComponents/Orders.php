@@ -32,6 +32,32 @@ class Orders
                 $total_orders = (int)($response->Total_Order ?? count($OrderList));
             }
 
+            // Contextual lookup: if specific order requested via query string and not on current page, prepend it
+            $target_order = $this->ci->input->get('order') ?: $this->ci->input->get('order_id');
+            if (!empty($target_order) && !empty($OrderList)) {
+                $found = false;
+                foreach ($OrderList as $o) {
+                    if ((isset($o->increment_id) && (string)$o->increment_id === (string)$target_order) ||
+                        (isset($o->order_id) && (string)$o->order_id === (string)$target_order)) {
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    try {
+                        $specific_resp = OrdersRepository::my_order_detail($target_order);
+                        if (!empty($specific_resp) && isset($specific_resp->is_success) && $specific_resp->is_success == 'true' && !empty($specific_resp->OrderData)) {
+                            $specific_order = is_array($specific_resp->OrderData) ? reset($specific_resp->OrderData) : $specific_resp->OrderData;
+                            if ($specific_order) {
+                                array_unshift($OrderList, $specific_order);
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        // ignore and proceed
+                    }
+                }
+            }
+
             $data['OrderList'] = $OrderList;
             $data['Total_Order'] = $total_orders;
             $data['Limit'] = $limit;
@@ -61,22 +87,26 @@ class Orders
                 $data["links"] = $this->ci->pagination->create_links();
 
                 $order_ids = [];
+                $order_numbers = [];
                 foreach ($OrderList as $order) {
                     $order_id = $order->order_id;
                     $order_ids[] = $order_id;
+                    if (!empty($order->increment_id)) {
+                        $order_numbers[] = $order->increment_id;
+                    }
                     if (isset($secret_return) && !empty($secret_return) && $secret_return == 1 && $order->status == 6) {
                         $order->flag = 'able_to_return';
                     }
                     $order->ReturnOrders = $order->return_orders ?? [];
                 }
-                if (!empty($order_ids)) {
+                if (!empty($order_ids) || !empty($order_numbers)) {
                     try {
                         if (!empty($this->ci->db) && !empty($this->ci->db->conn_id)) {
                             if (!isset($this->ci->OrderResolutionModel)) {
                                 $this->ci->load->model('OrderResolutionModel');
                             }
                             if (isset($this->ci->OrderResolutionModel)) {
-                                $data['escalation_status_map'] = $this->ci->OrderResolutionModel->get_escalation_status_for_order_items($order_ids);
+                                $data['escalation_status_map'] = $this->ci->OrderResolutionModel->get_escalation_status_for_order_items($order_ids, $order_numbers);
                             }
                         }
                     } catch (\Throwable $e) {

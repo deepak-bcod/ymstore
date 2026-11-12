@@ -402,7 +402,9 @@ class OrderResolutionModel extends CI_Model
     {
         $rejected_items = $this->get_customer_rejected_items($customer_id);
         foreach ($rejected_items as $item) {
-            if ((int)$item->order_id === (int)$order_id) {
+            $matches_order = ((int)$item->order_id === (int)$order_id) ||
+                             (!empty($item->order_number) && (string)$item->order_number === (string)$order_id);
+            if ($matches_order) {
                 if (empty($product_id) || (int)$item->product_id === (int)$product_id) {
                     return $item;
                 }
@@ -416,14 +418,26 @@ class OrderResolutionModel extends CI_Model
      *
      * @param int $order_id
      * @param int $product_id
+     * @param string $order_number
      * @return object|null
      */
-    public function get_active_resolution_for_item($order_id, $product_id = 0)
+    public function get_active_resolution_for_item($order_id, $product_id = 0, $order_number = '')
     {
         $query = $this->db->select('*')
             ->from('order_resolutions')
-            ->where('order_id', (int)$order_id)
             ->where_not_in('status', ['Close', 'Close (Final)']);
+
+        $order_id_int = (int)$order_id;
+        $order_num_str = !empty($order_number) ? (string)$order_number : (string)$order_id;
+
+        $query->group_start();
+        if ($order_id_int > 0) {
+            $query->where('order_id', $order_id_int);
+        }
+        if (!empty($order_num_str)) {
+            $query->or_where('order_number', $order_num_str);
+        }
+        $query->group_end();
 
         if (!empty($product_id)) {
             $query->where('product_id', (int)$product_id);
@@ -437,13 +451,25 @@ class OrderResolutionModel extends CI_Model
      *
      * @param int $order_id
      * @param int $product_id
+     * @param string $order_number
      * @return object|null
      */
-    public function get_latest_resolution_for_item($order_id, $product_id = 0)
+    public function get_latest_resolution_for_item($order_id, $product_id = 0, $order_number = '')
     {
         $query = $this->db->select('*')
-            ->from('order_resolutions')
-            ->where('order_id', (int)$order_id);
+            ->from('order_resolutions');
+
+        $order_id_int = (int)$order_id;
+        $order_num_str = !empty($order_number) ? (string)$order_number : (string)$order_id;
+
+        $query->group_start();
+        if ($order_id_int > 0) {
+            $query->where('order_id', $order_id_int);
+        }
+        if (!empty($order_num_str)) {
+            $query->or_where('order_number', $order_num_str);
+        }
+        $query->group_end();
 
         if (!empty($product_id)) {
             $query->where('product_id', (int)$product_id);
@@ -453,29 +479,41 @@ class OrderResolutionModel extends CI_Model
     }
 
     /**
-     * Batch retrieve escalation statuses ('in_progress' | 'complete' | null) for a list of order IDs.
-     * Maps each order_id_product_id and order_id_b2b_order_id to its latest escalation state.
+     * Batch retrieve escalation statuses ('in_progress' | 'complete' | null) for a list of order IDs/numbers.
+     * Maps each order_id_product_id and order_id_b2b_order_id to its latest escalation state and ticket number.
      *
      * @param array $order_ids
+     * @param array $order_numbers
      * @return array
      */
-    public function get_escalation_status_for_order_items(array $order_ids)
+    public function get_escalation_status_for_order_items(array $order_ids, array $order_numbers = [])
     {
-        if (empty($order_ids) || empty($this->db) || empty($this->db->conn_id)) {
+        if ((empty($order_ids) && empty($order_numbers)) || empty($this->db) || empty($this->db->conn_id)) {
             return [];
         }
 
         $order_ids = array_unique(array_filter(array_map('intval', $order_ids)));
-        if (empty($order_ids)) {
-            return [];
+        $order_numbers = array_unique(array_filter(array_map('strval', $order_numbers)));
+
+        $query = $this->db->select('id, ticket_number, order_id, order_number, product_id, b2b_order_id, status, resolution_status')
+            ->from('order_resolutions');
+
+        if (!empty($order_ids) && !empty($order_numbers)) {
+            $query->group_start()
+                ->where_in('order_id', $order_ids)
+                ->or_where_in('order_number', $order_numbers)
+                ->or_where_in('order_number', array_map('strval', $order_ids))
+            ->group_end();
+        } elseif (!empty($order_ids)) {
+            $query->group_start()
+                ->where_in('order_id', $order_ids)
+                ->or_where_in('order_number', array_map('strval', $order_ids))
+            ->group_end();
+        } else {
+            $query->where_in('order_number', $order_numbers);
         }
 
-        $rows = $this->db->select('id, order_id, product_id, b2b_order_id, status, resolution_status')
-            ->from('order_resolutions')
-            ->where_in('order_id', $order_ids)
-            ->order_by('id', 'DESC')
-            ->get()
-            ->result();
+        $rows = $query->order_by('id', 'DESC')->get()->result();
 
         $map = [];
         if (!empty($rows)) {
@@ -483,27 +521,59 @@ class OrderResolutionModel extends CI_Model
                 $status = trim($r->status);
                 $is_closed = in_array($status, ['Close', 'Close (Final)'], true);
                 $state = $is_closed ? 'complete' : 'in_progress';
+                $info = [
+                    'state'         => $state,
+                    'ticket_number' => $r->ticket_number,
+                    'status'        => $r->status,
+                    'order_id'      => $r->order_id,
+                    'order_number'  => $r->order_number,
+                    'product_id'    => $r->product_id,
+                ];
 
                 // Map by order_id and product_id
                 if (!empty($r->product_id)) {
-                    $key_prod = $r->order_id . '_' . $r->product_id;
-                    if (!isset($map[$key_prod])) {
-                        $map[$key_prod] = $state;
+                    if (!empty($r->order_id)) {
+                        $key_prod = $r->order_id . '_' . $r->product_id;
+                        if (!isset($map[$key_prod])) {
+                            $map[$key_prod] = $info;
+                        }
+                    }
+                    if (!empty($r->order_number)) {
+                        $key_prod_num = $r->order_number . '_' . $r->product_id;
+                        if (!isset($map[$key_prod_num])) {
+                            $map[$key_prod_num] = $info;
+                        }
                     }
                 }
 
                 // Map by order_id and b2b_order_id
                 if (!empty($r->b2b_order_id)) {
-                    $key_b2b = $r->order_id . '_sub_' . $r->b2b_order_id;
-                    if (!isset($map[$key_b2b])) {
-                        $map[$key_b2b] = $state;
+                    if (!empty($r->order_id)) {
+                        $key_b2b = $r->order_id . '_sub_' . $r->b2b_order_id;
+                        if (!isset($map[$key_b2b])) {
+                            $map[$key_b2b] = $info;
+                        }
+                    }
+                    if (!empty($r->order_number)) {
+                        $key_b2b_num = $r->order_number . '_sub_' . $r->b2b_order_id;
+                        if (!isset($map[$key_b2b_num])) {
+                            $map[$key_b2b_num] = $info;
+                        }
                     }
                 }
 
                 // General order fallback
-                $key_order = (string)$r->order_id;
-                if (!isset($map[$key_order])) {
-                    $map[$key_order] = $state;
+                if (!empty($r->order_id)) {
+                    $key_order = (string)$r->order_id;
+                    if (!isset($map[$key_order])) {
+                        $map[$key_order] = $info;
+                    }
+                }
+                if (!empty($r->order_number)) {
+                    $key_ord_num = (string)$r->order_number;
+                    if (!isset($map[$key_ord_num])) {
+                        $map[$key_ord_num] = $info;
+                    }
                 }
             }
         }
@@ -517,22 +587,33 @@ class OrderResolutionModel extends CI_Model
      * @param int $order_id
      * @param int $product_id
      * @param int $b2b_order_id
+     * @param string $order_number
      * @return string|null
      */
-    public function get_item_escalation_status($order_id, $product_id = 0, $b2b_order_id = 0)
+    public function get_item_escalation_status($order_id, $product_id = 0, $b2b_order_id = 0, $order_number = '')
     {
         if (empty($this->db) || empty($this->db->conn_id)) {
             return null;
         }
-        $res = $this->get_latest_resolution_for_item($order_id, $product_id);
+        $res = $this->get_latest_resolution_for_item($order_id, $product_id, $order_number);
         if (!$res && !empty($b2b_order_id)) {
-            $res = $this->db->select('*')
+            $order_id_int = (int)$order_id;
+            $order_num_str = !empty($order_number) ? (string)$order_number : (string)$order_id;
+
+            $query = $this->db->select('*')
                 ->from('order_resolutions')
-                ->where('order_id', (int)$order_id)
-                ->where('b2b_order_id', (int)$b2b_order_id)
-                ->order_by('id', 'DESC')
-                ->get()
-                ->row();
+                ->where('b2b_order_id', (int)$b2b_order_id);
+
+            $query->group_start();
+            if ($order_id_int > 0) {
+                $query->where('order_id', $order_id_int);
+            }
+            if (!empty($order_num_str)) {
+                $query->or_where('order_number', $order_num_str);
+            }
+            $query->group_end();
+
+            $res = $query->order_by('id', 'DESC')->get()->row();
         }
 
         if (!$res) {

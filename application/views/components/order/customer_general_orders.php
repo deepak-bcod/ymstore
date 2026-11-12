@@ -190,7 +190,7 @@ function getSubOrderStatusText($status) {
                     ?>
 
 
-                    <div class="order-info panel panel-default">
+                    <div class="order-info panel panel-default" id="order-<?php echo (!empty($order->increment_id) ? $order->increment_id : $order->order_id); ?>" data-order-number="<?php echo !empty($order->increment_id) ? $order->increment_id : ''; ?>" data-order-id="<?php echo $order->order_id; ?>">
                         <div class="panel-heading">
                             <div class="row">
                                 <div class="col-md-7">
@@ -389,7 +389,7 @@ function getSubOrderStatusText($status) {
                                                     $base_image = isset($parent_item->base_image) && $parent_item->base_image != '' ? PRODUCT_THUMB_IMG . $parent_item->base_image : PRODUCT_DEFAULT_IMG;
                                                     $price = isset($parent_item->price) ? $parent_item->price : 0;
                                                     ?>
-                                                    <div class="row margbot20 sub-order-block">
+                                                    <div class="row margbot20 sub-order-block" id="order-item-<?php echo (!empty($order->increment_id) ? $order->increment_id : $order->order_id) . '-' . (isset($sub_item->product_id) ? $sub_item->product_id : '0'); ?>">
                                                         <div class="col-sm-4 col-md-4">
                                                             <div class="shpcart-img-wrap vv">
                                                                 <img src="<?php echo $base_image; ?>" alt="<?php echo get_display_product_name($sub_item, $parent_item); ?>" class="img-responsive">
@@ -402,38 +402,77 @@ function getSubOrderStatusText($status) {
                                                                 if (in_array((int)$final_status, [20, 21])) {
                                                                     $p_id = isset($sub_item->product_id) ? (int)$sub_item->product_id : 0;
                                                                     $o_id = isset($order->order_id) ? (int)$order->order_id : 0;
+                                                                    $inc_id = !empty($order->increment_id) ? (string)$order->increment_id : (string)$o_id;
                                                                     $b2b_id = isset($b2b->order_id) ? (int)$b2b->order_id : 0;
 
-                                                                    $esc_state = 'init';
+                                                                    $esc_info = null;
                                                                     if (isset($escalation_status_map) && is_array($escalation_status_map)) {
                                                                         if ($p_id > 0 && isset($escalation_status_map[$o_id . '_' . $p_id])) {
-                                                                            $esc_state = $escalation_status_map[$o_id . '_' . $p_id];
+                                                                            $esc_info = $escalation_status_map[$o_id . '_' . $p_id];
+                                                                        } elseif ($p_id > 0 && isset($escalation_status_map[$inc_id . '_' . $p_id])) {
+                                                                            $esc_info = $escalation_status_map[$inc_id . '_' . $p_id];
                                                                         } elseif ($b2b_id > 0 && isset($escalation_status_map[$o_id . '_sub_' . $b2b_id])) {
-                                                                            $esc_state = $escalation_status_map[$o_id . '_sub_' . $b2b_id];
+                                                                            $esc_info = $escalation_status_map[$o_id . '_sub_' . $b2b_id];
+                                                                        } elseif ($b2b_id > 0 && isset($escalation_status_map[$inc_id . '_sub_' . $b2b_id])) {
+                                                                            $esc_info = $escalation_status_map[$inc_id . '_sub_' . $b2b_id];
                                                                         } elseif (isset($escalation_status_map[(string)$o_id])) {
-                                                                            $esc_state = $escalation_status_map[(string)$o_id];
+                                                                            $esc_info = $escalation_status_map[(string)$o_id];
+                                                                        } elseif (isset($escalation_status_map[$inc_id])) {
+                                                                            $esc_info = $escalation_status_map[$inc_id];
                                                                         }
-                                                                    } else {
+                                                                    }
+
+                                                                    if (!$esc_info) {
                                                                         try {
                                                                             $CI =& get_instance();
                                                                             if (!empty($CI->db) && !empty($CI->db->conn_id)) {
                                                                                 if (!isset($CI->OrderResolutionModel)) {
                                                                                     $CI->load->model('OrderResolutionModel');
                                                                                 }
-                                                                                $esc_state = $CI->OrderResolutionModel->get_item_escalation_status($o_id, $p_id, $b2b_id);
+                                                                                $ticket = $CI->OrderResolutionModel->get_latest_resolution_for_item($o_id, $p_id, $inc_id);
+                                                                                if (!$ticket && !empty($b2b_id)) {
+                                                                                    $ticket = $CI->db->select('*')
+                                                                                        ->from('order_resolutions')
+                                                                                        ->group_start()
+                                                                                            ->where('order_id', (int)$o_id)
+                                                                                            ->or_where('order_number', $inc_id)
+                                                                                        ->group_end()
+                                                                                        ->where('b2b_order_id', (int)$b2b_id)
+                                                                                        ->order_by('id', 'DESC')
+                                                                                        ->get()
+                                                                                        ->row();
+                                                                                }
+                                                                                if ($ticket) {
+                                                                                    $is_closed = in_array(trim($ticket->status), ['Close', 'Close (Final)'], true);
+                                                                                    $esc_info = [
+                                                                                        'state'         => $is_closed ? 'complete' : 'in_progress',
+                                                                                        'ticket_number' => $ticket->ticket_number,
+                                                                                        'status'        => $ticket->status,
+                                                                                    ];
+                                                                                }
                                                                             }
                                                                         } catch (\Throwable $e) {
-                                                                            $esc_state = null;
+                                                                            $esc_info = null;
                                                                         }
                                                                     }
 
-                                                                    if ($esc_state === 'init') {
-                                                                        $create_url = base_url('order_resolution/create');
-                                                                        $escalation_suffix = ' (<a href="' . $create_url . '" class="escalation-request-link" style="color: inherit; text-decoration: underline;">' . ($this->lang->line('escalation_request') ?: 'Escalation Request') . '</a>)';
+                                                                    $esc_state = is_array($esc_info) ? ($esc_info['state'] ?? 'init') : ($esc_info ?: 'init');
+                                                                    $ticket_num = is_array($esc_info) ? ($esc_info['ticket_number'] ?? '') : '';
+
+                                                                    if (!empty($ticket_num)) {
+                                                                        $ticket_url = base_url('order_resolution/view/' . rawurlencode($ticket_num));
+                                                                        $state_label = ($esc_state === 'complete')
+                                                                            ? ($this->lang->line('escalation_complete') ?: 'Escalation Complete')
+                                                                            : ($this->lang->line('escalation_in_progress') ?: 'Escalation In Progress');
+                                                                        $escalation_suffix = ' (<a href="' . $ticket_url . '" class="escalation-ticket-link" style="color: inherit; text-decoration: underline; font-weight: bold;">Ticket #' . htmlspecialchars($ticket_num) . ' - ' . $state_label . '</a>)';
                                                                     } elseif ($esc_state === 'in_progress') {
                                                                         $escalation_suffix = ' (' . ($this->lang->line('escalation_in_progress') ?: 'Escalation In Progress') . ')';
                                                                     } elseif ($esc_state === 'complete') {
                                                                         $escalation_suffix = ' (' . ($this->lang->line('escalation_complete') ?: 'Escalation Complete') . ')';
+                                                                    } else {
+                                                                        // init: eligible for a new escalation request; preselect the relevant item contextually
+                                                                        $create_url = base_url('order_resolution/create/' . $o_id . ($p_id > 0 ? '/' . $p_id : ''));
+                                                                        $escalation_suffix = ' (<a href="' . $create_url . '" class="escalation-request-link" style="color: inherit; text-decoration: underline;">' . ($this->lang->line('escalation_request') ?: 'Escalation Request') . '</a>)';
                                                                     }
                                                                 }
                                                                 ?>
@@ -735,5 +774,38 @@ function downloadInvoice(orderId) {
     });
 }
 
+// Contextual navigation support: smooth scroll to and highlight targeted order
+$(document).ready(function() {
+    try {
+        var urlParams = new URLSearchParams(window.location.search);
+        var orderParam = urlParams.get('order') || urlParams.get('order_id');
+        var hashParam = window.location.hash ? window.location.hash.replace(/^#order-/, '').replace(/^#/, '') : '';
+        var targetOrder = orderParam || hashParam;
+
+        if (targetOrder) {
+            var targetEl = document.getElementById('order-' + targetOrder)
+                        || document.querySelector('[data-order-number="' + targetOrder + '"]')
+                        || document.querySelector('[data-order-id="' + targetOrder + '"]');
+            if (targetEl) {
+                setTimeout(function() {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    $(targetEl).css({
+                        'transition': 'all 0.4s ease',
+                        'box-shadow': '0 0 15px rgba(254, 193, 7, 0.8)',
+                        'border-color': '#fec107'
+                    });
+                    setTimeout(function() {
+                        $(targetEl).css({
+                            'box-shadow': '',
+                            'border-color': ''
+                        });
+                    }, 3500);
+                }, 350);
+            }
+        }
+    } catch (e) {
+        // graceful fallback
+    }
+});
 </script>
 

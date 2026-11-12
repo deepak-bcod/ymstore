@@ -133,7 +133,11 @@ span.label,
                             <div class="row">
                                 <div class="col-md-3 col-sm-6">
                                     <p><b><?php echo $this->lang->line('order_number') ?: 'Order Number'; ?>:</b><br>
-                                        <a href="<?php echo base_url('customer/my-orders'); ?>" target="_blank">
+                                        <?php
+                                        $target_order_ref = !empty($resolution->order_number) ? $resolution->order_number : $resolution->order_id;
+                                        $order_link_url = base_url('customer/my-orders?order=' . rawurlencode($target_order_ref) . '#order-' . rawurlencode($target_order_ref));
+                                        ?>
+                                        <a href="<?php echo $order_link_url; ?>" target="_blank" title="View Order #<?php echo htmlspecialchars($target_order_ref); ?> in My Orders">
                                             #<?php echo htmlspecialchars($resolution->order_number); ?>
                                         </a>
                                     </p>
@@ -387,7 +391,11 @@ span.label,
                                     <table class="table table-condensed table-borderless" style="font-size: 13px; margin-bottom: 0;">
                                         <tr>
                                             <td class="text-muted" style="width: 50%; padding: 4px 0;"><i class="fa fa-shopping-cart text-primary"></i> Order Number:</td>
-                                            <td style="font-weight: bold; padding: 4px 0;">#<?php echo htmlspecialchars($item_context->order_number); ?></td>
+                                            <td style="font-weight: bold; padding: 4px 0;">
+                                                <a href="<?php echo $order_link_url; ?>" target="_blank" style="text-decoration: underline;" title="View Order #<?php echo htmlspecialchars($target_order_ref); ?> in My Orders">
+                                                    #<?php echo htmlspecialchars($item_context->order_number); ?>
+                                                </a>
+                                            </td>
                                         </tr>
                                         <tr>
                                             <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-building text-info"></i> Merchant Order ID:</td>
