@@ -1173,7 +1173,17 @@ class OrderResolutionModel extends CI_Model
             'updated_at'     => $time_str,
         ];
 
-        return $this->db->insert('notifications', $notif_data);
+        $safe_notif = [];
+        foreach ($notif_data as $col => $val) {
+            if ($this->db->field_exists($col, 'notifications')) {
+                $safe_notif[$col] = $val;
+            }
+        }
+        $prev_debug = $this->db->db_debug;
+        $this->db->db_debug = FALSE;
+        $result = !empty($safe_notif) ? $this->db->insert('notifications', $safe_notif) : false;
+        $this->db->db_debug = $prev_debug;
+        return $result;
     }
 
     /**
@@ -1596,6 +1606,8 @@ class OrderResolutionModel extends CI_Model
      */
     public function admin_resolution_decision($ticket_number, $decision, $admin_id, $notes = '', $remedy = 'return_refund')
     {
+        $this->ensure_schema();
+
         $res = $this->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
             return ['status' => false, 'message' => 'Ticket not found.'];
@@ -1630,33 +1642,70 @@ class OrderResolutionModel extends CI_Model
                 $update_data['merchant_action'] = $merchant_action;
             }
 
-            $this->db->where('id', $res->id)->update('order_resolutions', $update_data);
+            // Schema-safe update filtering
+            $safe_update = [];
+            foreach ($update_data as $col => $val) {
+                if ($this->db->field_exists($col, 'order_resolutions')) {
+                    $safe_update[$col] = $val;
+                }
+            }
+            if (!empty($safe_update)) {
+                $prev_debug = $this->db->db_debug;
+                $this->db->db_debug = FALSE;
+                $this->db->where('id', $res->id)->update('order_resolutions', $safe_update);
+                $this->db->db_debug = $prev_debug;
+            }
 
             $remedy_title = ($clean_remedy === 'replacement') ? 'Replacement' : 'Return and Refund';
             $audit_note = "Official Admin Decision: In Favour of Shopper – {$remedy_title}. Reason: {$notes}";
-            $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', "Decision: In Favour of Shopper ({$remedy_title})", 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
+            try {
+                $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', "Decision: In Favour of Shopper ({$remedy_title})", 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
+            } catch (\Throwable $e) {
+                log_message('error', 'audit_log error: ' . $e->getMessage());
+            }
 
             // Post system notices in both threads
-            $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper – {$remedy_title}." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'shopper_admin');
-            $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper – {$remedy_title}. Merchant fulfilment is required." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'merchant_admin');
+            try {
+                $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper – {$remedy_title}." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'shopper_admin');
+            } catch (\Throwable $e) {
+                log_message('error', 'add_reply shopper_admin error: ' . $e->getMessage());
+            }
+
+            try {
+                $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper – {$remedy_title}. Merchant fulfilment is required." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'merchant_admin');
+            } catch (\Throwable $e) {
+                log_message('error', 'add_reply merchant_admin error: ' . $e->getMessage());
+            }
 
             if ($clean_remedy === 'return_refund') {
-                $this->send_refund_acct_email($res);
-                $this->send_inapp_notification('admin', 1, 'refund_request_acct',
-                    'Order Resolution - Refund Request (@Acct)',
-                    "Resolution approved in favour of shopper for Ticket #{$ticket_number} (Order #{$res->order_number}). Please refund from merchant 15-day hold-back sales.", $res);
+                try {
+                    $this->send_refund_acct_email($res);
+                } catch (\Throwable $e) {
+                    log_message('error', 'send_refund_acct_email error: ' . $e->getMessage());
+                }
+                try {
+                    $this->send_inapp_notification('admin', 1, 'refund_request_acct',
+                        'Order Resolution - Refund Request (@Acct)',
+                        "Resolution approved in favour of shopper for Ticket #{$ticket_number} (Order #{$res->order_number}). Please refund from merchant 15-day hold-back sales.", $res);
+                } catch (\Throwable $e) {
+                    log_message('error', 'send_inapp_notification error: ' . $e->getMessage());
+                }
             } else {
                 if (!empty($res->merchant_id)) {
-                    $this->send_inapp_notification('merchant', $res->merchant_id, 'replacement_required',
-                        'Order Resolution - Replacement Required',
-                        "Decision in favour of shopper (Replacement) for Ticket #{$ticket_number}. Please arrange replacement delivery.", $res);
+                    try {
+                        $this->send_inapp_notification('merchant', $res->merchant_id, 'replacement_required',
+                            'Order Resolution - Replacement Required',
+                            "Decision in favour of shopper (Replacement) for Ticket #{$ticket_number}. Please arrange replacement delivery.", $res);
+                    } catch (\Throwable $e) {
+                        log_message('error', 'send_inapp_notification error: ' . $e->getMessage());
+                    }
                 }
             }
 
             return ['status' => true, 'message' => "Resolution decision recorded: In Favour of Shopper – {$remedy_title}."];
         } else {
             // Scenario 2: Decision in Favour of Merchant
-            $this->db->where('id', $res->id)->update('order_resolutions', [
+            $update_data = [
                 'status'                => 'Close (Final)',
                 'resolution_status'     => 'resolution_denied',
                 'admin_decision'        => 'in_favour_merchant',
@@ -1666,31 +1715,78 @@ class OrderResolutionModel extends CI_Model
                 'closed_at'             => $time,
                 'closed_by'             => 'admin',
                 'updated_at'            => $time,
-            ]);
+            ];
 
-            $this->update_payout_eligibility_for_resolution($res);
+            // Schema-safe update filtering
+            $safe_update = [];
+            foreach ($update_data as $col => $val) {
+                if ($this->db->field_exists($col, 'order_resolutions')) {
+                    $safe_update[$col] = $val;
+                }
+            }
+            if (!empty($safe_update)) {
+                $prev_debug = $this->db->db_debug;
+                $this->db->db_debug = FALSE;
+                $this->db->where('id', $res->id)->update('order_resolutions', $safe_update);
+                $this->db->db_debug = $prev_debug;
+            }
+
+            try {
+                $this->update_payout_eligibility_for_resolution($res);
+            } catch (\Throwable $e) {
+                log_message('error', 'update_payout_eligibility_for_resolution error: ' . $e->getMessage());
+            }
 
             $audit_note = "Official Admin Decision: In Favour of Merchant. Original rejection upheld. Reason: {$notes}";
-            $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Decision: In Favour of Merchant', 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
+            try {
+                $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Decision: In Favour of Merchant', 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
+            } catch (\Throwable $e) {
+                log_message('error', 'audit_log error: ' . $e->getMessage());
+            }
 
             // Post notice in threads
-            $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Merchant. Original rejection upheld." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'shopper_admin');
-            $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Merchant. Original rejection upheld. Dispute hold becomes eligible for release under 7-day payout rule." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'merchant_admin');
+            try {
+                $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Merchant. Original rejection upheld." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'shopper_admin');
+            } catch (\Throwable $e) {
+                log_message('error', 'add_reply shopper_admin error: ' . $e->getMessage());
+            }
+
+            try {
+                $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Merchant. Original rejection upheld. Dispute hold becomes eligible for release under 7-day payout rule." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'merchant_admin');
+            } catch (\Throwable $e) {
+                log_message('error', 'add_reply merchant_admin error: ' . $e->getMessage());
+            }
 
             // Emails
-            $this->send_closed_final_merchant_email($res);
-            $this->send_refund_disapproved_shopper_email($res);
+            try {
+                $this->send_closed_final_merchant_email($res);
+            } catch (\Throwable $e) {
+                log_message('error', 'send_closed_final_merchant_email error: ' . $e->getMessage());
+            }
+            try {
+                $this->send_refund_disapproved_shopper_email($res);
+            } catch (\Throwable $e) {
+                log_message('error', 'send_refund_disapproved_shopper_email error: ' . $e->getMessage());
+            }
 
             // In-App Notifications
             if (!empty($res->merchant_id)) {
-                $this->send_inapp_notification('merchant', $res->merchant_id, 'closed_final',
-                    'Order Resolution - Closed (Final)',
-                    "Dispute resolved in your favour for Ticket #{$ticket_number}. Dispute hold eligible for release under 7-day rule.", $res);
+                try {
+                    $this->send_inapp_notification('merchant', $res->merchant_id, 'closed_final',
+                        'Order Resolution - Closed (Final)',
+                        "Dispute resolved in your favour for Ticket #{$ticket_number}. Dispute hold eligible for release under 7-day rule.", $res);
+                } catch (\Throwable $e) {
+                    log_message('error', 'send_inapp_notification error: ' . $e->getMessage());
+                }
             }
             if (!empty($res->customer_id)) {
-                $this->send_inapp_notification('customer', $res->customer_id, 'refund_disapproved',
-                    'Order Resolution - Decision in Favour of Merchant',
-                    "After investigation, resolution was decided in favour of merchant for Ticket #{$ticket_number}. Ticket is closed (Final).", $res);
+                try {
+                    $this->send_inapp_notification('customer', $res->customer_id, 'refund_disapproved',
+                        'Order Resolution - Decision in Favour of Merchant',
+                        "After investigation, resolution was decided in favour of merchant for Ticket #{$ticket_number}. Ticket is closed (Final).", $res);
+                } catch (\Throwable $e) {
+                    log_message('error', 'send_inapp_notification error: ' . $e->getMessage());
+                }
             }
 
             return ['status' => true, 'message' => 'Resolution decision recorded in favour of merchant and closed (Final).'];
@@ -1895,7 +1991,7 @@ class OrderResolutionModel extends CI_Model
             $shopper_name, $shopper_name,
             $merchant_name, $merchant_name,
             $product_name, $product_name,
-            CURRENCY_TYPE . ' ' . number_format($amount, 2), CURRENCY_TYPE . ' ' . number_format($amount, 2),
+            CURRENCY_TYPE . ' ' . number_format((float)($amount ?? 0), 2), CURRENCY_TYPE . ' ' . number_format((float)($amount ?? 0), 2),
             $ticket_url, $ticket_url,
             'Yellow Markets', 'Yellow Markets'
         ];
@@ -1929,7 +2025,7 @@ class OrderResolutionModel extends CI_Model
             $merchant_name, $merchant_name,
             $shopper_name, $shopper_name,
             $product_name, $product_name,
-            CURRENCY_TYPE . ' ' . number_format($amount, 2), CURRENCY_TYPE . ' ' . number_format($amount, 2),
+            CURRENCY_TYPE . ' ' . number_format((float)($amount ?? 0), 2), CURRENCY_TYPE . ' ' . number_format((float)($amount ?? 0), 2),
             'Refund Approved', 'Refund Approved',
             $admin_url, $admin_url,
             'Yellow Markets', 'Yellow Markets'
@@ -2014,7 +2110,8 @@ class OrderResolutionModel extends CI_Model
         $admin_url  = base_url('admin/order_resolution/view/' . $res->ticket_number);
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##REFUND_AMOUNT##', '##TICKET_URL##', '##WEBSHOPNAME##'];
-        $dynamicVars = [$res->ticket_number, $res->order_number, CURRENCY_TYPE . ' ' . number_format($res->refund_amount, 2), $admin_url, 'Yellow Markets'];
+        $refund_fmt = CURRENCY_TYPE . ' ' . number_format((float)($res->refund_amount ?? 0), 2);
+        $dynamicVars = [$res->ticket_number, $res->order_number, $refund_fmt, $admin_url, 'Yellow Markets'];
         $this->CommonModel->sendCommonHTMLEmail($acct_email, 'order-resolution-refund-request-acct', $tempVars, $dynamicVars);
     }
 
@@ -2034,7 +2131,8 @@ class OrderResolutionModel extends CI_Model
         if (!$shopper_email) return;
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##REFUND_AMOUNT##', '##WEBSHOPNAME##'];
-        $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), CURRENCY_TYPE . ' ' . number_format($res->refund_amount, 2), 'Yellow Markets'];
+        $refund_fmt = CURRENCY_TYPE . ' ' . number_format((float)($res->refund_amount ?? 0), 2);
+        $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), $refund_fmt, 'Yellow Markets'];
         $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-refund-completed-shopper', $tempVars, $dynamicVars);
     }
 

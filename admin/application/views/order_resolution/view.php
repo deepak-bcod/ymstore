@@ -1330,6 +1330,13 @@ $(document).ready(function() {
                 var errMsg = 'Unable to complete action. Please check your connection and try again.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errMsg = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        var parsed = JSON.parse(xhr.responseText);
+                        if (parsed && parsed.message) {
+                            errMsg = parsed.message;
+                        }
+                    } catch(e) {}
                 }
                 showNotification('error', errMsg);
             }
