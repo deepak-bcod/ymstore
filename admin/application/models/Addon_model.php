@@ -130,7 +130,7 @@ public function get_purchase_by_id($purchase_id, $merchant_id = null)
         p.id AS purchase_id,
         p.merchant_id,
         DATE_FORMAT(p.created_at, "%d %M %Y") AS date,
-        p.status,
+        p.status AS payment_status,
         c.name AS addon_service_name,
         s.title AS addon_name,
         s.price,
