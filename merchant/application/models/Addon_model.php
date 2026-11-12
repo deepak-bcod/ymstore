@@ -139,7 +139,7 @@ public function get_service_by_id($service_id)
             p.id as purchase_id,
             p.merchant_id,
             DATE_FORMAT(p.created_at, "%d %M %Y") as date,
-            p.status,
+            p.status AS payment_status,
             ' . ($is_french ? 'COALESCE(NULLIF(c.name_fr, \'\'), c.name)' : 'c.name') . ' as addon_service_name,
             ' . ($is_french ? 'COALESCE(NULLIF(s.title_fr, \'\'), s.title)' : 's.title') . ' as addon_name,
             s.price,
