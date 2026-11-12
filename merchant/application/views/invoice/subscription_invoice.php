@@ -48,20 +48,47 @@ $order_reference = $order['order_reference']
 $subscription_reference = $order['subscription_reference']
     ?? 'N/A';
 
-// Merchant details
-$merchant_address = $publisher['billing_address']
-    ?? $publisher['address'] ?? 'N/A';
+// =====================================================
+// MERCHANT DETAILS
+// =====================================================
+// Read the first available, non-empty value from the publisher data.
+// The exact database column names must be included in the controller's
+// $order['publisher'] result.
+$getPublisherValue = function (array $source, array $keys, $default = 'N/A') {
+    foreach ($keys as $key) {
+        if (isset($source[$key]) && trim((string)$source[$key]) !== '') {
+            return $source[$key];
+        }
+    }
+    return $default;
+};
 
-$merchant_brn = $publisher['brn'] ?? 'N/A';
+$merchant_name = $getPublisherValue($publisher, [
+    'publication_name', 'legal_name', 'merchant_legal_name', 'business_name', 'name'
+], 'N/A');
 
-$merchant_email = $publisher['billing_email']
-    ?? $publisher['email'] ?? 'N/A';
+$merchant_address = $getPublisherValue($publisher, [
+    'billing_address', 'business_address', 'company_address',
+    'registered_address', 'merchant_address', 'address',
+    'address_line_1', 'address1', 'street_address'
+], 'N/A');
 
-$merchant_phone = $publisher['billing_phone']
-    ?? $publisher['phone'] ?? 'N/A';
+$merchant_brn = $getPublisherValue($publisher, [
+    'brn_number', 'brn_no', 'business_registration_number',
+    'business_reg_no', 'company_brn', 'merchant_brn', 'brn', 'BRN'
+], 'N/A');
 
-$merchant_reference = $publisher['merchant_reference']
-    ?? 'N/A';
+$merchant_email = $getPublisherValue($publisher, [
+    'billing_email', 'business_email', 'merchant_email', 'email'
+], 'N/A');
+
+$merchant_phone = $getPublisherValue($publisher, [
+    'billing_phone', 'phone_no', 'mobile_no', 'contact_number', 'phone'
+], 'N/A');
+
+$merchant_reference = $getPublisherValue($publisher, [
+    'merchant_reference', 'publisher_reference', 'reference_code'
+], 'N/A');
 
 // VAT
 // Supply vat_rate from your actual invoice data.
@@ -166,12 +193,13 @@ body {
 }
 
 .invoice-wrapper {
-    width: 900px;
-    max-width: calc(100% - 30px);
+    width: 100%;
+    max-width: 900px;
     margin: 20px auto;
     padding: 25px 30px;
     background: #ffffff;
     box-shadow: 0 0 5px rgba(0,0,0,0.12);
+    box-sizing: border-box;
 }
 
 /* PRINT BUTTON */
@@ -196,6 +224,7 @@ body {
 .header-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .header-table td {
@@ -223,10 +252,15 @@ body {
 }
 
 .invoice-heading {
+    display: block;
+    width: 100%;
     text-align: right;
     font-size: 21px;
     font-weight: bold;
     color: #202938;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 
 .invoice-number-small {
@@ -314,6 +348,7 @@ body {
 
 .service-table {
     width: 100%;
+    max-width: 100%;
     border-collapse: collapse;
     font-size: 10px;
     table-layout: fixed;
@@ -469,11 +504,48 @@ body {
     }
 
     .invoice-wrapper {
+        display: block !important;
         width: 100% !important;
         max-width: 100% !important;
+        min-width: 0 !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 0 5mm !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
         box-shadow: none !important;
+    }
+
+    .header-table,
+    .details-table,
+    .service-table,
+    .bottom-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed !important;
+    }
+
+    .header-table td:first-child {
+        width: 55% !important;
+    }
+
+    .header-table td:last-child {
+        width: 45% !important;
+        padding-left: 8px !important;
+        padding-right: 2px !important;
+    }
+
+    .invoice-heading,
+    .invoice-number-small {
+        width: 100% !important;
+        text-align: right !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .service-table th,
+    .service-table td {
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
     }
 
     .print-button {
@@ -618,7 +690,7 @@ body {
 
         <tr>
 
-            <td width="50%">
+            <td width="55%">
 
                 <div class="logo-box">
 
@@ -642,7 +714,7 @@ body {
 
             </td>
 
-            <td width="50%">
+            <td width="45%" style="padding-left:8px;">
 
                 <div class="invoice-heading">
                     Subscription Invoice
