@@ -287,6 +287,7 @@
                         </div>
                     <?php endif; ?>
 
+                    <?php
                     // Separate conversion workflows
                     $shopper_merchant_msgs = [];
                     $shopper_admin_msgs    = [];

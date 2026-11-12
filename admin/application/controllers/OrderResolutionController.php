@@ -532,44 +532,36 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
-        // Get ticket details to retrieve customer_id before updating decision
-        $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        try {
+            // Get ticket details to retrieve customer_id before updating decision
+            $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
 
-        $res = $this->OrderResolutionModel->admin_resolution_decision($ticket_number, $decision, $admin_id, $notes, $remedy);
+            $res = $this->OrderResolutionModel->admin_resolution_decision($ticket_number, $decision, $admin_id, $notes, $remedy);
 
-        // If action was successful, send notification to the customer
-        if (isset($res['status']) && $res['status'] && $res_ticket && !empty($res_ticket->customer_id)) {
-            
-            if ($decision === 'approved') {
-                $title        = "Resolution ticket approved";
-                $message_text = "Your resolution ticket no (" . $ticket_number . ") is approved by The yellow market team, Team is working on it and will update you asap.";
-                $subtype      = 'resolution_approved';
-            } else {
-                $title        = "Resolution ticket denied";
-                $message_text = "Your resolution ticket no (" . $ticket_number . ") is denied by The yellow market team.";
-                $subtype      = 'resolution_denied';
+            // If action was successful, send notification to the customer
+            if (isset($res['status']) && $res['status'] && $res_ticket && !empty($res_ticket->customer_id)) {
+                if ($decision === 'approved') {
+                    $title        = "Resolution ticket approved";
+                    $message_text = "Your resolution ticket no (" . $ticket_number . ") is approved by The yellow market team, Team is working on it and will update you asap.";
+                    $subtype      = 'resolution_approved';
+                } else {
+                    $title        = "Resolution ticket denied";
+                    $message_text = "Your resolution ticket no (" . $ticket_number . ") is denied by The yellow market team.";
+                    $subtype      = 'resolution_denied';
+                }
+
+                try {
+                    $this->OrderResolutionModel->send_inapp_notification('customer', $res_ticket->customer_id, $subtype, $title, $message_text, $res_ticket);
+                } catch (\Throwable $e) {
+                    log_message('error', 'Resolution decision notification failed: ' . $e->getMessage());
+                }
             }
 
-            $notification_data = [
-                'type'           => 'order_resolution',
-                'subtype'        => $subtype,
-                'recipient_type' => 'customer',
-                'recipient_id'   => $res_ticket->customer_id,
-                'title'          => $title,
-                'message'        => $message_text,
-                'data'           => json_encode(['ticket_number' => $ticket_number, 'decision' => $decision]),
-                'is_read'        => 0,
-                'created_at'     => date('Y-m-d H:i:s')
-            ];
-
-            try {
-                $this->db->insert('notifications', $notification_data);
-            } catch (\Exception $e) {
-                log_message('error', 'Resolution decision notification insert failed: ' . $e->getMessage());
-            }
+            $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
+        } catch (\Throwable $e) {
+            log_message('error', 'resolution_decision exception: ' . $e->getMessage());
+            $this->json_response(false, 'Unable to complete decision: ' . $e->getMessage(), [], 'order_resolution/view/' . $ticket_number . '?as=help');
         }
-
-        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
     }
 
     /**

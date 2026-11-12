@@ -255,7 +255,7 @@ class OrderResolutionController extends CI_Controller
                     'created_at'     => date('Y-m-d H:i:s')
                 ];
                 $this->db->insert('notifications', $notification_data);
-                $msg = $this->lang->line('reply_posted_admin_success') ?: 'Your message has been sent to YellowMarkets Admin.';
+                $msg = $this->lang->line('reply_posted_admin_success') ?: 'Your message has been sent to YellowMarkets Support & Accounting.';
             }
             $this->json_response(true, $msg, ['reload' => true], 'order_resolution/view/' . $ticket_number);
         } else {

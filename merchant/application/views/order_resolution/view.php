@@ -525,7 +525,7 @@ $this->load->view('common/fbc-user/header');
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link font-weight-bold py-3 px-4" id="tab-admin-conv" data-toggle="tab" data-bs-toggle="tab" href="#pane-admin-conv" role="tab" aria-controls="pane-admin-conv" aria-selected="false">
-                                        <i class="fa fa-shield text-info mr-1"></i> <?= $this->lang->line('conversion_merchant_admin_tab') ?: 'YellowMarkets Admin (Merchant ↔ Admin)'; ?>
+                                        <i class="fa fa-shield text-info mr-1"></i> <?= $this->lang->line('conversion_merchant_admin_tab') ?: 'Support & Accounting (Merchant ↔ Support & Accounting)'; ?>
                                         <span class="badge badge-pill badge-info ml-1"><?= count($merchant_admin_msgs); ?></span>
                                     </a>
                                 </li>
@@ -627,10 +627,10 @@ $this->load->view('common/fbc-user/header');
                                 <?php endif; ?>
                             </div>
 
-                            <!-- Pane 2: Merchant <-> Admin -->
+                            <!-- Pane 2: Merchant <-> Admin (Support & Accounting) -->
                             <div class="tab-pane fade" id="pane-admin-conv" role="tabpanel" aria-labelledby="tab-admin-conv">
                                 <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
-                                    <div><i class="fa fa-lock text-warning mr-1"></i> <strong>Private Support Thread:</strong> Confidential coordination with YellowMarkets Support & Accounting.</div>
+                                    <div><i class="fa fa-lock text-warning mr-1"></i> <strong>Private Support &amp; Accounting Thread:</strong> Confidential coordination with YellowMarkets Support (@Help) and Accounting (@Acct). Both authorized teams have access to this thread.</div>
                                     <span class="badge badge-warning"><i class="fa fa-eye-slash"></i> Hidden from Shopper</span>
                                 </div>
                                 <div class="chat-container mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
@@ -638,7 +638,7 @@ $this->load->view('common/fbc-user/header');
                                         <?php foreach ($merchant_admin_msgs as $msg): 
                                             $is_merchant = ($msg->sender_role === 'merchant');
                                             $role_class  = 'chat-msg-' . $msg->sender_role;
-                                            $sender_display = $is_merchant ? ($this->lang->line('you_merchant') ?: 'You (Merchant)') : (($msg->sender_role === 'acct') ? ($this->lang->line('accounting_team') ?: 'Accounting Team (@Acct)') : ($this->lang->line('support_team') ?: 'Yellow Markets Support'));
+                                            $sender_display = $is_merchant ? ($this->lang->line('you_merchant') ?: 'You (Merchant)') : (($msg->sender_role === 'acct') ? ($this->lang->line('accounting_team') ?: 'Accounting Team (@Acct)') : ($this->lang->line('support_team') ?: 'Support Team (@Help)'));
                                         ?>
                                             <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_merchant ? '#eef5ff' : '#fef8ea'; ?>; border: 1px solid <?= $is_merchant ? '#cce2ff' : '#faebcc'; ?>;">
                                                 <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
@@ -681,7 +681,7 @@ $this->load->view('common/fbc-user/header');
                                             </div>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <p class="text-muted text-center py-4"><?= $this->lang->line('no_messages_admin_channel') ?: 'No conversation messages with YellowMarkets Admin / Accounting yet.'; ?></p>
+                                        <p class="text-muted text-center py-4"><?= $this->lang->line('no_messages_admin_channel') ?: 'No conversation messages with YellowMarkets Support & Accounting yet.'; ?></p>
                                     <?php endif; ?>
                                 </div>
 
@@ -694,15 +694,15 @@ $this->load->view('common/fbc-user/header');
                                         <div class="card-body p-3">
                                             <div class="alert alert-warning py-1 px-3 mb-3" style="font-size: 12px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
                                                 <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                                    <div><i class="fa fa-shield mr-1"></i> <strong>Recipient:</strong> YellowMarkets Support Team (@Help / @Acct)</div>
-                                                    <div><i class="fa fa-eye-slash mr-1"></i> <strong>Visibility:</strong> Confidential between Merchant and Support. <em>Shopper cannot view this thread.</em></div>
+                                                    <div><i class="fa fa-shield mr-1"></i> <strong>Recipient:</strong> YellowMarkets Support &amp; Accounting (@Help / @Acct)</div>
+                                                    <div><i class="fa fa-eye-slash mr-1"></i> <strong>Visibility:</strong> Confidential coordination between Merchant, Support, and Accounting. Both Support and Accounting can access this thread. <em>Shopper cannot view this thread.</em></div>
                                                 </div>
                                             </div>
                                             <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
                                                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                                                 <input type="hidden" name="conversion_type" value="merchant_admin">
                                                 <div class="form-group mb-2">
-                                                    <textarea name="message" rows="3" class="form-control" placeholder="<?= $this->lang->line('enter_response_to_admin') ?: 'Enter your message or inquiry for YellowMarkets Admin / Accounting team...'; ?>" required></textarea>
+                                                    <textarea name="message" rows="3" class="form-control" placeholder="<?= $this->lang->line('enter_response_to_admin') ?: 'Enter your message or inquiry for YellowMarkets Support & Accounting...'; ?>" required></textarea>
                                                 </div>
                                                 <div class="row align-items-center">
                                                     <div class="col-md-8">
