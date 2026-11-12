@@ -203,20 +203,29 @@ body {
 }
 
 .logo-container {
-    width: 170px;
-    height: 55px;
-    padding: 7px;
-    border: 1px dashed #8492a6;
+    width: 192px;
+    height: 56px;
+    padding: 8px 14px;
+    background-color: #23282d;
+    border: none;
+    border-radius: 5px;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
 }
 
 .logo-container img {
+    display: block;
+    width: 165px;
     max-width: 100%;
     max-height: 42px;
-    display: block;
+    height: auto;
     object-fit: contain;
+    border: none;
 }
 
 .logo-placeholder {
@@ -476,6 +485,14 @@ body {
     .header {
         border-bottom: 2px solid #d6a900;
     }
+    .logo-container {
+    background-color: #23282d !important;
+    border: none !important;
+    border-radius: 5px;
+
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
 
 }
 
