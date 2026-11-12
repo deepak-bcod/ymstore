@@ -221,10 +221,11 @@ body {
 .logo-container img {
     display: block;
     width: 130px;
+    height: auto;
     max-width: 100%;
     max-height: 40px;
-    height: auto;
     object-fit: contain;
+    object-position: center;
     border: none;
 }
 
@@ -486,13 +487,19 @@ body {
         border-bottom: 2px solid #d6a900;
     }
     .logo-container {
-        width: 145px !important;
-        height: 50px !important;
-        background-color: #23282d !important;
-        border: none !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
+    width: 145px !important;
+    height: 50px !important;
+    background-color: #23282d !important;
+    border: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.logo-container img {
+    width: 130px !important;
+    max-height: 40px !important;
+    object-fit: contain;
+}
 
 }
 
