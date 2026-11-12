@@ -203,30 +203,21 @@ body {
 }
 
 .logo-container {
-    width: 145px;
-    height: 50px;
-    padding: 5px 8px;
     background-color: #23282d;
-    border: none;
-    border-radius: 5px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+            padding: 10px 16px;
+            border-radius: 4px;
+            display: inline-block;
+            vertical-align: middle;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
 }
 
 .logo-container img {
-    display: block;
-    width: 130px;
-    height: auto;
-    max-width: 100%;
-    max-height: 40px;
-    object-fit: contain;
-    object-position: center;
-    border: none;
+   display: block;
+            width: 135px;
+            max-width: 100%;
+            height: auto;
+            border: 0;
 }
 
 .logo-placeholder {
@@ -487,19 +478,15 @@ body {
         border-bottom: 2px solid #d6a900;
     }
     .logo-container {
-    width: 145px !important;
-    height: 50px !important;
-    background-color: #23282d !important;
-    border: none !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+   -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
 }
 
-.logo-container img {
+/* .logo-container img {
     width: 130px !important;
     max-height: 40px !important;
     object-fit: contain;
-}
+} */
 
 }
 
