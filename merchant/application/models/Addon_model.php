@@ -142,7 +142,7 @@ public function get_service_by_id($service_id)
             p.status AS payment_status,
             ' . ($is_french ? 'COALESCE(NULLIF(c.name_fr, \'\'), c.name)' : 'c.name') . ' as addon_service_name,
             ' . ($is_french ? 'COALESCE(NULLIF(s.title_fr, \'\'), s.title)' : 's.title') . ' as addon_name,
-s.description AS addon_description,
+     
             s.price,
             s.vat_percent,
             COALESCE(NULLIF(p.amount, 0), MAX(txn.amount), s.final_price) as amount,
