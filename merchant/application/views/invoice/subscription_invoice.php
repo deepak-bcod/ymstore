@@ -90,6 +90,58 @@ $merchant_reference = $getPublisherValue($publisher, [
     'merchant_reference', 'publisher_reference', 'reference_code'
 ], 'N/A');
 
+// =====================================================
+// INVOICE ISSUER / YELLOW MARKETS COMPANY DETAILS
+// =====================================================
+// These are the details of MYP Online Marketing Ltd (the invoice issuer),
+// NOT the merchant being billed. Pass a $order['supplier'] or
+// $order['company'] array from the controller, or set the values below
+// from your verified company records. Do not use merchant/publisher fields
+// for these details.
+$supplier = [];
+if (isset($order['supplier']) && is_array($order['supplier'])) {
+    $supplier = $order['supplier'];
+} elseif (isset($order['company']) && is_array($order['company'])) {
+    $supplier = $order['company'];
+}
+
+$getSupplierValue = function (array $source, array $keys, $default = '') {
+    foreach ($keys as $key) {
+        if (isset($source[$key]) && trim((string)$source[$key]) !== '') {
+            return trim((string)$source[$key]);
+        }
+    }
+    return $default;
+};
+
+$supplier_name = $getSupplierValue($supplier, [
+    'legal_name', 'company_name', 'name'
+], 'MYP Online Marketing Ltd');
+
+$supplier_service_name = $getSupplierValue($supplier, [
+    'service_name', 'trading_name'
+], 'Yellow Markets - A MYP Network Service');
+
+$supplier_address = $getSupplierValue($supplier, [
+    'registered_address', 'company_address', 'business_address', 'address'
+], $order['supplier_address'] ?? '');
+
+$supplier_email = $getSupplierValue($supplier, [
+    'billing_email', 'company_email', 'email'
+], $order['supplier_email'] ?? '');
+
+$supplier_phone = $getSupplierValue($supplier, [
+    'telephone', 'phone', 'phone_no', 'contact_number'
+], $order['supplier_phone'] ?? '');
+
+$supplier_brn = $getSupplierValue($supplier, [
+    'brn_number', 'brn', 'business_registration_number'
+], $order['supplier_brn'] ?? '');
+
+$supplier_vat = $getSupplierValue($supplier, [
+    'vat_number', 'vat_no', 'vat_registration_number'
+], $order['supplier_vat_number'] ?? '');
+
 // VAT
 // Supply vat_rate from your actual invoice data.
 // Default is 0% when no VAT rate is supplied.
@@ -741,18 +793,37 @@ body {
     <div class="company-details">
 
         <div class="company-name">
-            MYP Online Marketing Ltd
+            <?php echo $e($supplier_name); ?>
         </div>
 
-        Yellow Markets - A MYP Network Service<br>
+        <?php if ($supplier_service_name !== '') { ?>
+            <?php echo $e($supplier_service_name); ?><br>
+        <?php } ?>
 
-        [Verified supplier address]<br>
+        <?php if ($supplier_address !== '') { ?>
+            <?php echo nl2br($e($supplier_address)); ?><br>
+        <?php } ?>
 
-        [Verified supplier email] | [Telephone]<br>
+        <?php if ($supplier_email !== '' || $supplier_phone !== '') { ?>
+            <?php if ($supplier_email !== '') { ?>
+                <?php echo $e($supplier_email); ?>
+            <?php } ?>
+            <?php if ($supplier_email !== '' && $supplier_phone !== '') { ?>
+                |
+            <?php } ?>
+            <?php if ($supplier_phone !== '') { ?>
+                <?php echo $e($supplier_phone); ?>
+            <?php } ?>
+            <br>
+        <?php } ?>
 
-        BRN: [Verified supplier BRN]<br>
+        <?php if ($supplier_brn !== '') { ?>
+            BRN: <?php echo $e($supplier_brn); ?><br>
+        <?php } ?>
 
-        VAT number: [Verified supplier VAT number]
+        <?php if ($supplier_vat !== '') { ?>
+            VAT number: <?php echo $e($supplier_vat); ?>
+        <?php } ?>
 
     </div>
 
