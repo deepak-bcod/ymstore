@@ -1939,14 +1939,24 @@ class OrderResolutionModel extends CI_Model
     /**
      * Compute and enrich resolution with accurate refund amount
      */
+    /**
+     * Compute and enrich resolution with accurate refund amount and complete item context
+     */
     public function enrich_resolution(&$res)
     {
         if (empty($res)) {
             return;
         }
 
+        // Attach complete original item & request context (YM-11)
+        $res->item_context = $this->get_original_item_context($res);
+
         if (empty($res->refund_amount) || (float)$res->refund_amount <= 0) {
-            $res->refund_amount = $this->get_refund_amount_for_resolution($res);
+            if (!empty($res->item_context) && (float)$res->item_context->total_price > 0) {
+                $res->refund_amount = (float)$res->item_context->total_price;
+            } else {
+                $res->refund_amount = $this->get_refund_amount_for_resolution($res);
+            }
             if ($res->refund_amount > 0 && $this->db->field_exists('refund_amount', 'order_resolutions')) {
                 $this->db->where('id', $res->id)->update('order_resolutions', ['refund_amount' => $res->refund_amount]);
             }
@@ -2026,6 +2036,303 @@ class OrderResolutionModel extends CI_Model
         }
 
         return $amount;
+    }
+
+    /**
+     * Carry original rejection, evidence and affected item context into resolution investigation (YM-11)
+     * Retrieves clear Merchant Order ID, variant, disputed quantity, unit price,
+     * original rejection reason, and linked original request history.
+     * Never infers quantity or refund basis from product name.
+     * Distinguishes missing historical data from empty fields.
+     *
+     * @param object $res
+     * @return object
+     */
+    public function get_original_item_context($res)
+    {
+        if (empty($res)) {
+            return null;
+        }
+
+        $order_id      = !empty($res->order_id) ? (int)$res->order_id : 0;
+        $product_id    = !empty($res->product_id) ? (int)$res->product_id : 0;
+        $order_item_id = !empty($res->order_item_id) ? (int)$res->order_item_id : 0;
+        $b2b_order_id  = !empty($res->b2b_order_id) ? (int)$res->b2b_order_id : 0;
+        $merchant_id   = !empty($res->merchant_id) ? (int)$res->merchant_id : 0;
+
+        $ctx = new stdClass();
+        $ctx->has_historical_record = false;
+        $ctx->order_id              = $order_id;
+        $ctx->order_number          = !empty($res->order_number) ? (string)$res->order_number : (string)$order_id;
+        $ctx->product_id            = $product_id;
+        $ctx->product_name          = '';
+        $ctx->product_type          = '';
+        $ctx->variant_display       = '';
+        $ctx->has_variant           = false;
+        $ctx->variant_status_note   = '';
+        $ctx->disputed_qty          = 0;
+        $ctx->unit_price            = 0.00;
+        $ctx->total_price           = 0.00;
+        $ctx->merchant_order_id     = '';
+        $ctx->merchant_order_number = '';
+        $ctx->request_type          = !empty($res->category) ? strtolower($res->category) : '';
+        $ctx->request_type_label    = !empty($res->category) ? $res->category : 'Dispute';
+        $ctx->request_reference     = '';
+        $ctx->request_date          = null;
+        $ctx->customer_reason       = '';
+        $ctx->rejection_status      = '';
+        $ctx->rejection_reason      = '';
+        $ctx->rejection_date        = null;
+
+        // STEP 1: Resolve B2B / Merchant Order Details
+        $b2b_row = null;
+        if (!empty($b2b_order_id)) {
+            $b2b_row = $this->db->where('order_id', $b2b_order_id)->get('b2b_orders')->row();
+        }
+        if (!$b2b_row && !empty($order_id)) {
+            $b2b_q = $this->db->where('webshop_order_id', $order_id);
+            if (!empty($merchant_id)) {
+                $b2b_q->where('publisher_id', $merchant_id);
+            }
+            $b2b_row = $b2b_q->get('b2b_orders')->row();
+            if ($b2b_row && empty($b2b_order_id)) {
+                $b2b_order_id = (int)$b2b_row->order_id;
+            }
+        }
+        if ($b2b_row) {
+            $ctx->merchant_order_id     = (string)$b2b_row->order_id;
+            $ctx->merchant_order_number = !empty($b2b_row->increment_id) ? $b2b_row->increment_id : (!empty($b2b_row->order_barcode) ? $b2b_row->order_barcode : '#' . $b2b_row->order_id);
+        } else {
+            $ctx->merchant_order_number = 'Not recorded in historical data';
+        }
+
+        // STEP 2: Resolve Item Record (Variant, Quantity, Unit Price, Total Price)
+        $item_row = null;
+        // Try b2b_order_items first by order_item_id
+        if (!empty($order_item_id)) {
+            $item_row = $this->db->where('item_id', $order_item_id)->get('b2b_order_items')->row();
+            if (!$item_row) {
+                $item_row = $this->db->where('item_id', $order_item_id)->get('sales_order_items')->row();
+            }
+        }
+        // Match by order_id and product_id in b2b_order_items
+        if (!$item_row && !empty($product_id)) {
+            if (!empty($b2b_order_id)) {
+                $item_row = $this->db->where('order_id', $b2b_order_id)->where('product_id', $product_id)->get('b2b_order_items')->row();
+            }
+            if (!$item_row && !empty($order_id)) {
+                $sub_b2b = $this->db->select('order_id')->where('webshop_order_id', $order_id)->get('b2b_orders')->result();
+                if (!empty($sub_b2b)) {
+                    $b_ids = array_map(function($b) { return (int)$b->order_id; }, $sub_b2b);
+                    if (!empty($b_ids)) {
+                        $item_row = $this->db->where_in('order_id', $b_ids)->where('product_id', $product_id)->get('b2b_order_items')->row();
+                    }
+                }
+            }
+            if (!$item_row && !empty($order_id)) {
+                $item_row = $this->db->where('order_id', $order_id)->where('product_id', $product_id)->get('sales_order_items')->row();
+            }
+        }
+
+        if ($item_row) {
+            $ctx->product_name = !empty($item_row->product_name) ? $item_row->product_name : '';
+            $ctx->product_type = !empty($item_row->product_type) ? $item_row->product_type : 'simple';
+            $ctx->unit_price   = (float)($item_row->price ?? 0);
+            $ctx->total_price  = (float)($item_row->total_price ?? 0);
+            $ctx->disputed_qty = (int)($item_row->qty_ordered ?? 1);
+
+            // Parse product_variants (supports JSON arrays, JSON key-values, and formatted strings)
+            $raw_variants = !empty($item_row->product_variants) ? $item_row->product_variants : '';
+            if (!empty($raw_variants)) {
+                $decoded = json_decode($raw_variants, true);
+                if (is_array($decoded)) {
+                    $v_parts = [];
+                    foreach ($decoded as $k => $v) {
+                        if (is_array($v)) {
+                            foreach ($v as $subKey => $subVal) {
+                                $v_parts[] = trim((string)$subKey) . ': ' . trim((string)$subVal);
+                            }
+                        } elseif (is_string($k) && !is_numeric($k)) {
+                            $v_parts[] = trim((string)$k) . ': ' . trim((string)$v);
+                        } else {
+                            $v_parts[] = (string)$v;
+                        }
+                    }
+                    if (!empty($v_parts)) {
+                        $ctx->variant_display = implode(', ', $v_parts);
+                        $ctx->has_variant     = true;
+                    }
+                } elseif (is_string($raw_variants) && trim($raw_variants) !== '') {
+                    $ctx->variant_display = trim($raw_variants);
+                    $ctx->has_variant     = true;
+                }
+            }
+
+            if (!$ctx->has_variant) {
+                if ($ctx->product_type === 'conf-simple') {
+                    $ctx->variant_status_note = 'None recorded in item configuration';
+                } else {
+                    $ctx->variant_status_note = 'Standard / No variant options';
+                }
+            }
+
+            if (!empty($item_row->cancel_reason)) {
+                $ctx->rejection_reason = trim($item_row->cancel_reason);
+            }
+        } else {
+            // Fallback product name & unit price from products table
+            if (!empty($product_id)) {
+                $p_row = $this->db->select('name, price, special_price')->where('id', $product_id)->get('products')->row();
+                if ($p_row) {
+                    $ctx->product_name = $p_row->name;
+                    $ctx->unit_price   = (float)(($p_row->special_price > 0) ? $p_row->special_price : $p_row->price);
+                }
+            }
+            $ctx->variant_status_note = 'Historical item record not found';
+            $ctx->disputed_qty        = 1;
+        }
+
+        // STEP 3: Resolve Original Replacement / Return / Escalation Request & Rejection History
+        $order_candidates = array_unique(array_filter([(int)$order_id, (int)$b2b_order_id]));
+
+        // Check sales_order_replacement
+        if ($this->db->table_exists('sales_order_replacement') && !empty($order_candidates)) {
+            $rep_q = $this->db->select('sor.*, sori.qty_replacement, sori.price as item_price, sori.total_price as item_total, sori.status as sori_status')
+                ->from('sales_order_replacement sor')
+                ->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'left')
+                ->where_in('sor.order_id', $order_candidates);
+            $rep = $rep_q->order_by('sor.replacement_order_id', 'DESC')->get()->row();
+            if ($rep) {
+                $ctx->has_historical_record = true;
+                $ctx->request_type          = 'replacement';
+                $ctx->request_type_label    = 'Replacement Request';
+                $ctx->request_reference     = !empty($rep->replacement_order_increment_id) ? $rep->replacement_order_increment_id : (!empty($rep->replacement_order_barcode) ? $rep->replacement_order_barcode : '#' . $rep->replacement_order_id);
+                $ctx->request_date          = !empty($rep->created_at) ? $rep->created_at : null;
+                if (!empty($rep->reason_for_replacement)) {
+                    $ctx->customer_reason   = trim($rep->reason_for_replacement);
+                }
+                if (!empty($rep->qty_replacement) && (int)$rep->qty_replacement > 0) {
+                    $ctx->disputed_qty      = (int)$rep->qty_replacement;
+                }
+                if (!empty($rep->item_price) && (float)$rep->item_price > 0) {
+                    $ctx->unit_price        = (float)$rep->item_price;
+                }
+                if (!empty($rep->item_total) && (float)$rep->item_total > 0) {
+                    $ctx->total_price       = (float)$rep->item_total;
+                }
+                $rep_status = (int)$rep->status;
+                if (in_array($rep_status, [4, 21], true)) {
+                    $ctx->rejection_status = 'Replacement Rejected by Merchant';
+                } elseif ($rep_status === 1) {
+                    $ctx->rejection_status = 'Approved (Own Replacement)';
+                } elseif ($rep_status === 2) {
+                    $ctx->rejection_status = 'Escalated to YM Replacement';
+                } elseif ($rep_status === 0) {
+                    $ctx->rejection_status = 'Pending Decision';
+                }
+                $ctx->rejection_date = !empty($rep->status_updated_date) ? $rep->status_updated_date : (!empty($rep->updated_at) ? $rep->updated_at : null);
+            }
+        }
+
+        // Check sales_order_return
+        if (!$ctx->has_historical_record && $this->db->table_exists('sales_order_return') && !empty($order_candidates)) {
+            $ret_q = $this->db->select('sor.*, sori.qty_return, sori.price as item_price, sori.total_price as item_total, sori.status as sori_status')
+                ->from('sales_order_return sor')
+                ->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'left')
+                ->where_in('sor.order_id', $order_candidates);
+            $ret = $ret_q->order_by('sor.return_order_id', 'DESC')->get()->row();
+            if ($ret) {
+                $ctx->has_historical_record = true;
+                $ctx->request_type          = 'return';
+                $ctx->request_type_label    = 'Return / Refund Request';
+                $ctx->request_reference     = !empty($ret->return_order_increment_id) ? $ret->return_order_increment_id : (!empty($ret->return_order_barcode) ? $ret->return_order_barcode : '#' . $ret->return_order_id);
+                $ctx->request_date          = !empty($ret->created_at) ? $ret->created_at : null;
+                if (!empty($ret->reason_for_return)) {
+                    $ctx->customer_reason   = trim($ret->reason_for_return);
+                }
+                if (!empty($ret->refund_approve_reject_message)) {
+                    $ctx->rejection_reason  = trim($ret->refund_approve_reject_message);
+                }
+                if (!empty($ret->qty_return) && (int)$ret->qty_return > 0) {
+                    $ctx->disputed_qty      = (int)$ret->qty_return;
+                }
+                if (!empty($ret->item_price) && (float)$ret->item_price > 0) {
+                    $ctx->unit_price        = (float)$ret->item_price;
+                }
+                if (!empty($ret->item_total) && (float)$ret->item_total > 0) {
+                    $ctx->total_price       = (float)$ret->item_total;
+                }
+                $ret_status = (int)$ret->status;
+                if (in_array($ret_status, [2, 5, 20], true) || (int)$ret->refund_status === 2) {
+                    $ctx->rejection_status = 'Return / Refund Rejected by Merchant';
+                }
+                $ctx->rejection_date = !empty($ret->refund_approve_reject_date) ? $ret->refund_approve_reject_date : (!empty($ret->status_updated_date) ? $ret->status_updated_date : null);
+            }
+        }
+
+        // Check sales_order_escalations (e.g. ES-1456)
+        if ($this->db->table_exists('sales_order_escalations') && !empty($order_candidates)) {
+            $esc = $this->db->where_in('order_id', $order_candidates)->order_by('id', 'DESC')->get('sales_order_escalations')->row();
+            if ($esc) {
+                if (empty($ctx->request_reference) && !empty($esc->esc_order_id)) {
+                    $ctx->request_reference = $esc->esc_order_id;
+                    $ctx->has_historical_record = true;
+                }
+                if (empty($ctx->rejection_reason) && !empty($esc->refund_approve_reject_message)) {
+                    $ctx->rejection_reason = trim($esc->refund_approve_reject_message);
+                }
+                if (empty($ctx->customer_reason) && !empty($esc->cancel_reason)) {
+                    $ctx->customer_reason = trim($esc->cancel_reason);
+                }
+                if (empty($ctx->rejection_date) && !empty($esc->refund_approve_reject_date)) {
+                    $ctx->rejection_date = $esc->refund_approve_reject_date;
+                }
+            }
+        }
+
+        // Check notifications table for rejection message logged at event time
+        if (empty($ctx->rejection_reason) && $this->db->table_exists('notifications') && !empty($order_candidates)) {
+            $notif = $this->db->where('subtype', 'rejected')
+                ->group_start()
+                    ->where_in('order_id', $order_candidates)
+                    ->or_where_in('b2b_order_id', $order_candidates)
+                ->group_end()
+                ->order_by('id', 'DESC')
+                ->limit(1)
+                ->get('notifications')
+                ->row();
+            if ($notif && !empty($notif->message)) {
+                $ctx->rejection_reason = trim($notif->message);
+            }
+        }
+
+        // Compute total price if not yet set
+        if ($ctx->total_price <= 0 && $ctx->unit_price > 0 && $ctx->disputed_qty > 0) {
+            $ctx->total_price = (float)($ctx->unit_price * $ctx->disputed_qty);
+        }
+
+        // Distinguish missing historical data from empty fields
+        if (empty($ctx->rejection_reason)) {
+            if ($ctx->has_historical_record || !empty($ctx->rejection_status)) {
+                $ctx->rejection_reason = 'No written explanation entered by merchant at time of decision';
+            } else {
+                $ctx->rejection_reason = 'Historical rejection notes not recorded in database';
+            }
+        }
+
+        if (empty($ctx->customer_reason)) {
+            $ctx->customer_reason = 'None recorded in original request submission';
+        }
+
+        if (empty($ctx->rejection_status)) {
+            $ctx->rejection_status = 'Rejected by Merchant';
+        }
+
+        if (empty($ctx->request_reference)) {
+            $ctx->request_reference = 'Historical request record not linked';
+        }
+
+        return $ctx;
     }
 
     public function get_messages($resolution_id, $conversion_type = null)

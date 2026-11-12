@@ -118,6 +118,7 @@ class OrderResolutionController extends CI_Controller
         $data['product']  = !empty($res->product_id) ? $this->db->where('id', $res->product_id)->get('products')->row() : null;
         $data['merchant'] = !empty($res->merchant_id) ? $this->db->where('id', $res->merchant_id)->get('publisher')->row() : null;
         $data['customer'] = !empty($res->customer_id) ? $this->db->where('id', $res->customer_id)->get('customers')->row() : null;
+        $data['item_context'] = $res->item_context ?? $this->OrderResolutionModel->get_original_item_context($res);
 
         $data['side_menu'] = ($current_role === 'acct') ? 'order_resolution_acct' : 'order_resolution';
         $data['PageTitle'] = 'Order Resolution #' . $res->ticket_number . ' (' . ($current_role === 'acct' ? '@Acct' : '@Help') . ')';

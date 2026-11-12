@@ -188,6 +188,108 @@
                     $is_escalated = (!empty($shopper_admin_msgs) || $resolution->resolution_status === 'resolution_requested' || in_array($resolution->status, ['Open', 'ReOpen', 'Processing', 'Done'], true));
                     ?>
 
+                                        <?php
+                    $item_context = $item_context ?? ($resolution->item_context ?? $this->OrderResolutionModel->get_original_item_context($resolution));
+                    $currency     = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
+                    ?>
+                    <!-- ================= LINKED ORIGINAL REQUEST & AFFECTED ITEM CONTEXT (YM-11) ================= -->
+                    <div class="panel panel-default" style="border: 1px solid #dcd1ea; border-left: 4px solid #6f42c1; border-radius: 6px; margin-top: 25px; margin-bottom: 25px; background-color: #faf9fd;">
+                        <div class="panel-heading" style="background-color: #f3eff9; border-bottom: 1px solid #dcd1ea; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <span style="font-weight: 700; color: #4a2d7a; font-size: 14px;">
+                                <i class="fa fa-link" style="color: #6f42c1;"></i> Linked Original Request & Affected Item Context
+                            </span>
+                            <div>
+                                <span class="label" style="background-color: #6f42c1; color: #fff; font-size: 11px; margin-right: 5px;"><i class="fa fa-history"></i> Original Request Context</span>
+                                <span class="label label-danger" style="font-size: 11px;"><i class="fa fa-times-circle"></i> Merchant Rejected</span>
+                            </div>
+                        </div>
+                        <div class="panel-body" style="padding: 15px;">
+                            <div class="row">
+                                <!-- Col 1: Affected Item & Variant -->
+                                <div class="col-sm-4 col-md-4" style="border-right: 1px solid #eee; margin-bottom: 15px;">
+                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;">Affected Order Item</div>
+                                    <div style="font-size: 15px; font-weight: bold; color: #333;">
+                                        <?php echo htmlspecialchars($item_context->product_name ?: ($product ? $product->name : 'Item Not Found')); ?>
+                                    </div>
+                                    <div style="margin-top: 8px; padding: 8px 10px; border-radius: 4px; background: #fff; border: 1px solid #e5e5e5;">
+                                        <div class="small" style="margin-bottom: 5px;">
+                                            <strong class="text-secondary"><i class="fa fa-tags"></i> Variant:</strong>
+                                            <?php if ($item_context->has_variant): ?>
+                                                <span class="label label-default" style="font-size: 11px; font-weight: normal; margin-left: 3px;">
+                                                    <?php echo htmlspecialchars($item_context->variant_display); ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-muted" style="font-style: italic; margin-left: 3px;"><?php echo htmlspecialchars($item_context->variant_status_note); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="small" style="margin-bottom: 5px;">
+                                            <strong class="text-secondary"><i class="fa fa-cubes"></i> Disputed Quantity:</strong>
+                                            <span class="label label-info" style="font-size: 11px; margin-left: 3px;"><?php echo (int)$item_context->disputed_qty; ?> unit(s)</span>
+                                        </div>
+                                        <div class="small">
+                                            <strong class="text-secondary"><i class="fa fa-money"></i> Financial Basis:</strong>
+                                            <span style="font-weight: bold; color: #333; margin-left: 3px;"><?php echo $currency; ?> <?php echo number_format($item_context->total_price, 2); ?></span>
+                                            <small class="text-muted">(<?php echo $currency; ?> <?php echo number_format($item_context->unit_price, 2); ?> / unit)</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Col 2: Order & Reference Mapping -->
+                                <div class="col-sm-4 col-md-4" style="border-right: 1px solid #eee; margin-bottom: 15px;">
+                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;">Order & Reference Mapping</div>
+                                    <table class="table table-condensed table-borderless" style="font-size: 13px; margin-bottom: 0;">
+                                        <tr>
+                                            <td class="text-muted" style="width: 50%; padding: 4px 0;"><i class="fa fa-shopping-cart text-primary"></i> Order Number:</td>
+                                            <td style="font-weight: bold; padding: 4px 0;">#<?php echo htmlspecialchars($item_context->order_number); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-building text-info"></i> Merchant Order ID:</td>
+                                            <td style="font-weight: bold; padding: 4px 0;"><?php echo htmlspecialchars($item_context->merchant_order_number); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-exchange" style="color: #6f42c1;"></i> Original Request:</td>
+                                            <td style="font-weight: bold; padding: 4px 0;">
+                                                <span class="label label-default"><?php echo htmlspecialchars($item_context->request_reference); ?></span>
+                                                <small class="text-muted">(<?php echo htmlspecialchars($item_context->request_type_label); ?>)</small>
+                                            </td>
+                                        </tr>
+                                        <?php if (!empty($item_context->request_date)): ?>
+                                        <tr>
+                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-calendar"></i> Request Date:</td>
+                                            <td style="padding: 4px 0;"><?php echo date('d M Y, h:i A', $item_context->request_date); ?></td>
+                                        </tr>
+                                        <?php endif; ?>
+                                    </table>
+                                </div>
+
+                                <!-- Col 3: Original Rejection Context -->
+                                <div class="col-sm-4 col-md-4">
+                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;">Original Rejection Context</div>
+                                    <div style="margin-bottom: 8px;">
+                                        <span class="label label-danger" style="font-size: 11px; padding: 3px 6px;">
+                                            <i class="fa fa-ban"></i> <?php echo htmlspecialchars($item_context->rejection_status); ?>
+                                        </span>
+                                        <?php if (!empty($item_context->rejection_date)): ?>
+                                            <small class="text-muted" style="margin-left: 5px;"><?php echo date('d M Y', $item_context->rejection_date); ?></small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="small" style="margin-bottom: 8px;">
+                                        <strong class="text-secondary">Your Original Request Reason:</strong>
+                                        <div style="margin-top: 3px; padding: 6px 10px; border-radius: 4px; background: #fff; border: 1px solid #e5e5e5; font-size: 12px; line-height: 1.4;">
+                                            <?php echo htmlspecialchars($item_context->customer_reason); ?>
+                                        </div>
+                                    </div>
+                                    <div class="small">
+                                        <strong class="text-secondary">Merchant Rejection Reason / Note:</strong>
+                                        <div style="margin-top: 3px; padding: 6px 10px; border-radius: 4px; background: #fff9f9; border: 1px solid #f5c6cb; color: #a94442; font-size: 12px; line-height: 1.4;">
+                                            <i class="fa fa-commenting-o"></i> <?php echo htmlspecialchars($item_context->rejection_reason); ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- ================= ORIGINAL DISPUTE CLAIM & SUBMITTED EVIDENCE ================= -->
                     <div class="panel panel-info" style="border: 1px solid #bce8f1; border-left: 4px solid #31708f; border-radius: 6px; margin-top: 25px; margin-bottom: 25px; background-color: #fbfcff;">
                         <div class="panel-heading" style="background-color: #ebf7fd; border-bottom: 1px solid #bce8f1; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">

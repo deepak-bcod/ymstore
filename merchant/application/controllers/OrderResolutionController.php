@@ -73,6 +73,7 @@ class OrderResolutionController extends CI_Controller
         if (!empty($res->customer_id)) {
             $data['customer'] = $this->db->where('id', $res->customer_id)->get('customers')->row();
         }
+        $data['item_context'] = $res->item_context ?? $this->OrderResolutionModel->get_original_item_context($res);
 
         // Fetch AddOn Delivery Service & Purchase details
         $data['delivery_addon_service'] = $this->OrderResolutionModel->get_delivery_addon_service($res->addon_service_id ?? null);
