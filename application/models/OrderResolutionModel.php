@@ -202,7 +202,7 @@ class OrderResolutionModel extends CI_Model
         $seen_keys = [];
 
         // 2. Check b2b_orders and b2b_order_items for status 20 (Return Rejected) or 21 (Replacement Rejected)
-        $b2b_items = $this->db->select('boi.item_id as b2b_item_id, boi.order_id as b2b_order_id, boi.product_id, boi.product_name, boi.product_variants, boi.qty, boi.status as item_status, bo.webshop_order_id, bo.publisher_id, pub.publication_name as merchant_name')
+        $b2b_items = $this->db->select('boi.item_id as b2b_item_id, boi.order_id as b2b_order_id, boi.product_id, boi.product_name, boi.product_variants, boi.qty_ordered as qty, boi.status as item_status, bo.webshop_order_id, bo.publisher_id, pub.publication_name as merchant_name')
             ->from('b2b_order_items boi')
             ->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'inner')
             ->join('publisher pub', 'pub.id = bo.publisher_id', 'left')
@@ -252,42 +252,46 @@ class OrderResolutionModel extends CI_Model
 
         // 3. Check sales_order_return for rejected returns (status in [2, 5, 20] or refund_status = 2)
         if ($this->db->table_exists('sales_order_return') && $this->db->table_exists('sales_order_return_items')) {
-            $ret_orders = $this->db->select('
+            $has_refund_status = $this->db->field_exists('refund_status', 'sales_order_return');
+            $this->db->select('
                     sor.return_order_id,
                     sor.order_id AS sor_order_id,
                     sor.status AS sor_status,
-                    sor.refund_status,
                     sori.order_item_id,
                     sori.status AS sori_status,
                     boi.order_id AS boi_b2b_order_id,
                     boi.product_id AS boi_product_id,
                     boi.product_name AS boi_product_name,
                     boi.product_variants AS boi_variants,
-                    boi.qty AS boi_qty,
+                    boi.qty_ordered AS boi_qty,
                     bo.webshop_order_id AS bo_webshop_order_id,
                     bo.publisher_id AS bo_publisher_id,
                     pub.publication_name AS merchant_name,
                     soi.order_id AS soi_order_id,
                     soi.product_id AS soi_product_id,
                     soi.product_name AS soi_product_name
-                ')
-                ->from('sales_order_return sor')
-                ->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'inner')
-                ->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
-                ->join('b2b_orders bo', 'bo.order_id = boi.order_id OR bo.order_id = sor.order_id', 'left')
-                ->join('publisher pub', 'pub.id = bo.publisher_id', 'left')
-                ->join('sales_order_items soi', 'soi.item_id = sori.order_item_id', 'left')
-                ->group_start()
-                    ->where_in('bo.webshop_order_id', $order_ids)
-                    ->or_where_in('soi.order_id', $order_ids)
-                ->group_end()
-                ->group_start()
-                    ->where_in('sor.status', [2, 5, 20])
-                    ->or_where('sor.refund_status', 2)
-                    ->or_where_in('sori.status', [2, 20])
-                ->group_end()
-                ->get()
-                ->result();
+                ');
+            if ($has_refund_status) {
+                $this->db->select('sor.refund_status');
+            }
+            $this->db->from('sales_order_return sor');
+            $this->db->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'inner');
+            $this->db->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left');
+            $this->db->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'left');
+            $this->db->join('publisher pub', 'pub.id = bo.publisher_id', 'left');
+            $this->db->join('sales_order_items soi', 'soi.item_id = sori.order_item_id', 'left');
+            $this->db->group_start();
+                $this->db->where_in('bo.webshop_order_id', $order_ids);
+                $this->db->or_where_in('soi.order_id', $order_ids);
+            $this->db->group_end();
+            $this->db->group_start();
+                $this->db->where_in('sor.status', [2, 5, 20]);
+                if ($has_refund_status) {
+                    $this->db->or_where('sor.refund_status', 2);
+                }
+                $this->db->or_where_in('sori.status', [2, 20]);
+            $this->db->group_end();
+            $ret_orders = $this->db->get()->result();
 
             if (!empty($ret_orders)) {
                 foreach ($ret_orders as $ro) {
@@ -347,7 +351,7 @@ class OrderResolutionModel extends CI_Model
                     boi.product_id AS boi_product_id,
                     boi.product_name AS boi_product_name,
                     boi.product_variants AS boi_variants,
-                    boi.qty AS boi_qty,
+                    boi.qty_ordered AS boi_qty,
                     bo.webshop_order_id AS bo_webshop_order_id,
                     bo.publisher_id AS bo_publisher_id,
                     pub.publication_name AS merchant_name,
@@ -358,7 +362,7 @@ class OrderResolutionModel extends CI_Model
                 ->from('sales_order_replacement sor')
                 ->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'inner')
                 ->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
-                ->join('b2b_orders bo', 'bo.order_id = boi.order_id OR bo.order_id = sor.order_id', 'left')
+                ->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'left')
                 ->join('publisher pub', 'pub.id = bo.publisher_id', 'left')
                 ->join('sales_order_items soi', 'soi.item_id = sori.order_item_id', 'left')
                 ->group_start()
