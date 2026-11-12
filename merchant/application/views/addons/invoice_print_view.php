@@ -7,10 +7,6 @@ if (empty($addon_purchase)) {
     return;
 }
 
-// ==========================================
-// INVOICE DATA
-// ==========================================
-
 $purchase_id = $addon_purchase->purchase_id ?? '';
 
 $merchant_name = $addon_purchase->merchant_name ?? 'N/A';
@@ -82,9 +78,6 @@ $e = function($value) {
     );
 };
 
-// ==========================================
-// LOGO
-// ==========================================
 
 $logo_image_src = '';
 
@@ -222,7 +215,6 @@ body {
     color: #52647b;
 }
 
-/* COMPANY INFORMATION */
 
 .company-details {
     line-height: 1.8;
@@ -244,7 +236,6 @@ body {
     color: #172b4d;
 }
 
-/* DETAILS */
 
 .details-wrapper {
     width: 100%;
@@ -282,7 +273,6 @@ body {
     color: #172b4d;
 }
 
-/* ITEMS */
 
 .items-table {
     width: 100%;
@@ -316,7 +306,6 @@ body {
     text-align: right !important;
 }
 
-/* PAYMENT AND TOTALS */
 
 .bottom-table {
     width: 100%;
@@ -375,7 +364,6 @@ body {
     border-bottom: 2px solid #172b4d;
 }
 
-/* FOOTER */
 
 .invoice-footer {
     margin-top: 45px;
@@ -390,7 +378,6 @@ body {
     color: #172b4d;
 }
 
-/* PRINT */
 
 .print-section {
     margin-top: 30px;
@@ -408,10 +395,6 @@ body {
     cursor: pointer;
 }
 
-@page {
-    size: A4;
-    margin: 10mm;
-}
 
 @media print {
 
