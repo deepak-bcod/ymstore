@@ -2,7 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Add-on Invoice #<?php echo $addon_purchase->purchase_id; ?></title>
+    <title>
+        <?php 
+            $service_name = isset($addon_purchase->addon_service_name) ? trim($addon_purchase->addon_service_name) : '';
+            if ($service_name === 'Daily Deals') {
+                echo 'Daily Deals Invoice #' . $addon_purchase->purchase_id;
+            } elseif ($service_name === 'Flash Sales') {
+                echo 'Flash Sales Invoice #' . $addon_purchase->purchase_id;
+            } else {
+                echo 'Add-on Invoice #' . $addon_purchase->purchase_id;
+            }
+        ?>
+    </title>
 <?php
 $logo_image_src = '';
 $candidate_logos = [
@@ -168,13 +179,33 @@ if (empty($logo_image_src)) {
                 </table>
             </td>
             <td style="vertical-align: middle; text-align: right; border: none; padding: 0;">
-                <div class="invoice-heading">INVOICE</div>
+                <div class="invoice-heading">
+                    <?php 
+                        if ($service_name === 'Daily Deals') {
+                            echo 'DAILY DEALS INVOICE';
+                        } elseif ($service_name === 'Flash Sales') {
+                            echo 'FLASH SALES INVOICE';
+                        } else {
+                            echo 'ADD-ON INVOICE';
+                        }
+                    ?>
+                </div>
             </td>
         </tr>
     </table>
 
     <!-- Details Section Header -->
-    <div class="section-title">Add-on Details</div>
+    <div class="section-title">
+        <?php 
+            if ($service_name === 'Daily Deals') {
+                echo 'Daily Deals Details';
+            } elseif ($service_name === 'Flash Sales') {
+                echo 'Flash Sales Details';
+            } else {
+                echo 'Add-on Details';
+            }
+        ?>
+    </div>
 
     <!-- Meta Details Grid -->
     <table class="details-table">
@@ -209,14 +240,28 @@ if (empty($logo_image_src)) {
     </table>
 
     <!-- Table Section Header -->
-    <div class="section-title">Add-on Information</div>
+    <div class="section-title">
+        <?php 
+            if ($service_name === 'Daily Deals') {
+                echo 'Daily Deals Information';
+            } elseif ($service_name === 'Flash Sales') {
+                echo 'Flash Sales Information';
+            } else {
+                echo 'Add-on Information';
+            }
+        ?>
+    </div>
 
     <!-- Items Table -->
     <table class="table">
         <thead>
             <tr style="background-color: #ffd200;">
-                <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">ADD-ON SERVICE</th>
-                <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">ADD-ON NAME</th>
+                <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">
+                    <?php echo ($service_name === 'Daily Deals' || $service_name === 'Flash Sales') ? strtoupper($service_name) : 'ADD-ON SERVICE'; ?>
+                </th>
+                <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">
+                    <?php echo ($service_name === 'Daily Deals' || $service_name === 'Flash Sales') ? 'CAMPAIGN / PACKAGE' : 'ADD-ON NAME'; ?>
+                </th>
                 <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">AMOUNT</th>
                 <th style="background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 12px; font-weight: bold; font-size: 12px; text-align: center;">PAYMENT METHOD</th>
             </tr>
