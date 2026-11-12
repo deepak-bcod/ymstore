@@ -166,12 +166,13 @@ body {
 }
 
 .invoice-wrapper {
-    width: 900px;
-    max-width: calc(100% - 30px);
+    width: 100%;
+    max-width: 900px;
     margin: 20px auto;
     padding: 25px 30px;
     background: #ffffff;
     box-shadow: 0 0 5px rgba(0,0,0,0.12);
+    box-sizing: border-box;
 }
 
 /* PRINT BUTTON */
@@ -196,6 +197,7 @@ body {
 .header-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .header-table td {
@@ -223,10 +225,14 @@ body {
 }
 
 .invoice-heading {
+    display: block;
+    width: 100%;
     text-align: right;
     font-size: 21px;
     font-weight: bold;
     color: #202938;
+    white-space: normal;
+    overflow-wrap: break-word;
 }
 
 .invoice-number-small {
@@ -314,6 +320,7 @@ body {
 
 .service-table {
     width: 100%;
+    max-width: 100%;
     border-collapse: collapse;
     font-size: 10px;
     table-layout: fixed;
@@ -469,11 +476,48 @@ body {
     }
 
     .invoice-wrapper {
+        display: block !important;
         width: 100% !important;
         max-width: 100% !important;
+        min-width: 0 !important;
         margin: 0 !important;
-        padding: 0 !important;
+        padding: 0 5mm !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
         box-shadow: none !important;
+    }
+
+    .header-table,
+    .details-table,
+    .service-table,
+    .bottom-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed !important;
+    }
+
+    .header-table td:first-child {
+        width: 55% !important;
+    }
+
+    .header-table td:last-child {
+        width: 45% !important;
+        padding-left: 8px !important;
+        padding-right: 2px !important;
+    }
+
+    .invoice-heading,
+    .invoice-number-small {
+        width: 100% !important;
+        text-align: right !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .service-table th,
+    .service-table td {
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
     }
 
     .print-button {
@@ -618,7 +662,7 @@ body {
 
         <tr>
 
-            <td width="50%">
+            <td width="55%">
 
                 <div class="logo-box">
 
@@ -642,7 +686,7 @@ body {
 
             </td>
 
-            <td width="50%">
+            <td width="45%" style="padding-left:8px;">
 
                 <div class="invoice-heading">
                     Subscription Invoice
