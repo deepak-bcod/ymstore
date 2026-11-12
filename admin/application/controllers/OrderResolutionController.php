@@ -38,12 +38,38 @@ class OrderResolutionController extends CI_Controller
         $data['resolutions']   = $this->db->get()->result();
         $data['status_filter'] = $status_filter;
 
-        // MYP Consolidated Wireframes v1.0 Stats
+        // Compute real stats directly as per workflow status of tickets
+        $open_cnt                = 0;
+        $awaiting_admin_cnt      = 0;
+        $awaiting_fulfilment_cnt = 0;
+        $closed_cnt              = 0;
+
+        $all_tickets = $this->db->select('id, status, merchant_action, category, resolution_status, admin_decision')
+            ->from('order_resolutions')
+            ->get()
+            ->result();
+
+        foreach ($all_tickets as $t) {
+            $is_closed = in_array($t->status, ['Close', 'Close (Final)', 'Done'], true);
+            if ($is_closed) {
+                $closed_cnt++;
+            } else {
+                $open_cnt++;
+                // If resolution approved in favour of shopper or status is Processing -> Awaiting Fulfilment
+                if ($t->status === 'Processing' || $t->admin_decision === 'in_favour_shopper' || $t->resolution_status === 'resolution_approved') {
+                    $awaiting_fulfilment_cnt++;
+                } else {
+                    // Open or ReOpen dispute awaiting Admin review & adjudication
+                    $awaiting_admin_cnt++;
+                }
+            }
+        }
+
         $data['stats'] = [
-            'open'                => (int)$this->db->where_in('status', ['Open', 'ReOpen'])->count_all_results('order_resolutions'),
-            'awaiting_admin'      => (int)$this->db->where_in('status', ['Open', 'ReOpen'])->group_start()->where('assigned_role', 'Help')->or_where('assigned_role', null)->or_where('assigned_role', '')->group_end()->count_all_results('order_resolutions'),
-            'awaiting_fulfilment' => (int)$this->db->group_start()->where('status', 'Processing')->or_group_start()->where_in('merchant_action', ['replacement_approved', 'refund_approved'])->where_not_in('status', ['Done', 'Close', 'Close (Final)'])->group_end()->group_end()->count_all_results('order_resolutions'),
-            'closed'              => (int)$this->db->where_in('status', ['Done', 'Close', 'Close (Final)'])->count_all_results('order_resolutions'),
+            'open'                => $open_cnt,
+            'awaiting_admin'      => $awaiting_admin_cnt,
+            'awaiting_fulfilment' => $awaiting_fulfilment_cnt,
+            'closed'              => $closed_cnt,
         ];
 
         $data['side_menu'] = 'order_resolution';
