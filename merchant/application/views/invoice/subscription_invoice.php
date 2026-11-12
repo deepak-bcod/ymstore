@@ -1,318 +1,840 @@
-<!doctype html>
+
+<?php
+// ============================================
+// SUBSCRIPTION INVOICE
+// ============================================
+
+$e = function ($value) {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+};
+
+$publisher = isset($order['publisher']) && is_array($order['publisher'])
+    ? $order['publisher'] : [];
+
+$plan = isset($order['plan']) && is_array($order['plan'])
+    ? $order['plan'] : [];
+
+$invoice_id = isset($order['id']) ? $order['id'] : '';
+
+$merchant_name = !empty($publisher['publication_name'])
+    ? $publisher['publication_name']
+    : (!empty($publisher['name']) ? $publisher['name'] : 'N/A');
+
+$plan_name = !empty($plan['name']) ? $plan['name'] : 'Subscription Plan';
+
+$amount = isset($order['amount']) ? (float)$order['amount'] : 0;
+
+// VAT calculation: assumes amount is EXCLUSIVE of VAT.
+$vat_rate = isset($order['vat_rate']) ? (float)$order['vat_rate'] : 15;
+
+$subtotal = $amount;
+$vat_amount = ($subtotal * $vat_rate) / 100;
+$invoice_total = $subtotal + $vat_amount;
+
+// Payment status
+$status = strtolower(isset($order['status']) ? $order['status'] : 'unpaid');
+
+$payment_allocated = ($status === 'paid') ? $invoice_total : 0;
+$amount_due = max(0, $invoice_total - $payment_allocated);
+
+// Currency
+$currency = !empty($order['currency']) ? $order['currency'] : 'MUR';
+
+// Dates
+$created_date = !empty($order['created_at'])
+    ? date('d F Y', strtotime($order['created_at']))
+    : date('d F Y');
+
+$expiry_date = !empty($order['expiry_date'])
+    ? date('d F Y', strtotime($order['expiry_date']))
+    : date('d F Y', strtotime($created_date . ' +1 year'));
+
+$invoice_number = !empty($order['invoice_number'])
+    ? $order['invoice_number']
+    : 'SUB-INV-' . str_pad($invoice_id, 6, '0', STR_PAD_LEFT);
+
+$order_reference = !empty($order['order_reference'])
+    ? $order['order_reference']
+    : 'SUB-ORDER-' . $invoice_id;
+
+$subscription_reference = !empty($order['subscription_reference'])
+    ? $order['subscription_reference']
+    : 'N/A';
+
+// Merchant information (uses available publisher fields)
+$merchant_address = !empty($publisher['billing_address'])
+    ? $publisher['billing_address']
+    : (!empty($publisher['address']) ? $publisher['address'] : 'N/A');
+
+$merchant_email = !empty($publisher['billing_email'])
+    ? $publisher['billing_email']
+    : (!empty($publisher['email']) ? $publisher['email'] : 'N/A');
+
+$merchant_phone = !empty($publisher['billing_phone'])
+    ? $publisher['billing_phone']
+    : (!empty($publisher['phone']) ? $publisher['phone'] : 'N/A');
+
+$merchant_brn = !empty($publisher['brn']) ? $publisher['brn'] : 'N/A';
+
+$merchant_reference = !empty($publisher['merchant_reference'])
+    ? $publisher['merchant_reference']
+    : 'N/A';
+
+// Logo
+$logo_image_src = '';
+
+$candidate_logos = [
+    rtrim(FCPATH, '/\\') . '/../merchant/public/images/yellow-markets-logo-yellow-white.png',
+    rtrim(FCPATH, '/\\') . '/public/images/yellow-markets-logo-yellow-white.png',
+    rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
+    rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
+    dirname(FCPATH) . '/uploads/yellow-markets-logo.png',
+    'c:/xampp/htdocs/ymstore/merchant/public/images/yellow-markets-logo-yellow-white.png',
+    'c:/xampp/htdocs/ymstore/uploads/yellow-markets-logo.png'
+];
+
+foreach ($candidate_logos as $logo_path) {
+    if (file_exists($logo_path) && filesize($logo_path) > 0) {
+        $ext = strtolower(pathinfo($logo_path, PATHINFO_EXTENSION));
+
+        $mime = ($ext === 'jpg' || $ext === 'jpeg')
+            ? 'image/jpeg'
+            : 'image/png';
+
+        $logo_image_src = 'data:' . $mime . ';base64,' .
+            base64_encode(file_get_contents($logo_path));
+
+        break;
+    }
+}
+
+if (empty($logo_image_src) &&
+    !empty($logo_src) &&
+    strpos($logo_src, 'data:image') === 0) {
+    $logo_image_src = $logo_src;
+}
+
+?>
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
 
-	<meta charset="utf-8">
+    <meta charset="UTF-8">
 
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-	<meta name="description" content="">
+    <title>Subscription Invoice - <?php echo $e($invoice_number); ?></title>
 
-	<meta name="author" content="">
+    <style>
 
-	<meta name="generator" content="Jekyll v4.1.1">
+        * {
+            box-sizing: border-box;
+        }
 
-	<title>Subscription Invoice - <?php echo $order['id'] ?></title>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #333333;
+            font-size: 12px;
+            line-height: 1.5;
+        }
 
-<?php
-$logo_image_src = '';
-$candidate_logos = [
-	rtrim(FCPATH, '/\\') . '/../merchant/public/images/yellow-markets-logo-yellow-white.png',
-	rtrim(FCPATH, '/\\') . '/public/images/yellow-markets-logo-yellow-white.png',
-	rtrim(FCPATH, '/\\') . '/../uploads/yellow-markets-logo.png',
-	rtrim(FCPATH, '/\\') . '/uploads/yellow-markets-logo.png',
-	dirname(FCPATH) . '/uploads/yellow-markets-logo.png',
-	'c:/xampp/htdocs/ymstore/merchant/public/images/yellow-markets-logo-yellow-white.png',
-	'c:/xampp/htdocs/ymstore/uploads/yellow-markets-logo.png'
-];
-foreach ($candidate_logos as $c_logo) {
-	if (file_exists($c_logo) && filesize($c_logo) > 0) {
-		$ext = pathinfo($c_logo, PATHINFO_EXTENSION);
-		$logo_image_src = 'data:image/' . ($ext ?: 'png') . ';base64,' . base64_encode(file_get_contents($c_logo));
-		break;
-	}
-}
-if (empty($logo_image_src) && !empty($logo_src) && strpos($logo_src, 'data:image') === 0) {
-	$logo_image_src = $logo_src;
-}
-?>
-	<style>
-		@media print {
-			#noprint, .no-print {
-				display: none !important;
-			}
-		}
+        .invoice-wrapper {
+            max-width: 900px;
+            margin: 25px auto;
+            background: #ffffff;
+            padding: 30px 35px;
+        }
 
-		body {
-			margin: 0 !important;
-			padding: 0 !important;
-		}
+        .print-button {
+            text-align: right;
+            margin-bottom: 15px;
+        }
 
-		.bd-placeholder-img {
-			font-size: 1.125rem;
-			text-anchor: middle;
-			-webkit-user-select: none;
-			-moz-user-select: none;
-			-ms-user-select: none;
-			user-select: none;
-		}
+        .print-button button {
+            background: #d4a900;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+        }
 
-		@media (min-width: 768px) {
-			.bd-placeholder-img-lg {
-				font-size: 3.5rem;
-			}
-		}
+        .invoice-header {
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-		table.table-style {
-			font-family: 'Montserrat', sans-serif;
-			font-size: 13px;
-			margin: 10px 0 30px 0;
-			text-align: left;
-			padding: 0;
-			border: 1px solid #dee2e6;
-			border-collapse: collapse;
-			width: 100%;
-		}
+        .invoice-header td {
+            vertical-align: middle;
+            padding: 5px 0;
+        }
 
-		table.table-style th {
-			background-color: #ffd200 !important;
-			color: #000000 !important;
-			border: 1px solid #dee2e6;
-			padding: 10px 12px;
-			vertical-align: middle;
-			font-weight: 700;
-			text-transform: uppercase;
-			font-size: 11.5px;
-			letter-spacing: 0.5px;
-			text-align: center;
-			word-wrap: break-word;
-			white-space: normal;
-		}
+        .logo {
+            max-width: 175px;
+            max-height: 65px;
+            object-fit: contain;
+        }
 
-		table.table-style thead {
-			background-color: #ffd200 !important;
-			color: #000000 !important;
-		}
+        .invoice-title {
+            text-align: right;
+            font-size: 20px;
+            font-weight: bold;
+            color: #202938;
+        }
 
-		table.table-style td {
-			background-color: #ffffff !important;
-			border: 1px solid #dee2e6;
-			padding: 12px 12px;
-			vertical-align: middle;
-			font-weight: 500;
-			color: #212529;
-			font-size: 12.5px;
-			text-align: center;
-			word-wrap: break-word;
-			white-space: normal;
-		}
+        .invoice-subtitle {
+            font-size: 10px;
+            color: #777777;
+            text-align: right;
+        }
 
-		.form-control {
-			font-weight: 400;
-			line-height: 1.5;
-			color: #495057;
-			background-color: #fff;
-			background-clip: padding-box;
-			border: 1px solid #ced4da;
-			border-radius: .25rem;
-			transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-			padding: .375rem .75rem;
-			width: 270px;
-			height: 35px;
-			font-size: 14px;
-		}
+        .yellow-line {
+            height: 3px;
+            background: #e5ad18;
+            margin: 15px 0;
+        }
 
-		i.fa.fa-fw.fa-sort {
-			margin-top: 4px;
-		}
-	</style>
+        .company-details {
+            font-size: 11px;
+            line-height: 1.7;
+            color: #444444;
+            padding-bottom: 12px;
+        }
+
+        .company-name {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .section-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .section-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 8px 12px 15px 0;
+        }
+
+        .section-heading {
+            font-size: 13px;
+            font-weight: bold;
+            color: #202938;
+            margin-bottom: 7px;
+        }
+
+        .detail-line {
+            margin-bottom: 4px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .detail-label {
+            display: inline-block;
+            font-weight: bold;
+            min-width: 115px;
+            color: #444444;
+        }
+
+        .divider {
+            border-top: 1px solid #dee2e6;
+            margin: 10px 0 15px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0 20px;
+            font-size: 11px;
+        }
+
+        .items-table th {
+            background: #f1f2f3;
+            color: #333333;
+            padding: 10px 8px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .items-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+
+        .text-center {
+            text-align: center !important;
+        }
+
+        .text-right {
+            text-align: right !important;
+        }
+
+        .bottom-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .bottom-table > tbody > tr > td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0 15px 10px 0;
+        }
+
+        .payment-details {
+            line-height: 1.8;
+            font-size: 11px;
+        }
+
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .totals-table td {
+            padding: 5px 0;
+        }
+
+        .totals-table .total-row td {
+            border-top: 2px solid #202938;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 10px 0;
+        }
+
+        .totals-table .due-row td {
+            font-weight: bold;
+            padding-top: 9px;
+        }
+
+        .notes {
+            margin-top: 12px;
+            font-size: 11px;
+            line-height: 1.7;
+        }
+
+        .invoice-footer {
+            border-top: 1px solid #dee2e6;
+            margin-top: 20px;
+            padding-top: 12px;
+            font-size: 10px;
+            line-height: 1.7;
+            color: #555555;
+        }
+
+        .status-paid {
+            color: #228b45;
+            font-weight: bold;
+        }
+
+        .status-unpaid {
+            color: #c0392b;
+            font-weight: bold;
+        }
+
+        @media screen and (max-width: 600px) {
+
+            .invoice-wrapper {
+                margin: 0;
+                padding: 18px;
+            }
+
+            .section-table td {
+                display: block;
+                width: 100%;
+            }
+
+            .bottom-table > tbody > tr > td {
+                display: block;
+                width: 100%;
+                padding-right: 0;
+                padding-bottom: 20px;
+            }
+
+            .items-table {
+                font-size: 10px;
+            }
+
+            .items-table th,
+            .items-table td {
+                padding: 7px 4px;
+            }
+
+        }
+
+        @media print {
+
+            @page {
+                size: A4;
+                margin: 12mm;
+            }
+
+            body {
+                background: #ffffff !important;
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .invoice-wrapper {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+
+            .print-button {
+                display: none !important;
+            }
+
+            .yellow-line,
+            .items-table th {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+            }
+
+        }
+
+    </style>
+
 </head>
 
-<body
-	style="margin:0; padding:0;vertical-align:top; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Montserrat', sans-serif; font-size: 14px; background:#fff; font-weight:400;color:#444444;">
+<body>
 
-<?php if (!empty($is_html_fallback)): ?>
-	<div id="noprint" style="background:#202938;color:#ffffff;padding:12px 20px;text-align:center;font-family:Arial,sans-serif;font-size:14px;margin-bottom:15px;">
-		<strong>Invoice #<?php echo $order['id']; ?></strong> &nbsp;|&nbsp; 
-		<button onclick="window.print();" style="background:#cb1f53;color:#ffffff;border:none;padding:6px 16px;border-radius:4px;cursor:pointer;font-weight:bold;margin-left:10px;">Print / Save as PDF</button>
-	</div>
-<?php endif; ?>
+<div class="invoice-wrapper">
 
-	<table cellpadding="0" cellspacing="0"
-		style="font-family:'Montserrat', sans-serif;font-size: 14px;margin:0 auto;text-align:left;padding: 0px;background-color:#f5f5f5;"
-		width="100%" align="center">
+    <div class="print-button">
+        <button onclick="window.print();">
+            Print / Save as PDF
+        </button>
+    </div>
 
-		<tbody>
+    <!-- HEADER -->
 
-			<tr>
+    <table class="invoice-header">
 
-				<td style="padding: 10px;">
+        <tr>
 
-					<table cellpadding="0" cellspacing="0"
-						style="font-family: 'Montserrat', sans-serif;font-size: 14px;margin:0 auto;text-align:left;padding: 0;background-color:#ffffff; max-width: 100%;"
-						width="100%" align="center">
+            <td width="50%">
 
-						<tbody>
+                <?php if (!empty($logo_image_src)) { ?>
 
-							<tr>
+                    <img
+                        src="<?php echo $logo_image_src; ?>"
+                        class="logo"
+                        alt="Yellow Markets Logo"
+                    >
 
-								<td style="padding:0 20px;">
+                <?php } else { ?>
 
-									<table cellpadding="0" cellspacing="0"
-										style="font-family: 'Montserrat', sans-serif;font-size: 14px;margin:30px 0 0 0;text-align:left;padding: 0;"
-										width="100%" align="center">
+                    <strong style="font-size:20px;color:#222;">
+                        YELLOW MARKETS
+                    </strong>
 
-										<tbody>
+                <?php } ?>
 
-											<tr>
+            </td>
 
-												<td style="padding:0;vertical-align: middle; text-align: left;"
-													width="50%">
-													<table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 0; background-color: #23282d; border-radius: 4px;">
-														<tr>
-															<td style="background-color: #23282d; padding: 10px 16px; border-radius: 4px; border: none; text-align: center; vertical-align: middle;">
-																<img src="<?php echo $logo_image_src; ?>" width="135" style="display: block; max-width: 100%; height: auto; border: 0;">
-															</td>
-														</tr>
-													</table>
-												</td>
+            <td width="50%">
 
-												<td style="padding:0;vertical-align: middle; text-align: right;"
-													width="50%">
+                <div class="invoice-title">
+                    INVOICE
+                </div>
 
-													<strong style="font-size: 17px; font-weight: 700; color: #212529; font-family: 'Montserrat', sans-serif;">Subscription Invoice</strong>
+                <div class="invoice-subtitle">
+                    SUBSCRIPTION INVOICE
+                </div>
 
-												</td>
+            </td>
 
-											</tr>
+        </tr>
 
-										</tbody>
+    </table>
 
-									</table>
+    <div class="yellow-line"></div>
 
-									<table cellpadding="0" cellspacing="0"
-										style="font-family: 'Montserrat', sans-serif;font-size: 14px;margin:30px 0 0 0;text-align:left;padding: 0;"
-										width="100%" align="center">
+    <!-- COMPANY INFORMATION -->
 
-										<tbody>
+    <div class="company-details">
 
-											<tr>
+        <div class="company-name">
+            MYP Online Marketing Ltd
+        </div>
 
-												<td style="padding:0;vertical-align: middle; text-align: left;"
-													width="100%">
+        Yellow Markets - A MYP Network Service<br>
 
-													<h1
-														style="font-weight: 700;font-size: 16px;line-height: 22px;letter-spacing: 0.05em;color: #333333;font-family: 'Montserrat', sans-serif; margin:0 0 20px 0;">
-														Subscription Details</h1>
+        [Verified supplier address] - BRN: [Verified BRN]<br>
 
-												</td>
+        [Billing email] | [Telephone]<br>
 
-											</tr>
+        VAT number: [Verified supplier VAT number]
 
-										</tbody>
+    </div>
 
-									</table>
+    <div class="divider"></div>
 
-									<table cellpadding="0" cellspacing="0"
-										style="font-family: 'Montserrat', sans-serif;font-size: 13px;margin:0;text-align:left;padding: 0;"
-										width="100%" align="center">
+    <!-- MERCHANT + INVOICE DETAILS -->
 
-										<tbody>
+    <table class="section-table">
 
-											<tr>
-												<td style="padding:0 0 20px 0;vertical-align: top; text-align: left;font-weight: 500;line-height: 18px;color: #333333;"
-													width="50%">
-													<span
-														style="font-weight:600;display: block; font-size: 13px; color: #333333;">Merchant</span>
-													<p
-														style="padding:5px 0 0 0;margin:0;vertical-align: top; text-align: left;font-size: 13px;line-height: 18px;color: #333333;">
-														<?php echo isset($order['publisher']['publication_name']) ? $order['publisher']['publication_name'] : (!empty($order['publisher']['name']) ? $order['publisher']['name'] : 'N/A'); ?></p>
-												</td>
+        <tr>
 
-												<td style="padding:0 0 20px 0;vertical-align: top; text-align: left;font-weight: 500;line-height: 20px;color: #333333; font-size: 13px;"
-													width="50%">
+            <td>
 
-													<p style="margin:0 0 6px 0;"> <span
-															style="font-weight:600; display: inline-block; width: 120px; color: #333333;">Invoice ID</span> : <?php echo $order['id'] ?> </p>
+                <div class="section-heading">
+                    Bill to Merchant
+                </div>
 
-													<p style="margin:0 0 6px 0;"> <span
-															style="font-weight:600; display: inline-block; width: 120px; color: #333333;">subscription Date</span> :
-														<?php echo date('d-M-Y', strtotime($order['created_at'])); ?> </p>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Merchant legal name
+                    </span>
+                    <?php echo $e($merchant_name); ?>
+                </div>
 
-													<p style="margin:0 0 6px 0;"> <span
-															style="font-weight:600; display: inline-block; width: 120px; color: #333333;">Status</span> : <?php echo ucfirst($order['status']); ?> </p>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Merchant address
+                    </span>
+                    <?php echo $e($merchant_address); ?>
+                </div>
 
-                                                             <?php if($order['status'] == 'paid') { 
-                                                                 $expiry_date = !empty($order['expiry_date']) ? $order['expiry_date'] : date('d-M-Y', strtotime($order['created_at'] . ' +1 year'));
-                                                             ?>
-                                                             <p style="margin:0;"> <span
-															style="font-weight:600; display: inline-block; width: 120px; color: #333333;">Expiry Date</span> : <?php echo $expiry_date; ?> </p>
-                                                           <?php  } ?>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        BRN
+                    </span>
+                    <?php echo $e($merchant_brn); ?>
+                </div>
 
-												</td>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Billing email
+                    </span>
+                    <?php echo $e($merchant_email); ?>
+                </div>
 
-											</tr>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Billing phone
+                    </span>
+                    <?php echo $e($merchant_phone); ?>
+                </div>
 
-										</tbody>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Merchant reference
+                    </span>
+                    <?php echo $e($merchant_reference); ?>
+                </div>
 
-									</table>
+            </td>
 
-									<table cellpadding="0" cellspacing="0"
-										style="font-family: 'Montserrat', sans-serif;font-size: 14px;margin:30px 0 0 0;text-align:left;padding: 0;"
-										width="100%" align="center">
+            <td>
 
-										<tbody>
+                <div class="section-heading">
+                    Invoice details
+                </div>
 
-											<tr>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Invoice number
+                    </span>
+                    <?php echo $e($invoice_number); ?>
+                </div>
 
-												<td style="padding:0 0 15px 0;vertical-align: middle; text-align: left;"
-													width="100%">
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Issue date
+                    </span>
+                    <?php echo $e($created_date); ?>
+                </div>
 
-													<h2
-														style="font-weight: 700;font-size: 15px;line-height: 20px;letter-spacing: 0.05em;color: #333333;font-family: 'Montserrat', sans-serif; margin: 0;">
-														Subscription Information</h2>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Due date
+                    </span>
+                    <?php echo $e($created_date); ?>
+                </div>
 
-												</td>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Currency
+                    </span>
+                    <?php echo $e($currency); ?>
+                </div>
 
-											</tr>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Order reference
+                    </span>
+                    <?php echo $e($order_reference); ?>
+                </div>
 
-										</tbody>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Subscription
+                    </span>
+                    <?php echo $e($subscription_reference); ?>
+                </div>
 
-									</table>
+                <div class="detail-line">
+                    <span class="detail-label">
+                        Term
+                    </span>
+                    Yearly
+                </div>
 
-									<table class="table-style" style="width: 100%; border: 1px solid #dee2e6; border-collapse: collapse; font-family: 'Montserrat', sans-serif; margin-top: 10px; margin-bottom: 30px;">
-										<thead>
-											<tr style="background-color: #ffd200;">
-												<th style="width: 35%; background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 10px 12px; font-weight: 700; font-size: 11.5px; text-transform: uppercase; text-align: center;">Plan Name</th>
-												<th style="width: 35%; background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 10px 12px; font-weight: 700; font-size: 11.5px; text-transform: uppercase; text-align: center;">Amount</th>
-												<th style="width: 30%; background-color: #ffd200; color: #000000; border: 1px solid #dee2e6; padding: 10px 12px; font-weight: 700; font-size: 11.5px; text-transform: uppercase; text-align: center;">Payment Method</th>
-											</tr>
-										</thead>
-										<tbody>
-											<tr>
-												<td style="background-color: #ffffff; color: #212529; border: 1px solid #dee2e6; padding: 12px 12px; font-size: 12.5px; text-align: center;"><?php echo isset($order['plan']['name']) ? $order['plan']['name'] : 'N/A'; ?></td>
-												<td style="background-color: #ffffff; color: #212529; border: 1px solid #dee2e6; padding: 12px 12px; font-size: 12.5px; text-align: center;">MUR <?php echo number_format($order['amount'], 2); ?></td>
-												<td style="background-color: #ffffff; color: #212529; border: 1px solid #dee2e6; padding: 12px 12px; font-size: 12.5px; text-align: center;">My.T Money</td>
-											</tr>
-										</tbody>
-									</table>
+            </td>
 
-								</td>
+        </tr>
 
-							</tr>
+    </table>
 
-						</tbody>
+    <div class="divider"></div>
 
-					</table>
+    <!-- SUBSCRIPTION INFORMATION -->
 
-				</td>
+    <div class="section-heading">
+        Subscription Information
+    </div>
 
-			</tr>
+    <table class="items-table">
 
-		</tbody>
+        <thead>
 
-	</table>
+            <tr>
+
+                <th width="25%">
+                    Service Name
+                </th>
+
+                <th width="35%">
+                    Description
+                </th>
+
+                <th width="17%">
+                    Service Dates
+                </th>
+
+                <th width="5%" class="text-center">
+                    Qty
+                </th>
+
+                <th width="18%" class="text-right">
+                    Amount (Excl. VAT)
+                </th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            <tr>
+
+                <td>
+                    <?php echo $e($plan_name); ?>
+                </td>
+
+                <td>
+                    Initial paid subscription plan<br>
+                    Billing period: Yearly
+                </td>
+
+                <td>
+                    Start: <?php echo $e($created_date); ?><br>
+                    Expiry: <?php echo $e($expiry_date); ?>
+                </td>
+
+                <td class="text-center">
+                    1
+                </td>
+
+                <td class="text-right">
+                    <?php echo number_format($subtotal, 2); ?>
+                </td>
+
+            </tr>
+
+        </tbody>
+
+    </table>
+
+    <!-- PAYMENT INFORMATION + TOTALS -->
+
+    <table class="bottom-table">
+
+        <tbody>
+
+            <tr>
+
+                <!-- PAYMENT INFORMATION -->
+
+                <td>
+
+                    <div class="section-heading">
+                        Payment information
+                    </div>
+
+                    <div class="payment-details">
+
+                        <strong>Accepted method:</strong>
+                        My.T Money (mobile payment)<br>
+
+                        <strong>Status at issue:</strong>
+
+                        <span class="<?php echo ($status === 'paid') ? 'status-paid' : 'status-unpaid'; ?>">
+
+                            <?php echo $e(ucfirst($status)); ?>
+
+                        </span>
+
+                        <br>
+
+                        An invoice does not confirm receipt of payment.
+                        A separate payment confirmation or receipt follows
+                        verified payment.
+
+                    </div>
+
+                    <div class="notes">
+
+                        <strong>Service notes</strong><br>
+
+                        Yearly subscription term as shown in Service Dates.
+
+                    </div>
+
+                </td>
+
+                <!-- INVOICE TOTALS -->
+
+                <td>
+
+                    <div class="section-heading">
+                        Invoice totals (<?php echo $e($currency); ?>)
+                    </div>
+
+                    <table class="totals-table">
+
+                        <tr>
+
+                            <td>
+                                Subtotal (Excl. VAT)
+                            </td>
+
+                            <td class="text-right">
+                                <?php echo number_format($subtotal, 2); ?>
+                            </td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>
+                                Taxable amount
+                            </td>
+
+                            <td class="text-right">
+                                <?php echo number_format($subtotal, 2); ?>
+                            </td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>
+                                VAT at <?php echo number_format($vat_rate, 2); ?>%
+                            </td>
+
+                            <td class="text-right">
+                                <?php echo number_format($vat_amount, 2); ?>
+                            </td>
+
+                        </tr>
+
+                        <tr class="total-row">
+
+                            <td>
+                                Invoice total
+                            </td>
+
+                            <td class="text-right">
+                                <?php echo number_format($invoice_total, 2); ?>
+                            </td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td>
+                                Verified payment allocated
+                            </td>
+
+                            <td class="text-right">
+                                <?php echo number_format($payment_allocated, 2); ?>
+                            </td>
+
+                        </tr>
+
+                        <tr class="due-row">
+
+                            <td>
+                                Amount due at issue
+                            </td>
+
+                            <td class="text-right">
+                                <?php echo number_format($amount_due, 2); ?>
+                            </td>
+
+                        </tr>
+
+                    </table>
+
+                </td>
+
+            </tr>
+
+        </tbody>
+
+    </table>
+
+    <!-- FOOTER -->
+
+    <div class="invoice-footer">
+
+        <strong>MYP Online Marketing Ltd</strong><br>
+
+        Yellow Markets - A MYP Network Service<br>
+
+        [Approved billing terms / verified support contact]<br>
+
+        Thank you for using Yellow Markets.
+
+    </div>
+
+</div>
 
 </body>
 
