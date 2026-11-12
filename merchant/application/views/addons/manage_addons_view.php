@@ -58,7 +58,8 @@
                             <tr>
                                 <td><?php echo $sr++; ?></td>
                                 <td><?php echo isset($row->addon_service_name) ? htmlspecialchars($row->addon_service_name) : ''; ?></td>
-                                <td><strong><?php echo isset($row->addon_name) ? htmlspecialchars($row->addon_name) : ''; ?></strong></td>
+                                <!-- Removed <strong> tags below -->
+                                <td><?php echo isset($row->addon_name) ? htmlspecialchars($row->addon_name) : ''; ?></td>
                                 <td>
                                     <?php if (!empty($row->order_number)): ?>
                                         <span class="badge badge-info" style="font-size: 13px;">Order #<?php echo htmlspecialchars($row->order_number); ?></span>
@@ -70,7 +71,8 @@
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo isset($row->date) ? htmlspecialchars($row->date) : ''; ?></td>
-                                <td class="font-weight-bold text-dark">MUR <?php echo isset($row->amount) ? number_format((float)$row->amount, 2) : '0.00'; ?></td>
+                                <!-- Removed font-weight-bold class below -->
+                                <td class="text-dark">MUR <?php echo isset($row->amount) ? number_format((float)$row->amount, 2) : '0.00'; ?></td>
                                 <td>
                                     <!-- Download Invoice Link -->
                                     <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" 

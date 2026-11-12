@@ -1,4 +1,3 @@
-
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
@@ -6,10 +5,6 @@ if (empty($addon_purchase)) {
     show_error('Invoice not found or payment is not completed.', 404);
     return;
 }
-
-// ==========================================
-// INVOICE DATA
-// ==========================================
 
 $purchase_id = $addon_purchase->purchase_id ?? '';
 
@@ -82,9 +77,6 @@ $e = function($value) {
     );
 };
 
-// ==========================================
-// LOGO
-// ==========================================
 
 $logo_image_src = '';
 
@@ -146,19 +138,19 @@ if (empty($logo_image_src)) {
 
 body {
     margin: 0;
-    padding: 25px;
+    padding: 10px;
     background: #eef1f5;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     color: #172b4d;
 }
 
 .invoice-box {
     width: 100%;
     max-width: 800px;
-    min-height: 760px;
+    min-height: auto;
     margin: auto;
-    padding: 28px;
+    padding: 15px 20px;
     background: #fff;
     border: 1px solid #cbd3df;
 }
@@ -167,8 +159,8 @@ body {
 
 .header {
     width: 100%;
-    padding-bottom: 18px;
-    margin-bottom: 18px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
     border-bottom: 2px solid #d6a900;
 }
 
@@ -185,7 +177,7 @@ body {
 
 .logo-container {
     background-color: #23282d;
-    padding: 10px 16px;
+    padding: 8px 12px;
     border-radius: 4px;
     display: inline-block;
     vertical-align: middle;
@@ -195,21 +187,21 @@ body {
 
 .logo-container img {
     display: block;
-    width: 135px;
+    width: 120px;
     max-width: 100%;
     height: auto;
     border: 0;
 }
 
 .brand-subtitle {
-    margin-top: 6px;
-    font-size: 10px;
+    margin-top: 4px;
+    font-size: 9px;
     color: #68778b;
 }
 
 .invoice-heading {
     text-align: right;
-    font-size: 21px;
+    font-size: 18px;
     font-weight: bold;
     letter-spacing: 1px;
     color: #172b4d;
@@ -217,17 +209,16 @@ body {
 
 .invoice-number {
     text-align: right;
-    margin-top: 6px;
-    font-size: 10px;
+    margin-top: 4px;
+    font-size: 9px;
     color: #52647b;
 }
 
-/* COMPANY INFORMATION */
 
 .company-details {
-    line-height: 1.8;
-    margin-bottom: 20px;
-    font-size: 11px;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    font-size: 10px;
     color: #33445e;
 }
 
@@ -237,19 +228,18 @@ body {
 }
 
 .company-details .billing-info {
-    margin-top: 4px;
+    margin-top: 2px;
 }
 
 .company-details strong {
     color: #172b4d;
 }
 
-/* DETAILS */
 
 .details-wrapper {
     width: 100%;
-    padding: 18px 0;
-    margin-bottom: 20px;
+    padding: 10px 0;
+    margin-bottom: 10px;
     border-top: 1px solid #cbd3df;
     border-bottom: 1px solid #cbd3df;
 }
@@ -260,21 +250,21 @@ body {
 }
 
 .details-table td {
-    padding: 5px 4px;
+    padding: 3px 4px;
     border: none;
     vertical-align: top;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .details-table .section-heading {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: bold;
     color: #172b4d;
-    padding-bottom: 13px;
+    padding-bottom: 6px;
 }
 
 .details-table .detail-label {
-    width: 115px;
+    width: 110px;
     color: #52647b;
 }
 
@@ -282,17 +272,16 @@ body {
     color: #172b4d;
 }
 
-/* ITEMS */
 
 .items-table {
     width: 100%;
-    margin-top: 15px;
-    margin-bottom: 25px;
+    margin-top: 10px;
+    margin-bottom: 15px;
     border-collapse: collapse;
 }
 
 .items-table th {
-    padding: 11px 8px;
+    padding: 8px 6px;
     background: #edf0f4;
     color: #172b4d;
     border-bottom: 1px solid #cbd3df;
@@ -301,9 +290,9 @@ body {
 }
 
 .items-table td {
-    padding: 12px 8px;
+    padding: 8px 6px;
     border-bottom: 1px solid #cbd3df;
-    font-size: 11px;
+    font-size: 10px;
     color: #33445e;
     vertical-align: top;
 }
@@ -316,7 +305,6 @@ body {
     text-align: right !important;
 }
 
-/* PAYMENT AND TOTALS */
 
 .bottom-table {
     width: 100%;
@@ -324,22 +312,22 @@ body {
 }
 
 .bottom-table > tbody > tr > td {
-    padding: 5px;
+    padding: 2px;
     border: none;
     vertical-align: top;
 }
 
 .payment-heading,
 .total-heading {
-    padding-bottom: 12px;
-    font-size: 14px;
+    padding-bottom: 6px;
+    font-size: 12px;
     font-weight: bold;
     color: #172b4d;
 }
 
 .payment-info {
-    font-size: 11px;
-    line-height: 1.9;
+    font-size: 10px;
+    line-height: 1.5;
     color: #33445e;
 }
 
@@ -359,30 +347,29 @@ body {
 }
 
 .total-table td {
-    padding: 8px 3px;
+    padding: 5px 3px;
     border-bottom: 1px solid #dce1e8;
-    font-size: 11px;
+    font-size: 10px;
     color: #33445e;
 }
 
 .total-table .grand-total td {
-    padding-top: 10px;
-    padding-bottom: 10px;
-    font-size: 16px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 13px;
     font-weight: bold;
     color: #172b4d;
     border-top: 2px solid #172b4d;
     border-bottom: 2px solid #172b4d;
 }
 
-/* FOOTER */
 
 .invoice-footer {
-    margin-top: 45px;
-    padding-top: 15px;
+    margin-top: 15px;
+    padding-top: 8px;
     border-top: 1px solid #cbd3df;
-    font-size: 10px;
-    line-height: 1.9;
+    font-size: 9px;
+    line-height: 1.4;
     color: #68778b;
 }
 
@@ -390,27 +377,26 @@ body {
     color: #172b4d;
 }
 
-/* PRINT */
 
 .print-section {
-    margin-top: 30px;
+    margin-top: 15px;
     text-align: center;
 }
 
 .btn-print {
-    padding: 12px 25px;
+    padding: 10px 20px;
     border: none;
     border-radius: 4px;
     background: #ffd200;
     color: #000;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: bold;
     cursor: pointer;
 }
 
 @page {
     size: A4;
-    margin: 10mm;
+    margin: 5mm;
 }
 
 @media print {
@@ -426,7 +412,7 @@ body {
         width: 100%;
         max-width: none;
         min-height: auto;
-        padding: 10px;
+        padding: 5px;
         border: none;
     }
 
@@ -710,7 +696,7 @@ body {
 
                         <br>
 
-                        <span style="font-size:10px;color:#68778b;">
+                        <span style="font-size:9px;color:#68778b;">
 
                             Replacement Delivery for Order #
                             <?php echo $e($order_number); ?>
