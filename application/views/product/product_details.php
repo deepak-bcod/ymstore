@@ -381,7 +381,8 @@ $lang = $this->session->userdata('site_lang');
                                                     <?php } ?>
                                                 </tr>
                                             </tbody>
-                                    </div>
+</table>
+</div>
                                 <?php } ?>
 
                                 <?php if ($ProductData->product_type == 'configurable') { ?>
