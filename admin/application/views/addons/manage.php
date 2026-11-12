@@ -78,9 +78,11 @@
                     <?php $sr = 1; foreach($manage_addons as $row): ?>
                         <tr>
                             <td><?php echo $sr++; ?></td>
-                            <td><strong><?php echo html_escape($row->merchant_name ?? ''); ?></strong></td>
+                            <!-- Unbolded Merchant Name -->
+                            <td><?php echo html_escape($row->merchant_name ?? ''); ?></td>
                             <td><?php echo html_escape($row->addon_service_name ?? ''); ?></td>
-                            <td><strong><?php echo html_escape($row->addon_name ?? ''); ?></strong></td>
+                            <!-- Unbolded Addon Name -->
+                            <td><?php echo html_escape($row->addon_name ?? ''); ?></td>
                             <td>
                                 <?php if (!empty($row->order_number)): ?>
                                     <span class="badge badge-info" style="font-size: 13px;">Order #<?php echo html_escape($row->order_number); ?></span>
@@ -92,7 +94,8 @@
                                 <?php endif; ?>
                             </td>
                             <td><?php echo html_escape($row->date ?? ''); ?></td>
-                            <td class="font-weight-bold text-dark">MUR <?php echo number_format($row->amount ?? 0, 2); ?></td>
+                            <!-- Unbolded Amount (removed font-weight-bold and text-dark) -->
+                            <td>MUR <?php echo number_format($row->amount ?? 0, 2); ?></td>
                             <td>
                                 <a href="<?php echo base_url('addons/download_invoice/' . $row->purchase_id); ?>" class="btn btn-sm btn-primary yellow-button" target="_blank" style="color: #ff9e0c !important; background: transparent !important; border: none !important; font-weight: 500; font-size: 14px; text-decoration: none;">
                                     <i class="fas fa-file-invoice mr-1"></i>Download Invoice
