@@ -179,7 +179,7 @@ class OrderResolutionController extends CI_Controller
         $message         = trim($this->input->post('message', true));
         $conversion_type = trim($this->input->post('conversion_type', true));
         if (empty($conversion_type) || !in_array($conversion_type, ['shopper_merchant', 'merchant_admin'], true)) {
-            $conversion_type = 'shopper_merchant';
+            $conversion_type = 'merchant_admin';
         }
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);

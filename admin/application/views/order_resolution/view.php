@@ -312,8 +312,18 @@ $this->load->view('common/fbc-user/header');
                                     <i class="fa fa-truck"></i> <strong>Assigned to Accounting (@Acct):</strong> Coordinate with the merchant to purchase the replacement delivery AddOn Service. Yellow Markets logistics team will collect and deliver the replacement product to the shopper, then @Help will complete and close the ticket.
                                 </div>
                             <?php else: ?>
-                                <div class="alert alert-info py-2 mb-3">
+                                <div class="alert alert-info py-2 mb-2">
                                     <i class="fa fa-hourglass-half"></i> <strong>Assigned to Accounting (@Acct):</strong> Awaiting Accounting to process refund from merchant's 15-day hold-back sales.
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 10px;">
+                                    <?php if (!empty($resolution->merchant_return_confirmed) || !empty($resolution->admin_return_exception)): ?>
+                                        <button type="button" class="btn btn-success btn-sm font-weight-bold" data-toggle="modal" data-target="#markDoneModal">
+                                            <i class="fa fa-check-circle"></i> Mark Done (Refund Processed from Hold-back)
+                                        </button>
+                                    <?php endif; ?>
+                                    <a href="<?= base_url('order_resolution/view/' . $resolution->ticket_number . '?as=acct'); ?>" class="btn btn-outline-warning btn-sm">
+                                        <i class="fa fa-user-circle"></i> Open Accounting (@Acct) View
+                                    </a>
                                 </div>
                             <?php endif; ?>
                         <?php elseif ($resolution->status === 'Done'): ?>
