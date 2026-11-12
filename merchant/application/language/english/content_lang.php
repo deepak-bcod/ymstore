@@ -1234,19 +1234,21 @@ $lang['addon_payment_required_tooltip'] = 'Please purchase and complete payment 
 $lang['addon_service_payment_required'] = 'YM Delivery AddOn Payment Required';
 $lang['conversion_shopper_merchant_tab'] = 'Shopper (Merchant ↔ Shopper)';
 $lang['conversion_shopper_admin_tab'] = 'YellowMarkets Support (Shopper ↔ Support)';
-$lang['conversion_merchant_admin_tab'] = 'YellowMarkets Admin (Merchant ↔ Admin)';
+$lang['conversion_merchant_admin_tab'] = 'Support & Accounting (Merchant ↔ Support & Accounting)';
 $lang['reply_to_shopper'] = 'Reply to Shopper';
 $lang['reply_to_merchant'] = 'Reply to Merchant';
 $lang['message_to_admin'] = 'Message to YellowMarkets Support & Accounting';
 $lang['message_to_support'] = 'Message to YellowMarkets Support';
 $lang['no_messages_shopper_channel'] = 'No conversation messages with shopper yet.';
-$lang['no_messages_admin_channel'] = 'No conversation messages with YellowMarkets Admin / Accounting yet.';
+$lang['no_messages_admin_channel'] = 'No conversation messages with YellowMarkets Support & Accounting yet.';
 $lang['no_messages_shopper_merchant'] = 'No messages with the merchant yet.';
 $lang['no_messages_support_channel'] = 'No conversation messages with YellowMarkets Support yet. You can escalate the ticket if you need Support assistance.';
-$lang['reply_posted_admin_success'] = 'Your message has been sent to YellowMarkets Admin.';
+$lang['reply_posted_admin_success'] = 'Your message has been sent to YellowMarkets Support & Accounting.';
+$lang['enter_response_to_admin'] = 'Enter your message or inquiry for YellowMarkets Support & Accounting...';
 $lang['send_to_support'] = 'Send to Support';
 $lang['send_message'] = 'Send Message';
 $lang['accounting_team'] = 'Accounting Team (@Acct)';
+$lang['support_team'] = 'Support Team (@Help)';
 $lang['you_merchant'] = 'You (Merchant)';
 
 

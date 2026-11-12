@@ -64,6 +64,33 @@ class OrderResolutionModel extends CI_Model
                 }
             }
 
+            if ($this->db->table_exists('custom_variables')) {
+                // Ensure @help (contact@themyp.com) and @acct (acct@themyp.com) mailbox configurations
+                $this->db->where('identifier', 'contact_us_email')->update('custom_variables', [
+                    'value'      => 'contact@themyp.com',
+                    'updated_at' => time()
+                ]);
+                $acct_row = $this->db->where('identifier', 'account_email')->get('custom_variables')->row();
+                if ($acct_row) {
+                    $this->db->where('identifier', 'account_email')->update('custom_variables', [
+                        'value'      => 'acct@themyp.com',
+                        'updated_at' => time()
+                    ]);
+                } else {
+                    $this->db->insert('custom_variables', [
+                        'identifier'      => 'account_email',
+                        'name'            => 'Accounting recipient email address',
+                        'value'           => 'acct@themyp.com',
+                        'created_by'      => 1,
+                        'created_by_type' => 1,
+                        'created_at'      => time(),
+                        'updated_at'      => time(),
+                        'updated_by'      => 1,
+                        'ip'              => '127.0.0.1'
+                    ]);
+                }
+            }
+
             $this->db->db_debug = $prev_debug;
         } catch (\Throwable $e) {
             log_message('error', 'Schema check in OrderResolutionModel: ' . $e->getMessage());
@@ -2680,46 +2707,14 @@ class OrderResolutionModel extends CI_Model
         return 'N/A';
     }
 
-    private function get_help_email()
+    public function get_help_email()
     {
-        $val = $this->CommonModel->get_custom_variable('contact_us_email');
-        if (is_object($val)) {
-            $val = !empty($val->value) ? $val->value : '';
-        }
-        if (!empty($val) && is_string($val)) {
-            return $val;
-        }
-
-        $admin_val = $this->CommonModel->get_custom_variable('admin_email');
-        if (is_object($admin_val)) {
-            $admin_val = !empty($admin_val->value) ? $admin_val->value : '';
-        }
-        if (!empty($admin_val) && is_string($admin_val)) {
-            return $admin_val;
-        }
-
-        return 'noreply@yellowmarkets.com';
+        return 'contact@themyp.com';
     }
 
-    private function get_acct_email()
+    public function get_acct_email()
     {
-        $val = $this->CommonModel->get_custom_variable('account_email');
-        if (is_object($val)) {
-            $val = !empty($val->value) ? $val->value : '';
-        }
-        if (!empty($val) && is_string($val)) {
-            return $val;
-        }
-
-        $admin_val = $this->CommonModel->get_custom_variable('admin_email');
-        if (is_object($admin_val)) {
-            $admin_val = !empty($admin_val->value) ? $admin_val->value : '';
-        }
-        if (!empty($admin_val) && is_string($admin_val)) {
-            return $admin_val;
-        }
-
-        return 'noreply@yellowmarkets.com';
+        return 'acct@themyp.com';
     }
 
     /**
