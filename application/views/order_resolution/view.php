@@ -17,6 +17,37 @@
 .chat-meta { font-size: 11px; color: #777; margin-bottom: 6px; }
 .chat-body { font-size: 14px; line-height: 1.5; color: #333; }
 .chat-attachment { margin-top: 8px; font-size: 12px; }
+
+/* Mobile & Tablet layout: Prioritise task above lengthy account navigation (YM-02) */
+@media (max-width: 991px) {
+    .resolution-page-row {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .resolution-page-row .resolution-main-content {
+        order: 1 !important;
+        width: 100% !important;
+        float: none !important;
+    }
+    .resolution-page-row .sidebar {
+        order: 2 !important;
+        width: 100% !important;
+        float: none !important;
+        margin-top: 35px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+    .resolution-page-row .sidebar::before {
+        content: "Account Navigation";
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6c757d;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+}
 </style>
 
 <div class="breadcrum-section">
@@ -33,13 +64,13 @@
 
 <div class="my-profile-page-full">
     <div class="container">
-        <div class="row">
-            <?php 
+        <div class="row resolution-page-row">
+            <?php
             $data['side_tab'] = 'order_resolution';
             $this->load->view('common/profile_sidebar', $data); 
             ?>
 
-            <div class="col-sm-9 col-md-9">
+            <div class="col-sm-9 col-md-9 resolution-main-content">
                 <div class="content-page">
 
                     <!-- Header & Status Pill -->
@@ -172,6 +203,90 @@
                     </div>
 
                     <?php
+                    $is_shopper_won = ($resolution->admin_decision === 'in_favour_shopper' || $resolution->resolution_status === 'resolution_approved');
+                    $is_merchant_won = ($resolution->admin_decision === 'in_favour_merchant' || $resolution->resolution_status === 'resolution_denied');
+                    $is_replacement_ticket = ($resolution->category === 'Replacement' || ($resolution->admin_remedy ?? '') === 'replacement');
+                    $is_refund_ticket = ($resolution->category === 'Refund' || ($resolution->admin_remedy ?? '') === 'return_refund');
+                    ?>
+
+                    <!-- Official Admin Decision Banner -->
+                    <?php if ($is_shopper_won): ?>
+                        <div class="alert alert-success" style="border-left: 4px solid #28a745; margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                                <div>
+                                    <h4 style="margin: 0 0 5px 0; color: #155724; font-weight: bold;">
+                                        <i class="fa fa-gavel"></i> <?php echo $this->lang->line('decision_favour_shopper') ?: 'Official Resolution Decision: In Favour of Shopper'; ?>
+                                    </h4>
+                                    <p style="margin: 0; font-size: 13px;">
+                                        <?php if ($is_replacement_ticket): ?>
+                                            Yellow Markets Support has approved a <strong>Product Replacement</strong>. The Merchant is required to arrange and deliver a replacement item.
+                                        <?php else: ?>
+                                            Yellow Markets Support has approved a <strong>Return and Refund</strong>. Once item return is confirmed, your refund will be processed.
+                                        <?php endif; ?>
+                                        <?php if (!empty($resolution->admin_decision_reason)): ?>
+                                            <br><em>Decision Reason: <?php echo htmlspecialchars($resolution->admin_decision_reason); ?></em>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                                <span class="label label-success" style="font-size: 12px; padding: 5px 10px; margin-top: 5px;">Resolution Approved</span>
+                            </div>
+                        </div>
+                    <?php elseif ($is_merchant_won): ?>
+                        <div class="alert alert-danger" style="border-left: 4px solid #dc3545; margin-bottom: 20px;">
+                            <h4 style="margin: 0 0 5px 0; color: #721c24; font-weight: bold;">
+                                <i class="fa fa-gavel"></i> <?php echo $this->lang->line('decision_favour_merchant') ?: 'Official Resolution Decision: In Favour of Merchant'; ?>
+                            </h4>
+                            <p style="margin: 0; font-size: 13px;">
+                                Yellow Markets Support has reviewed the evidence and upheld the merchant's original decision. This dispute ticket is closed (Final).
+                                <?php if (!empty($resolution->admin_decision_reason)): ?>
+                                    <br><em>Decision Reason: <?php echo htmlspecialchars($resolution->admin_decision_reason); ?></em>
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Workflow 5B: Replacement Fulfilment & Delivery Confirmation Card -->
+                    <?php if ($is_replacement_ticket && ($is_shopper_won || $resolution->merchant_action === 'replacement_completed' || $resolution->status === 'Processing')): ?>
+                        <div class="panel panel-default" style="border: 1px solid #bce8f1; border-left: 4px solid #337ab7; border-radius: 6px; margin-bottom: 20px; background-color: #f7fbfe;">
+                            <div class="panel-heading" style="background-color: #e4f2fb; border-bottom: 1px solid #bce8f1; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                                <span style="font-weight: 700; color: #245269; font-size: 14px;">
+                                    <i class="fa fa-truck text-primary"></i> Replacement Fulfilment & Delivery Status
+                                </span>
+                                <?php if (!empty($resolution->shopper_receipt_confirmed)): ?>
+                                    <span class="label label-success" style="font-size: 11px;"><i class="fa fa-check"></i> Receipt Confirmed</span>
+                                <?php elseif (!empty($resolution->admin_replacement_exception)): ?>
+                                    <span class="label label-info" style="font-size: 11px;"><i class="fa fa-truck"></i> Verified via Carrier Proof</span>
+                                <?php else: ?>
+                                    <span class="label label-warning" style="font-size: 11px; background-color: #f0ad4e;"><i class="fa fa-clock-o"></i> Confirmation Required</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="panel-body" style="padding: 15px;">
+                                <?php if (!empty($resolution->shopper_receipt_confirmed)): ?>
+                                    <div class="alert alert-success" style="margin: 0;">
+                                        <i class="fa fa-check-circle"></i> <strong>Replacement Received:</strong> You have confirmed physical receipt of the replacement item. The dispute resolution is successfully closed (Final).
+                                    </div>
+                                <?php elseif (!empty($resolution->admin_replacement_exception)): ?>
+                                    <div class="alert alert-info" style="margin: 0;">
+                                        <i class="fa fa-info-circle"></i> <strong>Delivery Verified:</strong> Delivery was confirmed via carrier delivery proof by Yellow Markets Support (<?= htmlspecialchars($resolution->admin_replacement_exception_notes); ?>).
+                                    </div>
+                                <?php else: ?>
+                                    <p style="margin-bottom: 12px; font-size: 14px;">
+                                        The Merchant has arranged replacement via <strong><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?></strong>.
+                                        Please inspect the replacement item upon delivery and confirm receipt below:
+                                    </p>
+                                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#confirmReceiptModal">
+                                            <i class="fa fa-check"></i> I have received the replacement item
+                                        </button>
+                                        <button type="button" class="btn btn-default" data-toggle="modal" data-target="#reportNotReceivedModal">
+                                            <i class="fa fa-times text-danger"></i> I have not received it
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     // Separate conversion workflows
                     $shopper_merchant_msgs = [];
                     $shopper_admin_msgs    = [];
@@ -623,6 +738,63 @@
     </div>
 </div>
 <?php endif; ?>
+
+<!-- Modal: Confirm Replacement Receipt (Workflow 5B) -->
+<div class="modal fade" id="confirmReceiptModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="<?php echo base_url('order_resolution/confirm_replacement_receipt'); ?>" method="POST" class="ajax-resolution-form">
+                <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
+                <input type="hidden" name="received" value="yes">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title font-weight-bold text-success"><i class="fa fa-check-circle"></i> Confirm Receipt of Replacement</h4>
+                </div>
+                <div class="modal-body">
+                    <p>Please confirm that you have received the replacement product in satisfactory condition.</p>
+                    <div class="form-group">
+                        <label>Notes / Feedback (optional):</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Optional comments regarding the received replacement..."></textarea>
+                    </div>
+                    <div class="alert alert-info small" style="margin-bottom: 0;">
+                        <i class="fa fa-info-circle"></i> Once confirmed, this resolution dispute will be completed and permanently closed (Final).
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success font-weight-bold"><i class="fa fa-check"></i> Yes, I Received It</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Report Replacement Not Received (Workflow 5B) -->
+<div class="modal fade" id="reportNotReceivedModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="<?php echo base_url('order_resolution/confirm_replacement_receipt'); ?>" method="POST" class="ajax-resolution-form">
+                <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
+                <input type="hidden" name="received" value="no">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title font-weight-bold text-danger"><i class="fa fa-exclamation-triangle"></i> Report Replacement Not Received</h4>
+                </div>
+                <div class="modal-body">
+                    <p>If you have not received the replacement item or experienced delivery issues, report the details below. Yellow Markets Support will investigate with the merchant.</p>
+                    <div class="form-group">
+                        <label>Issue Details (required):</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Explain the non-receipt or delivery issue in detail..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold">Report Non-Receipt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 $(document).ready(function() {

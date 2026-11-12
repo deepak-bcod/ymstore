@@ -47,7 +47,15 @@
                                 <label for="rejected_item_selection"><b><?php echo $this->lang->line('rejected_order_item') ?: 'Rejected Order Item'; ?> <span class="text-danger">*</span></b></label>
                                 <select name="rejected_item_selection" id="rejected_item_selection" class="form-control" required onchange="handleItemSelect(this)" <?php echo empty($rejected_items) ? 'disabled' : ''; ?>>
                                     <option value=""><?php echo $this->lang->line('select_rejected_item') ?: '-- Select Rejected Item --'; ?></option>
-                                    <?php if (!empty($rejected_items)): ?>
+                                    <?php 
+if (empty($selected_order_id) && !empty($rejected_items) && count($rejected_items) === 1) {
+    $first_rej = reset($rejected_items);
+    $selected_order_id = $first_rej->order_id;
+    $selected_product_id = $first_rej->product_id;
+    $default_category = $first_rej->category ?: "Refund";
+}
+?>
+<?php if (!empty($rejected_items)): ?>
                                         <?php foreach ($rejected_items as $item): 
                                             $isSelected = ($selected_order_id == $item->order_id && $selected_product_id == $item->product_id);
                                             $reason_label = ($item->request_type === 'replacement')
@@ -198,6 +206,14 @@ $(document).ready(function() {
     });
 
     $(document).on('submit', 'form.ajax-resolution-form', function(e) {
+        var selVal = $('#rejected_item_selection').val();
+        if (!selVal) {
+            e.preventDefault();
+            showNotification('error', 'Please select a rejected item from the dropdown list before submitting.');
+            $('#rejected_item_selection').focus().css('border-color', '#dc3545');
+            return false;
+        }
+        $('#rejected_item_selection').css('border-color', '');
         e.preventDefault();
         var $form = $(this);
         var $btn = $form.find('button[type="submit"]');

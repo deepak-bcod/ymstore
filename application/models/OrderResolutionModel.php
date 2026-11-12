@@ -34,6 +34,36 @@ class OrderResolutionModel extends CI_Model
                 if (!$this->db->field_exists('refund_amount', 'order_resolutions')) {
                     $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `refund_amount` decimal(12,2) NOT NULL DEFAULT '0.00' AFTER `resolution_status`");
                 }
+                if (!$this->db->field_exists('admin_decision', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision` varchar(50) DEFAULT 'pending' AFTER `resolution_status`");
+                }
+                if (!$this->db->field_exists('admin_decision_reason', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision_reason` text DEFAULT NULL AFTER `admin_decision`");
+                }
+                if (!$this->db->field_exists('admin_remedy', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_remedy` varchar(50) DEFAULT 'none' AFTER `admin_decision_reason`");
+                }
+                if (!$this->db->field_exists('merchant_return_confirmed', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_confirmed` tinyint(1) DEFAULT 0 AFTER `admin_remedy`");
+                }
+                if (!$this->db->field_exists('merchant_return_notes', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_notes` text DEFAULT NULL AFTER `merchant_return_confirmed`");
+                }
+                if (!$this->db->field_exists('shopper_receipt_confirmed', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `shopper_receipt_confirmed` tinyint(1) DEFAULT 0 AFTER `merchant_return_notes`");
+                }
+                if (!$this->db->field_exists('admin_return_exception', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception` tinyint(1) DEFAULT 0 AFTER `shopper_receipt_confirmed`");
+                }
+                if (!$this->db->field_exists('admin_return_exception_notes', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception_notes` text DEFAULT NULL AFTER `admin_return_exception`");
+                }
+                if (!$this->db->field_exists('admin_replacement_exception', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception` tinyint(1) DEFAULT 0 AFTER `admin_return_exception_notes`");
+                }
+                if (!$this->db->field_exists('admin_replacement_exception_notes', 'order_resolutions')) {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception_notes` text DEFAULT NULL AFTER `admin_replacement_exception`");
+                }
             }
             if ($this->db && $this->db->table_exists('order_resolution_audit_log')) {
                 if (!$this->db->field_exists('source_panel', 'order_resolution_audit_log')) {
@@ -1412,11 +1442,24 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'Ticket is already marked as Done.', 'requires_reload' => true];
         }
 
+        $is_return_confirmed = (!empty($res->merchant_return_confirmed) || !empty($res->admin_return_exception));
+        $is_refund_ticket    = ($res->category === 'Refund' || ($res->admin_remedy ?? '') === 'return_refund');
+
+        // Rule 5A: Item return must be confirmed before refund verification, unless Admin documented exception
+        if ($is_refund_ticket && !$is_return_confirmed) {
+            return [
+                'status'  => false,
+                'message' => 'Cannot process refund: Returned item must first be confirmed by the Merchant, or documented with an Admin exception.'
+            ];
+        }
+
         $time = time();
         $this->db->where('id', $res->id)->update('order_resolutions', [
             'status'     => 'Done',
             'updated_at' => $time,
         ]);
+
+        $this->update_payout_eligibility_for_resolution($res);
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 15-day hold-back sales.', 'admin', 'admin_shopper');
 
@@ -1531,9 +1574,9 @@ class OrderResolutionModel extends CI_Model
     }
 
     /**
-     * @Help Resolution Decision (Resolution Approved / Resolution Denied)
+     * @Help Resolution Decision (Decision: In Favour of Shopper / Decision: In Favour of Merchant)
      */
-    public function admin_resolution_decision($ticket_number, $decision, $admin_id, $notes = '')
+    public function admin_resolution_decision($ticket_number, $decision, $admin_id, $notes = '', $remedy = 'return_refund')
     {
         $res = $this->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
@@ -1552,61 +1595,256 @@ class OrderResolutionModel extends CI_Model
 
         if ($decision === 'approved') {
             // Scenario 1: Decision in Favour of Shopper
-            // 1. @Help clicks Resolution Approved -> status: Processing, assigned_role: Acct
-            $this->db->where('id', $res->id)->update('order_resolutions', [
-                'status'            => 'Processing',
-                'assigned_role'     => 'Acct',
-                'resolution_status' => 'resolution_approved',
-                'updated_at'        => $time,
-            ]);
+            $clean_remedy = (strtolower(trim($remedy)) === 'replacement') ? 'replacement' : 'return_refund';
+            $assigned_role = ($clean_remedy === 'replacement') ? 'Help' : 'Acct';
+            $merchant_action = ($clean_remedy === 'replacement') ? 'replacement_approved' : 'refund_approved';
 
-            $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', 'Resolution Approved (In Favour of Shopper)', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
+            $update_data = [
+                'status'                => 'Processing',
+                'assigned_role'         => $assigned_role,
+                'resolution_status'     => 'resolution_approved',
+                'admin_decision'        => 'in_favour_shopper',
+                'admin_decision_reason' => $notes,
+                'admin_remedy'          => $clean_remedy,
+                'updated_at'            => $time,
+            ];
+            if (empty($res->merchant_action) || in_array($res->merchant_action, ['none', 'n/a'], true)) {
+                $update_data['merchant_action'] = $merchant_action;
+            }
 
-            // 4. @Acct receives: Order Resolution No.: [TicketNumber] - Refund Request
-            $this->send_refund_acct_email($res);
+            $this->db->where('id', $res->id)->update('order_resolutions', $update_data);
 
-            // In-App Notification to @Acct
-            $this->send_inapp_notification('admin', 1, 'refund_request_acct',
-                'Order Resolution - Refund Request (@Acct)',
-                "Resolution approved in favour of shopper for Ticket #{$ticket_number} (Order #{$res->order_number}). Please refund from merchant 15-day hold-back sales.", $res);
+            $remedy_title = ($clean_remedy === 'replacement') ? 'Replacement' : 'Return and Refund';
+            $audit_note = "Official Admin Decision: In Favour of Shopper – {$remedy_title}. Reason: {$notes}";
+            $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', "Decision: In Favour of Shopper ({$remedy_title})", 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
 
-            return ['status' => true, 'message' => 'Resolution decision approved in favour of shopper and assigned to Accounting (@Acct).'];
+            // Post system notices in both threads
+            $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper – {$remedy_title}." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'shopper_admin');
+            $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper – {$remedy_title}. Merchant fulfilment is required." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'merchant_admin');
+
+            if ($clean_remedy === 'return_refund') {
+                $this->send_refund_acct_email($res);
+                $this->send_inapp_notification('admin', 1, 'refund_request_acct',
+                    'Order Resolution - Refund Request (@Acct)',
+                    "Resolution approved in favour of shopper for Ticket #{$ticket_number} (Order #{$res->order_number}). Please refund from merchant 15-day hold-back sales.", $res);
+            } else {
+                if (!empty($res->merchant_id)) {
+                    $this->send_inapp_notification('merchant', $res->merchant_id, 'replacement_required',
+                        'Order Resolution - Replacement Required',
+                        "Decision in favour of shopper (Replacement) for Ticket #{$ticket_number}. Please arrange replacement delivery.", $res);
+                }
+            }
+
+            return ['status' => true, 'message' => "Resolution decision recorded: In Favour of Shopper – {$remedy_title}."];
         } else {
             // Scenario 2: Decision in Favour of Merchant
-            // 1. @Help changes Resolution status to Close (Final)
             $this->db->where('id', $res->id)->update('order_resolutions', [
-                'status'            => 'Close (Final)',
-                'resolution_status' => 'resolution_denied',
-                'is_active_dispute' => 0,
-                'closed_at'         => $time,
-                'closed_by'         => 'admin',
-                'updated_at'        => $time,
+                'status'                => 'Close (Final)',
+                'resolution_status'     => 'resolution_denied',
+                'admin_decision'        => 'in_favour_merchant',
+                'admin_decision_reason' => $notes,
+                'admin_remedy'          => 'none',
+                'is_active_dispute'     => 0,
+                'closed_at'             => $time,
+                'closed_by'             => 'admin',
+                'updated_at'            => $time,
             ]);
 
             $this->update_payout_eligibility_for_resolution($res);
 
-            $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Resolution Denied (In Favour of Merchant)', 'admin', $admin_id, $notes, 'admin', 'admin_shopper');
+            $audit_note = "Official Admin Decision: In Favour of Merchant. Original rejection upheld. Reason: {$notes}";
+            $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Decision: In Favour of Merchant', 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
 
-            // 2. Merchant receives: Order Resolution No.: [TicketNumber] - Closed (Final)
+            // Post notice in threads
+            $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Merchant. Original rejection upheld." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'shopper_admin');
+            $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Merchant. Original rejection upheld. Dispute hold becomes eligible for release under 7-day payout rule." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'merchant_admin');
+
+            // Emails
             $this->send_closed_final_merchant_email($res);
-
-            // 3. Shopper receives: Order Resolution No.: [TicketNumber] - Refund Disapproved
             $this->send_refund_disapproved_shopper_email($res);
 
             // In-App Notifications
             if (!empty($res->merchant_id)) {
                 $this->send_inapp_notification('merchant', $res->merchant_id, 'closed_final',
                     'Order Resolution - Closed (Final)',
-                    "Dispute resolved in your favour for Ticket #{$ticket_number}. Ticket is closed (Final).", $res);
+                    "Dispute resolved in your favour for Ticket #{$ticket_number}. Dispute hold eligible for release under 7-day rule.", $res);
             }
             if (!empty($res->customer_id)) {
                 $this->send_inapp_notification('customer', $res->customer_id, 'refund_disapproved',
-                    'Order Resolution - Refund Disapproved',
+                    'Order Resolution - Decision in Favour of Merchant',
                     "After investigation, resolution was decided in favour of merchant for Ticket #{$ticket_number}. Ticket is closed (Final).", $res);
             }
 
             return ['status' => true, 'message' => 'Resolution decision recorded in favour of merchant and closed (Final).'];
         }
+    }
+
+    /**
+     * Merchant confirms receipt of returned item
+     */
+    public function merchant_confirm_item_returned($ticket_number, $merchant_id, $evidence = '')
+    {
+        $res = $this->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+        if ((int)$res->merchant_id !== (int)$merchant_id) {
+            return ['status' => false, 'message' => 'Unauthorized access.'];
+        }
+
+        $time = time();
+        $this->db->where('id', $res->id)->update('order_resolutions', [
+            'merchant_return_confirmed' => 1,
+            'merchant_return_notes'     => $evidence,
+            'updated_at'                => $time,
+        ]);
+
+        $audit_note = "Merchant confirmed receipt of returned item. Evidence/Ref: " . ($evidence ?: 'Confirmed');
+        $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Item Return Confirmed by Merchant', 'merchant', $merchant_id, $audit_note, 'merchant', 'merchant_admin');
+
+        // Post into conversation with Admin
+        $this->add_reply($ticket_number, 'merchant', $merchant_id, 'Merchant', "Disputed item return has been confirmed by Merchant. Return evidence: " . ($evidence ?: 'Returned item inspected and confirmed.'), '', '', 'merchant_admin');
+
+        // Notify Admin (@Help and @Acct)
+        $this->send_inapp_notification('admin', 1, 'return_confirmed',
+            'Disputed Item Return Confirmed',
+            "Merchant confirmed receipt of returned item for Ticket #{$ticket_number} (Order #{$res->order_number}). Accounting verification may proceed.", $res);
+
+        return ['status' => true, 'message' => 'Returned item confirmed successfully. YellowMarkets Admin & Accounting notified.'];
+    }
+
+    /**
+     * YM Admin documents a return-confirmation exception (Workflow 5A)
+     */
+    public function admin_document_return_exception($ticket_number, $admin_id, $notes)
+    {
+        $res = $this->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+
+        $time = time();
+        $this->db->where('id', $res->id)->update('order_resolutions', [
+            'merchant_return_confirmed'   => 1,
+            'admin_return_exception'       => 1,
+            'admin_return_exception_notes' => $notes,
+            'updated_at'                  => $time,
+        ]);
+
+        $audit_note = "YM Admin documented return-confirmation exception: {$notes}";
+        $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Admin Return-Confirmation Exception', 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
+
+        // Post in conversation
+        $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "YM Admin has documented an exception for returned item confirmation.\nException Details: {$notes}\nAccounting refund verification may proceed.", '', '', 'merchant_admin');
+        $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "YM Admin verified return eligibility under documented exception. Refund verification is in progress.", '', '', 'shopper_admin');
+
+        // Notify Acct
+        $this->send_inapp_notification('admin', 1, 'return_exception_documented',
+            'Return Exception Documented (@Help)',
+            "Admin documented return-confirmation exception for Ticket #{$ticket_number}. Accounting refund verification may proceed.", $res);
+
+        return ['status' => true, 'message' => 'Return-confirmation exception documented. Accounting refund verification may proceed.'];
+    }
+
+    /**
+     * Shopper confirms physical receipt of replacement item (Workflow 5B)
+     */
+    public function shopper_confirm_replacement_receipt($ticket_number, $customer_id, $received = 'yes', $notes = '')
+    {
+        $res = $this->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+        if ((int)$res->customer_id !== (int)$customer_id) {
+            return ['status' => false, 'message' => 'Unauthorized access.'];
+        }
+
+        $time = time();
+        $is_received = ($received === 'yes' || $received === '1' || $received === true);
+
+        if ($is_received) {
+            $this->db->where('id', $res->id)->update('order_resolutions', [
+                'shopper_receipt_confirmed' => 1,
+                'status'                    => 'Close (Final)',
+                'is_active_dispute'         => 0,
+                'closed_at'                 => $time,
+                'closed_by'                 => 'shopper_confirmation',
+                'updated_at'                => $time,
+            ]);
+
+            // Release dispute hold on merchant order
+            $this->update_payout_eligibility_for_resolution($res);
+
+            $audit_note = "Shopper confirmed physical receipt of replacement item." . ($notes ? " Notes: {$notes}" : "");
+            $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Shopper Replacement Receipt Confirmed', 'shopper', $customer_id, $audit_note, 'shopper', 'shopper_admin');
+
+            $this->add_reply($ticket_number, 'shopper', $customer_id, 'Shopper', "I confirm that I have physically received the replacement item." . ($notes ? "\nNotes: {$notes}" : ""), '', '', 'shopper_admin');
+            $this->add_reply($ticket_number, 'help', 1, 'Support Team (@Help)', "Shopper confirmed physical receipt of replacement item. Dispute hold released subject to standard 7-day payout rule. Ticket closed (Final).", '', '', 'merchant_admin');
+
+            if (!empty($res->merchant_id)) {
+                $this->send_inapp_notification('merchant', $res->merchant_id, 'receipt_confirmed',
+                    'Replacement Receipt Confirmed',
+                    "Shopper confirmed receipt of replacement item for Ticket #{$ticket_number}. Dispute hold has been released.", $res);
+            }
+
+            return ['status' => true, 'message' => 'Thank you for confirming receipt! Your resolution ticket is now closed.'];
+        } else {
+            $this->db->where('id', $res->id)->update('order_resolutions', [
+                'shopper_receipt_confirmed' => 0,
+                'updated_at'                => $time,
+            ]);
+
+            $audit_note = "Shopper reported NON-RECEIPT of replacement item. Details: " . ($notes ?: 'Replacement item not received');
+            $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Non-Receipt Reported', 'shopper', $customer_id, $audit_note, 'shopper', 'shopper_admin');
+
+            $this->add_reply($ticket_number, 'shopper', $customer_id, 'Shopper', "I have NOT received the replacement item." . ($notes ? "\nDetails: {$notes}" : ""), '', '', 'shopper_admin');
+
+            $this->send_inapp_notification('admin', 1, 'replacement_non_receipt',
+                'Shopper Reported Non-Receipt',
+                "Shopper reported replacement item not received for Ticket #{$ticket_number}. Follow-up with merchant required.", $res);
+
+            return ['status' => true, 'message' => 'Non-receipt reported to Yellow Markets Support. Investigation is ongoing; merchant payout remains held.'];
+        }
+    }
+
+    /**
+     * YM Admin documents a replacement-receipt exception (Workflow 5B)
+     */
+    public function admin_document_replacement_exception($ticket_number, $admin_id, $notes)
+    {
+        $res = $this->get_resolution_by_ticket_number($ticket_number);
+        if (!$res) {
+            return ['status' => false, 'message' => 'Ticket not found.'];
+        }
+
+        $time = time();
+        $this->db->where('id', $res->id)->update('order_resolutions', [
+            'shopper_receipt_confirmed'          => 1,
+            'admin_replacement_exception'       => 1,
+            'admin_replacement_exception_notes' => $notes,
+            'status'                            => 'Close (Final)',
+            'is_active_dispute'                 => 0,
+            'closed_at'                         => $time,
+            'closed_by'                         => 'admin_exception',
+            'updated_at'                        => $time,
+        ]);
+
+        // Release dispute hold on merchant order
+        $this->update_payout_eligibility_for_resolution($res);
+
+        $audit_note = "YM Admin documented replacement-receipt exception: {$notes}";
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Admin Replacement-Receipt Exception', 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
+
+        $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "YM Admin documented proof of replacement delivery under justified exception: {$notes}\nDispute hold released. Ticket closed (Final).", '', '', 'merchant_admin');
+        $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "YM Admin verified replacement delivery under carrier evidence: {$notes}\nTicket closed (Final).", '', '', 'shopper_admin');
+
+        if (!empty($res->merchant_id)) {
+            $this->send_inapp_notification('merchant', $res->merchant_id, 'receipt_confirmed',
+                'Replacement Delivery Confirmed by Admin',
+                "Admin confirmed replacement delivery for Ticket #{$ticket_number}. Dispute hold has been released.", $res);
+        }
+
+        return ['status' => true, 'message' => 'Replacement delivery exception documented. Dispute hold released and ticket closed (Final).'];
     }
 
     // =========================================================================
@@ -2290,19 +2528,38 @@ class OrderResolutionModel extends CI_Model
             }
         }
 
-        // Check notifications table for rejection message logged at event time
+        // Check notifications table for rejection message logged at event time safely
         if (empty($ctx->rejection_reason) && $this->db->table_exists('notifications') && !empty($order_candidates)) {
-            $notif = $this->db->where('subtype', 'rejected')
-                ->group_start()
-                    ->where_in('order_id', $order_candidates)
-                    ->or_where_in('b2b_order_id', $order_candidates)
-                ->group_end()
-                ->order_by('id', 'DESC')
-                ->limit(1)
-                ->get('notifications')
-                ->row();
-            if ($notif && !empty($notif->message)) {
-                $ctx->rejection_reason = trim($notif->message);
+            try {
+                if ($this->db->field_exists('order_id', 'notifications')) {
+                    $this->db->where('subtype', 'rejected');
+                    $this->db->group_start()->where_in('order_id', $order_candidates);
+                    if ($this->db->field_exists('b2b_order_id', 'notifications')) {
+                        $this->db->or_where_in('b2b_order_id', $order_candidates);
+                    }
+                    $this->db->group_end();
+                    $notif = $this->db->order_by('id', 'DESC')->limit(1)->get('notifications')->row();
+                    if ($notif && !empty($notif->message)) {
+                        $ctx->rejection_reason = trim($notif->message);
+                    }
+                } elseif ($this->db->field_exists('data', 'notifications')) {
+                    $this->db->where('subtype', 'rejected');
+                    $this->db->group_start();
+                    foreach ($order_candidates as $cand_id) {
+                        $this->db->or_like('data', '"order_id":' . (int)$cand_id);
+                        $this->db->or_like('data', '"order_id":"' . (int)$cand_id . '"');
+                    }
+                    if (!empty($order_number)) {
+                        $this->db->or_like('data', $order_number);
+                    }
+                    $this->db->group_end();
+                    $notif = $this->db->order_by('id', 'DESC')->limit(1)->get('notifications')->row();
+                    if ($notif && !empty($notif->message)) {
+                        $ctx->rejection_reason = trim($notif->message);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Silently fallback without breaking page load
             }
         }
 
@@ -2741,7 +2998,8 @@ class OrderResolutionModel extends CI_Model
                 ->result_array();
 
             $has_active = false;
-            $has_approved = false;
+            $has_replacement_approved = false;
+            $has_refunded = false;
 
             foreach ($resolutions as $r) {
                 $r_st = trim($r['status'] ?? '');
@@ -2759,17 +3017,23 @@ class OrderResolutionModel extends CI_Model
                     ($r_act === 'refund_approved' || $r_res === 'resolution_approved' || $r_cat === 'Refund');
                 $is_rep_comp = ($r_st === 'Close' || $r_st === 'Close (Final)') &&
                     (in_array($r_act, ['replacement_completed', 'replacement_approved'], true) || $r_cat === 'Replacement');
+                $is_merch_won = ($r_st === 'Close (Final)' || $r_st === 'Close') &&
+                    (($r['admin_decision'] ?? '') === 'in_favour_merchant' || $r_res === 'resolution_denied');
 
-                if ($is_refund_app || $is_rep_comp) {
-                    $has_approved = true;
+                if ($is_refund_app) {
+                    $has_refunded = true;
+                } elseif ($is_rep_comp || $is_merch_won) {
+                    $has_replacement_approved = true;
                 }
             }
 
-            if ($has_active) {
+            if ($has_active || $has_refunded) {
+                // Workflow 5A: Refunded amount must not be paid to Merchant; remains on hold (status 3)
                 if ($payout_status !== 3) {
                     $this->db->where('order_id', $oid)->update('b2b_orders', ['payout_status' => 3]);
                 }
-            } elseif ($has_approved) {
+            } elseif ($has_replacement_approved) {
+                // Workflow 5B & 5C: Release dispute hold and make amount eligible under standard schedule
                 if ($payout_status === 3) {
                     $this->db->where('order_id', $oid)->update('b2b_orders', ['payout_status' => 1]);
                 }

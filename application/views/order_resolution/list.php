@@ -16,8 +16,8 @@
 .badge-action-completed { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
 .badge-action-pending { background-color: #ffc107 !important; color: #212529 !important; border: 1px solid #e0a800 !important; }
 
-/* Mobile layout: Prioritise task above lengthy account navigation */
-@media (max-width: 767px) {
+/* Mobile & Tablet layout: Prioritise task above lengthy account navigation (YM-02) */
+@media (max-width: 991px) {
     .resolution-page-row {
         display: flex !important;
         flex-direction: column !important;
@@ -63,7 +63,7 @@
     display: block;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 991px) {
     .resolution-table-view {
         display: none !important;
     }
@@ -254,6 +254,7 @@ tbody tr:hover td.sticky-action-col {
                     <div class="row resolution-header-row" style="margin-bottom: 20px;">
                         <div class="col-xs-12 col-sm-8 col-md-8">
                             <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #212529;"><?php echo $this->lang->line('order_resolution_requests') ?: 'Order Resolution Requests'; ?></h1>
+                            <div class="text-muted" style="font-size: 13px; margin-top: 4px;">Review your cases and communicate privately with YM Admin</div>
                         </div>
                         <div class="col-xs-12 col-sm-4 col-md-4 text-right resolution-btn-wrap">
                             <a href="<?php echo base_url('order_resolution/create'); ?>" class="btn btn-info">
@@ -268,6 +269,45 @@ tbody tr:hover td.sticky-action-col {
                     <?php if ($this->session->flashdata('error')): ?>
                         <div class="alert alert-danger"><?php echo $this->session->flashdata('error'); ?></div>
                     <?php endif; ?>
+
+                    <!-- Stat Cards Matching MYP Wireframe -->
+                    <div class="row" style="margin-bottom: 20px;">
+                        <div class="col-xs-4 col-sm-4 col-md-4">
+                            <div style="background: #fff; border: 1px solid #dce1e5; border-radius: 9px; padding: 14px;">
+                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;">Under review</span>
+                                <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 6px 0 0 0;"><?= $stats['under_review'] ?? 0; ?></h3>
+                            </div>
+                        </div>
+                        <div class="col-xs-4 col-sm-4 col-md-4">
+                            <div style="background: #fff; border: 1px solid #dce1e5; border-radius: 9px; padding: 14px;">
+                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;">Action required</span>
+                                <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 6px 0 0 0;"><?= $stats['action_required'] ?? 0; ?></h3>
+                            </div>
+                        </div>
+                        <div class="col-xs-4 col-sm-4 col-md-4">
+                            <div style="background: #fff; border: 1px solid #dce1e5; border-radius: 9px; padding: 14px;">
+                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;">Closed</span>
+                                <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 6px 0 0 0;"><?= $stats['closed'] ?? 0; ?></h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters & Search Toolbar -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 18px;">
+                        <div class="row">
+                            <div class="col-sm-8 col-xs-12" style="margin-bottom: 8px;">
+                                <input type="text" id="shopperTicketSearch" class="form-control" placeholder="Search ticket, order, or product..." oninput="filterShopperRows()">
+                            </div>
+                            <div class="col-sm-4 col-xs-12">
+                                <select id="shopperWorkflowFilter" class="form-control" onchange="filterShopperRows()">
+                                    <option value="">All statuses</option>
+                                    <option value="admin_review">Admin Review</option>
+                                    <option value="awaiting_shopper">Awaiting Shopper</option>
+                                    <option value="closed">Closed</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Desktop / Tablet Table View (>= 768px) with Persistent Sticky Action -->
                     <div class="resolution-table-view">
@@ -307,8 +347,18 @@ tbody tr:hover td.sticky-action-col {
                                             } elseif ($res->priority === 'Medium') {
                                                 $p_class = 'label-warning';
                                             }
+
+                                            $is_closed = in_array($res->status, ['Close', 'Close (Final)', 'Done'], true);
+                                            if ($is_closed) {
+                                                $wf_key = 'closed';
+                                            } elseif ($res->status === 'Processing') {
+                                                $wf_key = 'awaiting_shopper';
+                                            } else {
+                                                $wf_key = 'admin_review';
+                                            }
+                                            $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status);
                                         ?>
-                                            <tr>
+                                            <tr data-search="<?= htmlspecialchars($search_blob); ?>" data-workflow="<?= $wf_key; ?>">
                                                 <td>
                                                     <a href="<?php echo $view_url; ?>" class="font-weight-bold text-primary text-nowrap" title="<?php echo $this->lang->line('view') ?: 'View'; ?>">
                                                         <?php echo htmlspecialchars($res->ticket_number); ?>
@@ -395,7 +445,18 @@ tbody tr:hover td.sticky-action-col {
                                     $p_class = 'label-warning';
                                 }
                             ?>
-                                <div class="res-mobile-card">
+                                <?php
+                                    $is_closed = in_array($res->status, ['Close', 'Close (Final)', 'Done'], true);
+                                    if ($is_closed) {
+                                        $wf_key = 'closed';
+                                    } elseif ($res->status === 'Processing') {
+                                        $wf_key = 'awaiting_shopper';
+                                    } else {
+                                        $wf_key = 'admin_review';
+                                    }
+                                    $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status);
+                                ?>
+                                <div class="res-mobile-card" data-search="<?= htmlspecialchars($search_blob); ?>" data-workflow="<?= $wf_key; ?>">
                                     <div class="res-card-header">
                                         <div>
                                             <a href="<?php echo $view_url; ?>" class="res-card-ticket">
@@ -462,5 +523,40 @@ tbody tr:hover td.sticky-action-col {
         </div>
     </div>
 </div>
+
+<script>
+function filterShopperRows() {
+    var q = (document.getElementById('shopperTicketSearch').value || '').toLowerCase().trim();
+    var filter = document.getElementById('shopperWorkflowFilter').value;
+    
+    // Filter desktop rows
+    var tableRows = document.querySelectorAll('.resolution-table-view tbody tr[data-search]');
+    tableRows.forEach(function(row) {
+        var text = row.getAttribute('data-search') || '';
+        var wf = row.getAttribute('data-workflow') || '';
+        var matchText = (!q || text.indexOf(q) !== -1);
+        var matchWf = (!filter || wf === filter);
+        if (matchText && matchWf) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Filter mobile cards
+    var cards = document.querySelectorAll('.resolution-mobile-cards .res-mobile-card[data-search]');
+    cards.forEach(function(card) {
+        var text = card.getAttribute('data-search') || '';
+        var wf = card.getAttribute('data-workflow') || '';
+        var matchText = (!q || text.indexOf(q) !== -1);
+        var matchWf = (!filter || wf === filter);
+        if (matchText && matchWf) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
 
 <?php $this->load->view('common/footer'); ?>

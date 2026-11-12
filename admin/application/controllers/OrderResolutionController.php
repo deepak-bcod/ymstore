@@ -38,6 +38,14 @@ class OrderResolutionController extends CI_Controller
         $data['resolutions']   = $this->db->get()->result();
         $data['status_filter'] = $status_filter;
 
+        // MYP Consolidated Wireframes v1.0 Stats
+        $data['stats'] = [
+            'open'                => (int)$this->db->where_in('status', ['Open', 'ReOpen'])->count_all_results('order_resolutions'),
+            'awaiting_admin'      => (int)$this->db->where_in('status', ['Open', 'ReOpen'])->group_start()->where('assigned_role', 'Help')->or_where('assigned_role', null)->or_where('assigned_role', '')->group_end()->count_all_results('order_resolutions'),
+            'awaiting_fulfilment' => (int)$this->db->group_start()->where('status', 'Processing')->or_group_start()->where_in('merchant_action', ['replacement_approved', 'refund_approved'])->where_not_in('status', ['Done', 'Close', 'Close (Final)'])->group_end()->group_end()->count_all_results('order_resolutions'),
+            'closed'              => (int)$this->db->where_in('status', ['Done', 'Close', 'Close (Final)'])->count_all_results('order_resolutions'),
+        ];
+
         $data['side_menu'] = 'order_resolution';
         $data['PageTitle'] = 'Order Resolution Tickets (@Help)';
         $this->load->view('order_resolution/list', $data);
@@ -475,6 +483,7 @@ class OrderResolutionController extends CI_Controller
         $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
         $ticket_number = trim($this->input->post('ticket_number', true));
         $decision      = trim($this->input->post('decision', true)); // 'approved' or 'denied'
+        $remedy        = trim($this->input->post('remedy', true)) ?: 'return_refund';
         $notes         = trim($this->input->post('notes', true));
 
         // Permission Guard: Only Support (@Help) or Super Admin/Administrator can record resolution decisions
@@ -487,7 +496,7 @@ class OrderResolutionController extends CI_Controller
         // Get ticket details to retrieve customer_id before updating decision
         $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
 
-        $res = $this->OrderResolutionModel->admin_resolution_decision($ticket_number, $decision, $admin_id, $notes);
+        $res = $this->OrderResolutionModel->admin_resolution_decision($ticket_number, $decision, $admin_id, $notes, $remedy);
 
         // If action was successful, send notification to the customer
         if (isset($res['status']) && $res['status'] && $res_ticket && !empty($res_ticket->customer_id)) {
@@ -521,6 +530,42 @@ class OrderResolutionController extends CI_Controller
             }
         }
 
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
+    }
+
+    /**
+     * @Help / Admin documents a return-confirmation exception (Workflow 5A)
+     */
+    public function document_return_exception()
+    {
+        $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $notes         = trim($this->input->post('notes', true));
+
+        if (empty($notes)) {
+            $this->json_response(false, 'Exception reason and evidence reference are required.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
+            return;
+        }
+
+        $res = $this->OrderResolutionModel->admin_document_return_exception($ticket_number, $admin_id, $notes);
+        $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
+    }
+
+    /**
+     * @Help / Admin documents a replacement-receipt exception (Workflow 5B)
+     */
+    public function document_replacement_exception()
+    {
+        $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $notes         = trim($this->input->post('notes', true));
+
+        if (empty($notes)) {
+            $this->json_response(false, 'Exception reason and proof reference are required.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
+            return;
+        }
+
+        $res = $this->OrderResolutionModel->admin_document_replacement_exception($ticket_number, $admin_id, $notes);
         $this->json_response($res['status'], $res['message'], $res, 'order_resolution/view/' . $ticket_number . '?as=help');
     }
 

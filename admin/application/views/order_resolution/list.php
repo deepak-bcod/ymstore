@@ -99,9 +99,15 @@ tbody tr:hover td.sticky-action-col {
 <main role="main" class="main-box col-md-9 ml-sm-auto col-lg-10 px-md-4 dashboard-page">
     <div class="content-main form-dashboard">
 
-        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h2">Order Resolution Tickets (@Help)</h1>
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-2 border-bottom">
             <div>
+                <h1 class="h2 mb-1">Order Resolution Tickets (@Help)</h1>
+                <div class="text-muted small">Select a Ticket ID to open its Resolution interface</div>
+            </div>
+            <div class="d-flex align-items-center" style="gap: 8px;">
+                <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#rulesModal" data-bs-toggle="modal" data-bs-target="#rulesModal">
+                    <i class="fa fa-book"></i> Review rules
+                </button>
                 <a href="<?= base_url('order_resolution/acct'); ?>" class="btn btn-outline-info btn-sm">
                     <i class="fa fa-calculator"></i> View Accounting Assigned (@Acct)
                 </a>
@@ -124,6 +130,57 @@ tbody tr:hover td.sticky-action-col {
                 </button>
             </div>
         <?php endif; ?>
+
+        <!-- Stat Cards Matching MYP Wireframe -->
+        <div class="row mb-3 mt-3">
+            <div class="col-md-3 col-6 mb-2">
+                <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                    <span class="text-muted small text-uppercase font-weight-bold">Open</span>
+                    <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['open'] ?? 0; ?></h2>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                    <span class="text-muted small text-uppercase font-weight-bold">Awaiting Admin</span>
+                    <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['awaiting_admin'] ?? 0; ?></h2>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                    <span class="text-muted small text-uppercase font-weight-bold">Awaiting fulfilment</span>
+                    <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['awaiting_fulfilment'] ?? 0; ?></h2>
+                </div>
+            </div>
+            <div class="col-md-3 col-6 mb-2">
+                <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                    <span class="text-muted small text-uppercase font-weight-bold">Closed</span>
+                    <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['closed'] ?? 0; ?></h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters & Search Toolbar -->
+        <div class="card mb-3 shadow-sm border-0 bg-light p-3">
+            <div class="row align-items-center">
+                <div class="col-md-7 col-sm-12 mb-2 mb-md-0">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white border-right-0"><i class="fa fa-search text-muted"></i></span>
+                        </div>
+                        <input type="text" id="ticketSearchInput" class="form-control border-left-0" placeholder="Search ticket, order, product, shopper or merchant..." oninput="filterTicketRows()">
+                    </div>
+                </div>
+                <div class="col-md-5 col-sm-12">
+                    <select id="ticketWorkflowFilter" class="form-control bg-white" onchange="filterTicketRows()">
+                        <option value="">All statuses (Wireframe Filter)</option>
+                        <option value="admin_review">Admin Review</option>
+                        <option value="awaiting_merchant">Awaiting Merchant</option>
+                        <option value="awaiting_shopper">Awaiting Shopper</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
         <!-- Status Filter Nav Pills -->
         <ul class="nav nav-pills mb-3">
@@ -151,16 +208,16 @@ tbody tr:hover td.sticky-action-col {
         </ul>
 
         <div class="table-responsive">
-            <table class="table table-bordered table-hover text-center table-resolution-list">
+            <table class="table table-bordered table-hover text-center table-resolution-list" id="ticketListTable">
                 <thead class="thead-light">
                     <tr>
-                        <th style="width: 110px;">Ticket #</th>
-                        <th style="min-width: 180px;">Order / Item</th>
-                        <th style="min-width: 120px;">Shopper</th>
+                        <th style="width: 120px;">Ticket ID</th>
+                        <th style="min-width: 190px;">Order / Item</th>
+                        <th style="min-width: 130px;">Shopper</th>
                         <th style="min-width: 130px;">Merchant</th>
-                        <th style="width: 115px;">Type & Priority</th>
-                        <th style="width: 140px;">Status</th>
-                        <th style="width: 75px;">Assigned</th>
+                        <th style="width: 120px;">Request</th>
+                        <th style="width: 160px;">Status / Next</th>
+                        <th style="width: 100px;">Updated</th>
                         <th class="sticky-action-col">Action</th>
                     </tr>
                 </thead>
@@ -172,62 +229,70 @@ tbody tr:hover td.sticky-action-col {
                             $view_url = base_url('order_resolution/view/' . $res->ticket_number . '?as=help');
                             $mAction = trim($res->merchant_action ?? '');
                             $has_mAction = (!empty($mAction) && !in_array(strtolower($mAction), ['none', 'n/a'], true));
-                            $bClass = 'badge-action-completed';
-                            if (strpos($mAction, 'approved') !== false) {
-                                $bClass = 'badge-action-approved';
-                            } elseif (strpos($mAction, 'denied') !== false) {
-                                $bClass = 'badge-action-denied';
+                            
+                            // Determine wireframe workflow stage & next actor
+                            $is_closed = in_array($res->status, ['Close', 'Close (Final)', 'Done'], true);
+                            if ($is_closed) {
+                                $wf_status = 'Closed';
+                                $wf_key = 'closed';
+                                $wf_next = 'None';
+                            } elseif ($res->status === 'Processing') {
+                                if ($res->category === 'Replacement' && $mAction !== 'replacement_completed') {
+                                    $wf_status = 'Awaiting Fulfilment';
+                                    $wf_key = 'awaiting_merchant';
+                                    $wf_next = htmlspecialchars($res->merchant_name ?: 'Merchant');
+                                } else {
+                                    $wf_status = 'Awaiting Shopper';
+                                    $wf_key = 'awaiting_shopper';
+                                    $wf_next = htmlspecialchars($shopper_name);
+                                }
+                            } else {
+                                $wf_status = 'Admin Review';
+                                $wf_key = 'admin_review';
+                                $wf_next = 'YM Admin';
                             }
-                            $p_badge = 'badge-secondary';
-                            if ($res->priority === 'High') {
-                                $p_badge = 'badge-danger';
-                            } elseif ($res->priority === 'Medium') {
-                                $p_badge = 'badge-warning';
-                            } elseif ($res->priority === 'Low') {
-                                $p_badge = 'badge-info';
-                            }
+
+                            $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . $shopper_name . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status . ' ' . $wf_status . ' ' . $wf_next);
+                            $updated_text = (date('Y-m-d', $res->created_at) === date('Y-m-d')) ? 'Today' : ((date('Y-m-d', $res->created_at) === date('Y-m-d', strtotime('-1 day'))) ? 'Yesterday' : date('d M Y', $res->created_at));
                         ?>
-                            <tr>
+                            <tr data-search="<?= htmlspecialchars($search_blob); ?>" data-workflow="<?= $wf_key; ?>">
                                 <td>
-                                    <a href="<?= $view_url; ?>" class="font-weight-bold text-primary text-nowrap" title="Open ticket">
+                                    <a href="<?= $view_url; ?>" class="font-weight-bold text-primary text-nowrap" style="text-decoration: underline; text-underline-offset: 3px;" title="Open ticket">
                                         <?= htmlspecialchars($res->ticket_number); ?>
                                     </a>
-                                    <div class="small text-muted text-nowrap"><?= date('d M Y', $res->created_at); ?></div>
                                 </td>
                                 <td class="text-left">
                                     <div class="font-weight-bold text-dark">#<?= htmlspecialchars($res->order_number); ?></div>
-                                    <div class="small text-muted text-truncate" style="max-width: 180px;" title="<?= htmlspecialchars($res->product_name ?: 'All Items'); ?>">
+                                    <div class="small text-muted text-truncate" style="max-width: 190px;" title="<?= htmlspecialchars($res->product_name ?: 'All Items'); ?>">
                                         <i class="fa fa-cube text-secondary"></i> <?= htmlspecialchars($res->product_name ?: 'All Items'); ?>
                                     </div>
                                 </td>
                                 <td>
-                                    <span title="<?= htmlspecialchars($res->customer_email ?: ''); ?>"><?= htmlspecialchars($shopper_name); ?></span>
+                                    <div class="font-weight-bold"><?= htmlspecialchars($shopper_name); ?></div>
+                                    <?php if (!empty($res->customer_email)): ?>
+                                        <div class="small text-muted text-truncate" style="max-width: 130px;"><?= htmlspecialchars($res->customer_email); ?></div>
+                                    <?php endif; ?>
                                 </td>
-                                <td><?= htmlspecialchars($res->merchant_name ?: 'N/A'); ?></td>
                                 <td>
-                                    <div><span class="badge badge-secondary"><?= htmlspecialchars($res->category); ?></span></div>
-                                    <div class="mt-1"><span class="badge <?= $p_badge; ?>"><?= htmlspecialchars($res->priority ?: 'Medium'); ?></span></div>
+                                    <div class="font-weight-bold"><?= htmlspecialchars($res->merchant_name ?: 'N/A'); ?></div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info px-2 py-1"><?= htmlspecialchars($res->category); ?></span>
+                                    <div class="small text-muted mt-1">Priority: <?= htmlspecialchars($res->priority ?: 'Medium'); ?></div>
                                 </td>
                                 <td>
                                     <div>
                                         <span class="badge-status-<?= $status_slug; ?>">
-                                            <?= htmlspecialchars($res->status); ?>
+                                            <?= htmlspecialchars($wf_status); ?>
                                         </span>
                                     </div>
-                                    <div class="mt-1">
-                                        <?php if ($has_mAction): ?>
-                                            <span class="badge-action <?= $bClass; ?>">
-                                                <?= ucwords(str_replace('_', ' ', $mAction)); ?>
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge-action badge-action-pending badge badge-warning">Pending</span>
-                                        <?php endif; ?>
+                                    <div class="small text-muted mt-1">
+                                        <i class="fa fa-user-circle-o"></i> <?= $wf_next; ?>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge badge-<?= ($res->assigned_role === 'Acct') ? 'warning' : 'primary'; ?>">
-                                        @<?= htmlspecialchars($res->assigned_role); ?>
-                                    </span>
+                                    <div class="small font-weight-bold"><?= $updated_text; ?></div>
+                                    <div class="small text-muted"><?= date('h:i A', $res->created_at); ?></div>
                                 </td>
                                 <td class="sticky-action-col">
                                     <div class="d-flex align-items-center justify-content-center" style="gap: 4px;">
@@ -291,5 +356,47 @@ tbody tr:hover td.sticky-action-col {
 
     </div>
 </main>
+
+<!-- Approved Rules Modal Matching MYP Wireframe -->
+<div class="modal fade" id="rulesModal" tabindex="-1" role="dialog" aria-labelledby="rulesModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title font-weight-bold text-dark" id="rulesModalTitle"><i class="fa fa-shield"></i> Approved rules</h5>
+                <button type="button" class="close text-dark" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4" style="line-height: 1.6; font-size: 14px;">
+                <p><strong>Approved Order Resolution Rules:</strong></p>
+                <p>Direct-to-Admin escalation; item-level holds; 7-day payout rule for all Merchant Orders; return confirmed before refund with Admin exceptions; Shopper replacement receipt confirmation; separate private Admin threads; 1 MB image maximum.</p>
+                <p class="mb-0 text-muted"><em>V2 remedy switching and administration fees are excluded.</em></p>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterTicketRows() {
+    var q = (document.getElementById('ticketSearchInput').value || '').toLowerCase().trim();
+    var filter = document.getElementById('ticketWorkflowFilter').value;
+    var rows = document.querySelectorAll('#ticketListTable tbody tr[data-search]');
+    
+    rows.forEach(function(row) {
+        var text = row.getAttribute('data-search') || '';
+        var wf = row.getAttribute('data-workflow') || '';
+        var matchText = (!q || text.indexOf(q) !== -1);
+        var matchWf = (!filter || wf === filter);
+        if (matchText && matchWf) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
 
 <?php $this->load->view('common/fbc-user/footer'); ?>

@@ -12626,7 +12626,12 @@ class B2BOrdersController extends CI_Controller
 					$is_replacement_complete = ($r_status === 'Close' || $r_status === 'Close (Final)') &&
 						(in_array($r_action, ['replacement_completed', 'replacement_approved'], true) || $r_category === 'Replacement');
 
-					if ($is_refund_approved || $is_replacement_complete) {
+					$is_merchant_won = ($r_status === 'Close (Final)' || $r_status === 'Close') &&
+						(($res_row['admin_decision'] ?? '') === 'in_favour_merchant' || $r_res_status === 'resolution_denied');
+
+					if ($is_refund_approved) {
+						$has_refunded_resolution = true;
+					} elseif ($is_replacement_complete || $is_merchant_won) {
 						$has_approved_resolution = true;
 					}
 				}
@@ -12636,8 +12641,13 @@ class B2BOrdersController extends CI_Controller
 		if ($has_active_resolution) {
 			$is_on_hold = true;
 			$hold_reason = 'On Hold';
+		} elseif (!empty($has_refunded_resolution)) {
+			// Workflow 5A: Refunded amount must not be paid to Merchant
+			$is_on_hold = true;
+			$is_refund_done = true;
+			$hold_reason = 'Refunded to Shopper';
 		} elseif ($has_approved_resolution) {
-			// Approved final state reached: payout becomes open and overrides previous return/replacement holds
+			// Workflow 5B/5C: Replacement complete or dispute resolved in favour of merchant -> eligible under payout schedule
 			$is_on_hold = false;
 		} else {
 			// 2. Check Return requests in sales_order_return
