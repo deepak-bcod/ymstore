@@ -189,7 +189,7 @@ span.label,
                                     </td>
                                     <td>
                                         <div class="small font-weight-bold"><?= $updated_text; ?></div>
-                                        <div class="small text-muted"><?= date('h:i A', $res->created_at); ?></div>
+                                        <div class="small text-muted"><?= date('h:i A', $res->created_at); ?> MUT</div>
                                     </td>
                                     <td>
                                         <a href="<?= $view_url; ?>" class="btn btn-sm btn-info text-nowrap">

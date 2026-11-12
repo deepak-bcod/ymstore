@@ -111,7 +111,7 @@ span.label,
                             <h2 style="margin: 0;">
                                 <?php echo $this->lang->line('ticket') ?: 'Ticket'; ?> #<?php echo htmlspecialchars($resolution->ticket_number); ?>
                             </h2>
-                            <small class="text-muted"><?php echo $this->lang->line('created_on') ?: 'Created on'; ?> <?php echo date('d M Y, h:i A', $resolution->created_at); ?></small>
+                            <small class="text-muted"><?php echo $this->lang->line('created_on') ?: 'Created on'; ?> <?php echo date('d M Y, h:i A', $resolution->created_at); ?> MUT</small>
                         </div>
                         <div class="col-sm-4 col-md-4 text-right">
                             <a href="<?php echo base_url('order_resolution'); ?>" class="btn btn-sm btn-info">
@@ -403,7 +403,7 @@ span.label,
                                         <?php if (!empty($item_context->request_date)): ?>
                                         <tr>
                                             <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-calendar"></i> Request Date:</td>
-                                            <td style="padding: 4px 0;"><?php echo date('d M Y, h:i A', $item_context->request_date); ?></td>
+                                            <td style="padding: 4px 0;"><?php echo date('d M Y, h:i A', $item_context->request_date); ?> MUT</td>
                                         </tr>
                                         <?php endif; ?>
                                     </table>
@@ -445,7 +445,7 @@ span.label,
                             </span>
                             <div>
                                 <span class="label label-info" style="font-size: 11px; margin-right: 5px;"><i class="fa fa-gavel"></i> Dispute Origin</span>
-                                <span class="text-muted small"><i class="fa fa-clock-o"></i> Submitted: <?php echo date('d M Y, h:i A', $resolution->created_at); ?></span>
+                                <span class="text-muted small"><i class="fa fa-clock-o"></i> Submitted: <?php echo date('d M Y, h:i A', $resolution->created_at); ?> MUT</span>
                             </div>
                         </div>
                         <div class="panel-body" style="padding: 15px;">
@@ -526,7 +526,7 @@ span.label,
                                     ?>
                                         <div class="chat-message <?php echo $role_class; ?>" style="<?php echo ($msg->sender_role !== 'shopper') ? 'border: 1px solid #faebcc;' : ''; ?>">
                                             <div class="chat-meta">
-                                                <b style="<?php echo ($msg->sender_role !== 'shopper') ? 'color: #8a6d3b;' : ''; ?>"><?php echo htmlspecialchars($sender_display); ?></b> &bull; <?php echo date('d M Y, h:i A', $msg->created_at); ?>
+                                                <b style="<?php echo ($msg->sender_role !== 'shopper') ? 'color: #8a6d3b;' : ''; ?>"><?php echo htmlspecialchars($sender_display); ?></b> &bull; <?php echo date('d M Y, h:i A', $msg->created_at); ?> MUT
                                             </div>
                                             <div class="chat-body">
                                                 <?php echo nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>

@@ -290,7 +290,7 @@ tbody tr:hover td.sticky-action-col {
                                 </td>
                                 <td>
                                     <div class="small font-weight-bold"><?= $updated_text; ?></div>
-                                    <div class="small text-muted"><?= date('h:i A', $res->created_at); ?></div>
+                                    <div class="small text-muted"><?= date('h:i A', $res->created_at); ?> MUT</div>
                                 </td>
                                 <td class="sticky-action-col">
                                     <div class="d-flex align-items-center justify-content-center" style="gap: 4px;">
@@ -329,7 +329,7 @@ tbody tr:hover td.sticky-action-col {
                                                 <?php endif; ?>
                                             </div>
                                             <div class="col-md-3 text-right">
-                                                <div class="small text-muted">Created: <?= date('d M Y, h:i A', $res->created_at); ?></div>
+                                                <div class="small text-muted">Created: <?= date('d M Y, h:i A', $res->created_at); ?> MUT</div>
                                                 <div class="mt-2">
                                                     <a href="<?= $view_url; ?>" class="btn btn-sm btn-primary">
                                                         <i class="fa fa-external-link"></i> Manage Ticket #<?= htmlspecialchars($res->ticket_number); ?>
