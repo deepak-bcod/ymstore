@@ -176,6 +176,13 @@ public function index()
             return;
         }
 
+        // Prevent AddOn purchase if resolution ticket is closed (YM-15)
+        if (in_array($res->status, ['Close', 'Close (Final)'], true)) {
+            $this->session->set_flashdata('error', 'This resolution ticket is closed. Delivery Add-On purchase is no longer permitted.');
+            redirect('order_resolution/view/' . $res->ticket_number);
+            return;
+        }
+
         // Prevent duplicate charge if AddOn payment is already verified as paid
         if (!empty($res->addon_purchase_id)) {
             $existing_purchase = $this->db->get_where('merchant_addon_purchases', ['id' => (int)$res->addon_purchase_id])->row();
