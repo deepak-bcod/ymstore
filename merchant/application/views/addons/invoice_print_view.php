@@ -203,9 +203,9 @@ body {
 }
 
 .logo-container {
-    width: 192px;
-    height: 56px;
-    padding: 8px 14px;
+    width: 145px;
+    height: 50px;
+    padding: 5px 8px;
     background-color: #23282d;
     border: none;
     border-radius: 5px;
@@ -220,9 +220,9 @@ body {
 
 .logo-container img {
     display: block;
-    width: 165px;
+    width: 130px;
     max-width: 100%;
-    max-height: 42px;
+    max-height: 40px;
     height: auto;
     object-fit: contain;
     border: none;
@@ -486,13 +486,13 @@ body {
         border-bottom: 2px solid #d6a900;
     }
     .logo-container {
-    background-color: #23282d !important;
-    border: none !important;
-    border-radius: 5px;
-
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-}
+        width: 145px !important;
+        height: 50px !important;
+        background-color: #23282d !important;
+        border: none !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
 
 }
 
