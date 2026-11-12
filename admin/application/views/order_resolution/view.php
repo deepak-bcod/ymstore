@@ -4,19 +4,51 @@ $this->load->view('common/fbc-user/header');
 ?>
 
 <style>
-.badge-status-open { background-color: #007bff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-processing { background-color: #17a2b8; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-done { background-color: #28a745; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-close { background-color: #6c757d; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-reopen { background-color: #fd7e14; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-close-final { background-color: #343a40; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+/* Remove background color from all text elements (badges, labels, status pills, alerts, spans) except buttons */
+span.badge,
+span.label,
+[class*="badge-status-"],
+[class*="badge-action-"],
+.badge-pill {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    font-weight: 700 !important;
+    display: inline-block;
+}
 
-.chat-box { max-height: 520px; overflow-y: auto; padding: 15px; background: #fafafa; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 25px; }
+.badge-status-open, .badge-primary { color: #007bff !important; }
+.badge-status-processing, .badge-info { color: #17a2b8 !important; }
+.badge-status-done, .badge-success { color: #28a745 !important; }
+.badge-status-close, .badge-secondary { color: #6c757d !important; }
+.badge-status-reopen { color: #fd7e14 !important; }
+.badge-status-close-final, .badge-dark { color: #343a40 !important; }
+.badge-danger { color: #dc3545 !important; }
+.badge-warning { color: #b38600 !important; }
+.badge-light { color: #495057 !important; }
+
+/* Remove background color from alert boxes, chat messages and text containers */
+.alert:not(.alert-dismissible),
+.bg-light,
+.card-header.bg-light,
+.chat-box,
+.chat-msg,
+.chat-msg-shopper,
+.chat-msg-merchant,
+.chat-msg-help,
+.chat-msg-acct,
+.chat-attachment-box {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+.chat-box { max-height: 520px; overflow-y: auto; padding: 15px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 25px; }
 .chat-msg { margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; max-width: 85%; }
-.chat-msg-shopper { background-color: #e3f2fd; border: 1px solid #bbdefb; margin-right: auto; }
-.chat-msg-merchant { background-color: #f1f8e9; border: 1px solid #dcedc8; margin-right: auto; }
-.chat-msg-help { background-color: #fff3e0; border: 1px solid #ffe0b2; margin-left: auto; text-align: left; }
-.chat-msg-acct { background-color: #f3e5f5; border: 1px solid #e1bee7; margin-left: auto; text-align: left; }
+.chat-msg-shopper { border: 1px solid #bbdefb; margin-right: auto; }
+.chat-msg-merchant { border: 1px solid #dcedc8; margin-right: auto; }
+.chat-msg-help { border: 1px solid #ffe0b2; margin-left: auto; text-align: left; }
+.chat-msg-acct { border: 1px solid #e1bee7; margin-left: auto; text-align: left; }
 .chat-msg-meta { font-size: 11px; color: #666; margin-bottom: 5px; }
 .chat-msg-body { font-size: 14px; line-height: 1.5; color: #222; }
 </style>
@@ -113,7 +145,7 @@ $this->load->view('common/fbc-user/header');
                             <?php if (!empty($resolution->merchant_action) && !in_array(strtolower($resolution->merchant_action), ['none', 'n/a'], true)): ?>
                                 <span class="text-primary font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
                             <?php else: ?>
-                                <span class="badge badge-warning" style="background-color: #ffc107; color: #212529; font-weight: 600; padding: 4px 8px; border-radius: 4px;">Pending</span>
+                                <span class="badge badge-warning font-weight-bold" style="color: #b38600;">Pending</span>
                             <?php endif; ?>
                         </div>
                         <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
@@ -168,7 +200,7 @@ $this->load->view('common/fbc-user/header');
                                             <span class="text-muted ml-1">(<?= htmlspecialchars($resolution->admin_return_exception_notes); ?>)</span>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                        <span class="badge badge-warning ml-1" style="background-color: #ffc107; color: #212529;"><i class="fa fa-clock-o"></i> Pending Merchant Confirmation or Admin Exception</span>
+                                        <span class="badge badge-warning ml-1 font-weight-bold" style="color: #b38600;"><i class="fa fa-clock-o"></i> Pending Merchant Confirmation or Admin Exception</span>
                                     <?php endif; ?>
                                 </div>
                             <?php endif; ?>
@@ -183,7 +215,7 @@ $this->load->view('common/fbc-user/header');
                                             <span class="text-muted ml-1">(<?= htmlspecialchars($resolution->admin_replacement_exception_notes); ?>)</span>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                        <span class="badge badge-warning ml-1" style="background-color: #ffc107; color: #212529;"><i class="fa fa-clock-o"></i> Awaiting Shopper Confirmation or Admin Exception</span>
+                                        <span class="badge badge-warning ml-1 font-weight-bold" style="color: #b38600;"><i class="fa fa-clock-o"></i> Awaiting Shopper Confirmation or Admin Exception</span>
                                     <?php endif; ?>
                                 </div>
                             <?php endif; ?>
@@ -469,7 +501,7 @@ $this->load->view('common/fbc-user/header');
                             <i class="fa fa-link mr-1" style="color: #6f42c1;"></i> Linked Original Request & Affected Item Context
                         </span>
                         <div>
-                            <span class="badge mr-1" style="background-color: #6f42c1; color: #fff;"><i class="fa fa-history"></i> Original Request Context</span>
+                            <span class="badge mr-1 font-weight-bold" style="color: #6f42c1;"><i class="fa fa-history"></i> Original Request Context</span>
                             <span class="badge badge-danger"><i class="fa fa-times-circle"></i> Merchant Rejected</span>
                         </div>
                     </div>
@@ -482,7 +514,7 @@ $this->load->view('common/fbc-user/header');
                                     <?= htmlspecialchars($item_context->product_name ?: ($product ? $product->name : 'Item Not Found')); ?>
                                 </div>
                                 
-                                <div class="mt-2 p-2 rounded" style="background: #f8f9fa; border: 1px solid #e9ecef;">
+                                <div class="mt-2 p-2 rounded" style="border: 1px solid #e9ecef;">
                                     <div class="small mb-1">
                                         <strong class="text-secondary"><i class="fa fa-tags"></i> Variant:</strong>
                                         <?php if ($item_context->has_variant): ?>
@@ -554,7 +586,7 @@ $this->load->view('common/fbc-user/header');
 
                                 <div class="small">
                                     <strong class="text-secondary">Merchant Rejection Reason / Note:</strong>
-                                    <div class="p-1 px-2 mt-1 rounded bg-light border text-danger" style="font-size: 12px; line-height: 1.4; background-color: #fff9f9 !important;">
+                                    <div class="p-1 px-2 mt-1 rounded border text-danger" style="font-size: 12px; line-height: 1.4;">
                                         <i class="fa fa-commenting-o mr-1"></i> <?= htmlspecialchars($item_context->rejection_reason); ?>
                                     </div>
                                 </div>
@@ -651,7 +683,7 @@ $this->load->view('common/fbc-user/header');
                     <div class="tab-content card-body p-3" id="adminConvContent">
                         <!-- Pane 1: Admin <-> Shopper -->
                         <div class="tab-pane fade <?= !$is_acct_active ? 'show active' : ''; ?>" id="pane-admin-shopper" role="tabpanel" aria-labelledby="tab-admin-shopper">
-                            <div class="alert alert-primary py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="background-color: #eef5ff; border-color: #cce2ff; font-size: 13px;">
+                            <div class="alert alert-primary py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="border: 1px solid #cce2ff; font-size: 13px;">
                                 <div>
                                     <i class="fa fa-lock text-primary"></i> <strong>Private Dispute Thread (Admin ↔ Shopper):</strong> Confidential investigation channel with the Shopper.
                                 </div>
@@ -718,7 +750,7 @@ $this->load->view('common/fbc-user/header');
                                         <span class="badge badge-primary py-1 px-2 font-weight-bold"><i class="fa fa-lock"></i> Private: Admin ↔ Shopper</span>
                                     </div>
                                     <div class="card-body p-3">
-                                        <div class="alert alert-primary py-2 px-3 mb-3" style="font-size: 12px; background-color: #eef5ff; border-color: #b8daff; color: #004085;">
+                                        <div class="alert alert-primary py-2 px-3 mb-3" style="font-size: 12px; border: 1px solid #b8daff; color: #004085;">
                                             <div class="d-flex align-items-center justify-content-between flex-wrap">
                                                 <div>
                                                     <i class="fa fa-user"></i> <strong>Recipient:</strong> <?= htmlspecialchars($customer ? trim($customer->first_name . ' ' . $customer->last_name) : 'Shopper'); ?> (Shopper)
@@ -758,7 +790,7 @@ $this->load->view('common/fbc-user/header');
 
                         <!-- Pane 2: Admin <-> Merchant -->
                         <div class="tab-pane fade <?= $is_acct_active ? 'show active' : ''; ?>" id="pane-admin-merchant" role="tabpanel" aria-labelledby="tab-admin-merchant">
-                            <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap text-dark" style="background-color: #fff9e6; border-color: #ffe699; font-size: 13px;">
+                            <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap text-dark" style="border: 1px solid #ffe699; font-size: 13px;">
                                 <div>
                                     <i class="fa fa-lock text-warning"></i> <strong>Private Coordination Thread (Admin ↔ Merchant):</strong> Confidential coordination between YellowMarkets Support and the Merchant.
                                 </div>
@@ -825,7 +857,7 @@ $this->load->view('common/fbc-user/header');
                                         <span class="badge badge-warning text-dark py-1 px-2 font-weight-bold"><i class="fa fa-lock"></i> Private: Admin ↔ Merchant</span>
                                     </div>
                                     <div class="card-body p-3">
-                                        <div class="alert alert-warning py-2 px-3 mb-3 text-dark" style="font-size: 12px; background-color: #fff9e6; border-color: #ffe699;">
+                                        <div class="alert alert-warning py-2 px-3 mb-3 text-dark" style="font-size: 12px; border: 1px solid #ffe699;">
                                             <div class="d-flex align-items-center justify-content-between flex-wrap">
                                                 <div>
                                                     <i class="fa fa-building"></i> <strong>Recipient:</strong> <?= htmlspecialchars($merchant ? $merchant->publication_name : 'Merchant'); ?> (Merchant)

@@ -4,19 +4,51 @@ $this->load->view('common/fbc-user/header');
 ?>
 
 <style>
-.badge-status-open { background-color: #007bff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-processing { background-color: #17a2b8; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-done { background-color: #28a745; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-close { background-color: #6c757d; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-reopen { background-color: #fd7e14; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-.badge-status-close-final { background-color: #343a40; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+/* Remove background color from all text elements (badges, labels, status pills, alerts, spans) except buttons */
+span.badge,
+span.label,
+[class*="badge-status-"],
+[class*="badge-action-"],
+.badge-pill {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    font-weight: 700 !important;
+    display: inline-block;
+}
 
-.chat-container { max-height: 520px; overflow-y: auto; padding: 15px; background: #fafafa; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 25px; }
+.badge-status-open, .badge-primary { color: #007bff !important; }
+.badge-status-processing, .badge-info { color: #17a2b8 !important; }
+.badge-status-done, .badge-success { color: #28a745 !important; }
+.badge-status-close, .badge-secondary { color: #6c757d !important; }
+.badge-status-reopen { color: #fd7e14 !important; }
+.badge-status-close-final, .badge-dark { color: #343a40 !important; }
+.badge-danger { color: #dc3545 !important; }
+.badge-warning { color: #b38600 !important; }
+.badge-light { color: #495057 !important; }
+
+/* Remove background color from alert boxes, chat messages and text containers */
+.alert:not(.alert-dismissible),
+.bg-light,
+.card-header.bg-light,
+.chat-container,
+.chat-msg,
+.chat-msg-shopper,
+.chat-msg-merchant,
+.chat-msg-help,
+.chat-msg-acct,
+.chat-attachment-box {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+.chat-container { max-height: 520px; overflow-y: auto; padding: 15px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 25px; }
 .chat-msg { margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; max-width: 85%; }
-.chat-msg-shopper { background-color: #e3f2fd; border: 1px solid #bbdefb; margin-right: auto; }
-.chat-msg-merchant { background-color: #f1f8e9; border: 1px solid #dcedc8; margin-left: auto; text-align: left; }
-.chat-msg-help { background-color: #fff3e0; border: 1px solid #ffe0b2; margin-right: auto; }
-.chat-msg-acct { background-color: #f3e5f5; border: 1px solid #e1bee7; margin-right: auto; }
+.chat-msg-shopper { border: 1px solid #bbdefb; margin-right: auto; }
+.chat-msg-merchant { border: 1px solid #dcedc8; margin-left: auto; text-align: left; }
+.chat-msg-help { border: 1px solid #ffe0b2; margin-right: auto; }
+.chat-msg-acct { border: 1px solid #e1bee7; margin-right: auto; }
 .chat-msg-meta { font-size: 11px; color: #666; margin-bottom: 5px; }
 .chat-msg-body { font-size: 14px; line-height: 1.5; color: #222; }
 </style>
@@ -113,7 +145,7 @@ $this->load->view('common/fbc-user/header');
                                 <?php if (!empty($resolution->merchant_action) && !in_array(strtolower($resolution->merchant_action), ['none', 'n/a'], true)): ?>
                                     <span class="text-primary font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
                                 <?php else: ?>
-                                    <span class="badge badge-warning" style="background-color: #ffc107; color: #212529; font-weight: 600; padding: 4px 8px; border-radius: 4px;"><?= htmlspecialchars($this->lang->line('pending') ?: 'Pending'); ?></span>
+                                    <span class="badge badge-warning font-weight-bold" style="color: #b38600;"><?= htmlspecialchars($this->lang->line('pending') ?: 'Pending'); ?></span>
                                 <?php endif; ?>
                             </div>
                             <div class="col-md-4 col-sm-6">
@@ -244,7 +276,7 @@ $this->load->view('common/fbc-user/header');
                     <?php endif; ?>
 
                     <!-- Warning Callout Matching MYP Wireframe -->
-                    <div class="alert alert-warning py-3 mb-3" style="border-left: 4px solid #d4ac00; background: #fff8d8; color: #22272c; font-size: 14px;">
+                    <div class="alert alert-warning py-3 mb-3" style="border-left: 4px solid #d4ac00; color: #22272c; font-size: 14px;">
                         <i class="fa fa-info-circle text-warning mr-1"></i> <strong>The original Merchant decision has already been made. This Resolution Request is under YM Admin review. Merchant cannot issue a second verdict.</strong>
                     </div>
 
@@ -281,10 +313,10 @@ $this->load->view('common/fbc-user/header');
                                 <h6 class="font-weight-bold text-dark mt-2 mb-1">Required Merchant fulfilment</h6>
                                 <p class="text-muted small mb-3">Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) is required before disputed payout eligibility.</p>
                                 <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
-                                    <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
-                                        <i class="fa fa-truck"></i> Arrange replacement
-                                    </button>
                                     <?php if ($resolution->merchant_action !== 'replacement_completed'): ?>
+                                        <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
+                                            <i class="fa fa-truck"></i> Arrange replacement
+                                        </button>
                                         <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
                                             <i class="fa fa-check-square-o"></i> Mark dispatched / delivered
                                         </button>
@@ -319,7 +351,7 @@ $this->load->view('common/fbc-user/header');
                                 <p class="mb-0 small">Original rejection upheld. Dispute hold becomes eligible for release under the 7-day after Completed payout rule.</p>
                             </div>
                         <?php else: ?>
-                            <div class="alert alert-warning py-2 mb-2" style="background: #fff8d8; border-left: 3px solid #d4ac00;">
+                            <div class="alert alert-warning py-2 mb-2" style="border-left: 3px solid #d4ac00;">
                                 <i class="fa fa-clock-o"></i> <strong>Admin decision pending.</strong> The Merchant may respond privately but cannot decide the Resolution outcome.
                             </div>
                             <?php if ($is_replacement && $resolution->status !== 'Close (Final)'): ?>
@@ -327,14 +359,16 @@ $this->load->view('common/fbc-user/header');
                                     <h6 class="font-weight-bold text-dark mb-1">Required Merchant fulfilment</h6>
                                     <p class="text-muted small mb-2">Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) releases hold subject to payout eligibility.</p>
                                     <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
-                                        <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
-                                            <i class="fa fa-truck"></i> Arrange replacement
-                                        </button>
-                                        <?php if (!empty($resolution->delivery_option) && !in_array($resolution->delivery_option, ['none', 'n/a'], true) && $resolution->merchant_action !== 'replacement_completed'): ?>
-                                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
-                                                <i class="fa fa-check-square-o"></i> Mark dispatched / delivered
+                                        <?php if ($resolution->merchant_action !== 'replacement_completed'): ?>
+                                            <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
+                                                <i class="fa fa-truck"></i> Arrange replacement
                                             </button>
-                                        <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
+                                            <?php if (!empty($resolution->delivery_option) && !in_array($resolution->delivery_option, ['none', 'n/a'], true)): ?>
+                                                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
+                                                    <i class="fa fa-check-square-o"></i> Mark dispatched / delivered
+                                                </button>
+                                            <?php endif; ?>
+                                        <?php else: ?>
                                             <span class="badge badge-success p-2">
                                                 <i class="fa fa-check-circle"></i> Replacement Marked Dispatched / Delivered
                                             </span>
@@ -375,7 +409,7 @@ $this->load->view('common/fbc-user/header');
                             <i class="fa fa-link mr-1" style="color: #6f42c1;"></i> Linked Original Request & Affected Item Context
                         </span>
                         <div>
-                            <span class="badge mr-1" style="background-color: #6f42c1; color: #fff;"><i class="fa fa-history"></i> Original Request Context</span>
+                            <span class="badge mr-1 font-weight-bold" style="color: #6f42c1;"><i class="fa fa-history"></i> Original Request Context</span>
                             <span class="badge badge-danger"><i class="fa fa-times-circle"></i> Merchant Rejected</span>
                         </div>
                     </div>
@@ -388,7 +422,7 @@ $this->load->view('common/fbc-user/header');
                                     <?= htmlspecialchars($item_context->product_name ?: ($product ? $product->name : 'Item Not Found')); ?>
                                 </div>
                                 
-                                <div class="mt-2 p-2 rounded" style="background: #f8f9fa; border: 1px solid #e9ecef;">
+                                <div class="mt-2 p-2 rounded" style="border: 1px solid #e9ecef;">
                                     <div class="small mb-1">
                                         <strong class="text-secondary"><i class="fa fa-tags"></i> Variant:</strong>
                                         <?php if ($item_context->has_variant): ?>
@@ -460,7 +494,7 @@ $this->load->view('common/fbc-user/header');
 
                                 <div class="small">
                                     <strong class="text-secondary">Merchant Rejection Reason / Note:</strong>
-                                    <div class="p-1 px-2 mt-1 rounded bg-light border text-danger" style="font-size: 12px; line-height: 1.4; background-color: #fff9f9 !important;">
+                                    <div class="p-1 px-2 mt-1 rounded border text-danger" style="font-size: 12px; line-height: 1.4;">
                                         <i class="fa fa-commenting-o mr-1"></i> <?= htmlspecialchars($item_context->rejection_reason); ?>
                                     </div>
                                 </div>
@@ -545,7 +579,7 @@ $this->load->view('common/fbc-user/header');
                         </div>
 
                         <div class="card-body p-3">
-                            <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
+                            <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; color: #856404; border: 1px solid #ffeeba;">
                                 <div><i class="fa fa-lock text-warning mr-1"></i> <strong>Private Support &amp; Accounting Thread:</strong> Confidential coordination with YellowMarkets Support (@Help) and Accounting (@Acct). Both authorized teams have access to this thread.</div>
                                 <span class="badge badge-warning"><i class="fa fa-eye-slash"></i> Hidden from Shopper</span>
                             </div>
@@ -608,7 +642,7 @@ $this->load->view('common/fbc-user/header');
                                         <strong style="font-size: 13px;"><i class="fa fa-envelope text-info"></i> <?= $this->lang->line('message_to_admin') ?: 'Message to YellowMarkets Support & Accounting'; ?></strong>
                                     </div>
                                     <div class="card-body p-3">
-                                        <div class="alert alert-warning py-1 px-3 mb-3" style="font-size: 12px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
+                                        <div class="alert alert-warning py-1 px-3 mb-3" style="font-size: 12px; color: #856404; border: 1px solid #ffeeba;">
                                             <div class="d-flex justify-content-between align-items-center flex-wrap">
                                                 <div><i class="fa fa-shield mr-1"></i> <strong>Recipient:</strong> YellowMarkets Support &amp; Accounting (@Help / @Acct)</div>
                                                 <div><i class="fa fa-eye-slash mr-1"></i> <strong>Visibility:</strong> Confidential coordination between Merchant, Support, and Accounting. Both Support and Accounting can access this thread. <em>Shopper cannot view this thread.</em></div>
