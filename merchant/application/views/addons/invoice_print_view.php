@@ -14,7 +14,10 @@ if (empty($addon_purchase)) {
 $purchase_id = $addon_purchase->purchase_id ?? '';
 
 $merchant_name = $addon_purchase->merchant_name ?? 'N/A';
-$merchant_email = $addon_purchase->merchant_email ?? 'N/A';
+$merchant_email = $addon_purchase->merchant_email ?? '';
+
+$merchant_address = $addon_purchase->merchant_address ?? '';
+$merchant_brn = $addon_purchase->merchant_brn ?? '';
 
 $service_name = $addon_purchase->addon_service_name ?? '';
 $addon_name = $addon_purchase->addon_name ?? '';
@@ -27,7 +30,6 @@ $transaction_ref = $addon_purchase->transaction_ref ?? '';
 $price = (float)($addon_purchase->price ?? 0);
 $vat_percent = (float)($addon_purchase->vat_percent ?? 0);
 $final_price = (float)($addon_purchase->final_price ?? 0);
-
 $amount = (float)($addon_purchase->amount ?? 0);
 
 $invoice_date = $addon_purchase->date ?? '';
@@ -37,7 +39,6 @@ $currency = 'MUR';
 // ==========================================
 // PAYMENT STATUS
 // ==========================================
-
 
 $payment_status = strtolower(
     trim((string)($addon_purchase->payment_status ?? ''))
@@ -49,36 +50,25 @@ $is_paid = in_array(
     TRUE
 );
 
-// Invoice amount
-$invoice_total = (float)(
-    $amount > 0 ? $amount : $final_price
-);
+// ==========================================
+// INVOICE CALCULATIONS
+// ==========================================
 
-// VAT calculation
-$vat_amount = max(
-    0,
-    $final_price - $price
-);
+$invoice_total = $amount > 0 ? $amount : $final_price;
+
+$vat_amount = max(0, $final_price - $price);
 
 if ($final_price <= 0) {
     $vat_amount = $price * $vat_percent / 100;
 }
 
-// Subtotal
-$subtotal = max(
-    0,
-    $invoice_total - $vat_amount
-);
+$vat_amount = min($vat_amount, $invoice_total);
 
-// Verified payment
+$subtotal = max(0, $invoice_total - $vat_amount);
+
 $paid_amount = $is_paid ? $invoice_total : 0;
 
-// Remaining balance
-$amount_due = max(
-    0,
-    $invoice_total - $paid_amount
-);
-
+$amount_due = max(0, $invoice_total - $paid_amount);
 
 // ==========================================
 // SAFE OUTPUT
@@ -135,7 +125,6 @@ if (empty($logo_image_src)) {
         'public/images/yellow-markets-logo-yellow-white.png'
     );
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -147,15 +136,9 @@ if (empty($logo_image_src)) {
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>
-    Add-on Invoice #<?php echo $e($purchase_id); ?>
-</title>
+<title>Add-on Invoice #<?php echo $e($purchase_id); ?></title>
 
 <style>
-
-/* ==========================================
-   GENERAL
-========================================== */
 
 * {
     box-sizing: border-box;
@@ -176,13 +159,11 @@ body {
     min-height: 760px;
     margin: auto;
     padding: 28px;
-    background: #ffffff;
+    background: #fff;
     border: 1px solid #cbd3df;
 }
 
-/* ==========================================
-   HEADER
-========================================== */
+/* HEADER */
 
 .header {
     width: 100%;
@@ -204,25 +185,20 @@ body {
 
 .logo-container {
     background-color: #23282d;
-            padding: 10px 16px;
-            border-radius: 4px;
-            display: inline-block;
-            vertical-align: middle;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+    padding: 10px 16px;
+    border-radius: 4px;
+    display: inline-block;
+    vertical-align: middle;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
 }
 
 .logo-container img {
-   display: block;
-            width: 135px;
-            max-width: 100%;
-            height: auto;
-            border: 0;
-}
-
-.logo-placeholder {
-    font-size: 12px;
-    color: #172b4d;
+    display: block;
+    width: 135px;
+    max-width: 100%;
+    height: auto;
+    border: 0;
 }
 
 .brand-subtitle {
@@ -246,9 +222,7 @@ body {
     color: #52647b;
 }
 
-/* ==========================================
-   COMPANY DETAILS
-========================================== */
+/* COMPANY INFORMATION */
 
 .company-details {
     line-height: 1.8;
@@ -262,9 +236,15 @@ body {
     color: #172b4d;
 }
 
-/* ==========================================
-   DETAILS SECTION
-========================================== */
+.company-details .billing-info {
+    margin-top: 4px;
+}
+
+.company-details strong {
+    color: #172b4d;
+}
+
+/* DETAILS */
 
 .details-wrapper {
     width: 100%;
@@ -302,9 +282,7 @@ body {
     color: #172b4d;
 }
 
-/* ==========================================
-   ITEM TABLE
-========================================== */
+/* ITEMS */
 
 .items-table {
     width: 100%;
@@ -320,7 +298,6 @@ body {
     border-bottom: 1px solid #cbd3df;
     font-size: 10px;
     text-align: left;
-    font-weight: bold;
 }
 
 .items-table td {
@@ -339,9 +316,7 @@ body {
     text-align: right !important;
 }
 
-/* ==========================================
-   PAYMENT AND TOTALS
-========================================== */
+/* PAYMENT AND TOTALS */
 
 .bottom-table {
     width: 100%;
@@ -349,7 +324,6 @@ body {
 }
 
 .bottom-table > tbody > tr > td {
-    width: 50%;
     padding: 5px;
     border: none;
     vertical-align: top;
@@ -401,9 +375,7 @@ body {
     border-bottom: 2px solid #172b4d;
 }
 
-/* ==========================================
-   FOOTER
-========================================== */
+/* FOOTER */
 
 .invoice-footer {
     margin-top: 45px;
@@ -418,9 +390,7 @@ body {
     color: #172b4d;
 }
 
-/* ==========================================
-   PRINT BUTTON
-========================================== */
+/* PRINT */
 
 .print-section {
     margin-top: 30px;
@@ -432,15 +402,11 @@ body {
     border: none;
     border-radius: 4px;
     background: #ffd200;
-    color: #000000;
+    color: #000;
     font-size: 13px;
     font-weight: bold;
     cursor: pointer;
 }
-
-/* ==========================================
-   PRINT SETTINGS
-========================================== */
 
 @page {
     size: A4;
@@ -451,7 +417,7 @@ body {
 
     body {
         padding: 0;
-        background: #ffffff;
+        background: #fff;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -474,20 +440,14 @@ body {
         print-color-adjust: exact;
     }
 
+    .logo-container {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
     .header {
         border-bottom: 2px solid #d6a900;
     }
-    .logo-container {
-   -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-}
-
-/* .logo-container img {
-    width: 130px !important;
-    max-height: 40px !important;
-    object-fit: contain;
-} */
-
 }
 
 </style>
@@ -498,9 +458,7 @@ body {
 
 <div class="invoice-box">
 
-    <!-- ======================================
-         HEADER
-    ======================================= -->
+    <!-- HEADER -->
 
     <div class="header">
 
@@ -515,15 +473,13 @@ body {
                         <?php if (!empty($logo_image_src)): ?>
 
                             <img
-                                src="<?php echo $logo_image_src; ?>"
+                                src="<?php echo $e($logo_image_src); ?>"
                                 alt="Yellow Markets Logo"
                             >
 
                         <?php else: ?>
 
-                            <span class="logo-placeholder">
-                                Yellow Markets Logo
-                            </span>
+                            <span>Yellow Markets Logo</span>
 
                         <?php endif; ?>
 
@@ -556,6 +512,7 @@ body {
 
     <!-- ======================================
          COMPANY INFORMATION
+         MERCHANT ADDRESS AND BRN
     ======================================= -->
 
     <div class="company-details">
@@ -564,18 +521,44 @@ body {
             MYP Online Marketing Ltd
         </div>
 
-        Yellow Markets - A MYP Network Service<br>
+        Yellow Markets - A MYP Network Service
 
-        [Verified supplier address] · BRN: [Verified BRN]<br>
+        <div class="billing-info">
 
-        [Billing email] · [Telephone]
+            <?php if (!empty($merchant_address)): ?>
+
+                <strong>Merchant Address:</strong><br>
+
+                <?php echo nl2br($e($merchant_address)); ?>
+
+                <br>
+
+            <?php endif; ?>
+
+            <?php if (!empty($merchant_brn)): ?>
+
+                <strong>Merchant BRN:</strong>
+
+                <?php echo $e($merchant_brn); ?>
+
+                <br>
+
+            <?php endif; ?>
+
+            <?php if (!empty($merchant_email)): ?>
+
+                <strong>Merchant Email:</strong>
+
+                <?php echo $e($merchant_email); ?>
+
+            <?php endif; ?>
+
+        </div>
 
     </div>
 
 
-    <!-- ======================================
-         MERCHANT AND INVOICE DETAILS
-    ======================================= -->
+    <!-- MERCHANT AND INVOICE DETAILS -->
 
     <div class="details-wrapper">
 
@@ -596,19 +579,12 @@ body {
             <tr>
 
                 <td>
-                    <strong>
-                        <?php echo $e($merchant_name); ?>
-                    </strong>
+                    <strong><?php echo $e($merchant_name); ?></strong>
                 </td>
 
                 <td>
-                    <span class="detail-label">
-                        Invoice number
-                    </span>
-
-                    <span class="detail-value">
-                        <?php echo $e($purchase_id); ?>
-                    </span>
+                    <span class="detail-label">Invoice number</span>
+                    <span class="detail-value"><?php echo $e($purchase_id); ?></span>
                 </td>
 
             </tr>
@@ -620,13 +596,8 @@ body {
                 </td>
 
                 <td>
-                    <span class="detail-label">
-                        Invoice date
-                    </span>
-
-                    <span class="detail-value">
-                        <?php echo $e($invoice_date); ?>
-                    </span>
+                    <span class="detail-label">Invoice date</span>
+                    <span class="detail-value"><?php echo $e($invoice_date); ?></span>
                 </td>
 
             </tr>
@@ -638,13 +609,8 @@ body {
                 </td>
 
                 <td>
-                    <span class="detail-label">
-                        Currency
-                    </span>
-
-                    <span class="detail-value">
-                        MUR
-                    </span>
+                    <span class="detail-label">Currency</span>
+                    <span class="detail-value"><?php echo $e($currency); ?></span>
                 </td>
 
             </tr>
@@ -652,65 +618,33 @@ body {
             <?php if (!empty($order_number)): ?>
 
                 <tr>
-
                     <td></td>
-
                     <td>
-
-                        <span class="detail-label">
-                            Order reference
-                        </span>
-
-                        <span class="detail-value">
-                            <?php echo $e($order_number); ?>
-                        </span>
-
+                        <span class="detail-label">Order reference</span>
+                        <span class="detail-value"><?php echo $e($order_number); ?></span>
                     </td>
-
                 </tr>
 
             <?php endif; ?>
-
 
             <?php if (!empty($ticket_number)): ?>
 
                 <tr>
-
                     <td></td>
-
                     <td>
-
-                        <span class="detail-label">
-                            Resolution ticket
-                        </span>
-
-                        <span class="detail-value">
-                            <?php echo $e($ticket_number); ?>
-                        </span>
-
+                        <span class="detail-label">Resolution ticket</span>
+                        <span class="detail-value"><?php echo $e($ticket_number); ?></span>
                     </td>
-
                 </tr>
 
             <?php endif; ?>
 
-
             <tr>
-
                 <td></td>
-
                 <td>
-
-                    <span class="detail-label">
-                        Add-on
-                    </span>
-
-                    <span class="detail-value">
-                        <?php echo $e($addon_name); ?>
-                    </span>
-
+                    <span class="detail-label">Add-on</span>
+                    <span class="detail-value"><?php echo $e($addon_name); ?></span>
                 </td>
-
             </tr>
 
         </table>
@@ -718,9 +652,7 @@ body {
     </div>
 
 
-    <!-- ======================================
-         ADD-ON SERVICE TABLE
-    ======================================= -->
+    <!-- ADD-ON SERVICE TABLE -->
 
     <table class="items-table">
 
@@ -728,17 +660,11 @@ body {
 
             <tr>
 
-                <th width="23%">
-                    Service Name
-                </th>
+                <th width="23%">Service Name</th>
 
-                <th width="42%">
-                    Description
-                </th>
+                <th width="42%">Description</th>
 
-                <th width="8%" class="text-center">
-                    Qty
-                </th>
+                <th width="8%" class="text-center">Qty</th>
 
                 <th width="13%" class="text-right">
                     Unit Price (Excl. VAT)
@@ -757,18 +683,12 @@ body {
             <tr>
 
                 <td>
-
-                    <strong>
-                        <?php echo $e($service_name); ?>
-                    </strong>
-
+                    <strong><?php echo $e($service_name); ?></strong>
                 </td>
 
                 <td>
 
-                    <strong>
-                        <?php echo $e($addon_name); ?>
-                    </strong>
+                    <strong><?php echo $e($addon_name); ?></strong>
 
                     <?php if (!empty($description)): ?>
 
@@ -790,7 +710,6 @@ body {
 
                     <?php endif; ?>
 
-
                     <?php if (!empty($order_number)): ?>
 
                         <br>
@@ -801,9 +720,7 @@ body {
                             <?php echo $e($order_number); ?>
 
                             <?php if (!empty($ticket_number)): ?>
-
                                 (Ticket <?php echo $e($ticket_number); ?>)
-
                             <?php endif; ?>
 
                         </span>
@@ -812,20 +729,14 @@ body {
 
                 </td>
 
-                <td class="text-center">
-                    1
+                <td class="text-center">1</td>
+
+                <td class="text-right">
+                    <?php echo number_format($subtotal, 2); ?>
                 </td>
 
                 <td class="text-right">
-
                     <?php echo number_format($subtotal, 2); ?>
-
-                </td>
-
-                <td class="text-right">
-
-                    <?php echo number_format($subtotal, 2); ?>
-
                 </td>
 
             </tr>
@@ -835,15 +746,11 @@ body {
     </table>
 
 
-    <!-- ======================================
-         PAYMENT INFORMATION AND TOTALS
-    ======================================= -->
+    <!-- PAYMENT INFORMATION AND TOTALS -->
 
     <table class="bottom-table">
 
         <tr>
-
-            <!-- PAYMENT INFORMATION -->
 
             <td width="55%">
 
@@ -862,20 +769,15 @@ body {
 
                     <?php if ($is_paid): ?>
 
-                        <span class="status-paid">
-                            Paid
-                        </span>
+                        <span class="status-paid">Paid</span>
 
                     <?php else: ?>
 
-                        <span class="status-unpaid">
-                            Unpaid
-                        </span>
+                        <span class="status-unpaid">Unpaid</span>
 
                     <?php endif; ?>
 
                     <br>
-
 
                     <?php if (!empty($transaction_ref)): ?>
 
@@ -886,7 +788,6 @@ body {
                         <br>
 
                     <?php endif; ?>
-
 
                     An invoice does not independently confirm
                     receipt of payment. Payment confirmation
@@ -913,9 +814,6 @@ body {
 
             </td>
 
-
-            <!-- INVOICE TOTALS -->
-
             <td width="45%">
 
                 <div class="total-heading">
@@ -925,67 +823,44 @@ body {
                 <table class="total-table">
 
                     <tr>
-
-                        <td>
-                            Subtotal
-                        </td>
-
+                        <td>Subtotal</td>
                         <td class="text-right">
                             <?php echo number_format($subtotal, 2); ?>
                         </td>
-
                     </tr>
 
                     <tr>
-
                         <td>
                             VAT (<?php echo number_format($vat_percent, 2); ?>%)
                         </td>
-
                         <td class="text-right">
                             <?php echo number_format($vat_amount, 2); ?>
                         </td>
-
                     </tr>
 
                     <tr class="grand-total">
-
-                        <td>
-                            Invoice total
-                        </td>
-
+                        <td>Invoice total</td>
                         <td class="text-right">
                             <?php echo number_format($invoice_total, 2); ?>
                         </td>
-
                     </tr>
 
                     <tr>
-
-                        <td>
-                            Verified payment allocated at issue
-                        </td>
-
+                        <td>Verified payment allocated at issue</td>
                         <td class="text-right">
                             <?php echo number_format($paid_amount, 2); ?>
                         </td>
-
                     </tr>
 
                     <tr>
-
                         <td>
                             <strong>Amount due at issue</strong>
                         </td>
-
                         <td class="text-right">
-
                             <strong>
                                 <?php echo number_format($amount_due, 2); ?>
                             </strong>
-
                         </td>
-
                     </tr>
 
                 </table>
@@ -997,15 +872,11 @@ body {
     </table>
 
 
-    <!-- ======================================
-         FOOTER
-    ======================================= -->
+    <!-- FOOTER -->
 
     <div class="invoice-footer">
 
-        <strong>
-            MYP Online Marketing Ltd
-        </strong>
+        <strong>MYP Online Marketing Ltd</strong>
 
         <br>
 
@@ -1022,9 +893,7 @@ body {
     </div>
 
 
-    <!-- ======================================
-         PRINT BUTTON
-    ======================================= -->
+    <!-- PRINT BUTTON -->
 
     <?php if (empty($is_pdf)): ?>
 

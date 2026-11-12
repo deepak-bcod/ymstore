@@ -130,41 +130,111 @@ public function get_service_by_id($service_id)
         return $query->result();
     }
 
-    public function get_purchase_by_id($purchase_id) 
-    {
-        $site_lang = $this->session->userdata('site_lang');
-        $is_french = ($site_lang === 'french');
+    
+public function get_purchase_by_id($purchase_id)
+{
+    $site_lang = $this->session->userdata('site_lang');
+    $is_french = ($site_lang === 'french');
 
-        $this->db->select('
-            p.id as purchase_id,
-            p.merchant_id,
-            DATE_FORMAT(p.created_at, "%d %M %Y") as date,
-            p.status AS payment_status,
-            ' . ($is_french ? 'COALESCE(NULLIF(c.name_fr, \'\'), c.name)' : 'c.name') . ' as addon_service_name,
-            ' . ($is_french ? 'COALESCE(NULLIF(s.title_fr, \'\'), s.title)' : 's.title') . ' as addon_name,
-            s.price,
-            s.vat_percent,
-            COALESCE(NULLIF(p.amount, 0), MAX(txn.amount), s.final_price) as amount,
-            MAX(res.order_number) as order_number,
-            MAX(res.ticket_number) as ticket_number,
-            MAX(txn.transaction_ref) as transaction_ref,
-            COALESCE(NULLIF(pub.publication_name, \'\'), NULLIF(pub.company_name, \'\'), \'Merchant\') as merchant_name,
-            pub.email as merchant_email
-        ', FALSE);
-        $this->db->from('merchant_addon_purchases p');
-        $this->db->join('addon_services s', 's.id = p.service_id', 'left');
-        $this->db->join('addon_categories c', 'c.id = s.category_id', 'left');
-        $this->db->join('publisher pub', 'pub.id = p.merchant_id', 'left');
-        $this->db->join('order_resolutions res', 'res.addon_purchase_id = p.id', 'left');
-        $this->db->join('merchant_addon_transactions txn', 'txn.purchase_id = p.id', 'left');
-        $this->db->where('p.id', $purchase_id);
+    $this->db->select('
+        p.id AS purchase_id,
+        p.merchant_id,
+        DATE_FORMAT(p.created_at, "%d %M %Y") AS date,
+        p.status AS payment_status,
 
-        // Only generate invoices for entries that have completed payment successfully
-        $this->db->where_in('p.status', ['paid', 'success', 'completed']);
-        $this->db->group_by('p.id');
-        
-        $query = $this->db->get();
-        return $query->row();
+        ' . ($is_french
+            ? 'COALESCE(NULLIF(c.name_fr, \'\'), c.name)'
+            : 'c.name') . ' AS addon_service_name,
+
+        ' . ($is_french
+            ? 'COALESCE(NULLIF(s.title_fr, \'\'), s.title)'
+            : 's.title') . ' AS addon_name,
+
+        ' . ($is_french
+            ? 'COALESCE(NULLIF(s.description_fr, \'\'), s.description)'
+            : 's.description') . ' AS addon_description,
+
+        s.price,
+        s.vat_percent,
+        s.final_price,
+
+        COALESCE(
+            NULLIF(p.amount, 0),
+            MAX(txn.amount),
+            s.final_price
+        ) AS amount,
+
+        MAX(res.order_number) AS order_number,
+        MAX(res.ticket_number) AS ticket_number,
+        MAX(txn.transaction_ref) AS transaction_ref,
+
+        COALESCE(
+            NULLIF(pub.publication_name, \'\'),
+            NULLIF(pub.company_name, \'\'),
+            \'Merchant\'
+        ) AS merchant_name,
+
+        pub.email AS merchant_email,
+        pub.brn_number AS merchant_brn,
+        pub.address AS merchant_address
+
+    ', FALSE);
+
+    $this->db->from('merchant_addon_purchases p');
+
+    $this->db->join(
+        'addon_services s',
+        's.id = p.service_id',
+        'left'
+    );
+
+    $this->db->join(
+        'addon_categories c',
+        'c.id = s.category_id',
+        'left'
+    );
+
+    $this->db->join(
+        'publisher pub',
+        'pub.id = p.merchant_id',
+        'left'
+    );
+
+    $this->db->join(
+        'order_resolutions res',
+        'res.addon_purchase_id = p.id',
+        'left'
+    );
+
+    $this->db->join(
+        'merchant_addon_transactions txn',
+        'txn.purchase_id = p.id',
+        'left'
+    );
+
+    $this->db->where('p.id', (int) $purchase_id);
+
+    $this->db->where_in(
+        'p.status',
+        ['paid', 'success', 'completed']
+    );
+
+    $this->db->group_by('p.id');
+
+    $query = $this->db->get();
+
+    if (!$query) {
+        log_message(
+            'error',
+            'Addon invoice query error: ' .
+            json_encode($this->db->error())
+        );
+
+        return NULL;
     }
+
+    return $query->row();
+}
+
 
 }
