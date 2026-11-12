@@ -15,6 +15,9 @@ class OrderResolutionController extends CI_Controller
 
         $this->load->model('CommonModel');
         $this->load->model('OrderResolutionModel');
+        if (isset($this->OrderResolutionModel)) {
+            $this->OrderResolutionModel->ensure_schema();
+        }
 
         $site_lang = $this->session->userdata('site_lang') ?: 'english';
         $this->lang->load('content', $site_lang);
@@ -40,7 +43,15 @@ class OrderResolutionController extends CI_Controller
         $awaiting_fulfilment_cnt = 0;
         $closed_cnt              = 0;
 
-        $all_tickets = $this->db->select('id, status, merchant_action, category, resolution_status, admin_decision')
+        $cols = ['id', 'status', 'merchant_action', 'category'];
+        if ($this->db->field_exists('resolution_status', 'order_resolutions')) {
+            $cols[] = 'resolution_status';
+        }
+        if ($this->db->field_exists('admin_decision', 'order_resolutions')) {
+            $cols[] = 'admin_decision';
+        }
+
+        $all_tickets = $this->db->select(implode(', ', $cols))
             ->from('order_resolutions')
             ->where('merchant_id', $merchant_id)
             ->get()
@@ -52,7 +63,8 @@ class OrderResolutionController extends CI_Controller
                 $closed_cnt++;
             } else {
                 $open_cnt++;
-                if ($t->status === 'Processing' || $t->admin_decision === 'in_favour_shopper' || in_array($t->merchant_action, ['replacement_approved', 'refund_approved'], true)) {
+                $admin_dec = isset($t->admin_decision) ? $t->admin_decision : '';
+                if ($t->status === 'Processing' || $admin_dec === 'in_favour_shopper' || in_array($t->merchant_action, ['replacement_approved', 'refund_approved'], true)) {
                     $awaiting_fulfilment_cnt++;
                 }
             }

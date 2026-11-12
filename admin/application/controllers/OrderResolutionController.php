@@ -15,6 +15,9 @@ class OrderResolutionController extends CI_Controller
 
         $this->load->model('CommonModel');
         $this->load->model('OrderResolutionModel');
+        if (isset($this->OrderResolutionModel)) {
+            $this->OrderResolutionModel->ensure_schema();
+        }
     }
 
     /**
@@ -44,7 +47,15 @@ class OrderResolutionController extends CI_Controller
         $awaiting_fulfilment_cnt = 0;
         $closed_cnt              = 0;
 
-        $all_tickets = $this->db->select('id, status, merchant_action, category, resolution_status, admin_decision')
+        $cols = ['id', 'status', 'merchant_action', 'category'];
+        if ($this->db->field_exists('resolution_status', 'order_resolutions')) {
+            $cols[] = 'resolution_status';
+        }
+        if ($this->db->field_exists('admin_decision', 'order_resolutions')) {
+            $cols[] = 'admin_decision';
+        }
+
+        $all_tickets = $this->db->select(implode(', ', $cols))
             ->from('order_resolutions')
             ->get()
             ->result();
@@ -55,8 +66,10 @@ class OrderResolutionController extends CI_Controller
                 $closed_cnt++;
             } else {
                 $open_cnt++;
+                $admin_dec = isset($t->admin_decision) ? $t->admin_decision : '';
+                $res_st    = isset($t->resolution_status) ? $t->resolution_status : '';
                 // If resolution approved in favour of shopper or status is Processing -> Awaiting Fulfilment
-                if ($t->status === 'Processing' || $t->admin_decision === 'in_favour_shopper' || $t->resolution_status === 'resolution_approved') {
+                if ($t->status === 'Processing' || $admin_dec === 'in_favour_shopper' || $res_st === 'resolution_approved') {
                     $awaiting_fulfilment_cnt++;
                 } else {
                     // Open or ReOpen dispute awaiting Admin review & adjudication

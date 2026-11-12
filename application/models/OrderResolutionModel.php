@@ -20,60 +20,51 @@ class OrderResolutionModel extends CI_Model
             if (empty($this->db) || empty($this->db->conn_id)) {
                 return;
             }
-            if ($this->db && $this->db->table_exists('order_resolution_messages')) {
+
+            $prev_debug = $this->db->db_debug;
+            $this->db->db_debug = FALSE;
+
+            if ($this->db->table_exists('order_resolution_messages')) {
                 if (!$this->db->field_exists('conversion_type', 'order_resolution_messages')) {
-                    $this->db->query("ALTER TABLE `order_resolution_messages` ADD COLUMN `conversion_type` enum('shopper_merchant','shopper_admin','merchant_admin') NOT NULL DEFAULT 'shopper_merchant' AFTER `ticket_number`");
+                    $this->db->query("ALTER TABLE `order_resolution_messages` ADD COLUMN `conversion_type` enum('shopper_merchant','shopper_admin','merchant_admin') NOT NULL DEFAULT 'shopper_merchant'");
                     $this->db->query("ALTER TABLE `order_resolution_messages` ADD INDEX `idx_msg_conversion` (`ticket_number`, `conversion_type`)");
                     $this->db->query("UPDATE `order_resolution_messages` SET `conversion_type` = 'shopper_admin' WHERE `sender_role` IN ('help', 'acct')");
                 }
             }
-            if ($this->db && $this->db->table_exists('order_resolutions')) {
-                if (!$this->db->field_exists('addon_service_id', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `addon_service_id` int(11) DEFAULT NULL AFTER `addon_purchase_id`");
-                }
-                if (!$this->db->field_exists('refund_amount', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `refund_amount` decimal(12,2) NOT NULL DEFAULT '0.00' AFTER `resolution_status`");
-                }
-                if (!$this->db->field_exists('admin_decision', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision` varchar(50) DEFAULT 'pending' AFTER `resolution_status`");
-                }
-                if (!$this->db->field_exists('admin_decision_reason', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision_reason` text DEFAULT NULL AFTER `admin_decision`");
-                }
-                if (!$this->db->field_exists('admin_remedy', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_remedy` varchar(50) DEFAULT 'none' AFTER `admin_decision_reason`");
-                }
-                if (!$this->db->field_exists('merchant_return_confirmed', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_confirmed` tinyint(1) DEFAULT 0 AFTER `admin_remedy`");
-                }
-                if (!$this->db->field_exists('merchant_return_notes', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_notes` text DEFAULT NULL AFTER `merchant_return_confirmed`");
-                }
-                if (!$this->db->field_exists('shopper_receipt_confirmed', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `shopper_receipt_confirmed` tinyint(1) DEFAULT 0 AFTER `merchant_return_notes`");
-                }
-                if (!$this->db->field_exists('admin_return_exception', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception` tinyint(1) DEFAULT 0 AFTER `shopper_receipt_confirmed`");
-                }
-                if (!$this->db->field_exists('admin_return_exception_notes', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception_notes` text DEFAULT NULL AFTER `admin_return_exception`");
-                }
-                if (!$this->db->field_exists('admin_replacement_exception', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception` tinyint(1) DEFAULT 0 AFTER `admin_return_exception_notes`");
-                }
-                if (!$this->db->field_exists('admin_replacement_exception_notes', 'order_resolutions')) {
-                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception_notes` text DEFAULT NULL AFTER `admin_replacement_exception`");
+            if ($this->db->table_exists('order_resolutions')) {
+                $cols_to_add = [
+                    'addon_service_id'               => "ALTER TABLE `order_resolutions` ADD COLUMN `addon_service_id` int(11) DEFAULT NULL",
+                    'refund_amount'                  => "ALTER TABLE `order_resolutions` ADD COLUMN `refund_amount` decimal(12,2) NOT NULL DEFAULT '0.00'",
+                    'resolution_status'              => "ALTER TABLE `order_resolutions` ADD COLUMN `resolution_status` enum('none','resolution_requested','resolution_approved','resolution_denied') NOT NULL DEFAULT 'none'",
+                    'admin_decision'                 => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision` varchar(50) DEFAULT 'pending'",
+                    'admin_decision_reason'          => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision_reason` text DEFAULT NULL",
+                    'admin_remedy'                   => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_remedy` varchar(50) DEFAULT 'none'",
+                    'merchant_return_confirmed'      => "ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_confirmed` tinyint(1) DEFAULT 0",
+                    'merchant_return_notes'          => "ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_notes` text DEFAULT NULL",
+                    'shopper_receipt_confirmed'      => "ALTER TABLE `order_resolutions` ADD COLUMN `shopper_receipt_confirmed` tinyint(1) DEFAULT 0",
+                    'admin_return_exception'         => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception` tinyint(1) DEFAULT 0",
+                    'admin_return_exception_notes'   => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception_notes` text DEFAULT NULL",
+                    'admin_replacement_exception'    => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception` tinyint(1) DEFAULT 0",
+                    'admin_replacement_exception_notes'=> "ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception_notes` text DEFAULT NULL",
+                ];
+
+                foreach ($cols_to_add as $col => $sql) {
+                    if (!$this->db->field_exists($col, 'order_resolutions')) {
+                        $this->db->query($sql);
+                    }
                 }
             }
-            if ($this->db && $this->db->table_exists('order_resolution_audit_log')) {
+            if ($this->db->table_exists('order_resolution_audit_log')) {
                 if (!$this->db->field_exists('source_panel', 'order_resolution_audit_log')) {
-                    $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD COLUMN `source_panel` varchar(50) NOT NULL DEFAULT 'admin' AFTER `actor_id`");
+                    $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD COLUMN `source_panel` varchar(50) NOT NULL DEFAULT 'admin'");
                 }
                 if (!$this->db->field_exists('conversion_direction', 'order_resolution_audit_log')) {
-                    $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD COLUMN `conversion_direction` varchar(50) NOT NULL DEFAULT 'shopper_merchant' AFTER `source_panel`");
+                    $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD COLUMN `conversion_direction` varchar(50) NOT NULL DEFAULT 'shopper_merchant'");
                     $this->db->query("ALTER TABLE `order_resolution_audit_log` ADD INDEX `idx_audit_conversion` (`ticket_number`, `conversion_direction`)");
                 }
             }
+
+            $this->db->db_debug = $prev_debug;
         } catch (\Throwable $e) {
             log_message('error', 'Schema check in OrderResolutionModel: ' . $e->getMessage());
         }
