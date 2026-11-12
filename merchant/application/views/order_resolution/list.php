@@ -21,8 +21,16 @@
     <div class="main-inner">
         <div class="content-main form-dashboard helf-section">
 
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><?php echo $this->lang->line('order_resolution') ?: 'Order Resolution Requests'; ?></h1>
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-2 border-bottom">
+                <div>
+                    <h1 class="h2 mb-1"><?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?></h1>
+                    <div class="text-muted small">Admin escalations and fulfilment</div>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#rulesModal" data-bs-toggle="modal" data-bs-target="#rulesModal">
+                        <i class="fa fa-book"></i> Review approved workflow
+                    </button>
+                </div>
             </div>
 
             <?php if ($this->session->flashdata('success')): ?>
@@ -42,20 +50,61 @@
                 </div>
             <?php endif; ?>
 
+            <!-- Stat Cards Matching MYP Wireframe -->
+            <div class="row mb-3 mt-3">
+                <div class="col-md-4 col-sm-4 col-12 mb-2">
+                    <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                        <span class="text-muted small text-uppercase font-weight-bold">Open</span>
+                        <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['open'] ?? 0; ?></h2>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-4 col-12 mb-2">
+                    <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                        <span class="text-muted small text-uppercase font-weight-bold">Awaiting fulfilment</span>
+                        <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['awaiting_fulfilment'] ?? 0; ?></h2>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-4 col-12 mb-2">
+                    <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                        <span class="text-muted small text-uppercase font-weight-bold">Closed</span>
+                        <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['closed'] ?? 0; ?></h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters & Search Toolbar -->
+            <div class="card mb-3 shadow-sm border-0 bg-light p-3">
+                <div class="row align-items-center">
+                    <div class="col-md-8 col-sm-12 mb-2 mb-md-0">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-white border-right-0"><i class="fa fa-search text-muted"></i></span>
+                            </div>
+                            <input type="text" id="merchantSearchInput" class="form-control border-left-0" placeholder="Search ticket, order, product or shopper..." oninput="filterMerchantTicketRows()">
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-12">
+                        <select id="merchantWorkflowFilter" class="form-control bg-white" onchange="filterMerchantTicketRows()">
+                            <option value="">All statuses</option>
+                            <option value="admin_review">Admin Review</option>
+                            <option value="merchant_action">Merchant Action</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="table-responsive">
-                <table class="table table-bordered table-hover text-center table-resolution-list">
+                <table class="table table-bordered table-hover text-center table-resolution-list" id="merchantTicketsTable">
                     <thead class="thead-light">
                         <tr>
-                            <th><?= $this->lang->line('ticket_no') ?: 'Ticket #'; ?></th>
-                            <th><?= $this->lang->line('order_number') ?: 'Order #'; ?></th>
-                            <th><?= $this->lang->line('product') ?: 'Product'; ?></th>
-                            <th><?= $this->lang->line('shopper') ?: 'Shopper'; ?></th>
-                            <th><?= $this->lang->line('subject_type') ?: 'Subject Type'; ?></th>
-                            <th><?= $this->lang->line('priority') ?: 'Priority'; ?></th>
-                            <th><?= $this->lang->line('status') ?: 'Status'; ?></th>
-                            <th><?= $this->lang->line('merchant_status') ?: 'Merchant Status'; ?></th>
-                            <th><?= $this->lang->line('date') ?: 'Date'; ?></th>
-                            <th><?= $this->lang->line('action') ?: 'Action'; ?></th>
+                            <th style="width: 15%;">Ticket ID</th>
+                            <th style="width: 25%;">Order / Item</th>
+                            <th style="width: 18%;">Shopper</th>
+                            <th style="width: 14%;">Request</th>
+                            <th style="width: 16%;">Status / Next</th>
+                            <th style="width: 12%;">Updated</th>
+                            <th style="width: 10%;"><?= $this->lang->line('action') ?: 'Action'; ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -64,54 +113,64 @@
                                 $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $res->status));
                                 $status_key  = 'status_' . strtolower(str_replace([' ', '(', ')', '-'], ['_', '', '', '_'], $res->status));
                                 $cat_key     = 'category_' . strtolower(trim($res->category ?? ''));
-                                $pri_key     = 'priority_' . strtolower(trim($res->priority ?? ''));
                                 $shopper_name = trim(($res->first_name ?? '') . ' ' . ($res->last_name ?? '')) ?: ($res->customer_email ?: ($this->lang->line('shopper') ?: 'Shopper'));
+                                $view_url    = base_url('order_resolution/view/' . $res->ticket_number);
+
+                                $is_closed = in_array($res->status, ['Close', 'Close (Final)', 'Done'], true);
+                                if ($is_closed) {
+                                    $wf_status = 'Closed';
+                                    $wf_key = 'closed';
+                                    $wf_next = 'None';
+                                } elseif ($res->status === 'Processing' || (!empty($res->merchant_action) && !in_array($res->merchant_action, ['none', 'n/a', 'replacement_completed'], true))) {
+                                    $wf_status = 'Merchant Action';
+                                    $wf_key = 'merchant_action';
+                                    $wf_next = 'Merchant';
+                                } else {
+                                    $wf_status = 'Admin Review';
+                                    $wf_key = 'admin_review';
+                                    $wf_next = 'YM Admin';
+                                }
+
+                                $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . $shopper_name . ' ' . $res->category . ' ' . $res->status . ' ' . $wf_status . ' ' . $wf_next);
+                                $updated_text = (date('Y-m-d', $res->created_at) === date('Y-m-d')) ? 'Today' : ((date('Y-m-d', $res->created_at) === date('Y-m-d', strtotime('-1 day'))) ? 'Yesterday' : date('d M Y', $res->created_at));
                             ?>
-                                <tr>
-                                    <td><strong><?= htmlspecialchars($res->ticket_number); ?></strong></td>
-                                    <td>#<?= htmlspecialchars($res->order_number); ?></td>
-                                    <td><?= htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?></td>
-                                    <td><?= htmlspecialchars($shopper_name); ?></td>
-                                    <td><span class="badge badge-secondary"><?= htmlspecialchars($this->lang->line($cat_key) ?: $res->category); ?></span></td>
+                                <tr data-search="<?= htmlspecialchars($search_blob); ?>" data-workflow="<?= $wf_key; ?>">
                                     <td>
-                                        <?php
-                                        $p_badge = 'badge-secondary';
-                                        if ($res->priority === 'High') {
-                                            $p_badge = 'badge-danger';
-                                        } elseif ($res->priority === 'Medium') {
-                                            $p_badge = 'badge-warning';
-                                        } elseif ($res->priority === 'Low') {
-                                            $p_badge = 'badge-info';
-                                        }
-                                        ?>
-                                        <span class="badge <?= $p_badge; ?>"><?= htmlspecialchars($this->lang->line($pri_key) ?: ($res->priority ?: 'Medium')); ?></span>
+                                        <a href="<?= $view_url; ?>" class="font-weight-bold text-primary text-nowrap" style="text-decoration: underline; text-underline-offset: 3px;">
+                                            <?= htmlspecialchars($res->ticket_number); ?>
+                                        </a>
+                                    </td>
+                                    <td class="text-left">
+                                        <div class="font-weight-bold text-dark">#<?= htmlspecialchars($res->order_number); ?></div>
+                                        <div class="small text-muted text-truncate" style="max-width: 230px;" title="<?= htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?>">
+                                            <i class="fa fa-cube text-secondary"></i> <?= htmlspecialchars($res->product_name ?: ($this->lang->line('all_items') ?: 'All Items')); ?>
+                                        </div>
                                     </td>
                                     <td>
-                                        <span class="badge-status-<?= $status_slug; ?>">
-                                            <?= htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $mAction = trim($res->merchant_action ?? '');
-                                        if (!empty($mAction) && !in_array(strtolower($mAction), ['none', 'n/a'], true)):
-                                            $bClass = 'badge-action-completed';
-                                            if (strpos($mAction, 'approved') !== false) {
-                                                $bClass = 'badge-action-approved';
-                                            } elseif (strpos($mAction, 'denied') !== false) {
-                                                $bClass = 'badge-action-denied';
-                                            }
-                                        ?>
-                                            <span class="badge-action <?= $bClass; ?>">
-                                                <?= htmlspecialchars($this->lang->line($mAction) ?: ucwords(str_replace('_', ' ', $mAction))); ?>
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge-action badge-action-pending badge badge-warning"><?= htmlspecialchars($this->lang->line('pending') ?: 'Pending'); ?></span>
+                                        <div class="font-weight-bold"><?= htmlspecialchars($shopper_name); ?></div>
+                                        <?php if (!empty($res->customer_email)): ?>
+                                            <div class="small text-muted text-truncate" style="max-width: 150px;"><?= htmlspecialchars($res->customer_email); ?></div>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= date('d M Y', $res->created_at); ?></td>
                                     <td>
-                                        <a href="<?= base_url('order_resolution/view/' . $res->ticket_number); ?>" class="btn btn-sm btn-info">
+                                        <span class="badge badge-info px-2 py-1"><?= htmlspecialchars($this->lang->line($cat_key) ?: $res->category); ?></span>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="badge-status-<?= $status_slug; ?>">
+                                                <?= htmlspecialchars($wf_status); ?>
+                                            </span>
+                                        </div>
+                                        <div class="small text-muted mt-1">
+                                            <i class="fa fa-user-circle-o"></i> <?= $wf_next; ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small font-weight-bold"><?= $updated_text; ?></div>
+                                        <div class="small text-muted"><?= date('h:i A', $res->created_at); ?></div>
+                                    </td>
+                                    <td>
+                                        <a href="<?= $view_url; ?>" class="btn btn-sm btn-info text-nowrap">
                                             <i class="fa fa-eye"></i> <?= $this->lang->line('view') ?: 'View'; ?>
                                         </a>
                                     </td>
@@ -119,8 +178,8 @@
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="10" class="text-center py-4 text-muted">
-                                    <?= $this->lang->line('no_order_resolution_tickets') ?: 'No Order Resolution requests found.'; ?>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <?= $this->lang->line('no_records_found') ?: 'No Order Resolution tickets found.'; ?>
                                 </td>
                             </tr>
                         <?php endif; ?>
@@ -131,5 +190,46 @@
         </div>
     </div>
 </main>
+
+<!-- Approved Workflow Modal Matching MYP Wireframe -->
+<div class="modal fade" id="rulesModal" tabindex="-1" role="dialog" aria-labelledby="rulesModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title font-weight-bold text-dark" id="rulesModalTitle"><i class="fa fa-shield"></i> Approved Merchant-facing rules</h5>
+                <button type="button" class="close text-dark" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4" style="line-height: 1.6; font-size: 14px;">
+                <p><strong>Approved Order Resolution Workflow:</strong></p>
+                <p>Original Merchant rejection &rarr; direct Shopper escalation to YM Admin. Merchant communicates privately with Admin; cannot see Admin–Shopper messages. Decisions use “In Favour of Shopper/Merchant”. Replacement requires Shopper receipt confirmation. Return must be confirmed before refund, with documented Admin exceptions. Disputed item-level amounts are held; standard Merchant payout timing is 7 days after Completed.</p>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterMerchantTicketRows() {
+    var q = (document.getElementById('merchantSearchInput').value || '').toLowerCase().trim();
+    var filter = document.getElementById('merchantWorkflowFilter').value;
+    var rows = document.querySelectorAll('#merchantTicketsTable tbody tr[data-search]');
+    
+    rows.forEach(function(row) {
+        var text = row.getAttribute('data-search') || '';
+        var wf = row.getAttribute('data-workflow') || '';
+        var matchText = (!q || text.indexOf(q) !== -1);
+        var matchWf = (!filter || wf === filter);
+        if (matchText && matchWf) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
 
 <?php $this->load->view('common/fbc-user/footer'); ?>

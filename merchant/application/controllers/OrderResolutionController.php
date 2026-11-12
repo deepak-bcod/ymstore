@@ -35,6 +35,13 @@ class OrderResolutionController extends CI_Controller
         $this->db->order_by('r.id', 'DESC');
         $data['resolutions'] = $this->db->get()->result();
 
+        // MYP Consolidated Wireframes v1.0 Stats
+        $data['stats'] = [
+            'open'                => (int)$this->db->where('merchant_id', $merchant_id)->where_in('status', ['Open', 'ReOpen'])->count_all_results('order_resolutions'),
+            'awaiting_fulfilment' => (int)$this->db->where('merchant_id', $merchant_id)->group_start()->where('status', 'Processing')->or_group_start()->where_in('merchant_action', ['replacement_approved', 'refund_approved'])->where_not_in('status', ['Done', 'Close', 'Close (Final)'])->group_end()->group_end()->count_all_results('order_resolutions'),
+            'closed'              => (int)$this->db->where('merchant_id', $merchant_id)->where_in('status', ['Done', 'Close', 'Close (Final)'])->count_all_results('order_resolutions'),
+        ];
+
         $data['side_menu'] = 'order_resolution';
         $data['PageTitle'] = 'Order Resolution Requests';
         $this->load->view('order_resolution/list', $data);
@@ -286,6 +293,25 @@ class OrderResolutionController extends CI_Controller
         }
 
         $this->json_response($result['status'], $message, $result, 'order_resolution/view/' . $ticket_number);
+    }
+
+    /**
+     * Merchant confirms receipt of returned item
+     */
+    public function confirm_item_returned()
+    {
+        $merchant_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $evidence      = trim($this->input->post('evidence', true));
+
+        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res || (int)$res->merchant_id !== (int)$merchant_id) {
+            $this->json_response(false, 'Ticket not found or unauthorized access.', [], 'order_resolution');
+            return;
+        }
+
+        $result = $this->OrderResolutionModel->merchant_confirm_item_returned($ticket_number, $merchant_id, $evidence);
+        $this->json_response($result['status'], $result['message'], $result, 'order_resolution/view/' . $ticket_number);
     }
 
     /**

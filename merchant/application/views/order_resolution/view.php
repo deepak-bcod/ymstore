@@ -243,100 +243,85 @@ $this->load->view('common/fbc-user/header');
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($resolution->resolution_status === 'resolution_requested'): ?>
-                        <div class="alert alert-warning py-2 mb-3">
-                            <i class="fa fa-exclamation-triangle"></i> <strong><?= $this->lang->line('dispute_under_review') ?: 'Dispute Under Review:'; ?></strong> <?= $this->lang->line('dispute_under_review_desc') ?: 'The shopper has requested resolution assistance from Yellow Markets (@Help). Support is investigating and will communicate via the ticket conversation.'; ?>
-                        </div>
-                    <?php elseif ($resolution->status === 'Close (Final)'): ?>
+                    <!-- Warning Callout Matching MYP Wireframe -->
+                    <div class="alert alert-warning py-3 mb-3" style="border-left: 4px solid #d4ac00; background: #fff8d8; color: #22272c; font-size: 14px;">
+                        <i class="fa fa-info-circle text-warning mr-1"></i> <strong>The original Merchant decision has already been made. This Resolution Request is under YM Admin review. Merchant cannot issue a second verdict.</strong>
+                    </div>
+
+                    <?php if ($resolution->status === 'Close (Final)'): ?>
                         <div class="alert alert-secondary py-2 mb-3">
                             <i class="fa fa-lock"></i> <strong><?= $this->lang->line('closed_final_title') ?: 'Closed (Final):'; ?></strong> <?= $this->lang->line('closed_final_desc') ?: 'This resolution ticket has been closed (Final) with no further options.'; ?>
                         </div>
                     <?php endif; ?>
 
-                    <!-- Action Buttons Section -->
+                    <!-- YM Admin Decision and Merchant Actions Section -->
                     <div class="p-3 bg-light border rounded mb-4">
-                        <h6 class="font-weight-bold mb-3"><i class="fa fa-gavel"></i> <?= $this->lang->line('resolution_decision_actions') ?: 'Order Resolution Decision Actions'; ?></h6>
-                        <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
+                        <h6 class="font-weight-bold mb-2"><i class="fa fa-gavel"></i> YM Admin decision and Merchant actions</h6>
 
-                            <?php 
-                            $category_clean = strtolower(trim($resolution->category ?? ''));
-                            $is_refund_ticket = in_array($category_clean, ['refund', 'return'], true);
-                            $is_replacement_ticket = ($category_clean === 'replacement');
-                            ?>
+                        <?php 
+                        $admin_dec = $resolution->admin_decision ?? '';
+                        $res_stat  = $resolution->resolution_status ?? '';
+                        $admin_rem = $resolution->admin_remedy ?? '';
+                        $category_clean = strtolower(trim($resolution->category ?? ''));
+                        $is_refund = in_array($category_clean, ['refund', 'return'], true) || ($admin_rem === 'return_refund');
+                        $is_replacement = ($category_clean === 'replacement') || ($admin_rem === 'replacement');
 
-                            <?php if ($is_refund_ticket): ?>
-                                <!-- REFUND DECISION BUTTONS (Subject Type: Refund) -->
-                                <?php if ($resolution->merchant_action === 'none'): ?>
-                                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#refundApproveModal" data-bs-toggle="modal" data-bs-target="#refundApproveModal">
-                                        <i class="fa fa-check"></i> <?= $this->lang->line('refund_approved') ?: 'Refund Approved'; ?>
-                                    </button>
-                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#refundDeniedModal" data-bs-toggle="modal" data-bs-target="#refundDeniedModal">
-                                        <i class="fa fa-times"></i> <?= $this->lang->line('refund_denied') ?: 'Refund Denied'; ?>
-                                    </button>
-                                <?php elseif ($resolution->merchant_action === 'refund_denied'): ?>
-                                    <span class="badge badge-danger p-2">
-                                        <i class="fa fa-times-circle"></i> <?= $this->lang->line('refund_denied') ?: 'Refund Denied'; ?>
-                                    </span>
-                                <?php elseif ($resolution->merchant_action === 'refund_approved'): ?>
-                                    <span class="badge badge-success p-2">
-                                        <i class="fa fa-check-circle"></i> <?= $this->lang->line('refund_approved') ?: 'Refund Approved'; ?> (<?= $currency . ' ' . number_format($resolution->refund_amount, 2); ?>)
-                                    </span>
-                                <?php endif; ?>
-                            <?php endif; ?>
+                        $is_approved_shopper = ($admin_dec === 'in_favour_shopper' || $res_stat === 'resolution_approved' || $resolution->status === 'Processing');
+                        $is_approved_merchant = ($admin_dec === 'in_favour_merchant' || $res_stat === 'resolution_denied' || ($resolution->status === 'Close (Final)' && !$is_approved_shopper));
+                        ?>
 
-                            <?php if ($is_replacement_ticket): ?>
-                                <!-- REPLACEMENT DECISION BUTTONS (Subject Type: Replacement) -->
-                                <?php if ($resolution->merchant_action === 'none'): ?>
-                                    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
-                                        <i class="fa fa-refresh"></i> <?= $this->lang->line('replacement_approved') ?: 'Replacement Approved'; ?>
+                        <?php if ($is_approved_shopper): ?>
+                            <?php if ($is_replacement): ?>
+                                <div class="alert alert-success py-2 mb-3">
+                                    <strong><i class="fa fa-check-circle"></i> YM Admin Decision: In Favour of Shopper – Replacement</strong>
+                                    <p class="mb-0 small">Both parties have received official decision notification. Disputed funds remain held pending fulfilment and Shopper receipt confirmation.</p>
+                                </div>
+                                <h6 class="font-weight-bold text-dark mt-2 mb-1">Required Merchant fulfilment</h6>
+                                <p class="text-muted small mb-3">Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) is required before disputed payout eligibility.</p>
+                                <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
+                                    <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
+                                        <i class="fa fa-truck"></i> Arrange replacement
                                     </button>
-                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#replacementDeniedModal" data-bs-toggle="modal" data-bs-target="#replacementDeniedModal">
-                                        <i class="fa fa-ban"></i> <?= $this->lang->line('replacement_denied') ?: 'Replacement Denied'; ?>
-                                    </button>
-                                <?php elseif ($resolution->merchant_action === 'replacement_denied'): ?>
-                                    <span class="badge badge-danger p-2">
-                                        <i class="fa fa-times-circle"></i> <?= $this->lang->line('replacement_denied') ?: 'Replacement Denied'; ?>
-                                    </span>
-                                <?php elseif ($resolution->merchant_action === 'replacement_approved'): ?>
-                                    <span class="badge badge-info p-2">
-                                        <i class="fa fa-check-circle"></i> <?= $this->lang->line('replacement_approved') ?: 'Replacement Approved'; ?> (<?= htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?>)
-                                    </span>
-                                    <!-- Delivery Handling: YM Delivery is performed by Yellow Markets team, while Own Delivery / Self Pickup is handled by Merchant -->
-                                    <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
-                                        <?php if (empty($is_addon_paid)): ?>
-                                            <span class="badge badge-warning text-dark p-2 ml-1" style="font-size: 12px;">
-                                                <i class="fa fa-exclamation-triangle"></i> <?= $this->lang->line('addon_service_payment_required') ?: 'YM Delivery AddOn Payment Required'; ?>
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge badge-success p-2 ml-1" style="font-size: 12px;">
-                                                <i class="fa fa-check-circle"></i> <?= $this->lang->line('addon_service_paid') ?: 'YM Delivery Service Paid'; ?>
-                                            </span>
-                                            <span class="badge badge-info p-2 ml-1" style="font-size: 12px;">
-                                                <i class="fa fa-truck"></i> <?= $this->lang->line('delivery_by_ym_team') ?: 'Delivery Handled by Yellow Markets Team'; ?>
-                                            </span>
-                                            <div class="w-100 mt-2">
-                                                <div class="alert alert-info py-2 mb-0" style="font-size: 13px;">
-                                                    <i class="fa fa-info-circle"></i> <strong>Yellow Markets Delivery:</strong> You have purchased the YM Delivery Service. Yellow Markets delivery team will collect the replacement product from you and deliver it directly to the shopper. You do not need to deliver this product.
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
-                                    <?php else: ?>
+                                    <?php if ($resolution->merchant_action !== 'replacement_completed'): ?>
                                         <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
-                                            <i class="fa fa-check-square-o"></i> <?= $this->lang->line('replacement_completed') ?: 'Replacement Completed'; ?>
+                                            <i class="fa fa-check-square-o"></i> Mark dispatched / delivered
                                         </button>
-                                    <?php endif; ?>
-                                <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
-                                    <?php if ($resolution->delivery_option === 'ym_delivery'): ?>
-                                        <span class="badge badge-success p-2">
-                                            <i class="fa fa-check-circle"></i> <?= $this->lang->line('ym_replacement_delivered') ?: 'Replacement Delivered by Yellow Markets Team'; ?>
-                                        </span>
                                     <?php else: ?>
-                                        <span class="badge badge-primary p-2">
-                                            <i class="fa fa-check-circle"></i> <?= $this->lang->line('replacement_completed') ?: 'Replacement Completed'; ?>
+                                        <span class="badge badge-success p-2">
+                                            <i class="fa fa-check-circle"></i> Replacement Marked Dispatched / Delivered
                                         </span>
                                     <?php endif; ?>
-                                <?php endif; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="alert alert-success py-2 mb-3">
+                                    <strong><i class="fa fa-check-circle"></i> YM Admin Decision: In Favour of Shopper – Return and Refund</strong>
+                                    <p class="mb-0 small">Both parties have received official decision notification.</p>
+                                </div>
+                                <h6 class="font-weight-bold text-dark mt-2 mb-1">Required Merchant fulfilment</h6>
+                                <p class="text-muted small mb-3">Shopper return must be confirmed before Accounting processes the refund. YM Admin can document a justified return-confirmation exception.</p>
+                                <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
+                                    <?php if (empty($resolution->merchant_return_confirmed)): ?>
+                                        <button type="button" class="btn btn-dark btn-sm" data-toggle="modal" data-target="#confirmReturnModal" data-bs-toggle="modal" data-bs-target="#confirmReturnModal">
+                                            <i class="fa fa-undo"></i> Confirm item returned
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="badge badge-success p-2">
+                                            <i class="fa fa-check-circle"></i> Returned Item Confirmed by Merchant
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             <?php endif; ?>
+                        <?php elseif ($is_approved_merchant): ?>
+                            <div class="alert alert-secondary py-2 mb-0">
+                                <strong><i class="fa fa-lock"></i> YM Admin Decision: In Favour of Merchant</strong>
+                                <p class="mb-0 small">Original rejection upheld. Dispute hold becomes eligible for release under the 7-day after Completed payout rule.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-warning py-2 mb-0" style="background: #fff8d8; border-left: 3px solid #d4ac00;">
+                                <i class="fa fa-clock-o"></i> <strong>Admin decision pending.</strong> The Merchant may respond privately but cannot decide the Resolution outcome.
+                            </div>
+                        <?php endif; ?>
+                    </div>
 
                         </div>
                     </div>
@@ -744,6 +729,32 @@ $this->load->view('common/fbc-user/header');
         </div>
     </div>
 </main>
+
+<!-- Modal: Confirm Item Returned -->
+<div class="modal fade" id="confirmReturnModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <form action="<?= base_url('order_resolution/confirm_item_returned'); ?>" method="POST" class="ajax-resolution-form">
+                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title font-weight-bold text-dark"><i class="fa fa-undo"></i> Confirm Returned Item</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small">Record evidence that the disputed item was returned by the shopper. Refund processing remains with Accounting.</p>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Evidence / Reference (required):</label>
+                        <textarea name="evidence" class="form-control" rows="3" placeholder="Return tracking number, collection receipt or inspection notes" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"><?= $this->lang->line('cancel') ?: 'Cancel'; ?></button>
+                    <button type="submit" class="btn btn-dark btn-sm">Confirm Item Returned</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <?php if ($is_refund_ticket): ?>
 <!-- Modal: Refund Approved -->

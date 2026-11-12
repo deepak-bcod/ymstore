@@ -108,7 +108,7 @@ $this->load->view('common/fbc-user/header');
                 <!-- Status & Decision Details Banner -->
                 <div class="alert alert-secondary py-2 mb-4">
                     <div class="row align-items-center">
-                        <div class="col-md-4 col-sm-6">
+                        <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
                             <strong>Merchant Action:</strong> 
                             <?php if (!empty($resolution->merchant_action) && !in_array(strtolower($resolution->merchant_action), ['none', 'n/a'], true)): ?>
                                 <span class="text-primary font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
@@ -116,11 +116,11 @@ $this->load->view('common/fbc-user/header');
                                 <span class="badge badge-warning" style="background-color: #ffc107; color: #212529; font-weight: 600; padding: 4px 8px; border-radius: 4px;">Pending</span>
                             <?php endif; ?>
                         </div>
-                        <div class="col-md-4 col-sm-6">
+                        <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
                             <strong>Delivery Option:</strong> 
                             <span class="text-success font-weight-bold"><?php echo $delivery_option = ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
                         </div>
-                        <div class="col-md-4 col-sm-6">
+                        <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
                             <strong>Refund Amount:</strong> 
                             <?php 
                             $disp_refund = (float)($resolution->refund_amount ?? 0);
@@ -136,7 +136,59 @@ $this->load->view('common/fbc-user/header');
                                 <?= 'MUR ' . number_format($disp_refund, 2); ?>
                             </span>
                         </div>
+                        <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
+                            <strong>Admin Decision:</strong>
+                            <?php if ($resolution->admin_decision === 'in_favour_shopper' || $resolution->resolution_status === 'resolution_approved'): ?>
+                                <span class="badge badge-success px-2 py-1"><i class="fa fa-gavel"></i> In Favour of Shopper</span>
+                            <?php elseif ($resolution->admin_decision === 'in_favour_merchant' || $resolution->resolution_status === 'resolution_denied'): ?>
+                                <span class="badge badge-danger px-2 py-1"><i class="fa fa-gavel"></i> In Favour of Merchant</span>
+                            <?php else: ?>
+                                <span class="badge badge-secondary px-2 py-1"><i class="fa fa-clock-o"></i> Under Review</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
+                    <?php 
+                    $is_refund_remedy = ($resolution->category === 'Refund' || ($resolution->admin_remedy ?? '') === 'return_refund');
+                    $is_rep_remedy    = ($resolution->category === 'Replacement' || ($resolution->admin_remedy ?? '') === 'replacement');
+                    ?>
+                    <?php if ($is_refund_remedy || $is_rep_remedy): ?>
+                        <hr class="my-2" style="border-top: 1px solid rgba(0,0,0,0.1);">
+                        <div class="row align-items-center small">
+                            <?php if ($is_refund_remedy): ?>
+                                <div class="col-md-6">
+                                    <strong>Workflow 5A (Return Confirmation):</strong>
+                                    <?php if (!empty($resolution->merchant_return_confirmed)): ?>
+                                        <span class="badge badge-success ml-1"><i class="fa fa-check"></i> Confirmed by Merchant</span>
+                                        <?php if (!empty($resolution->merchant_return_notes)): ?>
+                                            <span class="text-muted ml-1">(<?= htmlspecialchars($resolution->merchant_return_notes); ?>)</span>
+                                        <?php endif; ?>
+                                    <?php elseif (!empty($resolution->admin_return_exception)): ?>
+                                        <span class="badge badge-info ml-1"><i class="fa fa-file-text-o"></i> Documented by Admin Exception</span>
+                                        <?php if (!empty($resolution->admin_return_exception_notes)): ?>
+                                            <span class="text-muted ml-1">(<?= htmlspecialchars($resolution->admin_return_exception_notes); ?>)</span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning ml-1" style="background-color: #ffc107; color: #212529;"><i class="fa fa-clock-o"></i> Pending Merchant Confirmation or Admin Exception</span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($is_rep_remedy): ?>
+                                <div class="col-md-6">
+                                    <strong>Workflow 5B (Replacement Receipt):</strong>
+                                    <?php if (!empty($resolution->shopper_receipt_confirmed)): ?>
+                                        <span class="badge badge-success ml-1"><i class="fa fa-check"></i> Confirmed by Shopper</span>
+                                    <?php elseif (!empty($resolution->admin_replacement_exception)): ?>
+                                        <span class="badge badge-info ml-1"><i class="fa fa-truck"></i> Documented by Admin Exception (Carrier Proof)</span>
+                                        <?php if (!empty($resolution->admin_replacement_exception_notes)): ?>
+                                            <span class="text-muted ml-1">(<?= htmlspecialchars($resolution->admin_replacement_exception_notes); ?>)</span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning ml-1" style="background-color: #ffc107; color: #212529;"><i class="fa fa-clock-o"></i> Awaiting Shopper Confirmation or Admin Exception</span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <?php 
@@ -320,11 +372,46 @@ $this->load->view('common/fbc-user/header');
 
                             <!-- Dispute Decisions (@Help Direct Adjudication for Active Dispute) -->
                             <?php if (in_array($resolution->status, ['Open', 'ReOpen'], true) && !in_array($resolution->resolution_status, ['resolution_approved', 'resolution_denied'], true)): ?>
-                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#resApproveModal">
-                                    <i class="fa fa-thumbs-up"></i> Resolution Approved (In Favour of Shopper)
+                                <button type="button" class="btn btn-dark btn-sm" data-toggle="modal" data-target="#resApproveModal">
+                                    <i class="fa fa-gavel"></i> Decision: In Favour of Shopper
                                 </button>
-                                <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#resDeniedModal">
-                                    <i class="fa fa-thumbs-down"></i> Resolution Denied (In Favour of Merchant)
+                                <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#resDeniedModal">
+                                    <i class="fa fa-gavel"></i> Decision: In Favour of Merchant
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" data-toggle="modal" data-target="#fulfilmentCheckpointsModal">
+                                    <i class="fa fa-tasks"></i> View fulfilment checkpoints
+                                </button>
+                            <?php else: ?>
+                                <button type="button" class="btn btn-outline-info btn-sm" data-toggle="modal" data-target="#fulfilmentCheckpointsModal">
+                                    <i class="fa fa-tasks"></i> View fulfilment checkpoints
+                                </button>
+                            <?php endif; ?>
+
+                            <!-- Workflow 5A Exception Action: Return Confirmation Exception -->
+                            <?php 
+                            $can_doc_return_exc = ($resolution->admin_decision === 'in_favour_shopper' || $resolution->resolution_status === 'resolution_approved')
+                                && ($resolution->category === 'Refund' || ($resolution->admin_remedy ?? '') === 'return_refund')
+                                && empty($resolution->merchant_return_confirmed)
+                                && empty($resolution->admin_return_exception)
+                                && $resolution->status !== 'Close (Final)';
+                            ?>
+                            <?php if ($can_doc_return_exc): ?>
+                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#docReturnExceptionModal">
+                                    <i class="fa fa-exclamation-triangle"></i> Document Return Exception (Workflow 5A)
+                                </button>
+                            <?php endif; ?>
+
+                            <!-- Workflow 5B Exception Action: Replacement Receipt Exception -->
+                            <?php 
+                            $can_doc_rep_exc = ($resolution->admin_decision === 'in_favour_shopper' || $resolution->resolution_status === 'resolution_approved')
+                                && ($resolution->category === 'Replacement' || ($resolution->admin_remedy ?? '') === 'replacement')
+                                && empty($resolution->shopper_receipt_confirmed)
+                                && empty($resolution->admin_replacement_exception)
+                                && $resolution->status !== 'Close (Final)';
+                            ?>
+                            <?php if ($can_doc_rep_exc): ?>
+                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#docReplacementExceptionModal">
+                                    <i class="fa fa-truck"></i> Document Receipt Exception (Workflow 5B)
                                 </button>
                             <?php endif; ?>
 
@@ -915,54 +1002,137 @@ $this->load->view('common/fbc-user/header');
     </div>
 </div>
 
-<!-- Modal: Resolution Approved (@Help) -->
+<!-- Modal: Decision in favour of Shopper (@Help) -->
 <div class="modal fade" id="resApproveModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <form action="<?= base_url('order_resolution/resolution_decision'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="decision" value="approved">
-                <div class="modal-header">
-                    <h5 class="modal-title text-success"><i class="fa fa-thumbs-up"></i> Resolution Approved (@Help)</h5>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title text-white"><i class="fa fa-gavel"></i> Decision in favour of Shopper</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Approve the shopper's Resolution Request in their favor.</p>
                     <div class="form-group">
-                        <label>Decision Notes:</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Notes explaining approval..."></textarea>
+                        <label class="font-weight-bold">Decision reason (required):</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Record reason and evidence" required></textarea>
                     </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Remedy:</label>
+                        <select name="remedy" class="form-control">
+                            <option value="return_refund" <?= ($resolution->category === 'Refund') ? 'selected' : ''; ?>>Return and Refund</option>
+                            <option value="replacement" <?= ($resolution->category === 'Replacement') ? 'selected' : ''; ?>>Replacement</option>
+                        </select>
+                    </div>
+                    <small class="text-muted">Both parties will receive official decision notification. Required Merchant fulfilment or Accounting refund verification will be initiated.</small>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success btn-sm">Confirm Resolution Approved</button>
+                    <button type="submit" class="btn btn-dark btn-sm">Confirm Decision</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal: Resolution Denied (@Help) -->
+<!-- Modal: Decision in favour of Merchant (@Help) -->
 <div class="modal fade" id="resDeniedModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <form action="<?= base_url('order_resolution/resolution_decision'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="decision" value="denied">
-                <div class="modal-header">
-                    <h5 class="modal-title text-danger"><i class="fa fa-thumbs-down"></i> Resolution Denied (@Help)</h5>
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title text-dark"><i class="fa fa-gavel"></i> Decision in favour of Merchant</h5>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Deny the shopper's Resolution Request.</p>
                     <div class="form-group">
-                        <label>Decision Notes:</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="Notes explaining denial..."></textarea>
+                        <label class="font-weight-bold">Decision reason (required):</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Record reason and evidence" required></textarea>
                     </div>
+                    <p class="text-muted small mb-0">Original rejection will be upheld. Ticket will be closed (Final) and dispute hold becomes eligible for release under the standard 7-day after Completed payout rule.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger btn-sm">Confirm Resolution Denied</button>
+                    <button type="submit" class="btn btn-dark btn-sm">Confirm Decision</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Fulfilment Checkpoints (@Help) -->
+<div class="modal fade" id="fulfilmentCheckpointsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title font-weight-bold"><i class="fa fa-tasks"></i> Fulfilment Checkpoints</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body p-4" style="line-height: 1.6; font-size: 14px;">
+                <p><strong>Return and Refund:</strong> Returned item confirmed by Merchant or documented Admin exception &rarr; Accounting refund verification &rarr; close.</p>
+                <p><strong>Replacement:</strong> Merchant fulfilment &rarr; Shopper receipt confirmation or documented Admin exception &rarr; disputed payout eligibility.</p>
+                <p class="mb-0"><strong>In Favour of Merchant:</strong> Release dispute hold, subject to the 7-day after Completed standard payout rule.</p>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Document Return Confirmation Exception (Workflow 5A) -->
+<div class="modal fade" id="docReturnExceptionModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <form action="<?= base_url('order_resolution/document_return_exception'); ?>" method="POST" class="ajax-resolution-form">
+                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title font-weight-bold"><i class="fa fa-exclamation-triangle"></i> Document Return Confirmation Exception</h5>
+                    <button type="button" class="close text-dark" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">
+                        <strong>Workflow 5A Requirement:</strong> Return confirmation by the Merchant or a documented Admin exception is mandatory before Accounting can verify and process the refund.
+                    </p>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Justified Exception Reason (required):</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Provide auditable justification (e.g. Return tracking shows delivered to merchant warehouse; merchant uncontactable; or return waived due to damaged/hazardous item)" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning btn-sm font-weight-bold">Document Exception & Enable Refund</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Document Replacement Receipt Exception (Workflow 5B) -->
+<div class="modal fade" id="docReplacementExceptionModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <form action="<?= base_url('order_resolution/document_replacement_exception'); ?>" method="POST" class="ajax-resolution-form">
+                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title font-weight-bold"><i class="fa fa-truck"></i> Document Replacement Receipt Exception</h5>
+                    <button type="button" class="close text-dark" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">
+                        <strong>Workflow 5B Requirement:</strong> Shopper receipt confirmation or a documented Admin exception based on carrier delivery proof is required to close the replacement dispute and release the merchant payout hold.
+                    </p>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Justified Exception Reason / Carrier Proof (required):</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Provide carrier name, tracking number, and delivery confirmation proof showing receipt by shopper" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning btn-sm font-weight-bold">Document Receipt Exception</button>
                 </div>
             </form>
         </div>

@@ -35,6 +35,13 @@ class OrderResolutionController extends CI_Controller
         $this->db->order_by('r.id', 'DESC');
         $data['resolutions'] = $this->db->get()->result();
 
+        // MYP Consolidated Wireframes v1.0 Stats for Shopper
+        $data['stats'] = [
+            'under_review'    => (int)$this->db->where('customer_id', $customer_id)->where_in('status', ['Open', 'ReOpen'])->count_all_results('order_resolutions'),
+            'action_required' => (int)$this->db->where('customer_id', $customer_id)->where('status', 'Processing')->count_all_results('order_resolutions'),
+            'closed'          => (int)$this->db->where('customer_id', $customer_id)->where_in('status', ['Done', 'Close', 'Close (Final)'])->count_all_results('order_resolutions'),
+        ];
+
         $data['PageTitle'] = 'Order Resolution Requests';
         $this->load->view('order_resolution/list', $data);
     }
@@ -302,6 +309,26 @@ class OrderResolutionController extends CI_Controller
 
         $data['PageTitle'] = 'Order Resolution #' . $resolution->ticket_number;
         $this->load->view('order_resolution/view', $data);
+    }
+
+    /**
+     * Shopper confirms physical receipt of replacement item (Workflow 5B)
+     */
+    public function confirm_replacement_receipt()
+    {
+        $customer_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
+        $ticket_number = trim($this->input->post('ticket_number', true));
+        $received      = trim($this->input->post('received', true)) ?: 'yes';
+        $notes         = trim($this->input->post('notes', true));
+
+        $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
+        if (!$res || (int)$res->customer_id !== (int)$customer_id) {
+            $this->json_response(false, 'Invalid ticket or unauthorized access.', [], 'order_resolution');
+            return;
+        }
+
+        $result = $this->OrderResolutionModel->shopper_confirm_replacement_receipt($ticket_number, $customer_id, $received, $notes);
+        $this->json_response($result['status'], $result['message'], $result, 'order_resolution/view/' . $ticket_number);
     }
 
     /**
