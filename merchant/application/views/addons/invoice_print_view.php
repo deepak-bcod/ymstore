@@ -38,8 +38,9 @@ $currency = 'MUR';
 // PAYMENT STATUS
 // ==========================================
 
+
 $payment_status = strtolower(
-    trim($addon_purchase->payment_status ?? '')
+    trim((string)($addon_purchase->payment_status ?? ''))
 );
 
 $is_paid = in_array(
@@ -48,31 +49,36 @@ $is_paid = in_array(
     TRUE
 );
 
-// Actual purchase amount
-$invoice_total = $amount > 0 ? $amount : $final_price;
+// Invoice amount
+$invoice_total = (float)(
+    $amount > 0 ? $amount : $final_price
+);
 
-// VAT based on service pricing in addon_services
-$vat_amount = max(0, $final_price - $price);
+// VAT calculation
+$vat_amount = max(
+    0,
+    $final_price - $price
+);
 
-// If final price is not available, calculate VAT
 if ($final_price <= 0) {
     $vat_amount = $price * $vat_percent / 100;
 }
 
-// Use actual invoice total for balance calculation
-$subtotal = $invoice_total - $vat_amount;
+// Subtotal
+$subtotal = max(
+    0,
+    $invoice_total - $vat_amount
+);
 
-if ($subtotal < 0) {
-    $subtotal = $invoice_total;
-}
-
-// Verified payment allocation
+// Verified payment
 $paid_amount = $is_paid ? $invoice_total : 0;
 
+// Remaining balance
 $amount_due = max(
     0,
     $invoice_total - $paid_amount
 );
+
 
 // ==========================================
 // SAFE OUTPUT
