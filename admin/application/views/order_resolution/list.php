@@ -134,25 +134,25 @@ tbody tr:hover td.sticky-action-col {
         <!-- Stat Cards Matching MYP Wireframe -->
         <div class="row mb-3 mt-3">
             <div class="col-md-3 col-6 mb-2">
-                <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                <div class="card p-3 shadow-sm border stat-filter-card" data-filter="open" style="border-radius: 9px; background: #fff; cursor: pointer; transition: all 0.2s ease;" title="Click to filter Open tickets">
                     <span class="text-muted small text-uppercase font-weight-bold">Open</span>
                     <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['open'] ?? 0; ?></h2>
                 </div>
             </div>
             <div class="col-md-3 col-6 mb-2">
-                <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                <div class="card p-3 shadow-sm border stat-filter-card" data-filter="admin_review" style="border-radius: 9px; background: #fff; cursor: pointer; transition: all 0.2s ease;" title="Click to filter Awaiting Admin tickets">
                     <span class="text-muted small text-uppercase font-weight-bold">Awaiting Admin</span>
                     <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['awaiting_admin'] ?? 0; ?></h2>
                 </div>
             </div>
             <div class="col-md-3 col-6 mb-2">
-                <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                <div class="card p-3 shadow-sm border stat-filter-card" data-filter="awaiting_merchant" style="border-radius: 9px; background: #fff; cursor: pointer; transition: all 0.2s ease;" title="Click to filter Awaiting Fulfilment tickets">
                     <span class="text-muted small text-uppercase font-weight-bold">Awaiting fulfilment</span>
                     <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['awaiting_fulfilment'] ?? 0; ?></h2>
                 </div>
             </div>
             <div class="col-md-3 col-6 mb-2">
-                <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
+                <div class="card p-3 shadow-sm border stat-filter-card" data-filter="closed" style="border-radius: 9px; background: #fff; cursor: pointer; transition: all 0.2s ease;" title="Click to filter Closed tickets">
                     <span class="text-muted small text-uppercase font-weight-bold">Closed</span>
                     <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['closed'] ?? 0; ?></h2>
                 </div>
@@ -172,40 +172,16 @@ tbody tr:hover td.sticky-action-col {
                 </div>
                 <div class="col-md-5 col-sm-12">
                     <select id="ticketWorkflowFilter" class="form-control bg-white" onchange="filterTicketRows()">
-                        <option value="">All statuses (Wireframe Filter)</option>
-                        <option value="admin_review">Admin Review</option>
-                        <option value="awaiting_merchant">Awaiting Merchant</option>
+                        <option value="">All statuses</option>
+                        <option value="open">Open (Active Disputes)</option>
+                        <option value="admin_review">Awaiting Admin</option>
+                        <option value="awaiting_merchant">Awaiting Fulfilment</option>
                         <option value="awaiting_shopper">Awaiting Shopper</option>
                         <option value="closed">Closed</option>
                     </select>
                 </div>
             </div>
         </div>
-
-        <!-- Status Filter Nav Pills -->
-        <ul class="nav nav-pills mb-3">
-            <li class="nav-item">
-                <a class="nav-link <?= empty($status_filter) ? 'active' : ''; ?>" href="<?= base_url('order_resolution'); ?>">All</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= ($status_filter === 'Open') ? 'active' : ''; ?>" href="<?= base_url('order_resolution?status=Open'); ?>">Open</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= ($status_filter === 'Processing') ? 'active' : ''; ?>" href="<?= base_url('order_resolution?status=Processing'); ?>">Processing</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= ($status_filter === 'Done') ? 'active' : ''; ?>" href="<?= base_url('order_resolution?status=Done'); ?>">Done</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= ($status_filter === 'Close') ? 'active' : ''; ?>" href="<?= base_url('order_resolution?status=Close'); ?>">Close</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= ($status_filter === 'ReOpen') ? 'active' : ''; ?>" href="<?= base_url('order_resolution?status=ReOpen'); ?>">ReOpen</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link <?= ($status_filter === 'Close (Final)') ? 'active' : ''; ?>" href="<?= base_url('order_resolution?status=Close+(Final)'); ?>">Close (Final)</a>
-            </li>
-        </ul>
 
         <div class="table-responsive">
             <table class="table table-bordered table-hover text-center table-resolution-list" id="ticketListTable">
@@ -389,14 +365,47 @@ function filterTicketRows() {
         var text = row.getAttribute('data-search') || '';
         var wf = row.getAttribute('data-workflow') || '';
         var matchText = (!q || text.indexOf(q) !== -1);
-        var matchWf = (!filter || wf === filter);
+        var matchWf = true;
+        if (filter === 'open') {
+            matchWf = (wf !== 'closed');
+        } else if (filter) {
+            matchWf = (wf === filter);
+        }
+
         if (matchText && matchWf) {
             row.style.display = '';
         } else {
             row.style.display = 'none';
         }
     });
+
+    // Sync card active states
+    document.querySelectorAll('.stat-filter-card').forEach(function(card) {
+        var cardFilter = card.getAttribute('data-filter');
+        if (filter && cardFilter === filter) {
+            card.style.borderColor = '#007bff';
+            card.style.backgroundColor = '#f0f7ff';
+        } else {
+            card.style.borderColor = '#dee2e6';
+            card.style.backgroundColor = '#ffffff';
+        }
+    });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.stat-filter-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+            var targetFilter = this.getAttribute('data-filter');
+            var select = document.getElementById('ticketWorkflowFilter');
+            if (select.value === targetFilter) {
+                select.value = ''; // Toggle off
+            } else {
+                select.value = targetFilter;
+            }
+            filterTicketRows();
+        });
+    });
+});
 </script>
 
 <?php $this->load->view('common/fbc-user/footer'); ?>
