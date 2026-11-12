@@ -63,6 +63,10 @@ if (empty($selected_order_id) && !empty($rejected_items) && count($rejected_item
                                             $reason_label = ($item->request_type === 'replacement')
                                                 ? ($this->lang->line('replacement_rejected_by_merchant') ?: $item->rejected_status_text)
                                                 : ($this->lang->line('return_rejected_by_merchant') ?: $item->rejected_status_text);
+                                            $prod_title = htmlspecialchars($item->product_name);
+                                            if (!empty($item->product_variants)) {
+                                                $prod_title .= ' [' . htmlspecialchars($item->product_variants) . ']';
+                                            }
                                         ?>
                                             <option value="<?php echo $item->order_id . ':' . $item->product_id; ?>"
                                                     data-order-id="<?php echo $item->order_id; ?>"
@@ -71,9 +75,11 @@ if (empty($selected_order_id) && !empty($rejected_items) && count($rejected_item
                                                     data-type="<?php echo $item->request_type; ?>"
                                                     data-order-number="<?php echo htmlspecialchars($item->order_number); ?>"
                                                     data-product-name="<?php echo htmlspecialchars($item->product_name); ?>"
+                                                    data-product-variant="<?php echo htmlspecialchars($item->product_variants ?? ''); ?>"
+                                                    data-qty="<?php echo htmlspecialchars($item->qty ?? 1); ?>"
                                                     data-merchant-name="<?php echo htmlspecialchars($item->merchant_name); ?>"
                                                     <?php echo $isSelected ? 'selected' : ''; ?>>
-                                                <?php echo ($this->lang->line('order_number') ?: 'Order #'); ?> <?php echo htmlspecialchars($item->order_number); ?> - <?php echo htmlspecialchars($item->product_name); ?> (<?php echo htmlspecialchars($reason_label); ?>)
+                                                <?php echo ($this->lang->line('order_number') ?: 'Order #'); ?> <?php echo htmlspecialchars($item->order_number); ?> - <?php echo $prod_title; ?> (<?php echo htmlspecialchars($reason_label); ?>)
                                             </option>
                                         <?php endforeach; ?>
                                     <?php endif; ?>

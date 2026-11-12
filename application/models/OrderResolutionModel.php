@@ -202,7 +202,7 @@ class OrderResolutionModel extends CI_Model
         $seen_keys = [];
 
         // 2. Check b2b_orders and b2b_order_items for status 20 (Return Rejected) or 21 (Replacement Rejected)
-        $b2b_items = $this->db->select('boi.item_id as b2b_item_id, boi.order_id as b2b_order_id, boi.product_id, boi.product_name, boi.status as item_status, bo.webshop_order_id, bo.publisher_id, pub.publication_name as merchant_name')
+        $b2b_items = $this->db->select('boi.item_id as b2b_item_id, boi.order_id as b2b_order_id, boi.product_id, boi.product_name, boi.product_variants, boi.qty, boi.status as item_status, bo.webshop_order_id, bo.publisher_id, pub.publication_name as merchant_name')
             ->from('b2b_order_items boi')
             ->join('b2b_orders bo', 'bo.order_id = boi.order_id', 'inner')
             ->join('publisher pub', 'pub.id = bo.publisher_id', 'left')
@@ -213,6 +213,16 @@ class OrderResolutionModel extends CI_Model
 
         if (!empty($b2b_items)) {
             foreach ($b2b_items as $bi) {
+                // Verify that this product actually exists in sales_order_items for this customer's webshop order
+                $soi_check = $this->db->select('item_id')
+                    ->where('order_id', (int)$bi->webshop_order_id)
+                    ->where('product_id', (int)$bi->product_id)
+                    ->get('sales_order_items')
+                    ->row();
+                if (!$soi_check) {
+                    continue;
+                }
+
                 $key = $bi->webshop_order_id . '_' . $bi->product_id;
                 if (isset($seen_keys[$key])) {
                     continue;
@@ -229,6 +239,8 @@ class OrderResolutionModel extends CI_Model
                     'order_number'         => $o ? ($o->increment_id ?: $o->order_id) : $bi->webshop_order_id,
                     'product_id'           => (int)$bi->product_id,
                     'product_name'         => $bi->product_name ?: $this->get_product_name_by_id($bi->product_id),
+                    'product_variants'     => !empty($bi->product_variants) ? $bi->product_variants : '',
+                    'qty'                  => !empty($bi->qty) ? (int)$bi->qty : 1,
                     'merchant_id'          => (int)$bi->publisher_id,
                     'merchant_name'        => $bi->merchant_name ?: 'Merchant',
                     'request_type'         => $type,
@@ -240,11 +252,34 @@ class OrderResolutionModel extends CI_Model
 
         // 3. Check sales_order_return for rejected returns (status in [2, 5, 20] or refund_status = 2)
         if ($this->db->table_exists('sales_order_return') && $this->db->table_exists('sales_order_return_items')) {
-            $ret_orders = $this->db->select('sor.return_order_id, sor.order_id, sor.status, sor.refund_status, sori.order_item_id')
+            $ret_orders = $this->db->select('
+                    sor.return_order_id,
+                    sor.order_id AS sor_order_id,
+                    sor.status AS sor_status,
+                    sor.refund_status,
+                    sori.order_item_id,
+                    sori.status AS sori_status,
+                    boi.order_id AS boi_b2b_order_id,
+                    boi.product_id AS boi_product_id,
+                    boi.product_name AS boi_product_name,
+                    boi.product_variants AS boi_variants,
+                    boi.qty AS boi_qty,
+                    bo.webshop_order_id AS bo_webshop_order_id,
+                    bo.publisher_id AS bo_publisher_id,
+                    pub.publication_name AS merchant_name,
+                    soi.order_id AS soi_order_id,
+                    soi.product_id AS soi_product_id,
+                    soi.product_name AS soi_product_name
+                ')
                 ->from('sales_order_return sor')
                 ->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'inner')
+                ->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+                ->join('b2b_orders bo', 'bo.order_id = boi.order_id OR bo.order_id = sor.order_id', 'left')
+                ->join('publisher pub', 'pub.id = bo.publisher_id', 'left')
+                ->join('sales_order_items soi', 'soi.item_id = sori.order_item_id', 'left')
                 ->group_start()
-                    ->where_in('sor.order_id', $order_ids)
+                    ->where_in('bo.webshop_order_id', $order_ids)
+                    ->or_where_in('soi.order_id', $order_ids)
                 ->group_end()
                 ->group_start()
                     ->where_in('sor.status', [2, 5, 20])
@@ -256,27 +291,24 @@ class OrderResolutionModel extends CI_Model
 
             if (!empty($ret_orders)) {
                 foreach ($ret_orders as $ro) {
-                    $webshop_id = (int)$ro->order_id;
-                    if (!isset($order_map[$webshop_id])) {
-                        $b2b = $this->db->select('webshop_order_id')->where('order_id', $webshop_id)->get('b2b_orders')->row();
-                        if ($b2b && isset($order_map[$b2b->webshop_order_id])) {
-                            $webshop_id = (int)$b2b->webshop_order_id;
-                        } else {
-                            continue;
-                        }
+                    $webshop_id = !empty($ro->bo_webshop_order_id) ? (int)$ro->bo_webshop_order_id : (!empty($ro->soi_order_id) ? (int)$ro->soi_order_id : 0);
+                    if ($webshop_id <= 0 || !isset($order_map[$webshop_id])) {
+                        continue;
                     }
 
-                    $prod_id = 0;
-                    if (!empty($ro->order_item_id)) {
-                        $soi = $this->db->select('product_id')->where('item_id', $ro->order_item_id)->get('sales_order_items')->row();
-                        if ($soi) {
-                            $prod_id = (int)$soi->product_id;
-                        } else {
-                            $boi = $this->db->select('product_id')->where('item_id', $ro->order_item_id)->get('b2b_order_items')->row();
-                            if ($boi) {
-                                $prod_id = (int)$boi->product_id;
-                            }
-                        }
+                    $prod_id = !empty($ro->boi_product_id) ? (int)$ro->boi_product_id : (!empty($ro->soi_product_id) ? (int)$ro->soi_product_id : 0);
+                    if ($prod_id <= 0) {
+                        continue;
+                    }
+
+                    // Verify that product_id belongs to sales_order_items for this specific order
+                    $soi_check = $this->db->select('item_id')
+                        ->where('order_id', $webshop_id)
+                        ->where('product_id', $prod_id)
+                        ->get('sales_order_items')
+                        ->row();
+                    if (!$soi_check) {
+                        continue;
                     }
 
                     $key = $webshop_id . '_' . $prod_id;
@@ -290,9 +322,11 @@ class OrderResolutionModel extends CI_Model
                         'order_id'             => $webshop_id,
                         'order_number'         => $o ? ($o->increment_id ?: $o->order_id) : $webshop_id,
                         'product_id'           => $prod_id,
-                        'product_name'         => $this->get_product_name_by_id($prod_id),
-                        'merchant_id'          => $this->get_merchant_id_for_item($webshop_id, $prod_id),
-                        'merchant_name'        => $this->get_merchant_name_for_item($webshop_id, $prod_id),
+                        'product_name'         => !empty($ro->boi_product_name) ? $ro->boi_product_name : (!empty($ro->soi_product_name) ? $ro->soi_product_name : $this->get_product_name_by_id($prod_id)),
+                        'product_variants'     => !empty($ro->boi_variants) ? $ro->boi_variants : '',
+                        'qty'                  => !empty($ro->boi_qty) ? (int)$ro->boi_qty : 1,
+                        'merchant_id'          => !empty($ro->bo_publisher_id) ? (int)$ro->bo_publisher_id : $this->get_merchant_id_for_item($webshop_id, $prod_id),
+                        'merchant_name'        => !empty($ro->merchant_name) ? $ro->merchant_name : $this->get_merchant_name_for_item($webshop_id, $prod_id),
                         'request_type'         => 'return',
                         'category'             => 'Refund',
                         'rejected_status_text' => 'Return / Refund Rejected by Merchant',
@@ -303,42 +337,61 @@ class OrderResolutionModel extends CI_Model
 
         // 4. Check sales_order_replacement for rejected replacements (status == 4 or items status == 4)
         if ($this->db->table_exists('sales_order_replacement') && $this->db->table_exists('sales_order_replacement_items')) {
-            $rep_orders = $this->db->select('sor.replacement_order_id, sor.order_id, sor.status, sori.order_item_id')
+            $rep_orders = $this->db->select('
+                    sor.replacement_order_id,
+                    sor.order_id AS sor_order_id,
+                    sor.status AS sor_status,
+                    sori.order_item_id,
+                    sori.status AS sori_status,
+                    boi.order_id AS boi_b2b_order_id,
+                    boi.product_id AS boi_product_id,
+                    boi.product_name AS boi_product_name,
+                    boi.product_variants AS boi_variants,
+                    boi.qty AS boi_qty,
+                    bo.webshop_order_id AS bo_webshop_order_id,
+                    bo.publisher_id AS bo_publisher_id,
+                    pub.publication_name AS merchant_name,
+                    soi.order_id AS soi_order_id,
+                    soi.product_id AS soi_product_id,
+                    soi.product_name AS soi_product_name
+                ')
                 ->from('sales_order_replacement sor')
                 ->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'inner')
+                ->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+                ->join('b2b_orders bo', 'bo.order_id = boi.order_id OR bo.order_id = sor.order_id', 'left')
+                ->join('publisher pub', 'pub.id = bo.publisher_id', 'left')
+                ->join('sales_order_items soi', 'soi.item_id = sori.order_item_id', 'left')
                 ->group_start()
-                    ->where_in('sor.order_id', $order_ids)
+                    ->where_in('bo.webshop_order_id', $order_ids)
+                    ->or_where_in('soi.order_id', $order_ids)
                 ->group_end()
                 ->group_start()
-                    ->where('sor.status', 4)
-                    ->or_where('sori.status', 4)
+                    ->where_in('sor.status', [4, 21])
+                    ->or_where_in('sori.status', [4, 21])
                 ->group_end()
                 ->get()
                 ->result();
 
             if (!empty($rep_orders)) {
                 foreach ($rep_orders as $rpo) {
-                    $webshop_id = (int)$rpo->order_id;
-                    if (!isset($order_map[$webshop_id])) {
-                        $b2b = $this->db->select('webshop_order_id')->where('order_id', $webshop_id)->get('b2b_orders')->row();
-                        if ($b2b && isset($order_map[$b2b->webshop_order_id])) {
-                            $webshop_id = (int)$b2b->webshop_order_id;
-                        } else {
-                            continue;
-                        }
+                    $webshop_id = !empty($rpo->bo_webshop_order_id) ? (int)$rpo->bo_webshop_order_id : (!empty($rpo->soi_order_id) ? (int)$rpo->soi_order_id : 0);
+                    if ($webshop_id <= 0 || !isset($order_map[$webshop_id])) {
+                        continue;
                     }
 
-                    $prod_id = 0;
-                    if (!empty($rpo->order_item_id)) {
-                        $soi = $this->db->select('product_id')->where('item_id', $rpo->order_item_id)->get('sales_order_items')->row();
-                        if ($soi) {
-                            $prod_id = (int)$soi->product_id;
-                        } else {
-                            $boi = $this->db->select('product_id')->where('item_id', $rpo->order_item_id)->get('b2b_order_items')->row();
-                            if ($boi) {
-                                $prod_id = (int)$boi->product_id;
-                            }
-                        }
+                    $prod_id = !empty($rpo->boi_product_id) ? (int)$rpo->boi_product_id : (!empty($rpo->soi_product_id) ? (int)$rpo->soi_product_id : 0);
+                    if ($prod_id <= 0) {
+                        continue;
+                    }
+
+                    // Verify that product_id belongs to sales_order_items for this specific order
+                    $soi_check = $this->db->select('item_id')
+                        ->where('order_id', $webshop_id)
+                        ->where('product_id', $prod_id)
+                        ->get('sales_order_items')
+                        ->row();
+                    if (!$soi_check) {
+                        continue;
                     }
 
                     $key = $webshop_id . '_' . $prod_id;
@@ -352,9 +405,11 @@ class OrderResolutionModel extends CI_Model
                         'order_id'             => $webshop_id,
                         'order_number'         => $o ? ($o->increment_id ?: $o->order_id) : $webshop_id,
                         'product_id'           => $prod_id,
-                        'product_name'         => $this->get_product_name_by_id($prod_id),
-                        'merchant_id'          => $this->get_merchant_id_for_item($webshop_id, $prod_id),
-                        'merchant_name'        => $this->get_merchant_name_for_item($webshop_id, $prod_id),
+                        'product_name'         => !empty($rpo->boi_product_name) ? $rpo->boi_product_name : (!empty($rpo->soi_product_name) ? $rpo->soi_product_name : $this->get_product_name_by_id($prod_id)),
+                        'product_variants'     => !empty($rpo->boi_variants) ? $rpo->boi_variants : '',
+                        'qty'                  => !empty($rpo->boi_qty) ? (int)$rpo->boi_qty : 1,
+                        'merchant_id'          => !empty($rpo->bo_publisher_id) ? (int)$rpo->bo_publisher_id : $this->get_merchant_id_for_item($webshop_id, $prod_id),
+                        'merchant_name'        => !empty($rpo->merchant_name) ? $rpo->merchant_name : $this->get_merchant_name_for_item($webshop_id, $prod_id),
                         'request_type'         => 'replacement',
                         'category'             => 'Replacement',
                         'rejected_status_text' => 'Replacement Rejected by Merchant',
@@ -2708,7 +2763,16 @@ class OrderResolutionModel extends CI_Model
             $rep_q = $this->db->select('sor.*, sori.qty_replacement, sori.price as item_price, sori.total_price as item_total, sori.status as sori_status')
                 ->from('sales_order_replacement sor')
                 ->join('sales_order_replacement_items sori', 'sori.replacement_order_id = sor.replacement_order_id', 'left')
+                ->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+                ->join('sales_order_items soi', 'soi.item_id = sori.order_item_id', 'left')
                 ->where_in('sor.order_id', $order_candidates);
+            if (!empty($product_id)) {
+                $rep_q->group_start()
+                    ->where('boi.product_id', (int)$product_id)
+                    ->or_where('soi.product_id', (int)$product_id)
+                    ->or_where('sori.order_item_id IS NULL', null, false)
+                ->group_end();
+            }
             $rep = $rep_q->order_by('sor.replacement_order_id', 'DESC')->get()->row();
             if ($rep) {
                 $ctx->has_historical_record = true;
@@ -2747,7 +2811,16 @@ class OrderResolutionModel extends CI_Model
             $ret_q = $this->db->select('sor.*, sori.qty_return, sori.price as item_price, sori.total_price as item_total, sori.status as sori_status')
                 ->from('sales_order_return sor')
                 ->join('sales_order_return_items sori', 'sori.return_order_id = sor.return_order_id', 'left')
+                ->join('b2b_order_items boi', 'boi.item_id = sori.order_item_id', 'left')
+                ->join('sales_order_items soi', 'soi.item_id = sori.order_item_id', 'left')
                 ->where_in('sor.order_id', $order_candidates);
+            if (!empty($product_id)) {
+                $ret_q->group_start()
+                    ->where('boi.product_id', (int)$product_id)
+                    ->or_where('soi.product_id', (int)$product_id)
+                    ->or_where('sori.order_item_id IS NULL', null, false)
+                ->group_end();
+            }
             $ret = $ret_q->order_by('sor.return_order_id', 'DESC')->get()->row();
             if ($ret) {
                 $ctx->has_historical_record = true;

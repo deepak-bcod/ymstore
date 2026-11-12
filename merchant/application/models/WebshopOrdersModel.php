@@ -1720,11 +1720,17 @@ class WebshopOrdersModel extends CI_Model
 					p.commision_percent,
 					CONCAT(c.first_name, ' ', c.last_name) AS customer_name
 				FROM sales_order_replacement AS sor
-				LEFT JOIN b2b_orders AS o ON (o.order_id = sor.order_id OR o.webshop_order_id = sor.order_id)
-				LEFT JOIN sales_order AS so ON (so.order_id = o.webshop_order_id OR so.order_id = sor.order_id)
+				LEFT JOIN (
+					SELECT replacement_order_id, MIN(order_item_id) AS min_item_id
+					FROM sales_order_replacement_items
+					GROUP BY replacement_order_id
+				) AS rep_first_item ON rep_first_item.replacement_order_id = sor.replacement_order_id
+				LEFT JOIN b2b_order_items AS boi ON boi.item_id = rep_first_item.min_item_id
+				LEFT JOIN b2b_orders AS o ON o.order_id = COALESCE(boi.order_id, CASE WHEN EXISTS(SELECT 1 FROM b2b_orders bo1 WHERE bo1.order_id = sor.order_id AND bo1.publisher_id = {$LoginID}) THEN sor.order_id ELSE (SELECT bo2.order_id FROM b2b_orders bo2 WHERE bo2.webshop_order_id = sor.order_id AND bo2.publisher_id = {$LoginID} LIMIT 1) END)
+				LEFT JOIN sales_order AS so ON so.order_id = o.webshop_order_id
 				LEFT JOIN publisher AS p ON o.publisher_id = p.id
-				LEFT JOIN customers AS c ON sor.customer_id = c.id
-				WHERE p.id = {$LoginID}
+				LEFT JOIN customers AS c ON c.id = COALESCE(NULLIF(sor.customer_id, 0), so.customer_id)
+				WHERE (o.publisher_id = {$LoginID} OR p.id = {$LoginID})
 				ORDER BY sor.created_at DESC
 				LIMIT {$limit} OFFSET {$offset}";
 
