@@ -1,18 +1,40 @@
 <?php $this->load->view('common/fbc-user/header'); ?>
 
 <style>
-.badge-status-open { background-color: #007bff; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
-.badge-status-processing { background-color: #17a2b8; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
-.badge-status-done { background-color: #28a745; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
-.badge-status-close { background-color: #6c757d; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
-.badge-status-reopen { background-color: #fd7e14; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
-.badge-status-close-final { background-color: #343a40; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; vertical-align: middle; }
+/* Status and action text badges: transparent background with distinct text colors */
+span.badge,
+span.label,
+[class*="badge-status-"],
+[class*="badge-action-"],
+.badge-pill {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    font-weight: 700 !important;
+    display: inline-block;
+    vertical-align: middle;
+}
 
-.badge-action { font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600; display: inline-block; vertical-align: middle; margin: 0; }
-.badge-action-approved { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-.badge-action-denied { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-.badge-action-completed { background-color: #cce5ff; color: #004085; border: 1px solid #b8daff; }
-.badge-action-pending { background-color: #ffc107 !important; color: #212529 !important; border: 1px solid #e0a800 !important; }
+.badge-status-open { color: #007bff !important; font-size: 13px; }
+.badge-status-processing { color: #17a2b8 !important; font-size: 13px; }
+.badge-status-done { color: #28a745 !important; font-size: 13px; }
+.badge-status-close { color: #6c757d !important; font-size: 13px; }
+.badge-status-reopen { color: #fd7e14 !important; font-size: 13px; }
+.badge-status-close-final { color: #343a40 !important; font-size: 13px; }
+
+.badge-primary { color: #007bff !important; }
+.badge-secondary { color: #6c757d !important; }
+.badge-success { color: #28a745 !important; }
+.badge-danger { color: #dc3545 !important; }
+.badge-warning { color: #b38600 !important; }
+.badge-info { color: #17a2b8 !important; }
+
+.badge-action { font-size: 12px; font-weight: 700; margin: 0; }
+.badge-action-approved { color: #28a745 !important; }
+.badge-action-denied { color: #dc3545 !important; }
+.badge-action-completed { color: #007bff !important; }
+.badge-action-pending { color: #b38600 !important; }
 
 .table-resolution-list > tbody > tr > td { vertical-align: middle !important; }
 </style>

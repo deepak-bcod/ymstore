@@ -1,19 +1,50 @@
 <?php $this->load->view('common/header'); ?>
 
 <style>
-.badge-status-open { background-color: #007bff; color: #fff; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-.badge-status-processing { background-color: #17a2b8; color: #fff; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-.badge-status-done { background-color: #28a745; color: #fff; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-.badge-status-close { background-color: #6c757d; color: #fff; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-.badge-status-reopen { background-color: #fd7e14; color: #fff; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
-.badge-status-close-final { background-color: #343a40; color: #fff; padding: 5px 10px; border-radius: 4px; font-weight: bold; }
+/* Remove background color from all text elements (badges, labels, status pills, alerts, spans) except buttons */
+span.badge,
+span.label,
+[class*="badge-status-"],
+[class*="badge-action-"],
+.badge-pill {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    font-weight: 700 !important;
+    display: inline-block;
+}
 
-.chat-box { max-height: 550px; overflow-y: auto; padding: 15px; background: #fdfdfd; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 25px; }
+.badge-status-open, .label-primary { color: #007bff !important; }
+.badge-status-processing, .label-info { color: #17a2b8 !important; }
+.badge-status-done, .label-success { color: #28a745 !important; }
+.badge-status-close, .label-default { color: #6c757d !important; }
+.badge-status-reopen { color: #fd7e14 !important; }
+.badge-status-close-final { color: #343a40 !important; }
+.label-danger { color: #dc3545 !important; }
+.label-warning { color: #b38600 !important; }
+
+/* Remove background color from alert boxes, chat messages and panels */
+.alert:not(.alert-dismissible),
+.chat-box,
+.chat-message,
+.chat-shopper,
+.chat-merchant,
+.chat-help,
+.chat-acct,
+.chat-attachment-box,
+.panel-heading,
+.panel-body {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+.chat-box { max-height: 550px; overflow-y: auto; padding: 15px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 25px; }
 .chat-message { margin-bottom: 18px; padding: 12px 16px; border-radius: 8px; position: relative; max-width: 85%; }
-.chat-shopper { background-color: #e3f2fd; border: 1px solid #bbdefb; margin-left: auto; text-align: left; }
-.chat-merchant { background-color: #f1f8e9; border: 1px solid #dcedc8; margin-right: auto; }
-.chat-help { background-color: #fff3e0; border: 1px solid #ffe0b2; margin-right: auto; }
-.chat-acct { background-color: #f3e5f5; border: 1px solid #e1bee7; margin-right: auto; }
+.chat-shopper { border: 1px solid #bbdefb; margin-left: auto; text-align: left; }
+.chat-merchant { border: 1px solid #dcedc8; margin-right: auto; }
+.chat-help { border: 1px solid #ffe0b2; margin-right: auto; }
+.chat-acct { border: 1px solid #e1bee7; margin-right: auto; }
 .chat-meta { font-size: 11px; color: #777; margin-bottom: 6px; }
 .chat-body { font-size: 14px; line-height: 1.5; color: #333; }
 .chat-attachment { margin-top: 8px; font-size: 12px; }
@@ -152,7 +183,7 @@
                                         <?php if (!empty($resolution->merchant_action) && !in_array(strtolower($resolution->merchant_action), ['none', 'n/a'], true)): ?>
                                             <span class="text-primary font-weight-bold"><?php echo htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?></span>
                                         <?php else: ?>
-                                            <span class="label label-warning" style="background-color: #ffc107; color: #212529; font-weight: 600; padding: 3px 8px; border-radius: 4px; display: inline-block; font-size: 11px;"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
+                                            <span class="label label-warning font-weight-bold" style="color: #b38600; display: inline-block; font-size: 11px;"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
                                         <?php endif; ?>
                                     </p>
                                 </div>
@@ -247,8 +278,8 @@
 
                     <!-- Workflow 5B: Replacement Fulfilment & Delivery Confirmation Card -->
                     <?php if ($is_replacement_ticket && ($is_shopper_won || $resolution->merchant_action === 'replacement_completed' || $resolution->status === 'Processing')): ?>
-                        <div class="panel panel-default" style="border: 1px solid #bce8f1; border-left: 4px solid #337ab7; border-radius: 6px; margin-bottom: 20px; background-color: #f7fbfe;">
-                            <div class="panel-heading" style="background-color: #e4f2fb; border-bottom: 1px solid #bce8f1; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <div class="panel panel-default" style="border: 1px solid #bce8f1; border-left: 4px solid #337ab7; border-radius: 6px; margin-bottom: 20px;">
+                            <div class="panel-heading" style="border-bottom: 1px solid #bce8f1; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <span style="font-weight: 700; color: #245269; font-size: 14px;">
                                     <i class="fa fa-truck text-primary"></i> Replacement Fulfilment & Delivery Status
                                 </span>
@@ -257,7 +288,7 @@
                                 <?php elseif (!empty($resolution->admin_replacement_exception)): ?>
                                     <span class="label label-info" style="font-size: 11px;"><i class="fa fa-truck"></i> Verified via Carrier Proof</span>
                                 <?php else: ?>
-                                    <span class="label label-warning" style="font-size: 11px; background-color: #f0ad4e;"><i class="fa fa-clock-o"></i> Confirmation Required</span>
+                                    <span class="label label-warning font-weight-bold" style="font-size: 11px; color: #b38600;"><i class="fa fa-clock-o"></i> Confirmation Required</span>
                                 <?php endif; ?>
                             </div>
                             <div class="panel-body" style="padding: 15px;">
@@ -309,13 +340,13 @@
                     $currency     = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
                     ?>
                     <!-- ================= LINKED ORIGINAL REQUEST & AFFECTED ITEM CONTEXT (YM-11) ================= -->
-                    <div class="panel panel-default" style="border: 1px solid #dcd1ea; border-left: 4px solid #6f42c1; border-radius: 6px; margin-top: 25px; margin-bottom: 25px; background-color: #faf9fd;">
-                        <div class="panel-heading" style="background-color: #f3eff9; border-bottom: 1px solid #dcd1ea; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div class="panel panel-default" style="border: 1px solid #dcd1ea; border-left: 4px solid #6f42c1; border-radius: 6px; margin-top: 25px; margin-bottom: 25px;">
+                        <div class="panel-heading" style="border-bottom: 1px solid #dcd1ea; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <span style="font-weight: 700; color: #4a2d7a; font-size: 14px;">
                                 <i class="fa fa-link" style="color: #6f42c1;"></i> Linked Original Request & Affected Item Context
                             </span>
                             <div>
-                                <span class="label" style="background-color: #6f42c1; color: #fff; font-size: 11px; margin-right: 5px;"><i class="fa fa-history"></i> Original Request Context</span>
+                                <span class="label font-weight-bold" style="color: #6f42c1; font-size: 11px; margin-right: 5px;"><i class="fa fa-history"></i> Original Request Context</span>
                                 <span class="label label-danger" style="font-size: 11px;"><i class="fa fa-times-circle"></i> Merchant Rejected</span>
                             </div>
                         </div>
@@ -474,17 +505,17 @@
 
                     <!-- Conversation with YellowMarkets Support (Direct Shopper to Merchant Chat Removed) -->
                     <div class="panel panel-default" style="border-radius: 6px; border: 1px solid #faebcc; margin-top: 25px; margin-bottom: 25px;">
-                        <div class="panel-heading" style="background-color: #fcf8e3; border-bottom: 1px solid #faebcc; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="panel-heading" style="border-bottom: 1px solid #faebcc; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: 700; color: #8a6d3b; font-size: 15px;">
                                 <i class="fa fa-shield text-warning" style="margin-right: 5px;"></i> <?php echo $this->lang->line('conversion_shopper_admin_tab') ?: 'YellowMarkets Support (Shopper ↔ Support)'; ?>
                             </span>
-                            <span class="badge" style="background-color: #f0ad4e;"><?php echo count($shopper_admin_msgs); ?> <?php echo count($shopper_admin_msgs) === 1 ? 'Message' : 'Messages'; ?></span>
+                            <span class="badge font-weight-bold" style="color: #b38600;"><?php echo count($shopper_admin_msgs); ?> <?php echo count($shopper_admin_msgs) === 1 ? 'Message' : 'Messages'; ?></span>
                         </div>
 
                         <div class="panel-body" style="padding: 15px;">
-                            <div class="alert alert-warning py-2 px-3" style="font-size: 13px; margin-bottom: 15px; color: #8a6d3b; background-color: #fcf8e3; border-color: #faebcc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div class="alert alert-warning py-2 px-3" style="font-size: 13px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <div><i class="fa fa-lock text-warning"></i> <strong>Private Support Thread:</strong> Confidential dispute investigation with YellowMarkets Support.</div>
-                                <span class="label label-warning" style="background-color: #f0ad4e;"><i class="fa fa-eye-slash"></i> Hidden from Merchant</span>
+                                <span class="label label-warning font-weight-bold" style="color: #b38600;"><i class="fa fa-eye-slash"></i> Hidden from Merchant</span>
                             </div>
 
                             <div class="chat-box" style="margin-bottom: 20px;">
@@ -493,7 +524,7 @@
                                         $role_class = 'chat-' . $msg->sender_role;
                                         $sender_display = ($msg->sender_role === 'shopper') ? ($this->lang->line('you') ?: 'You') : ($this->lang->line('support_team') ?: 'Yellow Markets Support');
                                     ?>
-                                        <div class="chat-message <?php echo $role_class; ?>" style="<?php echo ($msg->sender_role !== 'shopper') ? 'background-color: #fcf8e3; border-color: #faebcc;' : ''; ?>">
+                                        <div class="chat-message <?php echo $role_class; ?>" style="<?php echo ($msg->sender_role !== 'shopper') ? 'border: 1px solid #faebcc;' : ''; ?>">
                                             <div class="chat-meta">
                                                 <b style="<?php echo ($msg->sender_role !== 'shopper') ? 'color: #8a6d3b;' : ''; ?>"><?php echo htmlspecialchars($sender_display); ?></b> &bull; <?php echo date('d M Y, h:i A', $msg->created_at); ?>
                                             </div>
@@ -543,14 +574,14 @@
                             <!-- Reply to Support Form -->
                             <?php if ($resolution->status !== 'Close (Final)'): ?>
                                 <div class="panel panel-default" style="border-radius: 6px; border: 1px solid #faebcc;">
-                                    <div class="panel-heading" style="background-color: #fcf8e3; border-bottom: 1px solid #faebcc;">
+                                    <div class="panel-heading" style="border-bottom: 1px solid #faebcc;">
                                         <div style="display: flex; justify-content: space-between; align-items: center;">
                                             <h4 class="panel-title" style="font-weight: 600; color: #8a6d3b;"><i class="fa fa-shield"></i> <?php echo $this->lang->line('message_to_support') ?: 'Message to YellowMarkets Support'; ?></h4>
-                                            <span class="label label-warning" style="background-color: #f0ad4e; font-size: 11px;"><i class="fa fa-lock"></i> Private Support Channel</span>
+                                            <span class="label label-warning font-weight-bold" style="color: #b38600; font-size: 11px;"><i class="fa fa-lock"></i> Private Support Channel</span>
                                         </div>
                                     </div>
                                     <div class="panel-body" style="padding: 15px;">
-                                        <div class="alert alert-warning py-1 px-3" style="font-size: 12px; margin-bottom: 15px; color: #8a6d3b; background-color: #fcf8e3; border-color: #faebcc;">
+                                        <div class="alert alert-warning py-1 px-3" style="font-size: 12px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                                 <div><i class="fa fa-shield"></i> <strong>Recipient:</strong> YellowMarkets Support Team (@Help / @Acct)</div>
                                                 <div><i class="fa fa-eye-slash"></i> <strong>Visibility:</strong> Confidential between You and Support. <em>Merchant cannot see this.</em></div>
