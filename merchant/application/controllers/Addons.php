@@ -9,7 +9,7 @@ spl_autoload_register(function ($class) use ($phpseclib_base) {
     foreach ($prefixes as $prefix) {
         if (strncmp($prefix, $class, strlen($prefix)) !== 0) continue;
         $relative = str_replace('\\', '/', substr($class, strlen($prefix)));
-        $paths = 
+        $paths = [
             $phpseclib_base . $relative . '.php',
             $phpseclib_base . 'src/' . $relative . '.php'
         ];
