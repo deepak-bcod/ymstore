@@ -515,47 +515,43 @@ body {
          MERCHANT ADDRESS AND BRN
     ======================================= -->
 
-    <div class="company-details">
+    
+<!-- COMPANY INFORMATION -->
 
-        <div class="company-name">
-            MYP Online Marketing Ltd
-        </div>
+<div class="company-details">
 
-        Yellow Markets - A MYP Network Service
-
-        <div class="billing-info">
-
-            <?php if (!empty($merchant_address)): ?>
-
-                <strong>Merchant Address:</strong><br>
-
-                <?php echo nl2br($e($merchant_address)); ?>
-
-                <br>
-
-            <?php endif; ?>
-
-            <?php if (!empty($merchant_brn)): ?>
-
-                <strong>Merchant BRN:</strong>
-
-                <?php echo $e($merchant_brn); ?>
-
-                <br>
-
-            <?php endif; ?>
-
-            <?php if (!empty($merchant_email)): ?>
-
-                <strong>Merchant Email:</strong>
-
-                <?php echo $e($merchant_email); ?>
-
-            <?php endif; ?>
-
-        </div>
-
+    <div class="company-name">
+        MYP Online Marketing Ltd
     </div>
+
+    Yellow Markets - A MYP Network Service<br>
+
+    <?php if (!empty($merchant_address)): ?>
+        <strong>Merchant Address:</strong>
+        <?php echo nl2br($e($merchant_address)); ?>
+        <br>
+    <?php endif; ?>
+
+    <?php if (!empty($merchant_brn)): ?>
+        <strong>BRN:</strong>
+        <?php echo $e($merchant_brn); ?>
+        <br>
+    <?php endif; ?>
+
+    <?php if (!empty($merchant_email)): ?>
+        <?php echo $e($merchant_email); ?>
+    <?php endif; ?>
+
+    <?php if (!empty($merchant_phone)): ?>
+        · <?php echo $e($merchant_phone); ?>
+    <?php endif; ?>
+
+    <?php if (!empty($merchant_landline)): ?>
+        · <?php echo $e($merchant_landline); ?>
+    <?php endif; ?>
+
+</div>
+
 
 
     <!-- MERCHANT AND INVOICE DETAILS -->

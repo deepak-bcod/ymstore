@@ -150,10 +150,7 @@ public function get_purchase_by_id($purchase_id)
             ? 'COALESCE(NULLIF(s.title_fr, \'\'), s.title)'
             : 's.title') . ' AS addon_name,
 
-        ' . ($is_french
-            ? 'COALESCE(NULLIF(s.description_fr, \'\'), s.description)'
-            : 's.description') . ' AS addon_description,
-
+        s.description AS addon_description,
         s.price,
         s.vat_percent,
         s.final_price,
@@ -175,8 +172,10 @@ public function get_purchase_by_id($purchase_id)
         ) AS merchant_name,
 
         pub.email AS merchant_email,
-        pub.brn_number AS merchant_brn,
-        pub.address AS merchant_address
+        pub.brn_no AS merchant_brn,
+        pub.company_address AS merchant_address,
+        pub.phone_no AS merchant_phone,
+        pub.landline_no AS merchant_landline
 
     ', FALSE);
 
@@ -212,7 +211,7 @@ public function get_purchase_by_id($purchase_id)
         'left'
     );
 
-    $this->db->where('p.id', (int) $purchase_id);
+    $this->db->where('p.id', $purchase_id);
 
     $this->db->where_in(
         'p.status',
@@ -222,16 +221,6 @@ public function get_purchase_by_id($purchase_id)
     $this->db->group_by('p.id');
 
     $query = $this->db->get();
-
-    if (!$query) {
-        log_message(
-            'error',
-            'Addon invoice query error: ' .
-            json_encode($this->db->error())
-        );
-
-        return NULL;
-    }
 
     return $query->row();
 }
