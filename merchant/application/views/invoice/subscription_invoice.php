@@ -48,20 +48,47 @@ $order_reference = $order['order_reference']
 $subscription_reference = $order['subscription_reference']
     ?? 'N/A';
 
-// Merchant details
-$merchant_address = $publisher['billing_address']
-    ?? $publisher['address'] ?? 'N/A';
+// =====================================================
+// MERCHANT DETAILS
+// =====================================================
+// Read the first available, non-empty value from the publisher data.
+// The exact database column names must be included in the controller's
+// $order['publisher'] result.
+$getPublisherValue = function (array $source, array $keys, $default = 'N/A') {
+    foreach ($keys as $key) {
+        if (isset($source[$key]) && trim((string)$source[$key]) !== '') {
+            return $source[$key];
+        }
+    }
+    return $default;
+};
 
-$merchant_brn = $publisher['brn'] ?? 'N/A';
+$merchant_name = $getPublisherValue($publisher, [
+    'publication_name', 'legal_name', 'merchant_legal_name', 'business_name', 'name'
+], 'N/A');
 
-$merchant_email = $publisher['billing_email']
-    ?? $publisher['email'] ?? 'N/A';
+$merchant_address = $getPublisherValue($publisher, [
+    'billing_address', 'business_address', 'company_address',
+    'registered_address', 'merchant_address', 'address',
+    'address_line_1', 'address1', 'street_address'
+], 'N/A');
 
-$merchant_phone = $publisher['billing_phone']
-    ?? $publisher['phone'] ?? 'N/A';
+$merchant_brn = $getPublisherValue($publisher, [
+    'brn_number', 'brn_no', 'business_registration_number',
+    'business_reg_no', 'company_brn', 'merchant_brn', 'brn', 'BRN'
+], 'N/A');
 
-$merchant_reference = $publisher['merchant_reference']
-    ?? 'N/A';
+$merchant_email = $getPublisherValue($publisher, [
+    'billing_email', 'business_email', 'merchant_email', 'email'
+], 'N/A');
+
+$merchant_phone = $getPublisherValue($publisher, [
+    'billing_phone', 'phone_no', 'mobile_no', 'contact_number', 'phone'
+], 'N/A');
+
+$merchant_reference = $getPublisherValue($publisher, [
+    'merchant_reference', 'publisher_reference', 'reference_code'
+], 'N/A');
 
 // VAT
 // Supply vat_rate from your actual invoice data.
@@ -232,7 +259,8 @@ body {
     font-weight: bold;
     color: #202938;
     white-space: normal;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 
 .invoice-number-small {
@@ -650,11 +678,11 @@ body {
 
     <!-- PRINT BUTTON -->
 
-    <!-- <div class="print-button">
+    <div class="print-button">
         <button type="button" onclick="window.print();">
             Print / Save as PDF
         </button>
-    </div> -->
+    </div>
 
     <!-- HEADER -->
 
