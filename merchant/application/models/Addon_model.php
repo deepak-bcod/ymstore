@@ -150,10 +150,10 @@ public function get_service_by_id($service_id)
             MAX(txn.transaction_ref) as transaction_ref,
             COALESCE(NULLIF(pub.publication_name, \'\'), NULLIF(pub.company_name, \'\'), \'Merchant\') as merchant_name,
             pub.email AS merchant_email,
-pub.brn_no AS merchant_brn,
-pub.company_address AS merchant_address,
-pub.phone_no AS merchant_phone,
-pub.landline_no AS merchant_landline
+            pub.brn_no AS merchant_brn,
+            pub.company_address AS merchant_address,
+            pub.phone_no AS merchant_phone,
+            pub.landline_no AS merchant_landline
         ', FALSE);
         $this->db->from('merchant_addon_purchases p');
         $this->db->join('addon_services s', 's.id = p.service_id', 'left');
