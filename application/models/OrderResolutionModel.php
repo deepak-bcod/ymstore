@@ -1206,24 +1206,30 @@ class OrderResolutionModel extends CI_Model
             if ($res->merchant_action === 'replacement_completed') {
                 return ['status' => false, 'message' => 'Replacement has already been marked as completed.', 'requires_reload' => true];
             }
-            if ($res->merchant_action !== 'replacement_approved' || $res->delivery_option === 'none') {
-                return ['status' => false, 'message' => 'Replacement must be approved with a delivery option first.', 'requires_reload' => true];
+            if (empty($res->delivery_option) || in_array($res->delivery_option, ['none', 'n/a'], true)) {
+                return ['status' => false, 'message' => 'Replacement must have a delivery option selected first.', 'requires_reload' => true];
             }
+        } elseif (in_array($action, ['replacement_approved', 'arrange_replacement'], true)) {
+            if ($res->merchant_action === 'replacement_completed') {
+                return ['status' => false, 'message' => 'Replacement has already been marked as completed.', 'requires_reload' => true];
+            }
+            // Allow setting or updating delivery method if replacement was originally rejected, under review, or already approved
         } else {
-            if (!empty($res->merchant_action) && $res->merchant_action !== 'none') {
+            if (!empty($res->merchant_action) && !in_array($res->merchant_action, ['none', 'n/a'], true)) {
                 return ['status' => false, 'message' => 'A decision has already been submitted for this ticket (' . ucwords(str_replace('_', ' ', $res->merchant_action)) . ').', 'requires_reload' => true];
             }
         }
 
         $category = strtolower(trim($res->category ?? ''));
-        $is_refund_type = in_array($category, ['refund', 'return'], true);
-        $is_replacement_type = ($category === 'replacement');
+        $admin_rem = strtolower(trim($res->admin_remedy ?? ''));
+        $is_refund_type = in_array($category, ['refund', 'return'], true) || ($admin_rem === 'return_refund');
+        $is_replacement_type = ($category === 'replacement') || ($admin_rem === 'replacement');
 
         if (in_array($action, ['refund_approved', 'refund_denied'], true) && !$is_refund_type) {
             return ['status' => false, 'message' => 'Refund actions are not permitted for a ' . htmlspecialchars($res->category) . ' resolution ticket.'];
         }
 
-        if (in_array($action, ['replacement_approved', 'replacement_denied', 'replacement_completed'], true) && !$is_replacement_type) {
+        if (in_array($action, ['replacement_approved', 'arrange_replacement', 'replacement_denied', 'replacement_completed'], true) && !$is_replacement_type) {
             return ['status' => false, 'message' => 'Replacement actions are not permitted for a ' . htmlspecialchars($res->category) . ' resolution ticket.'];
         }
 
@@ -1274,6 +1280,7 @@ class OrderResolutionModel extends CI_Model
                 return ['status' => true, 'message' => 'Refund denied. Shopper and @Help have been notified.'];
 
             case 'replacement_approved':
+            case 'arrange_replacement':
                 $delivery_option = $extra['delivery_option'] ?? '';
                 if (!in_array($delivery_option, ['own_delivery', 'self_pickup', 'ym_delivery'], true)) {
                     return ['status' => false, 'message' => 'Please select a valid delivery option.'];
@@ -1282,7 +1289,8 @@ class OrderResolutionModel extends CI_Model
                 $update['delivery_option'] = $delivery_option;
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Approved', 'merchant', $merchant_id, "Selected delivery: {$delivery_option}", 'merchant', 'merchant_shopper');
+                $disp_del = ucwords(str_replace('_', ' ', $delivery_option));
+                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Delivery Method Selected', 'merchant', $merchant_id, "Selected delivery method: {$disp_del}", 'merchant', 'merchant_shopper');
 
                 // Notify @Help of button action
                 $this->send_merchant_action_email_to_help($res, 'Replacement Approved');
@@ -1294,7 +1302,7 @@ class OrderResolutionModel extends CI_Model
                     // Send order-resolution-replacement-underway-shopper
                     $this->send_replacement_underway_shopper_email($res, $delivery_option);
                 }
-                return ['status' => true, 'message' => 'Replacement approved successfully.'];
+                return ['status' => true, 'message' => 'Replacement delivery method (' . $disp_del . ') confirmed successfully.'];
 
             case 'replacement_denied':
                 $update['merchant_action'] = 'replacement_denied';

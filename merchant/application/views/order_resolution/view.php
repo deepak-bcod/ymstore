@@ -265,6 +265,8 @@ $this->load->view('common/fbc-user/header');
                         $category_clean = strtolower(trim($resolution->category ?? ''));
                         $is_refund = in_array($category_clean, ['refund', 'return'], true) || ($admin_rem === 'return_refund');
                         $is_replacement = ($category_clean === 'replacement') || ($admin_rem === 'replacement');
+                        $is_refund_ticket = $is_refund;
+                        $is_replacement_ticket = $is_replacement;
 
                         $is_approved_shopper = ($admin_dec === 'in_favour_shopper' || $res_stat === 'resolution_approved' || $resolution->status === 'Processing');
                         $is_approved_merchant = ($admin_dec === 'in_favour_merchant' || $res_stat === 'resolution_denied' || ($resolution->status === 'Close (Final)' && !$is_approved_shopper));
@@ -317,9 +319,29 @@ $this->load->view('common/fbc-user/header');
                                 <p class="mb-0 small">Original rejection upheld. Dispute hold becomes eligible for release under the 7-day after Completed payout rule.</p>
                             </div>
                         <?php else: ?>
-                            <div class="alert alert-warning py-2 mb-0" style="background: #fff8d8; border-left: 3px solid #d4ac00;">
+                            <div class="alert alert-warning py-2 mb-2" style="background: #fff8d8; border-left: 3px solid #d4ac00;">
                                 <i class="fa fa-clock-o"></i> <strong>Admin decision pending.</strong> The Merchant may respond privately but cannot decide the Resolution outcome.
                             </div>
+                            <?php if ($is_replacement && $resolution->status !== 'Close (Final)'): ?>
+                                <div class="mt-2 pt-2 border-top">
+                                    <h6 class="font-weight-bold text-dark mb-1">Required Merchant fulfilment</h6>
+                                    <p class="text-muted small mb-2">Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) releases hold subject to payout eligibility.</p>
+                                    <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
+                                        <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
+                                            <i class="fa fa-truck"></i> Arrange replacement
+                                        </button>
+                                        <?php if (!empty($resolution->delivery_option) && !in_array($resolution->delivery_option, ['none', 'n/a'], true) && $resolution->merchant_action !== 'replacement_completed'): ?>
+                                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
+                                                <i class="fa fa-check-square-o"></i> Mark dispatched / delivered
+                                            </button>
+                                        <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
+                                            <span class="badge badge-success p-2">
+                                                <i class="fa fa-check-circle"></i> Replacement Marked Dispatched / Delivered
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
 
@@ -810,35 +832,37 @@ $this->load->view('common/fbc-user/header');
 <?php endif; ?>
 
 <?php if ($is_replacement_ticket): ?>
-<!-- Modal: Replacement Approved with Delivery Options -->
-<div class="modal fade" id="replacementApproveModal" tabindex="-1" role="dialog">
+<!-- Modal: Replacement Delivery Method (Wireframe Aligned) -->
+<div class="modal fade" id="replacementApproveModal" tabindex="-1" role="dialog" aria-labelledby="replacementApproveModalLabel">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content" style="border-radius: 8px;">
             <form action="<?= base_url('order_resolution/action'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="action" value="replacement_approved">
-                <div class="modal-header">
-                    <h5 class="modal-title text-info"><i class="fa fa-refresh"></i> <?= $this->lang->line('approve_replacement') ?: 'Approve Replacement'; ?></h5>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title font-weight-bold" id="replacementApproveModalLabel" style="font-size: 18px; color: #1e293b;">
+                        <?= $this->lang->line('replacement_delivery_method') ?: 'Replacement delivery method'; ?>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-                <div class="modal-body">
-                    <p><?= $this->lang->line('select_replacement_delivery_method') ?: 'Select the replacement delivery method:'; ?></p>
-                    <div class="form-group">
-                        <label><strong><?= $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</strong> <span class="text-danger">*</span></label>
-                        <select name="delivery_option" class="form-control" required>
-                            <option value=""><?= $this->lang->line('select_delivery_option') ?: '-- Select Delivery Option --'; ?></option>
-                            <option value="own_delivery"><?= $this->lang->line('own_delivery') ?: 'Own Delivery'; ?></option>
-                            <option value="self_pickup"><?= $this->lang->line('self_pickup') ?: 'Self Pickup'; ?></option>
-                            <option value="ym_delivery"><?= $this->lang->line('ym_delivery') ?: 'YM Delivery Service'; ?></option>
+                <div class="modal-body pt-3 pb-2">
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold text-secondary mb-1" style="font-size: 13.5px;"><?= $this->lang->line('method') ?: 'Method'; ?></label>
+                        <select name="delivery_option" class="form-control" style="border-radius: 6px; height: 38px; font-size: 14px;" required>
+                            <option value="own_delivery" <?= ($resolution->delivery_option === 'own_delivery') ? 'selected' : ''; ?>><?= $this->lang->line('own_delivery') ?: 'Own Delivery'; ?></option>
+                            <option value="ym_delivery" <?= ($resolution->delivery_option === 'ym_delivery') ? 'selected' : ''; ?>><?= $this->lang->line('ym_delivery') ?: 'YM Delivery'; ?></option>
+                            <option value="self_pickup" <?= ($resolution->delivery_option === 'self_pickup') ? 'selected' : ''; ?>><?= $this->lang->line('self_pickup') ?: 'Self Pickup'; ?></option>
                         </select>
-                        <small class="form-text text-muted">
-                            <?= $this->lang->line('ym_delivery_note') ?: 'Selecting YM Delivery Service notifies Yellow Markets (@Help) to organize fulfillment.'; ?>
-                        </small>
+                        <p class="text-muted small mt-2 mb-0" style="font-size: 13px; line-height: 1.4;">
+                            <?= $this->lang->line('ym_delivery_note_wireframe') ?: 'YM Delivery retains the existing paid Add-on process; no purchase is made in this demo.'; ?>
+                        </p>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"><?= $this->lang->line('cancel') ?: 'Cancel'; ?></button>
-                    <button type="submit" class="btn btn-info btn-sm"><?= $this->lang->line('confirm_replacement_approved') ?: 'Confirm Replacement Approved'; ?></button>
+                <div class="modal-footer border-0 pt-0 pb-3" style="justify-content: flex-start; gap: 8px;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-dismiss="modal" data-bs-dismiss="modal"><?= $this->lang->line('cancel') ?: 'Cancel'; ?></button>
+                    <button type="submit" class="btn btn-dark btn-sm px-3 font-weight-bold"><?= $this->lang->line('confirm_action') ?: 'Confirm action'; ?></button>
                 </div>
             </form>
         </div>
