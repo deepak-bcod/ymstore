@@ -265,6 +265,8 @@ $this->load->view('common/fbc-user/header');
                         $category_clean = strtolower(trim($resolution->category ?? ''));
                         $is_refund = in_array($category_clean, ['refund', 'return'], true) || ($admin_rem === 'return_refund');
                         $is_replacement = ($category_clean === 'replacement') || ($admin_rem === 'replacement');
+                        $is_refund_ticket = $is_refund;
+                        $is_replacement_ticket = $is_replacement;
 
                         $is_approved_shopper = ($admin_dec === 'in_favour_shopper' || $res_stat === 'resolution_approved' || $resolution->status === 'Processing');
                         $is_approved_merchant = ($admin_dec === 'in_favour_merchant' || $res_stat === 'resolution_denied' || ($resolution->status === 'Close (Final)' && !$is_approved_shopper));
@@ -317,9 +319,29 @@ $this->load->view('common/fbc-user/header');
                                 <p class="mb-0 small">Original rejection upheld. Dispute hold becomes eligible for release under the 7-day after Completed payout rule.</p>
                             </div>
                         <?php else: ?>
-                            <div class="alert alert-warning py-2 mb-0" style="background: #fff8d8; border-left: 3px solid #d4ac00;">
+                            <div class="alert alert-warning py-2 mb-2" style="background: #fff8d8; border-left: 3px solid #d4ac00;">
                                 <i class="fa fa-clock-o"></i> <strong>Admin decision pending.</strong> The Merchant may respond privately but cannot decide the Resolution outcome.
                             </div>
+                            <?php if ($is_replacement && $resolution->status !== 'Close (Final)'): ?>
+                                <div class="mt-2 pt-2 border-top">
+                                    <h6 class="font-weight-bold text-dark mb-1">Required Merchant fulfilment</h6>
+                                    <p class="text-muted small mb-2">Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) releases hold subject to payout eligibility.</p>
+                                    <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
+                                        <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
+                                            <i class="fa fa-truck"></i> Arrange replacement
+                                        </button>
+                                        <?php if (!empty($resolution->delivery_option) && !in_array($resolution->delivery_option, ['none', 'n/a'], true) && $resolution->merchant_action !== 'replacement_completed'): ?>
+                                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
+                                                <i class="fa fa-check-square-o"></i> Mark dispatched / delivered
+                                            </button>
+                                        <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
+                                            <span class="badge badge-success p-2">
+                                                <i class="fa fa-check-circle"></i> Replacement Marked Dispatched / Delivered
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
 
@@ -513,213 +535,106 @@ $this->load->view('common/fbc-user/header');
                         </div>
                     </div>
 
-                    <!-- Conversation Workflows Navigation Tabs -->
+                    <!-- Conversation with Support & Accounting (Shopper Chat Removed from Merchant Panel) -->
                     <div class="card mb-4 border-0 shadow-sm">
-                        <div class="card-header bg-white p-0 border-bottom">
-                            <ul class="nav nav-tabs card-header-tabs m-0 border-0" id="merchantConvTabs" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active font-weight-bold py-3 px-4" id="tab-shopper-conv" data-toggle="tab" data-bs-toggle="tab" href="#pane-shopper-conv" role="tab" aria-controls="pane-shopper-conv" aria-selected="true">
-                                        <i class="fa fa-user text-primary mr-1"></i> <?= $this->lang->line('conversion_shopper_merchant_tab') ?: 'Shopper (Merchant ↔ Shopper)'; ?>
-                                        <span class="badge badge-pill badge-primary ml-1"><?= count($shopper_merchant_msgs); ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link font-weight-bold py-3 px-4" id="tab-admin-conv" data-toggle="tab" data-bs-toggle="tab" href="#pane-admin-conv" role="tab" aria-controls="pane-admin-conv" aria-selected="false">
-                                        <i class="fa fa-shield text-info mr-1"></i> <?= $this->lang->line('conversion_merchant_admin_tab') ?: 'Support & Accounting (Merchant ↔ Support & Accounting)'; ?>
-                                        <span class="badge badge-pill badge-info ml-1"><?= count($merchant_admin_msgs); ?></span>
-                                    </a>
-                                </li>
-                            </ul>
+                        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                            <span class="font-weight-bold text-dark" style="font-size: 15px;">
+                                <i class="fa fa-shield text-info mr-1"></i> <?= $this->lang->line('conversion_merchant_admin_tab') ?: 'Support & Accounting (Merchant ↔ Support & Accounting)'; ?>
+                            </span>
+                            <span class="badge badge-pill badge-info px-2 py-1"><?= count($merchant_admin_msgs); ?> <?= count($merchant_admin_msgs) === 1 ? 'Message' : 'Messages'; ?></span>
                         </div>
 
-                        <div class="tab-content card-body p-3" id="merchantConvContent">
-                            <!-- Pane 1: Merchant <-> Shopper -->
-                            <div class="tab-pane fade show active" id="pane-shopper-conv" role="tabpanel" aria-labelledby="tab-shopper-conv">
-                                <div class="alert alert-info py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; background-color: #f4fbfd; border-color: #bce8f1; color: #245269;">
-                                    <div><i class="fa fa-comments text-info mr-1"></i> <strong>Direct Customer Communication:</strong> Messages exchanged here are sent to the shopper. Support can review for dispute adjudication.</div>
-                                    <span class="badge badge-info"><i class="fa fa-eye"></i> Shopper + Support</span>
-                                </div>
-                                <div class="chat-container mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
-                                    <?php if (!empty($shopper_merchant_msgs)): ?>
-                                        <?php foreach ($shopper_merchant_msgs as $msg): 
-                                            $is_merchant = ($msg->sender_role === 'merchant');
-                                            $role_class  = 'chat-msg-' . $msg->sender_role;
-                                            $sender_display = $is_merchant ? ($this->lang->line('you_merchant') ?: 'You (Merchant)') : ($this->lang->line('shopper') ?: 'Shopper');
-                                        ?>
-                                            <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_merchant ? '#eef5ff' : '#ffffff'; ?>; border: 1px solid <?= $is_merchant ? '#cce2ff' : '#e5e9f0'; ?>;">
-                                                <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
-                                                    <strong class="<?= $is_merchant ? 'text-primary' : 'text-dark'; ?>"><?= htmlspecialchars($sender_display); ?></strong> &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
-                                                </div>
-                                                <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
-                                                    <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
-                                                </div>
-                                                <?php if (!empty($msg->attachment)): 
-                                                    $att_ext = strtolower(pathinfo($msg->attachment, PATHINFO_EXTENSION));
-                                                    $is_img  = in_array($att_ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
-                                                    $is_pdf  = ($att_ext === 'pdf');
-                                                    $att_preview_url  = base_url('order_resolution/attachment/' . rawurlencode($resolution->ticket_number) . '/' . rawurlencode($msg->attachment));
-                                                    $att_download_url = $att_preview_url . '?download=1';
-                                                ?>
-                                                    <div class="chat-attachment-box mt-2 p-2 rounded" style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); display: inline-block; max-width: 100%;">
-                                                        <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
-                                                            <span class="text-muted" style="font-size: 13px;">
-                                                                <i class="fa <?= $is_img ? 'fa-file-image-o text-info' : ($is_pdf ? 'fa-file-pdf-o text-danger' : 'fa-paperclip text-secondary'); ?>"></i>
-                                                                <strong><?= htmlspecialchars($msg->attachment); ?></strong>
-                                                            </span>
-                                                            <div class="btn-group btn-group-sm">
-                                                                <a href="<?= $att_preview_url; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="<?= $this->lang->line('preview') ?: 'Preview Evidence'; ?>">
-                                                                    <i class="fa fa-eye"></i> <?= $this->lang->line('preview') ?: 'Preview'; ?>
-                                                                </a>
-                                                                <a href="<?= $att_download_url; ?>" class="btn btn-sm btn-outline-secondary" title="<?= $this->lang->line('download') ?: 'Download'; ?>">
-                                                                    <i class="fa fa-download"></i> <?= $this->lang->line('download') ?: 'Download'; ?>
-                                                                </a>
-                                                            </div>
+                        <div class="card-body p-3">
+                            <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
+                                <div><i class="fa fa-lock text-warning mr-1"></i> <strong>Private Support &amp; Accounting Thread:</strong> Confidential coordination with YellowMarkets Support (@Help) and Accounting (@Acct). Both authorized teams have access to this thread.</div>
+                                <span class="badge badge-warning"><i class="fa fa-eye-slash"></i> Hidden from Shopper</span>
+                            </div>
+                            <div class="chat-container mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
+                                <?php if (!empty($merchant_admin_msgs)): ?>
+                                    <?php foreach ($merchant_admin_msgs as $msg): 
+                                        $is_merchant = ($msg->sender_role === 'merchant');
+                                        $role_class  = 'chat-msg-' . $msg->sender_role;
+                                        $sender_display = $is_merchant ? ($this->lang->line('you_merchant') ?: 'You (Merchant)') : (($msg->sender_role === 'acct') ? ($this->lang->line('accounting_team') ?: 'Accounting Team (@Acct)') : ($this->lang->line('support_team') ?: 'Support Team (@Help)'));
+                                    ?>
+                                        <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_merchant ? '#eef5ff' : '#fef8ea'; ?>; border: 1px solid <?= $is_merchant ? '#cce2ff' : '#faebcc'; ?>;">
+                                            <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
+                                                <strong class="<?= $is_merchant ? 'text-primary' : 'text-warning'; ?>"><?= htmlspecialchars($sender_display); ?></strong> &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
+                                            </div>
+                                            <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
+                                                <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
+                                            </div>
+                                            <?php if (!empty($msg->attachment)): 
+                                                $att_ext = strtolower(pathinfo($msg->attachment, PATHINFO_EXTENSION));
+                                                $is_img  = in_array($att_ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
+                                                $is_pdf  = ($att_ext === 'pdf');
+                                                $att_preview_url  = base_url('order_resolution/attachment/' . rawurlencode($resolution->ticket_number) . '/' . rawurlencode($msg->attachment));
+                                                $att_download_url = $att_preview_url . '?download=1';
+                                            ?>
+                                                <div class="chat-attachment-box mt-2 p-2 rounded" style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); display: inline-block; max-width: 100%;">
+                                                    <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                                        <span class="text-muted" style="font-size: 13px;">
+                                                            <i class="fa <?= $is_img ? 'fa-file-image-o text-info' : ($is_pdf ? 'fa-file-pdf-o text-danger' : 'fa-paperclip text-secondary'); ?>"></i>
+                                                            <strong><?= htmlspecialchars($msg->attachment); ?></strong>
+                                                        </span>
+                                                        <div class="btn-group btn-group-sm">
+                                                            <a href="<?= $att_preview_url; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="<?= $this->lang->line('preview') ?: 'Preview Evidence'; ?>">
+                                                                <i class="fa fa-eye"></i> <?= $this->lang->line('preview') ?: 'Preview'; ?>
+                                                            </a>
+                                                            <a href="<?= $att_download_url; ?>" class="btn btn-sm btn-outline-secondary" title="<?= $this->lang->line('download') ?: 'Download'; ?>">
+                                                                <i class="fa fa-download"></i> <?= $this->lang->line('download') ?: 'Download'; ?>
+                                                            </a>
                                                         </div>
-                                                        <?php if ($is_img): ?>
-                                                            <div class="attachment-preview mt-2" style="max-width: 320px; border-radius: 4px; overflow: hidden; border: 1px solid #ced4da; background: #fff;">
-                                                                <a href="<?= $att_preview_url; ?>" target="_blank" title="<?= $this->lang->line('click_to_view_full') ?: 'Click to view full size'; ?>">
-                                                                    <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.parentElement.parentElement.style.display='none';">
-                                                                </a>
-                                                            </div>
-                                                        <?php endif; ?>
                                                     </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <p class="text-muted text-center py-4"><?= $this->lang->line('no_messages_shopper_channel') ?: 'No conversation messages with shopper yet.'; ?></p>
-                                    <?php endif; ?>
-                                </div>
-
-                                <!-- Reply to Shopper Form -->
-                                <?php if ($resolution->status !== 'Close (Final)'): ?>
-                                    <div class="card border">
-                                        <div class="card-header bg-light py-2">
-                                            <strong style="font-size: 13px;"><i class="fa fa-paper-plane text-primary"></i> <?= $this->lang->line('reply_to_shopper') ?: 'Reply to Shopper'; ?></strong>
+                                                    <?php if ($is_img): ?>
+                                                        <div class="attachment-preview mt-2" style="max-width: 320px; border-radius: 4px; overflow: hidden; border: 1px solid #ced4da; background: #fff;">
+                                                            <a href="<?= $att_preview_url; ?>" target="_blank" title="<?= $this->lang->line('click_to_view_full') ?: 'Click to view full size'; ?>">
+                                                                <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.parentElement.parentElement.style.display='none';">
+                                                            </a>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
-                                        <div class="card-body p-3">
-                                            <div class="alert alert-info py-1 px-3 mb-3" style="font-size: 12px; background-color: #ebf7fd; border-color: #bce8f1; color: #245269;">
-                                                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                                    <div><i class="fa fa-user mr-1"></i> <strong>Recipient:</strong> <?= htmlspecialchars($customer ? trim($customer->first_name . ' ' . $customer->last_name) : 'Shopper'); ?></div>
-                                                    <div><i class="fa fa-eye mr-1"></i> <strong>Visibility:</strong> Direct communication with Shopper. Support can review for adjudication.</div>
-                                                </div>
-                                            </div>
-                                            <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
-                                                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
-                                                <input type="hidden" name="conversion_type" value="shopper_merchant">
-                                                <div class="form-group mb-2">
-                                                    <textarea name="message" rows="3" class="form-control" placeholder="<?= $this->lang->line('enter_response_to_shopper') ?: 'Enter your response to the shopper...'; ?>" required></textarea>
-                                                </div>
-                                                <div class="row align-items-center">
-                                                    <div class="col-md-8">
-                                                        <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
-                                                        <small class="text-muted"><?= $this->lang->line('optional_attachment') ?: 'Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)'; ?></small>
-                                                    </div>
-                                                    <div class="col-md-4 text-right">
-                                                        <button type="submit" class="btn btn-primary btn-sm px-3">
-                                                            <i class="fa fa-paper-plane"></i> <?= $this->lang->line('send_reply') ?: 'Send Reply'; ?>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <p class="text-muted text-center py-4"><?= $this->lang->line('no_messages_admin_channel') ?: 'No conversation messages with YellowMarkets Support & Accounting yet.'; ?></p>
                                 <?php endif; ?>
                             </div>
 
-                            <!-- Pane 2: Merchant <-> Admin (Support & Accounting) -->
-                            <div class="tab-pane fade" id="pane-admin-conv" role="tabpanel" aria-labelledby="tab-admin-conv">
-                                <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
-                                    <div><i class="fa fa-lock text-warning mr-1"></i> <strong>Private Support &amp; Accounting Thread:</strong> Confidential coordination with YellowMarkets Support (@Help) and Accounting (@Acct). Both authorized teams have access to this thread.</div>
-                                    <span class="badge badge-warning"><i class="fa fa-eye-slash"></i> Hidden from Shopper</span>
-                                </div>
-                                <div class="chat-container mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
-                                    <?php if (!empty($merchant_admin_msgs)): ?>
-                                        <?php foreach ($merchant_admin_msgs as $msg): 
-                                            $is_merchant = ($msg->sender_role === 'merchant');
-                                            $role_class  = 'chat-msg-' . $msg->sender_role;
-                                            $sender_display = $is_merchant ? ($this->lang->line('you_merchant') ?: 'You (Merchant)') : (($msg->sender_role === 'acct') ? ($this->lang->line('accounting_team') ?: 'Accounting Team (@Acct)') : ($this->lang->line('support_team') ?: 'Support Team (@Help)'));
-                                        ?>
-                                            <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_merchant ? '#eef5ff' : '#fef8ea'; ?>; border: 1px solid <?= $is_merchant ? '#cce2ff' : '#faebcc'; ?>;">
-                                                <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
-                                                    <strong class="<?= $is_merchant ? 'text-primary' : 'text-warning'; ?>"><?= htmlspecialchars($sender_display); ?></strong> &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
-                                                </div>
-                                                <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
-                                                    <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
-                                                </div>
-                                                <?php if (!empty($msg->attachment)): 
-                                                    $att_ext = strtolower(pathinfo($msg->attachment, PATHINFO_EXTENSION));
-                                                    $is_img  = in_array($att_ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
-                                                    $is_pdf  = ($att_ext === 'pdf');
-                                                    $att_preview_url  = base_url('order_resolution/attachment/' . rawurlencode($resolution->ticket_number) . '/' . rawurlencode($msg->attachment));
-                                                    $att_download_url = $att_preview_url . '?download=1';
-                                                ?>
-                                                    <div class="chat-attachment-box mt-2 p-2 rounded" style="background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); display: inline-block; max-width: 100%;">
-                                                        <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
-                                                            <span class="text-muted" style="font-size: 13px;">
-                                                                <i class="fa <?= $is_img ? 'fa-file-image-o text-info' : ($is_pdf ? 'fa-file-pdf-o text-danger' : 'fa-paperclip text-secondary'); ?>"></i>
-                                                                <strong><?= htmlspecialchars($msg->attachment); ?></strong>
-                                                            </span>
-                                                            <div class="btn-group btn-group-sm">
-                                                                <a href="<?= $att_preview_url; ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="<?= $this->lang->line('preview') ?: 'Preview Evidence'; ?>">
-                                                                    <i class="fa fa-eye"></i> <?= $this->lang->line('preview') ?: 'Preview'; ?>
-                                                                </a>
-                                                                <a href="<?= $att_download_url; ?>" class="btn btn-sm btn-outline-secondary" title="<?= $this->lang->line('download') ?: 'Download'; ?>">
-                                                                    <i class="fa fa-download"></i> <?= $this->lang->line('download') ?: 'Download'; ?>
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                        <?php if ($is_img): ?>
-                                                            <div class="attachment-preview mt-2" style="max-width: 320px; border-radius: 4px; overflow: hidden; border: 1px solid #ced4da; background: #fff;">
-                                                                <a href="<?= $att_preview_url; ?>" target="_blank" title="<?= $this->lang->line('click_to_view_full') ?: 'Click to view full size'; ?>">
-                                                                    <img src="<?= $att_preview_url; ?>" alt="<?= htmlspecialchars($msg->attachment); ?>" style="width: 100%; max-height: 200px; object-fit: contain; display: block; background: #f8f9fa;" onerror="this.parentElement.parentElement.style.display='none';">
-                                                                </a>
-                                                            </div>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <p class="text-muted text-center py-4"><?= $this->lang->line('no_messages_admin_channel') ?: 'No conversation messages with YellowMarkets Support & Accounting yet.'; ?></p>
-                                    <?php endif; ?>
-                                </div>
-
-                                <!-- Message to Admin Form -->
-                                <?php if ($resolution->status !== 'Close (Final)'): ?>
-                                    <div class="card border">
-                                        <div class="card-header bg-light py-2">
-                                            <strong style="font-size: 13px;"><i class="fa fa-envelope text-info"></i> <?= $this->lang->line('message_to_admin') ?: 'Message to YellowMarkets Support & Accounting'; ?></strong>
-                                        </div>
-                                        <div class="card-body p-3">
-                                            <div class="alert alert-warning py-1 px-3 mb-3" style="font-size: 12px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
-                                                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                                    <div><i class="fa fa-shield mr-1"></i> <strong>Recipient:</strong> YellowMarkets Support &amp; Accounting (@Help / @Acct)</div>
-                                                    <div><i class="fa fa-eye-slash mr-1"></i> <strong>Visibility:</strong> Confidential coordination between Merchant, Support, and Accounting. Both Support and Accounting can access this thread. <em>Shopper cannot view this thread.</em></div>
-                                                </div>
-                                            </div>
-                                            <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
-                                                <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
-                                                <input type="hidden" name="conversion_type" value="merchant_admin">
-                                                <div class="form-group mb-2">
-                                                    <textarea name="message" rows="3" class="form-control" placeholder="<?= $this->lang->line('enter_response_to_admin') ?: 'Enter your message or inquiry for YellowMarkets Support & Accounting...'; ?>" required></textarea>
-                                                </div>
-                                                <div class="row align-items-center">
-                                                    <div class="col-md-8">
-                                                        <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
-                                                        <small class="text-muted"><?= $this->lang->line('optional_attachment') ?: 'Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)'; ?></small>
-                                                    </div>
-                                                    <div class="col-md-4 text-right">
-                                                        <button type="submit" class="btn btn-info btn-sm px-3 text-white">
-                                                            <i class="fa fa-paper-plane"></i> <?= $this->lang->line('send_message') ?: 'Send Message'; ?>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
+                            <!-- Message to Admin Form -->
+                            <?php if ($resolution->status !== 'Close (Final)'): ?>
+                                <div class="card border">
+                                    <div class="card-header bg-light py-2">
+                                        <strong style="font-size: 13px;"><i class="fa fa-envelope text-info"></i> <?= $this->lang->line('message_to_admin') ?: 'Message to YellowMarkets Support & Accounting'; ?></strong>
                                     </div>
-                                <?php endif; ?>
-                            </div>
+                                    <div class="card-body p-3">
+                                        <div class="alert alert-warning py-1 px-3 mb-3" style="font-size: 12px; color: #856404; background-color: #fff3cd; border-color: #ffeeba;">
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                <div><i class="fa fa-shield mr-1"></i> <strong>Recipient:</strong> YellowMarkets Support &amp; Accounting (@Help / @Acct)</div>
+                                                <div><i class="fa fa-eye-slash mr-1"></i> <strong>Visibility:</strong> Confidential coordination between Merchant, Support, and Accounting. Both Support and Accounting can access this thread. <em>Shopper cannot view this thread.</em></div>
+                                            </div>
+                                        </div>
+                                        <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
+                                            <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
+                                            <input type="hidden" name="conversion_type" value="merchant_admin">
+                                            <div class="form-group mb-2">
+                                                <textarea name="message" rows="3" class="form-control" placeholder="<?= $this->lang->line('enter_response_to_admin') ?: 'Enter your message or inquiry for YellowMarkets Support & Accounting...'; ?>" required></textarea>
+                                            </div>
+                                            <div class="row align-items-center">
+                                                <div class="col-md-8">
+                                                    <input type="file" name="attachment" class="form-control-file" accept="image/*,.pdf">
+                                                    <small class="text-muted"><?= $this->lang->line('optional_attachment') ?: 'Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)'; ?></small>
+                                                </div>
+                                                <div class="col-md-4 text-right">
+                                                    <button type="submit" class="btn btn-info btn-sm px-3 text-white">
+                                                        <i class="fa fa-paper-plane"></i> <?= $this->lang->line('send_message') ?: 'Send Message'; ?>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -810,35 +725,37 @@ $this->load->view('common/fbc-user/header');
 <?php endif; ?>
 
 <?php if ($is_replacement_ticket): ?>
-<!-- Modal: Replacement Approved with Delivery Options -->
-<div class="modal fade" id="replacementApproveModal" tabindex="-1" role="dialog">
+<!-- Modal: Replacement Delivery Method (Wireframe Aligned) -->
+<div class="modal fade" id="replacementApproveModal" tabindex="-1" role="dialog" aria-labelledby="replacementApproveModalLabel">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content" style="border-radius: 8px;">
             <form action="<?= base_url('order_resolution/action'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="action" value="replacement_approved">
-                <div class="modal-header">
-                    <h5 class="modal-title text-info"><i class="fa fa-refresh"></i> <?= $this->lang->line('approve_replacement') ?: 'Approve Replacement'; ?></h5>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title font-weight-bold" id="replacementApproveModalLabel" style="font-size: 18px; color: #1e293b;">
+                        <?= $this->lang->line('replacement_delivery_method') ?: 'Replacement delivery method'; ?>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-                <div class="modal-body">
-                    <p><?= $this->lang->line('select_replacement_delivery_method') ?: 'Select the replacement delivery method:'; ?></p>
-                    <div class="form-group">
-                        <label><strong><?= $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</strong> <span class="text-danger">*</span></label>
-                        <select name="delivery_option" class="form-control" required>
-                            <option value=""><?= $this->lang->line('select_delivery_option') ?: '-- Select Delivery Option --'; ?></option>
-                            <option value="own_delivery"><?= $this->lang->line('own_delivery') ?: 'Own Delivery'; ?></option>
-                            <option value="self_pickup"><?= $this->lang->line('self_pickup') ?: 'Self Pickup'; ?></option>
-                            <option value="ym_delivery"><?= $this->lang->line('ym_delivery') ?: 'YM Delivery Service'; ?></option>
+                <div class="modal-body pt-3 pb-2">
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold text-secondary mb-1" style="font-size: 13.5px;"><?= $this->lang->line('method') ?: 'Method'; ?></label>
+                        <select name="delivery_option" class="form-control" style="border-radius: 6px; height: 38px; font-size: 14px;" required>
+                            <option value="own_delivery" <?= ($resolution->delivery_option === 'own_delivery') ? 'selected' : ''; ?>><?= $this->lang->line('own_delivery') ?: 'Own Delivery'; ?></option>
+                            <option value="ym_delivery" <?= ($resolution->delivery_option === 'ym_delivery') ? 'selected' : ''; ?>><?= $this->lang->line('ym_delivery') ?: 'YM Delivery'; ?></option>
+                            <option value="self_pickup" <?= ($resolution->delivery_option === 'self_pickup') ? 'selected' : ''; ?>><?= $this->lang->line('self_pickup') ?: 'Self Pickup'; ?></option>
                         </select>
-                        <small class="form-text text-muted">
-                            <?= $this->lang->line('ym_delivery_note') ?: 'Selecting YM Delivery Service notifies Yellow Markets (@Help) to organize fulfillment.'; ?>
-                        </small>
+                        <p class="text-muted small mt-2 mb-0" style="font-size: 13px; line-height: 1.4;">
+                            <?= $this->lang->line('ym_delivery_note_wireframe') ?: 'YM Delivery retains the existing paid Add-on process; no purchase is made in this demo.'; ?>
+                        </p>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"><?= $this->lang->line('cancel') ?: 'Cancel'; ?></button>
-                    <button type="submit" class="btn btn-info btn-sm"><?= $this->lang->line('confirm_replacement_approved') ?: 'Confirm Replacement Approved'; ?></button>
+                <div class="modal-footer border-0 pt-0 pb-3" style="justify-content: flex-start; gap: 8px;">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-dismiss="modal" data-bs-dismiss="modal"><?= $this->lang->line('cancel') ?: 'Cancel'; ?></button>
+                    <button type="submit" class="btn btn-dark btn-sm px-3 font-weight-bold"><?= $this->lang->line('confirm_action') ?: 'Confirm action'; ?></button>
                 </div>
             </form>
         </div>

@@ -1206,24 +1206,30 @@ class OrderResolutionModel extends CI_Model
             if ($res->merchant_action === 'replacement_completed') {
                 return ['status' => false, 'message' => 'Replacement has already been marked as completed.', 'requires_reload' => true];
             }
-            if ($res->merchant_action !== 'replacement_approved' || $res->delivery_option === 'none') {
-                return ['status' => false, 'message' => 'Replacement must be approved with a delivery option first.', 'requires_reload' => true];
+            if (empty($res->delivery_option) || in_array($res->delivery_option, ['none', 'n/a'], true)) {
+                return ['status' => false, 'message' => 'Replacement must have a delivery option selected first.', 'requires_reload' => true];
             }
+        } elseif (in_array($action, ['replacement_approved', 'arrange_replacement'], true)) {
+            if ($res->merchant_action === 'replacement_completed') {
+                return ['status' => false, 'message' => 'Replacement has already been marked as completed.', 'requires_reload' => true];
+            }
+            // Allow setting or updating delivery method if replacement was originally rejected, under review, or already approved
         } else {
-            if (!empty($res->merchant_action) && $res->merchant_action !== 'none') {
+            if (!empty($res->merchant_action) && !in_array($res->merchant_action, ['none', 'n/a'], true)) {
                 return ['status' => false, 'message' => 'A decision has already been submitted for this ticket (' . ucwords(str_replace('_', ' ', $res->merchant_action)) . ').', 'requires_reload' => true];
             }
         }
 
         $category = strtolower(trim($res->category ?? ''));
-        $is_refund_type = in_array($category, ['refund', 'return'], true);
-        $is_replacement_type = ($category === 'replacement');
+        $admin_rem = strtolower(trim($res->admin_remedy ?? ''));
+        $is_refund_type = in_array($category, ['refund', 'return'], true) || ($admin_rem === 'return_refund');
+        $is_replacement_type = ($category === 'replacement') || ($admin_rem === 'replacement');
 
         if (in_array($action, ['refund_approved', 'refund_denied'], true) && !$is_refund_type) {
             return ['status' => false, 'message' => 'Refund actions are not permitted for a ' . htmlspecialchars($res->category) . ' resolution ticket.'];
         }
 
-        if (in_array($action, ['replacement_approved', 'replacement_denied', 'replacement_completed'], true) && !$is_replacement_type) {
+        if (in_array($action, ['replacement_approved', 'arrange_replacement', 'replacement_denied', 'replacement_completed'], true) && !$is_replacement_type) {
             return ['status' => false, 'message' => 'Replacement actions are not permitted for a ' . htmlspecialchars($res->category) . ' resolution ticket.'];
         }
 
@@ -1274,6 +1280,7 @@ class OrderResolutionModel extends CI_Model
                 return ['status' => true, 'message' => 'Refund denied. Shopper and @Help have been notified.'];
 
             case 'replacement_approved':
+            case 'arrange_replacement':
                 $delivery_option = $extra['delivery_option'] ?? '';
                 if (!in_array($delivery_option, ['own_delivery', 'self_pickup', 'ym_delivery'], true)) {
                     return ['status' => false, 'message' => 'Please select a valid delivery option.'];
@@ -1282,7 +1289,8 @@ class OrderResolutionModel extends CI_Model
                 $update['delivery_option'] = $delivery_option;
                 $this->db->where('id', $res->id)->update('order_resolutions', $update);
 
-                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Approved', 'merchant', $merchant_id, "Selected delivery: {$delivery_option}", 'merchant', 'merchant_shopper');
+                $disp_del = ucwords(str_replace('_', ' ', $delivery_option));
+                $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Replacement Delivery Method Selected', 'merchant', $merchant_id, "Selected delivery method: {$disp_del}", 'merchant', 'merchant_shopper');
 
                 // Notify @Help of button action
                 $this->send_merchant_action_email_to_help($res, 'Replacement Approved');
@@ -1294,7 +1302,7 @@ class OrderResolutionModel extends CI_Model
                     // Send order-resolution-replacement-underway-shopper
                     $this->send_replacement_underway_shopper_email($res, $delivery_option);
                 }
-                return ['status' => true, 'message' => 'Replacement approved successfully.'];
+                return ['status' => true, 'message' => 'Replacement delivery method (' . $disp_del . ') confirmed successfully.'];
 
             case 'replacement_denied':
                 $update['merchant_action'] = 'replacement_denied';
@@ -1491,10 +1499,23 @@ class OrderResolutionModel extends CI_Model
 
         $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 15-day hold-back sales.', 'admin', 'admin_shopper');
 
+        // Notify Shopper via email that refund is completed
+        $this->send_refund_completed_shopper_email($res);
+
+        // Post in conversation thread
+        $this->add_reply($ticket_number, 'acct', $admin_id, 'Accounting Team (@Acct)', "Accounting has verified and processed the refund from the merchant's 15-day hold-back balance.\nShopper refund is complete.\nNotes: " . ($notes ?: 'Refund processed and verified.'), '', '', 'merchant_admin');
+
         // In-App Notification to @Help indicating refund is processed and ready for Close (Final)
         $this->send_inapp_notification('admin', 1, 'refund_done',
             'Order Resolution - Refund Processed by @Acct',
             "Accounting has processed refund for Ticket #{$ticket_number} (Order #{$res->order_number}) from merchant hold-back sales. Ticket status is Done. Ready for Close (Final).", $res);
+
+        // In-App Notification to Merchant
+        if (!empty($res->merchant_id)) {
+            $this->send_inapp_notification('merchant', $res->merchant_id, 'refund_done',
+                'Order Resolution Refund Processed',
+                "Accounting has processed refund for Ticket #{$ticket_number} (Order #{$res->order_number}) from your hold-back balance. Refunded amount will not be paid to merchant.", $res);
+        }
 
         return ['status' => true, 'message' => 'Ticket marked as Done. Refund processed from merchant 15-day hold-back sales.'];
     }
@@ -1807,24 +1828,48 @@ class OrderResolutionModel extends CI_Model
         }
 
         $time = time();
-        $this->db->where('id', $res->id)->update('order_resolutions', [
+        $update_data = [
             'merchant_return_confirmed' => 1,
             'merchant_return_notes'     => $evidence,
+            'assigned_role'             => 'Acct',
+            'status'                    => 'Processing',
             'updated_at'                => $time,
-        ]);
+        ];
+        $safe_update = [];
+        foreach ($update_data as $col => $val) {
+            if ($this->db->field_exists($col, 'order_resolutions')) {
+                $safe_update[$col] = $val;
+            }
+        }
+        if (!empty($safe_update)) {
+            $prev_debug = $this->db->db_debug;
+            $this->db->db_debug = FALSE;
+            $this->db->where('id', $res->id)->update('order_resolutions', $safe_update);
+            $this->db->db_debug = $prev_debug;
+        }
 
-        $audit_note = "Merchant confirmed receipt of returned item. Evidence/Ref: " . ($evidence ?: 'Confirmed');
-        $this->audit_log($res->id, $ticket_number, $res->status, $res->status, 'Item Return Confirmed by Merchant', 'merchant', $merchant_id, $audit_note, 'merchant', 'merchant_admin');
+        $audit_note = "Merchant confirmed receipt of returned item. Evidence/Ref: " . ($evidence ?: 'Confirmed') . ". Handed over to Accounting (@Acct) for refund verification.";
+        $this->audit_log($res->id, $ticket_number, 'Processing', 'Processing', 'Item Return Confirmed by Merchant', 'merchant', $merchant_id, $audit_note, 'merchant', 'merchant_admin');
 
         // Post into conversation with Admin
-        $this->add_reply($ticket_number, 'merchant', $merchant_id, 'Merchant', "Disputed item return has been confirmed by Merchant. Return evidence: " . ($evidence ?: 'Returned item inspected and confirmed.'), '', '', 'merchant_admin');
+        $this->add_reply($ticket_number, 'merchant', $merchant_id, 'Merchant', "Disputed item return has been confirmed by Merchant.\nReturn evidence: " . ($evidence ?: 'Returned item inspected and confirmed.') . "\nTicket handed off to Accounting (@Acct) for refund processing.", '', '', 'merchant_admin');
 
-        // Notify Admin (@Help and @Acct)
+        // Send notification email to Accounting (@Acct: acct@themyp.com)
+        $this->send_refund_acct_email($res, $evidence);
+
+        // Notify Admin (@Help and @Acct) in-app
         $this->send_inapp_notification('admin', 1, 'return_confirmed',
-            'Disputed Item Return Confirmed',
-            "Merchant confirmed receipt of returned item for Ticket #{$ticket_number} (Order #{$res->order_number}). Accounting verification may proceed.", $res);
+            'Disputed Item Return Confirmed - Refund Required',
+            "Merchant confirmed receipt of returned item for Ticket #{$ticket_number} (Order #{$res->order_number}). Accounting verification and refund processing may proceed.", $res);
 
-        return ['status' => true, 'message' => 'Returned item confirmed successfully. YellowMarkets Admin & Accounting notified.'];
+        // Notify Shopper in-app that return was confirmed and refund is being processed
+        if (!empty($res->customer_id)) {
+            $this->send_inapp_notification('customer', $res->customer_id, 'return_confirmed',
+                'Item Return Confirmed - Refund Underway',
+                "The merchant has confirmed receipt of your returned item for Ticket #{$ticket_number} (Order #{$res->order_number}). Yellow Markets Accounting is now processing your refund.", $res);
+        }
+
+        return ['status' => true, 'message' => 'Returned item confirmed successfully. YellowMarkets Accounting has been notified to process the refund.'];
     }
 
     /**
@@ -2104,15 +2149,43 @@ class OrderResolutionModel extends CI_Model
         $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-refund-initiated-merchant', $tempVars, $dynamicVars);
     }
 
-    private function send_refund_acct_email($res)
+    public function send_refund_acct_email($res, $notes = '')
     {
         $acct_email = $this->get_acct_email();
-        $admin_url  = base_url('admin/order_resolution/view/' . $res->ticket_number);
+        $admin_url  = base_url('admin/order_resolution/view/' . $res->ticket_number . '?as=acct');
 
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##REFUND_AMOUNT##', '##TICKET_URL##', '##WEBSHOPNAME##'];
-        $refund_fmt = CURRENCY_TYPE . ' ' . number_format((float)($res->refund_amount ?? 0), 2);
+        $currency   = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
+        $refund_fmt = $currency . ' ' . number_format((float)($res->refund_amount ?? 0), 2);
         $dynamicVars = [$res->ticket_number, $res->order_number, $refund_fmt, $admin_url, 'Yellow Markets'];
-        $this->CommonModel->sendCommonHTMLEmail($acct_email, 'order-resolution-refund-request-acct', $tempVars, $dynamicVars);
+
+        $sent = false;
+        try {
+            $sent = $this->CommonModel->sendCommonHTMLEmail($acct_email, 'order-resolution-refund-request-acct', $tempVars, $dynamicVars);
+        } catch (\Throwable $e) {
+            $sent = false;
+        }
+
+        if (!$sent) {
+            try {
+                $this->load->library('email');
+                $this->email->clear(true);
+                $this->email->from('contact@themyp.com', 'Yellow Markets Resolution Support');
+                $this->email->to($acct_email);
+                $this->email->subject("Order Resolution Ticket #{$res->ticket_number} - Returned Item Confirmed: Refund Verification Required");
+                $body = "Dear Accounting Team,\n\n"
+                    . "Merchant has confirmed receipt of the returned item for Ticket #{$res->ticket_number} (Order #{$res->order_number}).\n\n"
+                    . "Return Evidence / Notes: " . ($notes ?: 'Returned item confirmed by Merchant.') . "\n"
+                    . "Refund Amount: " . $refund_fmt . "\n\n"
+                    . "Please process the refund from merchant hold-back sales, then click 'Mark Done' in the Admin portal:\n"
+                    . $admin_url . "\n\n"
+                    . "Yellow Markets Resolution System";
+                $this->email->message($body);
+                @$this->email->send();
+            } catch (\Throwable $e) {
+                log_message('error', 'send_refund_acct_email failed: ' . $e->getMessage());
+            }
+        }
     }
 
     private function send_ym_delivery_acct_email($res)

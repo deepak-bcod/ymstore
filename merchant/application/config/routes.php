@@ -863,11 +863,20 @@ $route['UserController/close_ticket/(:any)/(:any)/(:any)'] = 'UserController/clo
 $route['UserController/close_ticket/(:any)/(:any)'] = 'UserController/close_ticket/$1/$2';
 
 // Order Resolution Module Routes (Merchant)
-$route['order_resolution']              = 'OrderResolutionController/index';
-$route['order_resolution/view/(:any)']  = 'OrderResolutionController/view/$1';
-$route['order_resolution/attachment/(:any)/(:any)'] = 'OrderResolutionController/attachment/$1/$2';
-$route['uploads/order_resolution/(:any)']            = 'OrderResolutionController/legacy_attachment/$1';
-$route['order_resolution/reply']        = 'OrderResolutionController/reply';
-$route['order_resolution/action']       = 'OrderResolutionController/action';
+$route['order_resolution']                               = 'OrderResolutionController/index';
+$route['order_resolution/view/(:any)']                   = 'OrderResolutionController/view/$1';
+$route['order_resolution/attachment/(:any)/(:any)']      = 'OrderResolutionController/attachment/$1/$2';
+$route['uploads/order_resolution/(:any)']                 = 'OrderResolutionController/legacy_attachment/$1';
+$route['order_resolution/reply']                         = 'OrderResolutionController/reply';
+$route['order_resolution/action']                        = 'OrderResolutionController/action';
+$route['order_resolution/confirm_item_returned']         = 'OrderResolutionController/confirm_item_returned';
+
+// Prefixed variant support (when URI includes /merchant/)
+$route['merchant/order_resolution']                          = 'OrderResolutionController/index';
+$route['merchant/order_resolution/view/(:any)']              = 'OrderResolutionController/view/$1';
+$route['merchant/order_resolution/attachment/(:any)/(:any)'] = 'OrderResolutionController/attachment/$1/$2';
+$route['merchant/order_resolution/reply']                    = 'OrderResolutionController/reply';
+$route['merchant/order_resolution/action']                   = 'OrderResolutionController/action';
+$route['merchant/order_resolution/confirm_item_returned']     = 'OrderResolutionController/confirm_item_returned';
 
 

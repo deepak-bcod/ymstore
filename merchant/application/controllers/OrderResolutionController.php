@@ -179,7 +179,7 @@ class OrderResolutionController extends CI_Controller
         $message         = trim($this->input->post('message', true));
         $conversion_type = trim($this->input->post('conversion_type', true));
         if (empty($conversion_type) || !in_array($conversion_type, ['shopper_merchant', 'merchant_admin'], true)) {
-            $conversion_type = 'shopper_merchant';
+            $conversion_type = 'merchant_admin';
         }
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
@@ -280,7 +280,7 @@ class OrderResolutionController extends CI_Controller
         $extra = [];
         if ($action === 'refund_approved') {
             $extra['refund_amount'] = (float)$this->input->post('refund_amount', true);
-        } elseif ($action === 'replacement_approved') {
+        } elseif (in_array($action, ['replacement_approved', 'arrange_replacement'], true)) {
             $extra['delivery_option'] = trim($this->input->post('delivery_option', true));
         }
 
@@ -296,9 +296,10 @@ class OrderResolutionController extends CI_Controller
                 if ($action === 'refund_approved') {
                     $notification_title = 'Order Refund Approved Update';
                     $notification_msg   = 'Your refund request for Ticket #' . $ticket_number . ' has been approved (Order #' . $res->order_number . ').';
-                }  elseif ($action === 'replacement_approved') {
+                }  elseif (in_array($action, ['replacement_approved', 'arrange_replacement'], true)) {
                     $notification_title = 'Order Replacement Approved Update';
-                    $notification_msg   = 'Your replacement request for Ticket #' . $ticket_number . ' has been approved (Order #' . $res->order_number . ').';
+                    $del_name = ucwords(str_replace('_', ' ', $extra['delivery_option'] ?? ''));
+                    $notification_msg   = 'Your replacement request for Ticket #' . $ticket_number . ' has been confirmed with delivery method: ' . $del_name . ' (Order #' . $res->order_number . ').';
                 }  elseif ($action === 'replacement_completed') {
                     $notification_title = 'Order Replacement Completed Update';
                     $notification_msg   = 'Your replacement for Ticket #' . $ticket_number . ' has been marked as completed (Order #' . $res->order_number . ').';
