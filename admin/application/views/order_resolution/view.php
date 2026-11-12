@@ -559,7 +559,7 @@ span.label,
                                     <?php if (!empty($item_context->request_date)): ?>
                                     <tr>
                                         <td class="text-muted py-1"><i class="fa fa-calendar"></i> Request Date:</td>
-                                        <td class="py-1"><?= date('d M Y, h:i A', $item_context->request_date); ?></td>
+                                        <td class="py-1"><?= date('d M Y, h:i A', $item_context->request_date); ?> MUT</td>
                                     </tr>
                                     <?php endif; ?>
                                 </table>
@@ -603,7 +603,7 @@ span.label,
                         </span>
                         <div>
                             <span class="badge badge-info mr-1"><i class="fa fa-gavel"></i> Dispute Origin</span>
-                            <span class="text-muted small"><i class="fa fa-clock-o"></i> Submitted: <?= date('d M Y, h:i A', $resolution->created_at); ?></span>
+                            <span class="text-muted small"><i class="fa fa-clock-o"></i> Submitted: <?= date('d M Y, h:i A', $resolution->created_at); ?> MUT</span>
                         </div>
                     </div>
                     <div class="card-body p-3">
@@ -698,7 +698,7 @@ span.label,
                                         <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_admin ? '#eef5ff' : '#ffffff'; ?>; border: 1px solid <?= $is_admin ? '#cce2ff' : '#e5e9f0'; ?>;">
                                             <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
                                                 <strong class="<?= $is_admin ? 'text-primary' : 'text-dark'; ?>"><?= htmlspecialchars($msg->sender_name ?: ucfirst($msg->sender_role)); ?></strong> 
-                                                (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
+                                                (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?> MUT
                                             </div>
                                             <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
                                                 <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
@@ -805,7 +805,7 @@ span.label,
                                         <div class="chat-msg <?= $role_class; ?> mb-3 p-3 rounded" style="background: <?= $is_admin ? '#fef8ea' : '#ffffff'; ?>; border: 1px solid <?= $is_admin ? '#faebcc' : '#e5e9f0'; ?>;">
                                             <div class="chat-msg-meta mb-1 text-muted" style="font-size: 12px;">
                                                 <strong class="<?= $is_admin ? 'text-warning' : 'text-dark'; ?>"><?= htmlspecialchars($msg->sender_name ?: ucfirst($msg->sender_role)); ?></strong> 
-                                                (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?>
+                                                (<?= ucfirst($msg->sender_role); ?>) &bull; <?= date('d M Y, h:i A', $msg->created_at); ?> MUT
                                             </div>
                                             <div class="chat-msg-body" style="font-size: 14px; line-height: 1.5;">
                                                 <?= nl2br(htmlspecialchars($msg->message, ENT_QUOTES, 'UTF-8')); ?>
@@ -922,7 +922,7 @@ span.label,
                                         <td><?= htmlspecialchars($log->to_status ?: 'None'); ?></td>
                                         <td><?= ucfirst($log->actor_role); ?> (ID: <?= $log->actor_id; ?>)</td>
                                         <td><?= htmlspecialchars($log->notes ?: '-'); ?></td>
-                                        <td><?= date('d M Y, h:i A', $log->created_at); ?></td>
+                                        <td><?= date('d M Y, h:i A', $log->created_at); ?> MUT</td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
