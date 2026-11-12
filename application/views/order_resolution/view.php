@@ -513,11 +513,20 @@ span.label,
 
                     <!-- Conversation with YellowMarkets Support (Direct Shopper to Merchant Chat Removed) -->
                     <div class="panel panel-default" style="border-radius: 6px; border: 1px solid #faebcc; margin-top: 25px; margin-bottom: 25px;">
-                        <div class="panel-heading" style="border-bottom: 1px solid #faebcc; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;">
+                        <div class="panel-heading" style="border-bottom: 1px solid #faebcc; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <span style="font-weight: 700; color: #8a6d3b; font-size: 15px;">
                                 <i class="fa fa-shield text-warning" style="margin-right: 5px;"></i> <?php echo $this->lang->line('conversion_shopper_admin_tab') ?: 'YellowMarkets Support (Shopper ↔ Support)'; ?>
                             </span>
-                            <span class="badge font-weight-bold" style="color: #b38600;"><?php echo count($shopper_admin_msgs); ?> <?php echo count($shopper_admin_msgs) === 1 ? 'Message' : 'Messages'; ?></span>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span class="badge font-weight-bold" style="color: #b38600;"><?php echo count($shopper_admin_msgs); ?> <?php echo count($shopper_admin_msgs) === 1 ? 'Message' : 'Messages'; ?></span>
+                                <?php if ($resolution->resolution_status !== 'resolution_requested' && $resolution->status !== 'Close (Final)'): ?>
+                                    <button type="button" class="btn btn-xs btn-warning font-weight-bold" data-toggle="modal" data-target="#resolutionRequestModal">
+                                        <i class="fa fa-gavel"></i> <?php echo $this->lang->line('request_formal_escalation') ?: 'Request Formal Admin Escalation'; ?>
+                                    </button>
+                                <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
+                                    <span class="label label-warning" style="font-weight: 600;"><i class="fa fa-gavel"></i> Formally Escalated</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
 
                         <div class="panel-body" style="padding: 15px;">
@@ -573,8 +582,31 @@ span.label,
                                         </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <div class="alert alert-info text-center" style="margin: 20px 0;">
-                                        <i class="fa fa-info-circle"></i> <?php echo $this->lang->line('support_channel_ready_info') ?: 'Your dispute is under direct Support investigation. You can post a message directly to Yellow Markets Support below.'; ?>
+                                    <div class="alert alert-warning py-3 px-3" style="font-size: 13px; margin: 15px 0; color: #8a6d3b; border: 1px solid #faebcc; border-radius: 6px;">
+                                        <div style="margin-bottom: 8px;">
+                                            <i class="fa fa-info-circle text-warning" style="font-size: 16px;"></i>
+                                            <strong><?php echo $this->lang->line('support_channel_ready_info') ?: 'No conversation messages with YellowMarkets Support yet.'; ?></strong>
+                                        </div>
+                                        <div style="font-size: 13px; line-height: 1.6;">
+                                            <p style="margin-bottom: 6px;"><strong>Available Next Actions:</strong></p>
+                                            <ul style="margin-bottom: 10px; padding-left: 20px;">
+                                                <li><strong>Send a Message to Support (composer below):</strong> Directly alerts YellowMarkets Support specialists (@Help / @Acct) to review this private thread and assist you with updates, questions, or coordination. It does not alter the formal replacement approval.</li>
+                                                <li><strong>Request Formal Admin Escalation:</strong> Formally opens an administrative review with YellowMarkets Support leadership to adjudicate the dispute if merchant coordination has failed or the replacement was not received.</li>
+                                            </ul>
+                                        </div>
+                                        <?php if ($resolution->resolution_status !== 'resolution_requested' && $resolution->status !== 'Close (Final)'): ?>
+                                            <div style="padding-top: 10px; border-top: 1px solid #faebcc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                                <span class="text-muted small">Need formal administrative intervention?</span>
+                                                <button type="button" class="btn btn-xs btn-warning font-weight-bold" data-toggle="modal" data-target="#resolutionRequestModal">
+                                                    <i class="fa fa-gavel"></i> <?php echo $this->lang->line('request_formal_escalation') ?: 'Request Formal Admin Escalation'; ?>
+                                                </button>
+                                            </div>
+                                        <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
+                                            <div style="padding-top: 8px; border-top: 1px solid #faebcc;">
+                                                <span class="label label-warning font-weight-bold"><i class="fa fa-gavel"></i> Formally Escalated</span>
+                                                <span class="text-muted small" style="margin-left: 5px;">This case is currently under formal YellowMarkets Support investigation.</span>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -589,10 +621,10 @@ span.label,
                                         </div>
                                     </div>
                                     <div class="panel-body" style="padding: 15px;">
-                                        <div class="alert alert-warning py-1 px-3" style="font-size: 12px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc;">
-                                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                                                <div><i class="fa fa-shield"></i> <strong>Recipient:</strong> YellowMarkets Support Team (@Help / @Acct)</div>
-                                                <div><i class="fa fa-eye-slash"></i> <strong>Visibility:</strong> Confidential between You and Support. <em>Merchant cannot see this.</em></div>
+                                        <div class="alert alert-warning py-2 px-3" style="font-size: 12px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; border-radius: 4px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                                                <div><i class="fa fa-bell-o text-warning"></i> <strong>Consequence:</strong> Clicking "Send to Support" sends your message and <strong>immediately alerts YellowMarkets Support Team (@Help / @Acct)</strong> for inquiry and coordination.</div>
+                                                <div><i class="fa fa-eye-slash"></i> <strong>Visibility:</strong> Confidential between You and Support (Hidden from Merchant).</div>
                                             </div>
                                         </div>
                                         <form action="<?php echo base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
@@ -610,6 +642,9 @@ span.label,
                                                     <button type="submit" class="btn btn-warning btn-block font-weight-bold" style="background-color: #f0ad4e; color: #fff;">
                                                         <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('send_to_support') ?: 'Send to Support'; ?>
                                                     </button>
+                                                    <small class="text-muted text-center" style="display: block; margin-top: 4px; font-size: 11px;">
+                                                        <i class="fa fa-bell-o"></i> Alerts Support specialists directly
+                                                    </small>
                                                 </div>
                                             </div>
                                         </form>
@@ -624,7 +659,7 @@ span.label,
         </div>
     </div>
 </div>
-<?php if (in_array($resolution->status, ['Close', 'Done', 'Processing']) && $resolution->resolution_status !== 'resolution_requested'): ?>
+<?php if ($resolution->status !== 'Close (Final)' && $resolution->resolution_status !== 'resolution_requested'): ?>
 <!-- Resolution Escalation Modal -->
 <div class="modal fade" id="resolutionRequestModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -633,18 +668,21 @@ span.label,
                 <input type="hidden" name="ticket_number" value="<?php echo htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title"><?php echo $this->lang->line('escalate_modal_title') ?: 'Escalate to Yellow Market Support'; ?></h4>
+                    <h4 class="modal-title font-weight-bold text-warning"><i class="fa fa-gavel"></i> <?php echo $this->lang->line('escalate_modal_title') ?: 'Request Formal Admin Escalation'; ?></h4>
                 </div>
                 <div class="modal-body">
-                    <p><?php echo $this->lang->line('escalate_modal_desc') ?: 'If you disagree with the merchant\'s decision or the issue has not been satisfactorily resolved, submit this request to escalate the ticket directly to Yellow Markets Support.'; ?></p>
+                    <p style="font-size: 13px; line-height: 1.5;"><?php echo $this->lang->line('escalate_modal_desc') ?: 'Formally request YellowMarkets Support (@Help) administrative mediation. This will re-open formal dispute investigation if you disagree with the merchant resolution or the replacement was not fulfilled.'; ?></p>
+                    <div class="alert alert-info py-2 px-3" style="font-size: 12px; margin-bottom: 15px;">
+                        <i class="fa fa-info-circle"></i> <strong>Consequence:</strong> Submitting this request formally escalates your dispute to YellowMarkets Support leadership for official administrative adjudication.
+                    </div>
                     <div class="form-group">
-                        <label><?php echo $this->lang->line('message_description') ?: 'Reason / Additional Details:'; ?></label>
-                        <textarea name="message" class="form-control" rows="4" placeholder="<?php echo $this->lang->line('explain_mediation_reason') ?: 'Explain why you are requesting escalation to Yellow Markets Support...'; ?>"></textarea>
+                        <label><?php echo $this->lang->line('message_description') ?: 'Reason / Additional Details:'; ?> <span class="text-danger">*</span></label>
+                        <textarea name="message" class="form-control" rows="4" placeholder="<?php echo $this->lang->line('explain_mediation_reason') ?: 'Explain why you are requesting formal escalation to Yellow Markets Support...'; ?>" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel') ?: 'Cancel'; ?></button>
-                    <button type="submit" class="btn btn-info"><?php echo $this->lang->line('submit_escalation') ?: 'Submit Escalation'; ?></button>
+                    <button type="submit" class="btn btn-warning font-weight-bold"><?php echo $this->lang->line('submit_escalation') ?: 'Submit Formal Escalation'; ?></button>
                 </div>
             </form>
         </div>
