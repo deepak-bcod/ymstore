@@ -694,11 +694,11 @@ body {
 
     <!-- PRINT BUTTON -->
 
-    <div class="print-button">
+    <!-- <div class="print-button">
         <button type="button" onclick="window.print();">
             Print / Save as PDF
         </button>
-    </div>
+    </div> -->
 
     <!-- HEADER -->
 

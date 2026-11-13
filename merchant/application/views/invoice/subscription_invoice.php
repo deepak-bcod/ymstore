@@ -93,12 +93,45 @@ $merchant_reference = $getPublisherValue($publisher, [
 // VAT
 // Supply vat_rate from your actual invoice data.
 // Default is 0% when no VAT rate is supplied.
-$vat_rate = isset($order['vat_rate'])
-    ? (float)$order['vat_rate'] : 0;
 
-$subtotal = $amount;
+// =====================================================
+// SUBSCRIPTION PRICE AND VAT CALCULATION
+// =====================================================
+
+// Get yearly price from subscription plan
+$yearly_price = (float)(
+    $plan['yearly_price']
+    ?? $plan['yearlyPrice']
+    ?? $plan['price']
+    ?? $amount
+);
+
+// Get VAT percentage from subscription plan
+$vat_rate = (float)(
+    $plan['vat_rate']
+    ?? $plan['vat_percentage']
+    ?? $plan['ym_vat']
+    ?? $order['vat_rate']
+    ?? 0
+);
+
+// Subtotal = Yearly Price
+$subtotal = $yearly_price;
+
+// Calculate VAT
 $vat_amount = ($subtotal * $vat_rate) / 100;
-$invoice_total = $subtotal + $vat_amount;
+
+// Final Price = Yearly Price + VAT
+$invoice_total = isset($plan['final_price'])
+    ? (float)$plan['final_price']
+    : ($subtotal + $vat_amount);
+
+// Payment information
+$payment_allocated = ($status === 'paid')
+    ? $invoice_total : 0;
+
+$amount_due = max(0, $invoice_total - $payment_allocated);
+
 
 // Payment information
 $payment_allocated = ($status === 'paid')
@@ -678,11 +711,11 @@ body {
 
     <!-- PRINT BUTTON -->
 
-    <div class="print-button">
+    <!-- <div class="print-button">
         <button type="button" onclick="window.print();">
             Print / Save as PDF
         </button>
-    </div>
+    </div> -->
 
     <!-- HEADER -->
 
