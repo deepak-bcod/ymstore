@@ -98,6 +98,27 @@ span.label,
                 </div>
 
                 <div class="card-body">
+                    <?php $guidance = $this->OrderResolutionModel->get_next_action_guidance($resolution); ?>
+                    <!-- Next Action & Responsible Actor Banner (YM-18) -->
+                    <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between p-3 mb-4 shadow-sm" style="border-left: 5px solid #007bff !important; background-color: #f8faff;">
+                        <div class="d-flex flex-column" style="gap: 4px;">
+                            <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                <span class="badge <?= $guidance['badge_class']; ?> px-2 py-1" style="font-size: 13px;">
+                                    <i class="fa fa-user-circle"></i> <?= $this->lang->line('next_responsible_actor') ?: 'Next Responsible Actor'; ?>: <?= htmlspecialchars($guidance['actor']); ?>
+                                </span>
+                                <span class="badge badge-light border text-secondary px-2 py-1" style="font-size: 12px;">
+                                    <?= htmlspecialchars($guidance['short_action']); ?>
+                                </span>
+                                <span class="text-muted small ml-md-2">
+                                    <i class="fa fa-clock-o"></i> <?= $this->lang->line('last_activity') ?: 'Last Activity'; ?>: <strong><?= htmlspecialchars($guidance['last_activity']); ?></strong>
+                                </span>
+                            </div>
+                            <div class="text-dark mt-1" style="font-size: 14px;">
+                                <i class="fa fa-arrow-circle-right text-primary mr-1"></i> <strong><?= $this->lang->line('next_step') ?: 'Next Step'; ?>:</strong> <?= htmlspecialchars($guidance['action']); ?>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Ticket Details Row -->
                     <div class="row mb-3">
                         <div class="col-md-3">

@@ -338,7 +338,8 @@ tbody tr:hover td.sticky-action-col {
                                         <th style="width: 110px;"><?php echo $this->lang->line('ticket_no') ?: 'Ticket #'; ?></th>
                                         <th style="min-width: 170px;" class="text-left"><?php echo $this->lang->line('order_number') ?: 'Order / Product'; ?></th>
                                         <th style="width: 110px;"><?php echo $this->lang->line('category') ?: 'Category / Priority'; ?></th>
-                                        <th style="width: 140px;"><?php echo $this->lang->line('escalation_status') ?: 'Status'; ?></th>
+                                        <th style="width: 160px;"><?php echo $this->lang->line('escalation_status') ?: 'Status / Next'; ?></th>
+                                        <th style="width: 110px;"><?php echo $this->lang->line('last_activity') ?: 'Last Activity'; ?></th>
                                         <th class="sticky-action-col"><?php echo $this->lang->line('action') ?: 'Action'; ?></th>
                                     </tr>
                                 </thead>
@@ -368,15 +369,15 @@ tbody tr:hover td.sticky-action-col {
                                                 $p_class = 'label-warning';
                                             }
 
-                                            $is_closed = in_array($res->status, ['Close', 'Close (Final)', 'Done'], true);
-                                            if ($is_closed) {
+                                            $guidance = $this->OrderResolutionModel->get_next_action_guidance($res);
+                                            if ($guidance['actor_code'] === 'none') {
                                                 $wf_key = 'closed';
-                                            } elseif ($res->status === 'Processing') {
+                                            } elseif ($guidance['actor_code'] === 'shopper') {
                                                 $wf_key = 'awaiting_shopper';
                                             } else {
                                                 $wf_key = 'admin_review';
                                             }
-                                            $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status);
+                                            $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status . ' ' . $guidance['actor'] . ' ' . $guidance['short_action'] . ' ' . $guidance['action']);
                                         ?>
                                             <tr data-search="<?= htmlspecialchars($search_blob); ?>" data-workflow="<?= $wf_key; ?>">
                                                 <td>
@@ -407,14 +408,16 @@ tbody tr:hover td.sticky-action-col {
                                                         </span>
                                                     </div>
                                                     <div class="mt-1">
-                                                        <?php if ($has_mAction): ?>
-                                                            <span class="badge-action <?php echo $bClass; ?>">
-                                                                <?php echo htmlspecialchars($this->lang->line($mAction) ?: ucwords(str_replace('_', ' ', $mAction))); ?>
-                                                            </span>
-                                                        <?php else: ?>
-                                                            <span class="badge-action badge-action-pending label label-warning"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
-                                                        <?php endif; ?>
+                                                        <span class="label <?php echo ($guidance['actor_code'] === 'shopper') ? 'label-warning' : (($guidance['actor_code'] === 'merchant') ? 'label-primary' : (($guidance['actor_code'] === 'none') ? 'label-default' : 'label-info')); ?>" style="display: inline-block; font-size: 11px;">
+                                                            <i class="fa fa-user-circle"></i> Next: <?php echo htmlspecialchars($guidance['actor']); ?>
+                                                        </span>
                                                     </div>
+                                                    <div class="small text-muted mt-1 text-truncate" style="max-width: 160px;" title="<?php echo htmlspecialchars($guidance['action']); ?>">
+                                                        <i class="fa fa-info-circle text-secondary"></i> <?php echo htmlspecialchars($guidance['short_action']); ?>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="small font-weight-bold"><?php echo htmlspecialchars($guidance['last_activity']); ?></div>
                                                 </td>
                                                 <td class="sticky-action-col">
                                                     <a href="<?php echo $view_url; ?>" class="btn btn-sm btn-info text-nowrap" title="<?php echo $this->lang->line('view') ?: 'View'; ?>">
@@ -425,7 +428,7 @@ tbody tr:hover td.sticky-action-col {
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="5" class="text-center" style="padding: 30px;">
+                                            <td colspan="6" class="text-center" style="padding: 30px;">
                                                 <p><?php echo $this->lang->line('no_order_resolution_tickets') ?: 'No Order Resolution requests found.'; ?></p>
                                                 <a href="<?php echo base_url('customer/my-orders'); ?>" class="btn btn-default">
                                                     <?php echo $this->lang->line('view_my_orders') ?: 'Go to My Orders'; ?>
@@ -466,15 +469,15 @@ tbody tr:hover td.sticky-action-col {
                                 }
                             ?>
                                 <?php
-                                    $is_closed = in_array($res->status, ['Close', 'Close (Final)', 'Done'], true);
-                                    if ($is_closed) {
+                                    $guidance = $this->OrderResolutionModel->get_next_action_guidance($res);
+                                    if ($guidance['actor_code'] === 'none') {
                                         $wf_key = 'closed';
-                                    } elseif ($res->status === 'Processing') {
+                                    } elseif ($guidance['actor_code'] === 'shopper') {
                                         $wf_key = 'awaiting_shopper';
                                     } else {
                                         $wf_key = 'admin_review';
                                     }
-                                    $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status);
+                                    $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status . ' ' . $guidance['actor'] . ' ' . $guidance['short_action'] . ' ' . $guidance['action']);
                                 ?>
                                 <div class="res-mobile-card" data-search="<?= htmlspecialchars($search_blob); ?>" data-workflow="<?= $wf_key; ?>">
                                     <div class="res-card-header">
@@ -482,7 +485,7 @@ tbody tr:hover td.sticky-action-col {
                                             <a href="<?php echo $view_url; ?>" class="res-card-ticket">
                                                 <i class="fa fa-ticket"></i> <?php echo htmlspecialchars($res->ticket_number); ?>
                                             </a>
-                                            <div class="res-card-date"><i class="fa fa-calendar-o"></i> <?php echo date('d M Y', $res->created_at); ?></div>
+                                            <div class="res-card-date"><i class="fa fa-calendar-o"></i> <?php echo htmlspecialchars($guidance['last_activity']); ?></div>
                                         </div>
                                         <div>
                                             <span class="<?php echo $badge_class; ?>">
@@ -518,6 +521,19 @@ tbody tr:hover td.sticky-action-col {
                                             <?php else: ?>
                                                 <span class="badge-action badge-action-pending label label-warning"><?php echo htmlspecialchars($this->lang->line('pending') ?: ($this->lang->line('status_pending') ?: 'Pending')); ?></span>
                                             <?php endif; ?>
+                                        </div>
+
+                                        <!-- Next Responsible Actor & Action (YM-18) -->
+                                        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 10px; margin-top: 8px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                                <span class="label <?php echo ($guidance['actor_code'] === 'shopper') ? 'label-warning' : (($guidance['actor_code'] === 'merchant') ? 'label-primary' : (($guidance['actor_code'] === 'none') ? 'label-default' : 'label-info')); ?>" style="font-size: 11px;">
+                                                    <i class="fa fa-user-circle"></i> Next: <?php echo htmlspecialchars($guidance['actor']); ?>
+                                                </span>
+                                                <span class="label label-default" style="font-size: 10px;"><?php echo htmlspecialchars($guidance['short_action']); ?></span>
+                                            </div>
+                                            <div style="font-size: 12px; color: #334155; margin-top: 3px;">
+                                                <i class="fa fa-info-circle text-muted"></i> <?php echo htmlspecialchars($guidance['action']); ?>
+                                            </div>
                                         </div>
                                     </div>
 

@@ -127,6 +127,25 @@ span.label,
                         <div class="alert alert-danger"><?php echo $this->session->flashdata('error'); ?></div>
                     <?php endif; ?>
 
+                    <?php $guidance = $this->OrderResolutionModel->get_next_action_guidance($resolution); ?>
+                    <!-- Next Action & Responsible Actor Banner (YM-18) -->
+                    <div class="alert alert-info" style="border-left: 5px solid #17a2b8; background-color: #f0f9ff; border-color: #b8e2f2; margin-bottom: 20px; border-radius: 6px; padding: 15px;">
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+                            <div>
+                                <span class="label <?php echo ($guidance['actor_code'] === 'shopper') ? 'label-warning' : (($guidance['actor_code'] === 'merchant') ? 'label-primary' : (($guidance['actor_code'] === 'none') ? 'label-default' : 'label-info')); ?>" style="font-size: 13px; padding: 4px 8px;">
+                                    <i class="fa fa-user-circle"></i> <?php echo $this->lang->line('next_responsible_actor') ?: 'Next Responsible Actor'; ?>: <?php echo htmlspecialchars($guidance['actor']); ?>
+                                </span>
+                                <span class="label label-default" style="font-size: 12px; margin-left: 6px;"><?php echo htmlspecialchars($guidance['short_action']); ?></span>
+                            </div>
+                            <div class="text-muted" style="font-size: 12px;">
+                                <i class="fa fa-clock-o"></i> <?php echo $this->lang->line('last_activity') ?: 'Last Activity'; ?>: <strong><?php echo htmlspecialchars($guidance['last_activity']); ?></strong>
+                            </div>
+                        </div>
+                        <div style="font-size: 14px; color: #1e293b; margin-top: 6px;">
+                            <i class="fa fa-arrow-circle-right text-info"></i> <strong><?php echo $this->lang->line('next_step') ?: 'Next Step'; ?>:</strong> <?php echo htmlspecialchars($guidance['action']); ?>
+                        </div>
+                    </div>
+
                     <!-- Ticket Metadata Grid -->
                     <div class="panel panel-default" style="border-radius: 6px;">
                         <div class="panel-body" style="background: #fafafa;">
