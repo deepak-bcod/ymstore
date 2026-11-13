@@ -36,6 +36,8 @@ $invoice_date = $addon_purchase->date ?? '';
 
 $currency = 'MUR';
 
+
+
 // ==========================================
 // PAYMENT STATUS
 // ==========================================
@@ -523,6 +525,7 @@ body {
     
 <!-- COMPANY INFORMATION -->
 
+<!-- COMPANY INFORMATION -->
 <div class="company-details">
 
     <div class="company-name">
@@ -531,29 +534,17 @@ body {
 
     Yellow Markets - A MYP Network Service<br>
 
-    <?php if (!empty($merchant_address)): ?>
-        <strong>Merchant Address:</strong>
-        <?php echo nl2br($e($merchant_address)); ?>
-        <br>
-    <?php endif; ?>
+    <strong>BRN:</strong> C14124113<br>
 
-    <?php if (!empty($merchant_brn)): ?>
-        <strong>BRN:</strong>
-        <?php echo $e($merchant_brn); ?>
-        <br>
-    <?php endif; ?>
+    <strong>Address:</strong>
+    14 Avenue Sodnac, Quatre Bornes, Mauritius<br>
 
-    <?php if (!empty($merchant_email)): ?>
-        <?php echo $e($merchant_email); ?>
-    <?php endif; ?>
+    <strong>Postal Code:</strong> 72256<br>
 
-    <?php if (!empty($merchant_phone)): ?>
-        · <?php echo $e($merchant_phone); ?>
-    <?php endif; ?>
+    <strong>Email:</strong>
+    acct@themyp.com<br>
 
-    <?php if (!empty($merchant_landline)): ?>
-        · <?php echo $e($merchant_landline); ?>
-    <?php endif; ?>
+    <strong>Phone:</strong> +230 5252 5772
 
 </div>
 
@@ -570,6 +561,34 @@ body {
                 <td width="50%" class="section-heading">
                     Bill to Merchant
                 </td>
+                <td width="50%">
+
+    <strong>
+        <?php echo $e($merchant_name); ?>
+    </strong>
+    <br>
+
+    <?php if (!empty($merchant_email)): ?>
+        <?php echo $e($merchant_email); ?>
+        <br>
+    <?php endif; ?>
+
+    <?php if (!empty($merchant_address)): ?>
+        <strong>Address:</strong>
+        <?php echo nl2br($e($merchant_address)); ?>
+        <br>
+    <?php endif; ?>
+
+    <?php if (!empty($merchant_brn)): ?>
+        <strong>BRN:</strong>
+        <?php echo $e($merchant_brn); ?>
+        <br>
+    <?php endif; ?>
+
+    Merchant reference:
+    <?php echo $e($merchant_name); ?>
+
+</td>
 
                 <td width="50%" class="section-heading">
                     Invoice details
