@@ -143,6 +143,7 @@ tbody tr:hover td.sticky-action-col {
                             $status_slug = strtolower(str_replace([' ', '(', ')'], ['-', '', ''], $res->status));
                             $shopper_name = trim(($res->first_name ?? '') . ' ' . ($res->last_name ?? '')) ?: ($res->customer_email ?: 'Shopper');
                             $view_url = base_url('order_resolution/view/' . $res->ticket_number . '?as=acct');
+                            $guidance = $this->OrderResolutionModel->get_next_action_guidance($res);
                             $p_badge = 'badge-secondary';
                             if ($res->priority === 'High') {
                                 $p_badge = 'badge-danger';
@@ -157,7 +158,7 @@ tbody tr:hover td.sticky-action-col {
                                     <a href="<?= $view_url; ?>" class="font-weight-bold text-primary text-nowrap" title="Process ticket">
                                         <?= htmlspecialchars($res->ticket_number); ?>
                                     </a>
-                                    <div class="small text-muted text-nowrap"><?= date('d M Y', $res->created_at); ?></div>
+                                    <div class="small text-muted text-nowrap"><?= htmlspecialchars($guidance['last_activity']); ?></div>
                                 </td>
                                 <td class="text-left">
                                     <div class="font-weight-bold text-dark">#<?= htmlspecialchars($res->order_number); ?></div>
@@ -186,6 +187,14 @@ tbody tr:hover td.sticky-action-col {
                                     <span class="badge-status-<?= $status_slug; ?>">
                                         <?= htmlspecialchars($res->status); ?>
                                     </span>
+                                    <div class="mt-1">
+                                        <span class="badge <?= $guidance['badge_class']; ?> text-nowrap" style="font-size: 11px;">
+                                            <i class="fa fa-user-circle"></i> Next: <?= htmlspecialchars($guidance['actor']); ?>
+                                        </span>
+                                    </div>
+                                    <div class="small text-muted mt-1 text-truncate" style="max-width: 170px;" title="<?= htmlspecialchars($guidance['action']); ?>">
+                                        <i class="fa fa-info-circle text-secondary"></i> <?= htmlspecialchars($guidance['short_action']); ?>
+                                    </div>
                                 </td>
                                 <td class="sticky-action-col">
                                     <div class="d-flex align-items-center justify-content-center" style="gap: 4px;">

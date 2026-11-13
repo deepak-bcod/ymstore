@@ -1603,19 +1603,19 @@ class OrderResolutionModel extends CI_Model
     /**
      * @Acct marks refund/payment completed -> status becomes 'Done'
      */
-    public function admin_mark_done($ticket_number, $admin_id, $notes = '')
+    public function admin_mark_done($ticket_number, $admin_id, $notes = '', $transaction_ref = '', $evidence_file = '')
     {
         $res = $this->get_resolution_by_ticket_number($ticket_number);
         if (!$res) {
             return ['status' => false, 'message' => 'Ticket not found.'];
         }
 
-        // State & Idempotency Guard
+        // State & Idempotency Guard (Duplicate Prevention)
         if ($res->status === 'Close (Final)') {
-            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
+            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final). Duplicate submission prevented.', 'requires_reload' => true];
         }
         if ($res->status === 'Done') {
-            return ['status' => false, 'message' => 'Ticket is already marked as Done.', 'requires_reload' => true];
+            return ['status' => false, 'message' => 'Ticket is already marked as Done. Duplicate submission prevented.', 'requires_reload' => true];
         }
 
         $is_return_confirmed = (!empty($res->merchant_return_confirmed) || !empty($res->admin_return_exception));
@@ -1629,35 +1629,55 @@ class OrderResolutionModel extends CI_Model
             ];
         }
 
+        $ref_str = !empty($transaction_ref) ? $transaction_ref : 'Verified';
+        $audit_note = "Refund processed from merchant 14-day hold-back sales. Txn Ref: {$ref_str}";
+        if (!empty($notes)) {
+            $audit_note .= " | {$notes}";
+        }
+        if (!empty($evidence_file)) {
+            $audit_note .= " | Evidence: {$evidence_file}";
+        }
+
         $time = time();
-        $this->db->where('id', $res->id)->update('order_resolutions', [
+        $update_data = [
             'status'     => 'Done',
             'updated_at' => $time,
-        ]);
+        ];
+        if ($this->db->field_exists('refund_transaction_ref', 'order_resolutions') && !empty($transaction_ref)) {
+            $update_data['refund_transaction_ref'] = $transaction_ref;
+        }
+
+        $this->db->where('id', $res->id)->update('order_resolutions', $update_data);
 
         $this->update_payout_eligibility_for_resolution($res);
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 14-day hold-back sales.', 'admin', 'admin_shopper');
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $audit_note, 'admin', 'admin_shopper');
 
         // Notify Shopper via email that refund is completed
         $this->send_refund_completed_shopper_email($res);
 
-        // Post in conversation thread
-        $this->add_reply($ticket_number, 'acct', $admin_id, 'Accounting Team (@Acct)', "Accounting has verified and processed the refund from the merchant's 14-day hold-back balance.\nShopper refund is complete.\nNotes: " . ($notes ?: 'Refund processed and verified.'), '', '', 'merchant_admin');
+        // Post structured details in conversation thread
+        $currency_code = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
+        $reply_msg = "Accounting has verified and processed the refund from the merchant's 14-day hold-back balance.\n"
+            . "• Reconciled Refund Amount: {$currency_code} " . number_format((float)($res->refund_amount ?? 0), 2) . "\n"
+            . "• Bank Transaction Reference / Payment Ref ID: {$ref_str}\n"
+            . (!empty($notes) ? "• Notes: {$notes}\n" : "")
+            . "Shopper refund is complete. Ticket is marked as Done and ready for final closure.";
+        $this->add_reply($ticket_number, 'acct', $admin_id, 'Accounting Team (@Acct)', $reply_msg, $evidence_file, $this->input->ip_address(), 'merchant_admin');
 
         // In-App Notification to @Help indicating refund is processed and ready for Close (Final)
         $this->send_inapp_notification('admin', 1, 'refund_done',
             'Order Resolution - Refund Processed by @Acct',
-            "Accounting has processed refund for Ticket #{$ticket_number} (Order #{$res->order_number}) from merchant hold-back sales. Ticket status is Done. Ready for Close (Final).", $res);
+            "Accounting has processed refund for Ticket #{$ticket_number} (Order #{$res->order_number}) from merchant hold-back sales (Ref: {$ref_str}). Ticket status is Done. Ready for Close (Final).", $res);
 
         // In-App Notification to Merchant
         if (!empty($res->merchant_id)) {
             $this->send_inapp_notification('merchant', $res->merchant_id, 'refund_done',
                 'Order Resolution Refund Processed',
-                "Accounting has processed refund for Ticket #{$ticket_number} (Order #{$res->order_number}) from your hold-back balance. Refunded amount will not be paid to merchant.", $res);
+                "Accounting has processed refund for Ticket #{$ticket_number} (Order #{$res->order_number}) from your hold-back balance (Ref: {$ref_str}). Refunded amount will not be paid to merchant.", $res);
         }
 
-        return ['status' => true, 'message' => 'Ticket marked as Done. Refund processed from merchant 14-day hold-back sales.'];
+        return ['status' => true, 'message' => 'Ticket marked as Done. Refund processed and verified from merchant 14-day hold-back sales.'];
     }
 
     /**
@@ -1774,12 +1794,18 @@ class OrderResolutionModel extends CI_Model
             return ['status' => false, 'message' => 'Ticket not found.'];
         }
 
-        // State & Idempotency Guard
+        // State & Idempotency Guard (Duplicate Prevention)
         if ($res->status === 'Close (Final)') {
-            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final).', 'requires_reload' => true];
+            return ['status' => false, 'message' => 'Ticket is already permanently closed (Final). Duplicate decision prevented.', 'requires_reload' => true];
         }
         if (in_array($res->resolution_status, ['resolution_approved', 'resolution_denied'], true)) {
-            return ['status' => false, 'message' => 'A resolution decision has already been recorded for this ticket.', 'requires_reload' => true];
+            return ['status' => false, 'message' => 'A resolution decision has already been recorded for this ticket. Duplicate decision prevented.', 'requires_reload' => true];
+        }
+
+        // Visible Structured Safeguard: Decision reason must be recorded
+        $notes = trim($notes ?? '');
+        if (empty($notes) || strlen($notes) < 5) {
+            return ['status' => false, 'message' => 'A recorded decision reason and evidence summary is required (minimum 5 characters).'];
         }
 
         $time = time();
@@ -3409,5 +3435,188 @@ class OrderResolutionModel extends CI_Model
         }
 
         return ['status' => true, 'message' => 'YM Replacement delivery marked as completed. Shopper and Merchant notified.'];
+    }
+
+    /**
+     * Plain-language next-step guidance and responsible actor derived from current state (YM-18)
+     */
+    public function get_next_action_guidance($resolution)
+    {
+        if (is_array($resolution)) {
+            $resolution = (object)$resolution;
+        }
+
+        $status = trim($resolution->status ?? 'Open');
+        $m_action = trim($resolution->merchant_action ?? '');
+        $res_status = trim($resolution->resolution_status ?? '');
+        $admin_dec = trim($resolution->admin_decision ?? '');
+        $category = trim($resolution->category ?? '');
+        $delivery_opt = trim($resolution->delivery_option ?? '');
+        $is_receipt_confirmed = !empty($resolution->shopper_receipt_confirmed) || !empty($resolution->admin_replacement_exception);
+        $is_return_confirmed = !empty($resolution->merchant_return_confirmed) || !empty($resolution->admin_return_exception);
+        
+        $last_ts = !empty($resolution->updated_at) ? (int)$resolution->updated_at : (int)($resolution->created_at ?? time());
+        
+        // Defaults
+        $actor = 'Support (@Help)';
+        $actor_code = 'help';
+        $badge_class = 'badge-info';
+        $action = 'Support (@Help) review in progress.';
+        $short_action = 'Under Review';
+        $status_label = $status;
+
+        // 1. Permanently Closed or Finalized
+        if ($status === 'Close (Final)' || ($status === 'Close' && $admin_dec === 'in_favour_merchant') || ($category === 'Replacement' && $is_receipt_confirmed && in_array($status, ['Close', 'Close (Final)'], true))) {
+            $actor = 'None (Closed)';
+            $actor_code = 'none';
+            $badge_class = 'badge-secondary';
+            $status_label = 'Closed (Final)';
+            if ($admin_dec === 'in_favour_merchant' || $res_status === 'resolution_denied') {
+                $action = 'Dispute closed in favour of merchant. No further action required.';
+                $short_action = 'Resolved (Merchant Upheld)';
+            } elseif ($category === 'Replacement' || $is_receipt_confirmed) {
+                $action = 'Replacement physically received and verified. Dispute is finalized.';
+                $short_action = 'Resolved (Replacement Complete)';
+            } elseif ($status === 'Close (Final)') {
+                $action = 'Dispute resolution is permanently finalized. No further action required.';
+                $short_action = 'Resolved (Final)';
+            } else {
+                $action = 'Case closed. No pending actions.';
+                $short_action = 'Closed';
+            }
+        }
+        // 2. Initial Close (Settlement window open)
+        elseif ($status === 'Close') {
+            if ($category === 'Replacement' && !$is_receipt_confirmed) {
+                $actor = 'Shopper / Support';
+                $actor_code = 'shopper';
+                $badge_class = 'badge-warning';
+                $action = 'Ticket closed. Awaiting shopper physical receipt confirmation or carrier delivery proof before payout release.';
+                $short_action = 'Awaiting Receipt Confirmation';
+            } elseif (in_array($m_action, ['refund_denied', 'replacement_denied'], true)) {
+                $actor = 'Shopper';
+                $actor_code = 'shopper';
+                $badge_class = 'badge-warning';
+                $action = 'Ticket closed following merchant rejection. Shopper may request escalation if dissatisfied.';
+                $short_action = 'Shopper Escalation Window';
+            } else {
+                $actor = 'Support (@Help)';
+                $actor_code = 'help';
+                $badge_class = 'badge-secondary';
+                $action = 'Ticket closed. Ready for final archive.';
+                $short_action = 'Ticket Closed';
+            }
+        }
+        // 3. Accounting Refund Completed (Done) -> Support must close ticket as Close (Final)
+        elseif ($status === 'Done') {
+            $actor = 'Support (@Help)';
+            $actor_code = 'help';
+            $badge_class = 'badge-success';
+            $status_label = 'Refund Done (@Help Close)';
+            $action = 'Accounting (@Acct) has completed the refund from 14-day hold-back sales. Support (@Help) must close the ticket as Close (Final).';
+            $short_action = 'Final Closure Required';
+        }
+        // 4. Processing State (Post-decision / In-progress)
+        elseif ($status === 'Processing') {
+            if ($category === 'Refund' || ($resolution->admin_remedy ?? '') === 'return_refund') {
+                if (!$is_return_confirmed) {
+                    $actor = 'Merchant';
+                    $actor_code = 'merchant';
+                    $badge_class = 'badge-warning';
+                    $action = 'Merchant must inspect and confirm item return (or Support records carrier proof) before refund can be issued.';
+                    $short_action = 'Item Return Confirmation Required';
+                } else {
+                    $actor = 'Accounting (@Acct)';
+                    $actor_code = 'acct';
+                    $badge_class = 'badge-info';
+                    $action = 'Item return confirmed. Accounting (@Acct) must process refund from merchant 14-day hold-back sales.';
+                    $short_action = 'Accounting Refund Processing';
+                }
+            } else { // Replacement
+                if ($m_action === 'replacement_completed') {
+                    $actor = 'Shopper';
+                    $actor_code = 'shopper';
+                    $badge_class = 'badge-warning';
+                    $action = 'Merchant has dispatched/delivered replacement. Shopper must confirm physical receipt.';
+                    $short_action = 'Shopper Receipt Confirmation Required';
+                } elseif ($delivery_opt === 'ym_delivery' && empty($resolution->addon_purchase_id)) {
+                    $actor = 'Merchant';
+                    $actor_code = 'merchant';
+                    $badge_class = 'badge-warning';
+                    $action = 'Merchant must purchase YM Delivery AddOn Service so logistics can deliver replacement.';
+                    $short_action = 'Merchant AddOn Purchase Required';
+                } else {
+                    $actor = 'Merchant';
+                    $actor_code = 'merchant';
+                    $badge_class = 'badge-primary';
+                    $action = 'Merchant must prepare and dispatch replacement product via ' . ucwords(str_replace('_', ' ', $delivery_opt ?: 'agreed method')) . '.';
+                    $short_action = 'Replacement Dispatch Pending';
+                }
+            }
+        }
+        // 5. Active Dispute Escalation (ReOpen / resolution_requested)
+        elseif ($status === 'ReOpen' || $res_status === 'resolution_requested') {
+            $actor = 'Support (@Help)';
+            $actor_code = 'help';
+            $badge_class = 'badge-danger';
+            $status_label = 'Active Dispute (@Help)';
+            $action = 'Shopper escalated rejection. Support (@Help) must review case evidence and issue an official ruling (Approve / Deny).';
+            $short_action = 'Support Ruling Required';
+        }
+        // 6. Open State (Lifecycle stage determines actor)
+        elseif ($status === 'Open') {
+            if ($m_action === 'replacement_completed') {
+                $actor = 'Shopper';
+                $actor_code = 'shopper';
+                $badge_class = 'badge-warning';
+                $action = 'Replacement marked delivered. Shopper must confirm physical receipt.';
+                $short_action = 'Shopper Receipt Confirmation Required';
+            } elseif ($m_action === 'replacement_approved') {
+                if ($delivery_opt === 'ym_delivery' && empty($resolution->addon_purchase_id)) {
+                    $actor = 'Merchant';
+                    $actor_code = 'merchant';
+                    $badge_class = 'badge-warning';
+                    $action = 'Merchant must purchase YM Delivery AddOn Service so logistics can deliver replacement.';
+                    $short_action = 'Merchant AddOn Purchase Required';
+                } else {
+                    $actor = 'Merchant';
+                    $actor_code = 'merchant';
+                    $badge_class = 'badge-primary';
+                    $action = 'Merchant has approved replacement via ' . ucwords(str_replace('_', ' ', $delivery_opt ?: 'agreed method')) . '. Awaiting dispatch/collection.';
+                    $short_action = 'Merchant Fulfilment in Progress';
+                }
+            } elseif ($m_action === 'refund_approved') {
+                $actor = 'Accounting (@Acct)';
+                $actor_code = 'acct';
+                $badge_class = 'badge-info';
+                $action = 'Merchant approved refund. Accounting (@Acct) must process refund from merchant 14-day hold-back balance.';
+                $short_action = 'Accounting Refund Processing';
+            } elseif (in_array($m_action, ['refund_denied', 'replacement_denied'], true)) {
+                $actor = 'Shopper';
+                $actor_code = 'shopper';
+                $badge_class = 'badge-warning';
+                $action = 'Merchant denied request. Shopper may accept or escalate to Support (@Help) via Resolution Request.';
+                $short_action = 'Awaiting Shopper Escalation / Close';
+            } else {
+                $actor = 'Merchant';
+                $actor_code = 'merchant';
+                $badge_class = 'badge-warning';
+                $action = 'Merchant must review request and decide: Approve Refund/Replacement or Deny.';
+                $short_action = 'Merchant Decision Required';
+            }
+        }
+
+        $updated_text = (date('Y-m-d', $last_ts) === date('Y-m-d')) ? 'Today, ' . date('h:i A', $last_ts) . ' MUT' : ((date('Y-m-d', $last_ts) === date('Y-m-d', strtotime('-1 day'))) ? 'Yesterday, ' . date('h:i A', $last_ts) . ' MUT' : date('d M Y, h:i A', $last_ts) . ' MUT');
+
+        return [
+            'actor'            => $actor,
+            'actor_code'       => $actor_code,
+            'badge_class'      => $badge_class,
+            'action'           => $action,
+            'short_action'     => $short_action,
+            'status_label'     => $status_label,
+            'last_activity_ts' => $last_ts,
+            'last_activity'    => $updated_text,
+        ];
     }
 }

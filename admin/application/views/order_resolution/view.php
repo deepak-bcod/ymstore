@@ -97,6 +97,27 @@ span.label,
             </div>
 
             <div class="card-body">
+                <?php $guidance = $this->OrderResolutionModel->get_next_action_guidance($resolution); ?>
+                <!-- Next Action & Responsible Actor Banner (YM-18) -->
+                <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between p-3 mb-4 shadow-sm" style="border-left: 5px solid #007bff !important; background-color: #f8faff;">
+                    <div class="d-flex flex-column" style="gap: 4px;">
+                        <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                            <span class="badge <?= $guidance['badge_class']; ?> px-2 py-1" style="font-size: 13px;">
+                                <i class="fa fa-user-circle"></i> Next Responsible Actor: <?= htmlspecialchars($guidance['actor']); ?>
+                            </span>
+                            <span class="badge badge-light border text-secondary px-2 py-1" style="font-size: 12px;">
+                                <?= htmlspecialchars($guidance['short_action']); ?>
+                            </span>
+                            <span class="text-muted small ml-md-2">
+                                <i class="fa fa-clock-o"></i> Last Activity: <strong><?= htmlspecialchars($guidance['last_activity']); ?></strong>
+                            </span>
+                        </div>
+                        <div class="text-dark mt-1" style="font-size: 14px;">
+                            <i class="fa fa-arrow-circle-right text-primary mr-1"></i> <strong>Next Step:</strong> <?= htmlspecialchars($guidance['action']); ?>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Metadata Grid -->
                 <div class="row mb-3">
                     <div class="col-md-3">
@@ -991,23 +1012,63 @@ span.label,
 <!-- Modal: Mark Done (@Acct) -->
 <div class="modal fade" id="markDoneModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <form action="<?= base_url('order_resolution/mark_done'); ?>" method="POST" class="ajax-resolution-form">
+        <div class="modal-content shadow-lg border-0">
+            <form action="<?= base_url('order_resolution/mark_done'); ?>" method="POST" class="ajax-resolution-form" enctype="multipart/form-data">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
-                <div class="modal-header">
-                    <h5 class="modal-title text-success"><i class="fa fa-check-circle"></i> Mark Done (Refund Processed from Hold-back)</h5>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title font-weight-bold text-white"><i class="fa fa-check-circle"></i> Mark Done (Refund Processed from Hold-back)</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Confirm that the refund has been processed to the shopper from the merchant's 14-day hold-back sales balance. The Resolution status will update to <strong>Done</strong>, and @Help will be notified to proceed with final ticket closure.</p>
+                    <p class="text-muted small mb-3">
+                        Confirm that the refund has been processed to the shopper from the merchant's 14-day hold-back sales balance.
+                        The Resolution status will update to <strong>Done</strong>, and @Help will be notified to proceed with final ticket closure.
+                    </p>
+
+                    <!-- Amount Reconciliation -->
+                    <div class="p-3 mb-3 bg-light border rounded">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted font-weight-bold">Reconciled Refund Amount:</span>
+                            <span class="badge badge-success px-2 py-1 font-weight-bold" style="font-size: 14px;">
+                                <?= $currency; ?> <?= number_format((float)($resolution->refund_amount ?? 0), 2); ?>
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center small text-muted">
+                            <span>Deduction Source:</span>
+                            <span>Merchant 14-day hold-back sales balance</span>
+                        </div>
+                        <input type="hidden" name="reconciled_amount" value="<?= (float)($resolution->refund_amount ?? 0); ?>">
+                    </div>
+
+                    <!-- Structured Transaction Reference (Required) -->
                     <div class="form-group">
-                        <label>Accounting Completion Notes / Transaction ID:</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Transaction Ref / Bank Details..."></textarea>
+                        <label class="font-weight-bold">Bank Transaction Reference / Payment Ref ID <span class="text-danger">*</span>:</label>
+                        <input type="text" name="transaction_ref" class="form-control" placeholder="e.g. TXN-984210 / MCB-TRANSFER-1207" required>
+                    </div>
+
+                    <!-- Payment Transfer Evidence Upload -->
+                    <div class="form-group">
+                        <label class="font-weight-bold">Payment Transfer Proof / Evidence Receipt <small class="text-muted">(JPG, PNG, PDF max 1MB)</small>:</label>
+                        <input type="file" name="refund_evidence" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf">
+                    </div>
+
+                    <!-- Additional Accounting Notes -->
+                    <div class="form-group">
+                        <label class="font-weight-bold">Accounting Completion Notes (optional):</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Verified against bank statement and merchant hold-back ledger..."></textarea>
+                    </div>
+
+                    <!-- Verification State Safeguard Checkbox -->
+                    <div class="form-check mb-2 p-2 border rounded" style="background-color: #fff9e6; border-color: #ffe699;">
+                        <input type="checkbox" class="form-check-input ml-1" id="confirm_refund_verification" name="confirm_verification" value="1" required style="margin-top: 5px;">
+                        <label class="form-check-label ml-4 font-weight-bold text-dark" for="confirm_refund_verification" style="font-size: 13px;">
+                            I confirm that <?= $currency . ' ' . number_format((float)($resolution->refund_amount ?? 0), 2); ?> has been successfully transferred to the shopper and verified against the merchant's 14-day hold-back balance.
+                        </label>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success btn-sm">Confirm Done</button>
+                    <button type="submit" class="btn btn-success btn-sm font-weight-bold">Confirm Done</button>
                 </div>
             </form>
         </div>
@@ -1076,7 +1137,7 @@ span.label,
 <!-- Modal: Decision in favour of Shopper (@Help) -->
 <div class="modal fade" id="resApproveModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content shadow-lg border-0">
             <form action="<?= base_url('order_resolution/resolution_decision'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="decision" value="approved">
@@ -1085,9 +1146,10 @@ span.label,
                     <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
+                    <p class="text-muted small mb-2">Approve the shopper's Resolution Request in their favor based on verified case evidence.</p>
                     <div class="form-group">
-                        <label class="font-weight-bold">Decision reason (required):</label>
-                        <textarea name="notes" class="form-control" rows="3" placeholder="Record reason and evidence" required></textarea>
+                        <label class="font-weight-bold">Decision Reason & Evidence Summary (required) <span class="text-danger">*</span>:</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Provide detailed rationale and evidence supporting approval..." required minlength="5"></textarea>
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">Remedy:</label>
@@ -1096,11 +1158,17 @@ span.label,
                             <option value="replacement" <?= ($resolution->category === 'Replacement') ? 'selected' : ''; ?>>Replacement</option>
                         </select>
                     </div>
-                    <small class="text-muted">Both parties will receive official decision notification. Required Merchant fulfilment or Accounting refund verification will be initiated.</small>
+                    <div class="form-check mb-2 p-2 bg-light border rounded">
+                        <input type="checkbox" class="form-check-input ml-1" id="confirm_approve_verdict" name="confirm_verdict" value="1" required style="margin-top: 4px;">
+                        <label class="form-check-label ml-4 font-weight-bold text-dark small" for="confirm_approve_verdict">
+                            I confirm this ruling in favour of the shopper is based on verified case evidence.
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">Both parties will receive official decision notification. Required Merchant fulfilment or Accounting refund verification will be initiated.</small>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-dark btn-sm">Confirm Decision</button>
+                    <button type="submit" class="btn btn-dark btn-sm font-weight-bold">Confirm Decision</button>
                 </div>
             </form>
         </div>
@@ -1110,7 +1178,7 @@ span.label,
 <!-- Modal: Decision in favour of Merchant (@Help) -->
 <div class="modal fade" id="resDeniedModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content shadow-lg border-0">
             <form action="<?= base_url('order_resolution/resolution_decision'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <input type="hidden" name="decision" value="denied">
@@ -1119,15 +1187,22 @@ span.label,
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
+                    <p class="text-muted small mb-2">Deny the shopper's Resolution Request and uphold the merchant's original rejection.</p>
                     <div class="form-group">
-                        <label class="font-weight-bold">Decision reason (required):</label>
-                        <textarea name="notes" class="form-control" rows="3" placeholder="Record reason and evidence" required></textarea>
+                        <label class="font-weight-bold">Decision Reason & Evidence Summary (required) <span class="text-danger">*</span>:</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="Provide detailed rationale and evidence supporting denial..." required minlength="5"></textarea>
                     </div>
-                    <p class="text-muted small mb-0">Original rejection will be upheld. Ticket will be closed (Final) and dispute hold becomes eligible for release under the standard 7-day after Completed payout rule.</p>
+                    <div class="form-check mb-2 p-2 bg-light border rounded">
+                        <input type="checkbox" class="form-check-input ml-1" id="confirm_deny_verdict" name="confirm_verdict" value="1" required style="margin-top: 4px;">
+                        <label class="form-check-label ml-4 font-weight-bold text-dark small" for="confirm_deny_verdict">
+                            I confirm this decision to uphold merchant rejection is based on verified case evidence.
+                        </label>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Original rejection will be upheld. Ticket will be closed (Final) and dispute hold becomes eligible for release under the standard 14-day post-completed payout schedule.</p>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-dark btn-sm">Confirm Decision</button>
+                    <button type="submit" class="btn btn-dark btn-sm font-weight-bold">Confirm Decision</button>
                 </div>
             </form>
         </div>
