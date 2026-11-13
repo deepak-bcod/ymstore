@@ -50,25 +50,30 @@ $is_paid = in_array(
     TRUE
 );
 
+
 // ==========================================
 // INVOICE CALCULATIONS
 // ==========================================
 
-$invoice_total = $amount > 0 ? $amount : $final_price;
+// Base price excluding VAT
+$subtotal = $price;
 
-$vat_amount = max(0, $final_price - $price);
+// Calculate VAT
+$vat_amount = ($price * $vat_percent) / 100;
 
-if ($final_price <= 0) {
-    $vat_amount = $price * $vat_percent / 100;
+// Calculate total including VAT
+$invoice_total = $price + $vat_amount;
+
+// Use saved final price if it matches calculated total
+if ($final_price > 0 && abs($final_price - $invoice_total) < 0.01) {
+    $invoice_total = $final_price;
 }
 
-$vat_amount = min($vat_amount, $invoice_total);
-
-$subtotal = max(0, $invoice_total - $vat_amount);
-
+// Payment calculation
 $paid_amount = $is_paid ? $invoice_total : 0;
 
 $amount_due = max(0, $invoice_total - $paid_amount);
+
 
 // ==========================================
 // SAFE OUTPUT
@@ -727,13 +732,15 @@ body {
 
                 <td class="text-center">1</td>
 
+                
                 <td class="text-right">
-                    <?php echo number_format($subtotal, 2); ?>
+                    <?php echo number_format($price, 2); ?>
                 </td>
 
                 <td class="text-right">
-                    <?php echo number_format($subtotal, 2); ?>
+                    <?php echo number_format($price, 2); ?>
                 </td>
+
 
             </tr>
 

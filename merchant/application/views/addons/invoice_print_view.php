@@ -49,9 +49,6 @@ $is_paid = in_array(
 // INVOICE CALCULATIONS
 // ==========================================
 
-// ==========================================
-// INVOICE CALCULATIONS
-// ==========================================
 
 // Base service price (excluding VAT)
 $subtotal = $price;
