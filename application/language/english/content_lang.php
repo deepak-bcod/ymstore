@@ -2376,6 +2376,7 @@ $lang['no_notifications_found'] = 'No notifications found.';
 $lang['no_replacement_for_product'] = 'No Replacement for Product';
 $lang['resolution_status'] = 'Resolution Status';
 $lang['refund_amount'] = 'Refund Amount';
+$lang['item_value'] = 'Item Value';
 $lang['addon_purchased_success_title'] = 'YellowMarkets Delivery AddOn Service Purchased';
 $lang['addon_payment_required_tooltip'] = 'Please purchase and complete payment for the YM Delivery AddOn service before marking replacement as completed.';
 $lang['addon_service_payment_required'] = 'YM Delivery AddOn Payment Required';

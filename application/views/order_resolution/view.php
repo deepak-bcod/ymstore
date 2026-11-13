@@ -207,27 +207,42 @@ span.label,
                                 <?php endif; ?>
 
                                 <div class="col-md-3 col-sm-6">
-                                    <p><b><?php echo $this->lang->line('refund_amount') ?: 'Refund Amount'; ?>:</b><br>
-                                        <span class="font-weight-bold <?php echo ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
-                                            <?php 
-                                            $disp_refund = (float)($resolution->refund_amount ?? 0);
-                                            if ($disp_refund <= 0) {
-                                                if (!empty($product) && !empty($product->price)) {
-                                                    $disp_refund = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
-                                                } elseif (!empty($order)) {
-                                                    $disp_refund = (float)($order->grand_total ?: $order->subtotal);
-                                                }
-                                            }
-                                            if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
-                                                echo CURRENCY_TYPE . ' ' . number_format($disp_refund, 2);
-                                            } elseif ($resolution->merchant_action === 'refund_denied' && $resolution->resolution_status !== 'resolution_approved') {
-                                                echo 'Denied';
-                                            } elseif ($resolution->category === 'Refund' && $disp_refund > 0) {
-                                                echo CURRENCY_TYPE . ' ' . number_format($disp_refund, 2) . ' (Pending)';
-                                            } else {
-                                                echo 'N/A';
-                                            }
-                                            ?>
+                                    <?php 
+                                    $disp_amount = (float)($resolution->refund_amount ?? 0);
+                                    if ($disp_amount <= 0) {
+                                        if (!empty($product) && !empty($product->price)) {
+                                            $disp_amount = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
+                                        } elseif (!empty($order)) {
+                                            $disp_amount = (float)($order->grand_total ?: $order->subtotal);
+                                        }
+                                    }
+
+                                    $currency_sym = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
+                                    $is_refund_remedy = ($resolution->category === 'Refund' || in_array($resolution->merchant_action, ['refund_approved', 'refund_denied'], true));
+                                    if (!$is_refund_remedy) {
+                                        $amount_label = $this->lang->line('item_value') ?: 'Item Value';
+                                        $amount_val = ($disp_amount > 0) ? $currency_sym . ' ' . number_format($disp_amount, 2) : 'N/A';
+                                        $amount_cls = ($disp_amount > 0) ? 'font-weight-bold text-dark' : 'text-muted';
+                                    } else {
+                                        $amount_label = $this->lang->line('refund_amount') ?: 'Refund Amount';
+                                        if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
+                                            $amount_val = $currency_sym . ' ' . number_format($disp_amount, 2);
+                                            $amount_cls = 'font-weight-bold text-success';
+                                        } elseif ($resolution->merchant_action === 'refund_denied' && $resolution->resolution_status !== 'resolution_approved') {
+                                            $amount_val = $this->lang->line('denied') ?: 'Denied';
+                                            $amount_cls = 'font-weight-bold text-danger';
+                                        } elseif ($disp_amount > 0) {
+                                            $amount_val = $currency_sym . ' ' . number_format($disp_amount, 2) . ' (' . ($this->lang->line('pending') ?: 'Pending') . ')';
+                                            $amount_cls = 'font-weight-bold text-warning';
+                                        } else {
+                                            $amount_val = 'N/A';
+                                            $amount_cls = 'text-muted';
+                                        }
+                                    }
+                                    ?>
+                                    <p><b><?php echo $amount_label; ?>:</b><br>
+                                        <span class="<?php echo $amount_cls; ?>">
+                                            <?php echo $amount_val; ?>
                                         </span>
                                     </p>
                                 </div>
