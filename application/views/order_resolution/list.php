@@ -340,7 +340,7 @@ tbody tr:hover td.sticky-action-col {
                                         <th style="width: 110px;"><?php echo $this->lang->line('category') ?: 'Category / Priority'; ?></th>
                                         <th style="width: 160px;"><?php echo $this->lang->line('escalation_status') ?: 'Status / Next'; ?></th>
                                         <th style="width: 110px;"><?php echo $this->lang->line('last_activity') ?: 'Last Activity'; ?></th>
-                                        <th class="sticky-action-col"><?php echo $this->lang->line('action') ?: 'Action'; ?></th>
+                                        <!--th class="sticky-action-col"><?php echo $this->lang->line('action') ?: 'Action'; ?></th-->
                                     </tr>
                                 </thead>
                                 <tbody>
