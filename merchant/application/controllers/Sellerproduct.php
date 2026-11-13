@@ -9983,23 +9983,8 @@ class Sellerproduct extends CI_Controller {
 
 			$daily_deals_limit = $this->UserModel->get_daily_deals_limit($merchant_id);
 
-			// Step 3: Count how many active products already marked daily_deals = 1 (excluding current product)
-
-			$this->db->from('products');
-
-			$this->db->where('publisher_id', $merchant_id);
-
-			$this->db->where('daily_deals', 1);
-
-			$this->db->where('daily_deal_ends_at >', $now_time);
-
-			if (!empty($product_id)) {
-				$this->db->where('id !=', $product_id);
-			}
-
-			$current_daily_count = $this->db->count_all_results();
-
-
+			// Step 3: Count used daily deals in current subscription cycle (retaining count even after deals end)
+			$current_daily_count = $this->UserModel->get_used_daily_deals_count($merchant_id);
 
 			// Step 4: Get stock & discount using helper function
 
@@ -10031,8 +10016,8 @@ class Sellerproduct extends CI_Controller {
 			}
 
 			// Step 5: Decide if "Yes" should be disabled in dropdown
-			
-			$reached_limit = ($current_daily_count >= $daily_deals_limit);
+			$is_already_active_dd = (!empty($ProductData->daily_deals) && $ProductData->daily_deals == 1 && !empty($ProductData->daily_deal_ends_at) && $ProductData->daily_deal_ends_at > $now_time);
+			$reached_limit = (!$is_already_active_dd && $current_daily_count >= $daily_deals_limit);
 
 			$low_stock_dd   = ($stock < 50);
 
@@ -10076,23 +10061,8 @@ class Sellerproduct extends CI_Controller {
 			$can_use_flash_sales = $this->Subscription_model->can_use_flash_sales($merchant_id);
 			$flash_sale_limit = $this->UserModel->get_flash_sale_limit($merchant_id);
 
-			// Count how many active products already marked flash_sale = 1 (excluding current product)
-
-			$this->db->from('products');
-
-			$this->db->where('publisher_id', $merchant_id);
-
-			$this->db->where('flash_sale', 1);
-
-			$this->db->where('flash_sale_ends_at >', $now_time);
-
-			if (!empty($product_id)) {
-				$this->db->where('id !=', $product_id);
-			}
-
-			$current_flash_count = $this->db->count_all_results();
-
-
+			// Count used flash sales in current subscription cycle (retaining count even after flash sale ends)
+			$current_flash_count = $this->UserModel->get_used_flash_sale_count($merchant_id);
 
 			// Step 4: Check stock & discount restrictions
 
@@ -10110,7 +10080,8 @@ class Sellerproduct extends CI_Controller {
 					'discount' => null,
 				];
 			} else {
-				$reached_flash_limit = ($current_flash_count >= $flash_sale_limit);
+				$is_already_active_fs = (!empty($ProductData->flash_sale) && $ProductData->flash_sale == 1 && !empty($ProductData->flash_sale_ends_at) && $ProductData->flash_sale_ends_at > $now_time);
+				$reached_flash_limit = (!$is_already_active_fs && $current_flash_count >= $flash_sale_limit);
 				$disable_flash_sale_yes = ($is_out_of_stock || $reached_flash_limit || $low_stock_fs || $low_discount_fs);
 				$flash_sale_reasons = [
 					'plan'     => null,
@@ -10650,6 +10621,17 @@ class Sellerproduct extends CI_Controller {
 								}
 
 								$is_existing_active_dd = (!empty($OldProductData->daily_deals) && $OldProductData->daily_deals == 1 && !empty($OldProductData->daily_deal_ends_at) && $OldProductData->daily_deal_ends_at > $now);
+								if (!$is_existing_active_dd) {
+									$this->load->model('UserModel');
+									$curr_m_id = !empty($OldProductData->publisher_id) ? $OldProductData->publisher_id : $fbc_user_id;
+									$dd_limit = $this->UserModel->get_daily_deals_limit($curr_m_id);
+									$dd_used = $this->UserModel->get_used_daily_deals_count($curr_m_id);
+									if ($dd_used >= $dd_limit) {
+										$arrResponse = array('status' => 400, 'message' => 'You have reached your daily deals limit.');
+										echo json_encode($arrResponse);
+										exit;
+									}
+								}
 								if (!$is_existing_active_dd && $daily_deal_starts_at < ($now - 300)) {
 									$arrResponse = array('status' => 400, 'message' => 'Start date & time (MUT) cannot be in the past.');
 									echo json_encode($arrResponse);
@@ -10692,6 +10674,12 @@ class Sellerproduct extends CI_Controller {
 							// Update product using model
 
 							$this->SellerProductModel->updateData('products', $where_arr_new, $updatedatanew);
+
+							if ($daily_deals == 1) {
+								$this->load->model('UserModel');
+								$curr_m_id = !empty($OldProductData->publisher_id) ? $OldProductData->publisher_id : $fbc_user_id;
+								$this->UserModel->record_deal_usage($curr_m_id, $product_id, 'daily_deal', $daily_deal_starts_at, $daily_deal_ends_at);
+							}
 
 						}
 
@@ -10869,6 +10857,23 @@ class Sellerproduct extends CI_Controller {
 								}
 
 								$is_existing_active_fs = (!empty($OldProductData->flash_sale) && $OldProductData->flash_sale == 1 && !empty($OldProductData->flash_sale_ends_at) && $OldProductData->flash_sale_ends_at > $now);
+								if (!$is_existing_active_fs) {
+									$this->load->model('UserModel');
+									$this->load->model('Subscription_model');
+									$curr_m_id = !empty($OldProductData->publisher_id) ? $OldProductData->publisher_id : $fbc_user_id;
+									if (!$this->Subscription_model->can_use_flash_sales($curr_m_id)) {
+										$arrResponse = array('status' => 400, 'message' => 'Flash Sales are not included in your plan. Please upgrade to Growth or Cyber.');
+										echo json_encode($arrResponse);
+										exit;
+									}
+									$fs_limit = $this->UserModel->get_flash_sale_limit($curr_m_id);
+									$fs_used = $this->UserModel->get_used_flash_sale_count($curr_m_id);
+									if ($fs_used >= $fs_limit) {
+										$arrResponse = array('status' => 400, 'message' => 'You have reached your flash sale limit.');
+										echo json_encode($arrResponse);
+										exit;
+									}
+								}
 								if (!$is_existing_active_fs && $flash_sale_starts_at < ($now - 300)) {
 									$arrResponse = array('status' => 400, 'message' => 'Start date & time (MUT) cannot be in the past.');
 									echo json_encode($arrResponse);
@@ -10911,6 +10916,12 @@ class Sellerproduct extends CI_Controller {
 							// Update product using model
 
 							$this->SellerProductModel->updateData('products', $where_arr_new, $updatedatanew);
+
+							if ($flash_sale == 1) {
+								$this->load->model('UserModel');
+								$curr_m_id = !empty($OldProductData->publisher_id) ? $OldProductData->publisher_id : $fbc_user_id;
+								$this->UserModel->record_deal_usage($curr_m_id, $product_id, 'flash_sale', $flash_sale_starts_at, $flash_sale_ends_at);
+							}
 
 						}
 

@@ -418,10 +418,212 @@ class UserModel extends CI_Model
 		
 	}
 
+	public function get_merchant_cycle_start($merchant_id)
+	{
+		$this->load->model('Subscription_model');
+		$plan = $this->Subscription_model->get_merchant_plan($merchant_id);
+		if (!empty($plan['subscription']['start_date'])) {
+			return $plan['subscription']['start_date'];
+		}
+		// Fallback for Starter plan or merchants without explicit subscription start date:
+		// Use beginning of current month
+		return date('Y-m-01 00:00:00');
+	}
+
+	public function ensure_deal_usage_schema()
+	{
+		if (!$this->db->field_exists('daily_deal_starts_at', 'products')) {
+			@$this->db->query("ALTER TABLE products ADD COLUMN daily_deal_starts_at INT(11) NULL DEFAULT NULL AFTER daily_deals");
+		}
+		if (!$this->db->field_exists('flash_sale_starts_at', 'products')) {
+			@$this->db->query("ALTER TABLE products ADD COLUMN flash_sale_starts_at INT(11) NULL DEFAULT NULL AFTER flash_sale");
+		}
+
+		if (!$this->db->table_exists('merchant_deal_usage')) {
+			$sql = "CREATE TABLE IF NOT EXISTS `merchant_deal_usage` (
+				`id` INT AUTO_INCREMENT PRIMARY KEY,
+				`merchant_id` INT NOT NULL,
+				`product_id` INT NOT NULL,
+				`deal_type` ENUM('daily_deal', 'flash_sale') NOT NULL,
+				`starts_at` INT NULL,
+				`ends_at` INT NULL,
+				`created_at` DATETIME NOT NULL,
+				INDEX `idx_m_deal_type` (`merchant_id`, `deal_type`, `created_at`),
+				INDEX `idx_m_prod` (`merchant_id`, `product_id`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+			@$this->db->query($sql);
+
+			$this->backfill_deal_usage();
+		}
+	}
+
+	public function backfill_deal_usage()
+	{
+		if (!$this->db->table_exists('merchant_deal_usage')) {
+			return;
+		}
+
+		// 1. Backfill daily deals from products table
+		$dd_prods = $this->db->select('id, publisher_id, daily_deals, daily_deal_starts_at, daily_deal_ends_at, updated_at')
+			->from('products')
+			->where('(daily_deals = 1 OR daily_deal_ends_at > 0)', NULL, FALSE)
+			->where('publisher_id >', 0)
+			->get()->result();
+
+		foreach ($dd_prods as $p) {
+			$exists = $this->db->where([
+				'merchant_id' => $p->publisher_id,
+				'product_id'  => $p->id,
+				'deal_type'   => 'daily_deal'
+			])->count_all_results('merchant_deal_usage');
+
+			if ($exists == 0) {
+				$start_ts = !empty($p->daily_deal_starts_at) ? (int)$p->daily_deal_starts_at : (!empty($p->updated_at) ? (int)$p->updated_at : time());
+				$this->db->insert('merchant_deal_usage', [
+					'merchant_id' => $p->publisher_id,
+					'product_id'  => $p->id,
+					'deal_type'   => 'daily_deal',
+					'starts_at'   => $p->daily_deal_starts_at ?: $start_ts,
+					'ends_at'     => $p->daily_deal_ends_at ?: 0,
+					'created_at'  => date('Y-m-d H:i:s', $start_ts)
+				]);
+			}
+		}
+
+		// 2. Backfill flash sales from products table
+		$fs_prods = $this->db->select('id, publisher_id, flash_sale, flash_sale_starts_at, flash_sale_ends_at, updated_at')
+			->from('products')
+			->where('(flash_sale = 1 OR flash_sale_ends_at > 0)', NULL, FALSE)
+			->where('publisher_id >', 0)
+			->get()->result();
+
+		foreach ($fs_prods as $p) {
+			$exists = $this->db->where([
+				'merchant_id' => $p->publisher_id,
+				'product_id'  => $p->id,
+				'deal_type'   => 'flash_sale'
+			])->count_all_results('merchant_deal_usage');
+
+			if ($exists == 0) {
+				$start_ts = !empty($p->flash_sale_starts_at) ? (int)$p->flash_sale_starts_at : (!empty($p->updated_at) ? (int)$p->updated_at : time());
+				$this->db->insert('merchant_deal_usage', [
+					'merchant_id' => $p->publisher_id,
+					'product_id'  => $p->id,
+					'deal_type'   => 'flash_sale',
+					'starts_at'   => $p->flash_sale_starts_at ?: $start_ts,
+					'ends_at'     => $p->flash_sale_ends_at ?: 0,
+					'created_at'  => date('Y-m-d H:i:s', $start_ts)
+				]);
+			}
+		}
+	}
+
+	public function record_deal_usage($merchant_id, $product_id, $deal_type = 'daily_deal', $starts_at = null, $ends_at = null)
+	{
+		$this->ensure_deal_usage_schema();
+		$now = time();
+		if (!$starts_at) $starts_at = $now;
+		if (!$ends_at) $ends_at = ($deal_type === 'daily_deal') ? ($starts_at + 86400) : ($starts_at + (7 * 86400));
+
+		// Check if there is already an active/ongoing usage record for this product
+		$existing = $this->db->where([
+			'merchant_id' => $merchant_id,
+			'product_id'  => $product_id,
+			'deal_type'   => $deal_type
+		])->where('ends_at >', $now)->order_by('id', 'DESC')->limit(1)->get('merchant_deal_usage')->row();
+
+		if ($existing) {
+			$this->db->where('id', $existing->id)->update('merchant_deal_usage', [
+				'starts_at' => $starts_at,
+				'ends_at'   => $ends_at
+			]);
+			return $existing->id;
+		}
+
+		// New deal activation: consumes a slot permanently
+		$this->db->insert('merchant_deal_usage', [
+			'merchant_id' => $merchant_id,
+			'product_id'  => $product_id,
+			'deal_type'   => $deal_type,
+			'starts_at'   => $starts_at,
+			'ends_at'     => $ends_at,
+			'created_at'  => date('Y-m-d H:i:s')
+		]);
+		return $this->db->insert_id();
+	}
+
+	public function get_used_daily_deals_count($merchant_id, $exclude_active_product_id = null)
+	{
+		$this->ensure_deal_usage_schema();
+		$this->expire_deals(time());
+
+		$cycle_start = $this->get_merchant_cycle_start($merchant_id);
+
+		$this->db->from('merchant_deal_usage');
+		$this->db->where('merchant_id', $merchant_id);
+		$this->db->where('deal_type', 'daily_deal');
+		$this->db->where('created_at >=', $cycle_start);
+
+		if (!empty($exclude_active_product_id)) {
+			$now = time();
+			$this->db->group_start();
+			$this->db->where('product_id !=', $exclude_active_product_id);
+			$this->db->or_where('ends_at <=', $now);
+			$this->db->group_end();
+		}
+
+		$used_count = $this->db->count_all_results();
+
+		// Check for any product in products table marked daily_deals = 1 not yet in merchant_deal_usage
+		$this->db->from('products');
+		$this->db->where('publisher_id', $merchant_id);
+		$this->db->where('daily_deals', 1);
+		if (!empty($exclude_active_product_id)) {
+			$this->db->where('id !=', $exclude_active_product_id);
+		}
+		$active_prod_count = $this->db->count_all_results();
+
+		return (int)max($used_count, $active_prod_count);
+	}
+
+	public function get_used_flash_sale_count($merchant_id, $exclude_active_product_id = null)
+	{
+		$this->ensure_deal_usage_schema();
+		$this->expire_deals(time());
+
+		$cycle_start = $this->get_merchant_cycle_start($merchant_id);
+
+		$this->db->from('merchant_deal_usage');
+		$this->db->where('merchant_id', $merchant_id);
+		$this->db->where('deal_type', 'flash_sale');
+		$this->db->where('created_at >=', $cycle_start);
+
+		if (!empty($exclude_active_product_id)) {
+			$now = time();
+			$this->db->group_start();
+			$this->db->where('product_id !=', $exclude_active_product_id);
+			$this->db->or_where('ends_at <=', $now);
+			$this->db->group_end();
+		}
+
+		$used_count = $this->db->count_all_results();
+
+		$this->db->from('products');
+		$this->db->where('publisher_id', $merchant_id);
+		$this->db->where('flash_sale', 1);
+		if (!empty($exclude_active_product_id)) {
+			$this->db->where('id !=', $exclude_active_product_id);
+		}
+		$active_prod_count = $this->db->count_all_results();
+
+		return (int)max($used_count, $active_prod_count);
+	}
+
 	public function get_daily_deals_limit($merchant_id)
 	{
 		$this->load->model('Subscription_model');
 		$base_limit = $this->Subscription_model->get_base_daily_deals_limit($merchant_id);
+		$cycle_start = $this->get_merchant_cycle_start($merchant_id);
 
 		$this->db->select('m.service_id, m.qty');
 		$this->db->from('merchant_addon_purchases m');
@@ -429,8 +631,7 @@ class UserModel extends CI_Model
 		$this->db->where('m.merchant_id', $merchant_id);
 		$this->db->where('m.status', 'paid');
 		$this->db->where('s.category_id', 1);
-		$this->db->where('m.created_at >=', date('Y-m-d 00:00:00'));
-		$this->db->where('m.created_at <=', date('Y-m-d 23:59:59'));
+		$this->db->where('m.created_at >=', $cycle_start);
 		$purchases = $this->db->get()->result();
 
 		$addon_limit = 0;
@@ -446,16 +647,7 @@ class UserModel extends CI_Model
 
 	public function get_active_daily_deals_count($merchant_id)
     {
-        $current_time = time(); // current timestamp
-
-        // Clean up expired deals with special price reversion
-        $this->expire_deals($current_time);
-
-        $this->db->from('products');
-        $this->db->where('publisher_id', $merchant_id);
-        $this->db->where('daily_deals', 1);
-        $this->db->where('daily_deal_ends_at >', $current_time); // only active deals
-        return $this->db->count_all_results();
+        return $this->get_used_daily_deals_count($merchant_id);
     }
 
     public function expire_deals($now = null, $product_id = null)
@@ -636,6 +828,7 @@ class UserModel extends CI_Model
 		}
 
 		$base_limit = $this->Subscription_model->get_base_flash_sale_limit($merchant_id);
+		$cycle_start = $this->get_merchant_cycle_start($merchant_id);
 
 		$this->db->select('m.service_id, m.qty');
 		$this->db->from('merchant_addon_purchases m');
@@ -643,8 +836,7 @@ class UserModel extends CI_Model
 		$this->db->where('m.merchant_id', $merchant_id);
 		$this->db->where('m.status', 'paid'); // or 'active'
 		$this->db->where('s.category_id', 2);    // flash sale category
-		$this->db->where('m.created_at >=', date('Y-m-d 00:00:00'));
-		$this->db->where('m.created_at <=', date('Y-m-d 23:59:59'));
+		$this->db->where('m.created_at >=', $cycle_start);
 		$purchases = $this->db->get()->result();
 
 		$addon_limit = 0;
@@ -664,13 +856,7 @@ class UserModel extends CI_Model
 
 	public function get_active_flash_sale_count($merchant_id)
 	{
-		$current_time = time(); // current timestamp
-
-		$this->db->from('products');
-		$this->db->where('publisher_id', $merchant_id);
-		$this->db->where('flash_sale', 1);
-		$this->db->where('flash_sale_ends_at >', $current_time); // only active flash sales
-		return $this->db->count_all_results();
+		return $this->get_used_flash_sale_count($merchant_id);
 	}
 
 

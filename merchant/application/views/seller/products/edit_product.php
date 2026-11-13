@@ -323,7 +323,9 @@
 
 					<?php echo lang('allowed'); ?>: <?php echo $daily_deals_limit; ?> |
 
-					<?php echo lang('used'); ?>: <?php echo $current_daily_count; ?>
+					<?php echo lang('used'); ?>: <?php echo $current_daily_count; ?> |
+
+					<?php echo lang('remaining_daily_deals_slots'); ?>: <?php echo max(0, $daily_deals_limit - $current_daily_count); ?>
 
 				</small>
 
@@ -409,7 +411,9 @@
 
 						<?php echo lang('allowed'); ?>: <?php echo $flash_sale_limit; ?> |
 
-						<?php echo lang('used'); ?>: <?php echo $current_flash_count; ?>
+						<?php echo lang('used'); ?>: <?php echo $current_flash_count; ?> |
+
+						<?php echo lang('remaining_flash_sale_slots'); ?>: <?php echo max(0, $flash_sale_limit - $current_flash_count); ?>
 
 					</small>
 
