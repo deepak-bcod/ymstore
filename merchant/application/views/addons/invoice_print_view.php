@@ -22,7 +22,7 @@ $e = function ($value) {
 $company_name = 'MYP Online Marketing Ltd';
 $company_service = 'Yellow Markets - A MYP Network Service';
 
-$company_address = '14 Avenue Sodnac, Quatre Bornes, Mauritius Postal code: 72256';
+$company_address = '14 Avenue Sodnac, Quatre Bornes, Mauritius | Postal code: 72256';
 $company_email = 'acct@themyp.com';
 $company_phone = '+230 5252 5772';
 $company_brn = 'C14124113';

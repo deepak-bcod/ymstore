@@ -762,7 +762,7 @@ body {
 
         Yellow Markets - A MYP Network Service<br>
 
-        Address:  14 Avenue Sodnac, Quatre Bornes, Mauritius Postal code: 72256<br>
+        Address:  14 Avenue Sodnac, Quatre Bornes, Mauritius | Postal code: 72256<br>
 
         Email : acct@themyp.com | Phone : +230 5252 5772<br>
 
