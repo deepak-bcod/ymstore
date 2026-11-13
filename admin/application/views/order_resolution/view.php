@@ -467,8 +467,8 @@ span.label,
 
                             <!-- Workflow 5B Exception Action: Replacement Receipt Exception -->
                             <?php 
-                            $can_doc_rep_exc = ($resolution->admin_decision === 'in_favour_shopper' || $resolution->resolution_status === 'resolution_approved')
-                                && ($resolution->category === 'Replacement' || ($resolution->admin_remedy ?? '') === 'replacement')
+                            $can_doc_rep_exc = ($resolution->admin_decision === 'in_favour_shopper' || $resolution->resolution_status === 'resolution_approved' || in_array($resolution->merchant_action, ['replacement_approved', 'replacement_completed'], true))
+                                && ($resolution->category === 'Replacement' || ($resolution->admin_remedy ?? '') === 'replacement' || in_array($resolution->merchant_action, ['replacement_approved', 'replacement_completed'], true))
                                 && empty($resolution->shopper_receipt_confirmed)
                                 && empty($resolution->admin_replacement_exception)
                                 && $resolution->status !== 'Close (Final)';
@@ -1026,6 +1026,13 @@ span.label,
                 </div>
                 <div class="modal-body">
                     <p>Close this ticket where the shopper still has a Resolution Option (e.g. they can click Resolution Request if dissatisfied). The status will update to <strong>Close</strong> and an email will be sent to the merchant.</p>
+                    <?php if ($is_rep_remedy && empty($resolution->shopper_receipt_confirmed) && empty($resolution->admin_replacement_exception)): ?>
+                        <div class="alert alert-warning py-2 px-3 mb-3 border-warning" style="font-size: 13px; border-left: 4px solid #f0ad4e;">
+                            <i class="fa fa-shield text-warning"></i> <strong>Workflow 5B Receipt Gate Notice:</strong><br>
+                            Shopper physical receipt confirmation has <strong>not yet been recorded</strong>, and no carrier delivery exception has been documented.
+                            <br>Under Yellow Markets policy, closing this ticket now will <strong>not</strong> release the merchant payout hold. Payout will remain held until Shopper confirms receipt or an Admin Exception is documented with carrier delivery proof.
+                        </div>
+                    <?php endif; ?>
                     <div class="form-group">
                         <label>Closure Notes:</label>
                         <textarea name="notes" class="form-control" rows="2" placeholder="Reason for closing..."></textarea>

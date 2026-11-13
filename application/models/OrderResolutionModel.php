@@ -3315,6 +3315,7 @@ class OrderResolutionModel extends CI_Model
             $has_active = false;
             $has_replacement_approved = false;
             $has_refunded = false;
+            $has_unverified_replacement = false;
 
             foreach ($resolutions as $r) {
                 $r_st = trim($r['status'] ?? '');
@@ -3330,20 +3331,28 @@ class OrderResolutionModel extends CI_Model
 
                 $is_refund_app = ($r_st === 'Close (Final)' || $r_st === 'Close') &&
                     ($r_act === 'refund_approved' || $r_res === 'resolution_approved' || $r_cat === 'Refund');
-                $is_rep_comp = ($r_st === 'Close' || $r_st === 'Close (Final)') &&
-                    (in_array($r_act, ['replacement_completed', 'replacement_approved'], true) || $r_cat === 'Replacement');
+
+                // Workflow 5B: For replacement disputes, payout release strictly requires confirmed shopper receipt or documented admin exception.
+                // Do not treat merchant completion as shopper confirmation.
+                $is_replacement = ($r_cat === 'Replacement') || (($r['admin_remedy'] ?? '') === 'replacement') || in_array($r_act, ['replacement_completed', 'replacement_approved'], true);
+                $is_receipt_verified = !empty($r['shopper_receipt_confirmed']) || !empty($r['admin_replacement_exception']);
+
+                $is_rep_comp = ($r_st === 'Close' || $r_st === 'Close (Final)') && $is_replacement && $is_receipt_verified;
                 $is_merch_won = ($r_st === 'Close (Final)' || $r_st === 'Close') &&
                     (($r['admin_decision'] ?? '') === 'in_favour_merchant' || $r_res === 'resolution_denied');
 
                 if ($is_refund_app) {
                     $has_refunded = true;
+                } elseif ($is_replacement && !$is_receipt_verified && !$is_merch_won) {
+                    // Payout hold must remain in place if replacement receipt is not confirmed by shopper or documented by admin exception
+                    $has_unverified_replacement = true;
                 } elseif ($is_rep_comp || $is_merch_won) {
                     $has_replacement_approved = true;
                 }
             }
 
-            if ($has_active || $has_refunded) {
-                // Workflow 5A: Refunded amount must not be paid to Merchant; remains on hold (status 3)
+            if ($has_active || $has_refunded || $has_unverified_replacement) {
+                // Workflow 5A & 5B: Refunded amount or unverified replacement must not be paid to Merchant; remains on hold (status 3)
                 if ($payout_status !== 3) {
                     $this->db->where('order_id', $oid)->update('b2b_orders', ['payout_status' => 3]);
                 }
