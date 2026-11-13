@@ -21,8 +21,24 @@ $merchant_name = $publisher['publication_name']
 
 $plan_name = $plan['name'] ?? 'Subscription Plan';
 
-$amount = isset($order['amount'])
-    ? (float)$order['amount'] : 0;
+// Get actual subscription price from plan
+$billing_period = $order['billing_period'] ?? 'Yearly';
+
+if (strtolower($billing_period) === 'yearly') {
+    $amount = (float)(
+        $plan['yearly_price']
+        ?? $plan['yearly_amount']
+        ?? $plan['price']
+        ?? $order['amount']
+        ?? 0
+    );
+} else {
+    $amount = (float)(
+        $plan['price']
+        ?? $order['amount']
+        ?? 0
+    );
+}
 
 $status = strtolower($order['status'] ?? 'unpaid');
 
