@@ -694,11 +694,11 @@ body {
 
     <!-- PRINT BUTTON -->
 
-    <div class="print-button">
+    <!-- <div class="print-button">
         <button type="button" onclick="window.print();">
             Print / Save as PDF
         </button>
-    </div>
+    </div> -->
 
     <!-- HEADER -->
 
@@ -762,13 +762,13 @@ body {
 
         Yellow Markets - A MYP Network Service<br>
 
-        [Verified supplier address]<br>
+        Address:  14 Avenue Sodnac, Quatre Bornes, Mauritius Postal code: 72256<br>
 
-        [Verified supplier email] | [Telephone]<br>
+        Email : acct@themyp.com | Phone : +230 5252 5772<br>
 
-        BRN: [Verified supplier BRN]<br>
+        BRN: C14124113<br>
 
-        VAT number: [Verified supplier VAT number]
+        
 
     </div>
 
