@@ -1637,13 +1637,13 @@ class OrderResolutionModel extends CI_Model
 
         $this->update_payout_eligibility_for_resolution($res);
 
-        $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 15-day hold-back sales.', 'admin', 'admin_shopper');
+        $this->audit_log($res->id, $ticket_number, $res->status, 'Done', 'Marked Done', 'acct', $admin_id, $notes ?: 'Refund completed from merchant 14-day hold-back sales.', 'admin', 'admin_shopper');
 
         // Notify Shopper via email that refund is completed
         $this->send_refund_completed_shopper_email($res);
 
         // Post in conversation thread
-        $this->add_reply($ticket_number, 'acct', $admin_id, 'Accounting Team (@Acct)', "Accounting has verified and processed the refund from the merchant's 15-day hold-back balance.\nShopper refund is complete.\nNotes: " . ($notes ?: 'Refund processed and verified.'), '', '', 'merchant_admin');
+        $this->add_reply($ticket_number, 'acct', $admin_id, 'Accounting Team (@Acct)', "Accounting has verified and processed the refund from the merchant's 14-day hold-back balance.\nShopper refund is complete.\nNotes: " . ($notes ?: 'Refund processed and verified.'), '', '', 'merchant_admin');
 
         // In-App Notification to @Help indicating refund is processed and ready for Close (Final)
         $this->send_inapp_notification('admin', 1, 'refund_done',
@@ -1657,7 +1657,7 @@ class OrderResolutionModel extends CI_Model
                 "Accounting has processed refund for Ticket #{$ticket_number} (Order #{$res->order_number}) from your hold-back balance. Refunded amount will not be paid to merchant.", $res);
         }
 
-        return ['status' => true, 'message' => 'Ticket marked as Done. Refund processed from merchant 15-day hold-back sales.'];
+        return ['status' => true, 'message' => 'Ticket marked as Done. Refund processed from merchant 14-day hold-back sales.'];
     }
 
     /**
@@ -1847,7 +1847,7 @@ class OrderResolutionModel extends CI_Model
                 try {
                     $this->send_inapp_notification('admin', 1, 'refund_request_acct',
                         'Order Resolution - Refund Request (@Acct)',
-                        "Resolution approved in favour of shopper for Ticket #{$ticket_number} (Order #{$res->order_number}). Please refund from merchant 15-day hold-back sales.", $res);
+                        "Resolution approved in favour of shopper for Ticket #{$ticket_number} (Order #{$res->order_number}). Please refund from merchant 14-day hold-back sales.", $res);
                 } catch (\Throwable $e) {
                     log_message('error', 'send_inapp_notification error: ' . $e->getMessage());
                 }
@@ -2078,7 +2078,7 @@ class OrderResolutionModel extends CI_Model
             $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Shopper Replacement Receipt Confirmed', 'shopper', $customer_id, $audit_note, 'shopper', 'shopper_admin');
 
             $this->add_reply($ticket_number, 'shopper', $customer_id, 'Shopper', "I confirm that I have physically received the replacement item." . ($notes ? "\nNotes: {$notes}" : ""), '', '', 'shopper_admin');
-            $this->add_reply($ticket_number, 'help', 1, 'Support Team (@Help)', "Shopper confirmed physical receipt of replacement item. Dispute hold released subject to standard 7-day payout rule. Ticket closed (Final).", '', '', 'merchant_admin');
+            $this->add_reply($ticket_number, 'help', 1, 'Support Team (@Help)', "Shopper confirmed physical receipt of replacement item. Dispute hold released subject to standard 14-day post-completed payout schedule. Ticket closed (Final).", '', '', 'merchant_admin');
 
             if (!empty($res->merchant_id)) {
                 $this->send_inapp_notification('merchant', $res->merchant_id, 'receipt_confirmed',

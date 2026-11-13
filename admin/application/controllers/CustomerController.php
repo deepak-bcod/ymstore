@@ -2045,7 +2045,7 @@ class CustomerController extends CI_Controller
 
 		// 2. Insert audit conversation message
 		$refund_formatted = number_format((float)$ticket->refund_amount, 2);
-		$reply_msg = "Action: Refund Completed (Done). Amount: " . $refund_formatted . " processed and deducted from merchant 15-day hold-back sales balance.";
+		$reply_msg = "Action: Refund Completed (Done). Amount: " . $refund_formatted . " processed and deducted from merchant 14-day hold-back sales balance.";
 		$insertMsg = [
 			'ticket_id'                     => $actual_ticket_id,
 			'subject'                       => $ticket->subject,

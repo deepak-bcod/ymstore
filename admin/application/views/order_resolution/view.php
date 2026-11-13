@@ -304,7 +304,7 @@ span.label,
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-info py-2 mb-3">
-                                    <i class="fa fa-money"></i> <strong>Assigned to Accounting (@Acct):</strong> Refund the shopper from the merchant's 15-day hold-back sales, then click <strong>Mark Done</strong>.
+                                    <i class="fa fa-money"></i> <strong>Assigned to Accounting (@Acct):</strong> Refund the shopper from the merchant's 14-day hold-back sales, then click <strong>Mark Done</strong>.
                                 </div>
                                 <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
                                     <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#markDoneModal">
@@ -314,7 +314,7 @@ span.label,
                             <?php endif; ?>
                         <?php elseif ($resolution->status === 'Done'): ?>
                             <div class="alert alert-success py-2 mb-0">
-                                <i class="fa fa-check-circle"></i> <strong>Refund Processed:</strong> Accounting has completed the refund from merchant 15-day hold-back sales. Ticket handed back to @Help for final closure.
+                                <i class="fa fa-check-circle"></i> <strong>Refund Processed:</strong> Accounting has completed the refund from merchant 14-day hold-back sales. Ticket handed back to @Help for final closure.
                             </div>
                         <?php elseif ($resolution->status === 'Close (Final)'): ?>
                             <div class="alert alert-secondary py-2 mb-0">
@@ -367,7 +367,7 @@ span.label,
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-info py-2 mb-2">
-                                    <i class="fa fa-hourglass-half"></i> <strong>Assigned to Accounting (@Acct):</strong> Awaiting Accounting to process refund from merchant's 15-day hold-back sales.
+                                    <i class="fa fa-hourglass-half"></i> <strong>Assigned to Accounting (@Acct):</strong> Awaiting Accounting to process refund from merchant's 14-day hold-back sales.
                                 </div>
                                 <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 10px;">
                                     <?php if (!empty($resolution->merchant_return_confirmed) || !empty($resolution->admin_return_exception)): ?>
@@ -999,7 +999,7 @@ span.label,
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>Confirm that the refund has been processed to the shopper from the merchant's 15-day hold-back sales balance. The Resolution status will update to <strong>Done</strong>, and @Help will be notified to proceed with final ticket closure.</p>
+                    <p>Confirm that the refund has been processed to the shopper from the merchant's 14-day hold-back sales balance. The Resolution status will update to <strong>Done</strong>, and @Help will be notified to proceed with final ticket closure.</p>
                     <div class="form-group">
                         <label>Accounting Completion Notes / Transaction ID:</label>
                         <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Transaction Ref / Bank Details..."></textarea>
