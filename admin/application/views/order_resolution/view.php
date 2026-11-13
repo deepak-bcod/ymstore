@@ -153,19 +153,41 @@ span.label,
                             <span class="text-success font-weight-bold"><?php echo $delivery_option = ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
                         </div>
                         <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
-                            <strong>Refund Amount:</strong> 
                             <?php 
-                            $disp_refund = (float)($resolution->refund_amount ?? 0);
-                            if ($disp_refund <= 0) {
+                            $disp_amount = (float)($resolution->refund_amount ?? 0);
+                            if ($disp_amount <= 0) {
                                 if (!empty($product) && !empty($product->price)) {
-                                    $disp_refund = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
+                                    $disp_amount = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
                                 } elseif (!empty($order)) {
-                                    $disp_refund = (float)($order->grand_total ?: $order->subtotal);
+                                    $disp_amount = (float)($order->grand_total ?: $order->subtotal);
+                                }
+                            }
+
+                            $is_refund_remedy = ($resolution->category === 'Refund' || in_array($resolution->merchant_action, ['refund_approved', 'refund_denied'], true));
+                            if (!$is_refund_remedy) {
+                                $amount_label = 'Item Value';
+                                $amount_val = ($disp_amount > 0) ? 'MUR ' . number_format($disp_amount, 2) : 'N/A';
+                                $amount_cls = ($disp_amount > 0) ? 'font-weight-bold text-dark' : 'text-muted';
+                            } else {
+                                $amount_label = 'Refund Amount';
+                                if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved' || $resolution->admin_decision === 'in_favour_shopper') {
+                                    $amount_val = ($disp_amount > 0) ? 'MUR ' . number_format($disp_amount, 2) : 'MUR 0.00';
+                                    $amount_cls = 'font-weight-bold text-success';
+                                } elseif ($resolution->merchant_action === 'refund_denied' && $resolution->resolution_status !== 'resolution_approved') {
+                                    $amount_val = 'Denied';
+                                    $amount_cls = 'font-weight-bold text-danger';
+                                } elseif ($disp_amount > 0) {
+                                    $amount_val = 'MUR ' . number_format($disp_amount, 2) . ' (Pending)';
+                                    $amount_cls = 'font-weight-bold text-warning';
+                                } else {
+                                    $amount_val = 'N/A';
+                                    $amount_cls = 'text-muted';
                                 }
                             }
                             ?>
-                            <span class="font-weight-bold <?= ($disp_refund > 0) ? 'text-success' : 'text-muted'; ?>">
-                                <?= 'MUR ' . number_format($disp_refund, 2); ?>
+                            <strong><?= $amount_label; ?>:</strong> 
+                            <span class="<?= $amount_cls; ?>">
+                                <?= $amount_val; ?>
                             </span>
                         </div>
                         <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
@@ -445,8 +467,8 @@ span.label,
 
                             <!-- Workflow 5B Exception Action: Replacement Receipt Exception -->
                             <?php 
-                            $can_doc_rep_exc = ($resolution->admin_decision === 'in_favour_shopper' || $resolution->resolution_status === 'resolution_approved')
-                                && ($resolution->category === 'Replacement' || ($resolution->admin_remedy ?? '') === 'replacement')
+                            $can_doc_rep_exc = ($resolution->admin_decision === 'in_favour_shopper' || $resolution->resolution_status === 'resolution_approved' || in_array($resolution->merchant_action, ['replacement_approved', 'replacement_completed'], true))
+                                && ($resolution->category === 'Replacement' || ($resolution->admin_remedy ?? '') === 'replacement' || in_array($resolution->merchant_action, ['replacement_approved', 'replacement_completed'], true))
                                 && empty($resolution->shopper_receipt_confirmed)
                                 && empty($resolution->admin_replacement_exception)
                                 && $resolution->status !== 'Close (Final)';
@@ -1004,6 +1026,13 @@ span.label,
                 </div>
                 <div class="modal-body">
                     <p>Close this ticket where the shopper still has a Resolution Option (e.g. they can click Resolution Request if dissatisfied). The status will update to <strong>Close</strong> and an email will be sent to the merchant.</p>
+                    <?php if ($is_rep_remedy && empty($resolution->shopper_receipt_confirmed) && empty($resolution->admin_replacement_exception)): ?>
+                        <div class="alert alert-warning py-2 px-3 mb-3 border-warning" style="font-size: 13px; border-left: 4px solid #f0ad4e;">
+                            <i class="fa fa-shield text-warning"></i> <strong>Workflow 5B Receipt Gate Notice:</strong><br>
+                            Shopper physical receipt confirmation has <strong>not yet been recorded</strong>, and no carrier delivery exception has been documented.
+                            <br>Under Yellow Markets policy, closing this ticket now will <strong>not</strong> release the merchant payout hold. Payout will remain held until Shopper confirms receipt or an Admin Exception is documented with carrier delivery proof.
+                        </div>
+                    <?php endif; ?>
                     <div class="form-group">
                         <label>Closure Notes:</label>
                         <textarea name="notes" class="form-control" rows="2" placeholder="Reason for closing..."></textarea>

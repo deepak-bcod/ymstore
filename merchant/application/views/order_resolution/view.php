@@ -153,19 +153,41 @@ span.label,
                                 <span class="text-success font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
                             </div>
                             <div class="col-md-4 col-sm-6">
-                                <strong><?= $this->lang->line('refund_amount') ?: 'Refund Amount'; ?>:</strong> 
                                 <?php 
-                                $disp_refund = (float)($resolution->refund_amount ?? 0);
-                                if ($disp_refund <= 0) {
+                                $disp_amount = (float)($resolution->refund_amount ?? 0);
+                                if ($disp_amount <= 0) {
                                     if (!empty($product) && !empty($product->price)) {
-                                        $disp_refund = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
+                                        $disp_amount = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
                                     } elseif (!empty($order)) {
-                                        $disp_refund = (float)($order->grand_total ?: $order->subtotal);
+                                        $disp_amount = (float)($order->grand_total ?: $order->subtotal);
+                                    }
+                                }
+
+                                $is_refund_remedy = ($resolution->category === 'Refund' || in_array($resolution->merchant_action, ['refund_approved', 'refund_denied'], true));
+                                if (!$is_refund_remedy) {
+                                    $amount_label = $this->lang->line('item_value') ?: 'Item Value';
+                                    $amount_val = ($disp_amount > 0) ? 'MUR ' . number_format($disp_amount, 2) : 'N/A';
+                                    $amount_cls = ($disp_amount > 0) ? 'font-weight-bold text-dark' : 'text-muted';
+                                } else {
+                                    $amount_label = $this->lang->line('refund_amount') ?: 'Refund Amount';
+                                    if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved' || $resolution->admin_decision === 'in_favour_shopper') {
+                                        $amount_val = ($disp_amount > 0) ? 'MUR ' . number_format($disp_amount, 2) : 'MUR 0.00';
+                                        $amount_cls = 'font-weight-bold text-success';
+                                    } elseif ($resolution->merchant_action === 'refund_denied' && $resolution->resolution_status !== 'resolution_approved') {
+                                        $amount_val = $this->lang->line('denied') ?: 'Denied';
+                                        $amount_cls = 'font-weight-bold text-danger';
+                                    } elseif ($disp_amount > 0) {
+                                        $amount_val = 'MUR ' . number_format($disp_amount, 2) . ' (' . ($this->lang->line('pending') ?: 'Pending') . ')';
+                                        $amount_cls = 'font-weight-bold text-warning';
+                                    } else {
+                                        $amount_val = 'N/A';
+                                        $amount_cls = 'text-muted';
                                     }
                                 }
                                 ?>
-                                <span class="font-weight-bold <?= ($disp_refund > 0) ? 'text-success' : 'text-muted'; ?>">
-                                    <?= 'MUR ' . number_format($disp_refund, 2); ?>
+                                <strong><?= $amount_label; ?>:</strong> 
+                                <span class="<?= $amount_cls; ?>">
+                                    <?= $amount_val; ?>
                                 </span>
                             </div>
                         </div>
@@ -871,7 +893,7 @@ span.label,
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p><?= $this->lang->line('replacement_completed_confirm_msg') ?: 'Confirm that the replacement product has been successfully delivered / collected. Support (@Help) will be notified.'; ?></p>
+                    <p><?= $this->lang->line('replacement_completed_confirm_msg') ?: 'Confirm that the replacement product has been successfully delivered / collected. The Shopper will be prompted to confirm physical receipt, and Support (@Help) will be notified. Yellow Markets requires shopper confirmation before disputed payout can be released.'; ?></p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"><?= $this->lang->line('cancel') ?: 'Cancel'; ?></button>

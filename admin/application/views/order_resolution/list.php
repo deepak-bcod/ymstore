@@ -325,7 +325,11 @@ tbody tr:hover td.sticky-action-col {
                                                 <div><strong>Product:</strong> <?= htmlspecialchars($res->product_name ?: 'All Items'); ?></div>
                                                 <div class="small text-muted">Category: <?= htmlspecialchars($res->category); ?> | Priority: <?= htmlspecialchars($res->priority ?: 'Medium'); ?></div>
                                                 <?php if ($res->refund_amount > 0): ?>
-                                                    <div class="small text-success font-weight-bold">Refund: MUR <?= number_format($res->refund_amount, 2); ?></div>
+                                                    <?php if ($res->category === 'Replacement'): ?>
+                                                        <div class="small text-muted font-weight-bold">Item Value: MUR <?= number_format($res->refund_amount, 2); ?></div>
+                                                    <?php else: ?>
+                                                        <div class="small text-success font-weight-bold">Refund: MUR <?= number_format($res->refund_amount, 2); ?></div>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
                                             </div>
                                             <div class="col-md-3 text-right">

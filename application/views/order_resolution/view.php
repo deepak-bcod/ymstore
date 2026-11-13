@@ -207,27 +207,42 @@ span.label,
                                 <?php endif; ?>
 
                                 <div class="col-md-3 col-sm-6">
-                                    <p><b><?php echo $this->lang->line('refund_amount') ?: 'Refund Amount'; ?>:</b><br>
-                                        <span class="font-weight-bold <?php echo ($resolution->refund_amount > 0) ? 'text-success' : 'text-muted'; ?>">
-                                            <?php 
-                                            $disp_refund = (float)($resolution->refund_amount ?? 0);
-                                            if ($disp_refund <= 0) {
-                                                if (!empty($product) && !empty($product->price)) {
-                                                    $disp_refund = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
-                                                } elseif (!empty($order)) {
-                                                    $disp_refund = (float)($order->grand_total ?: $order->subtotal);
-                                                }
-                                            }
-                                            if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
-                                                echo CURRENCY_TYPE . ' ' . number_format($disp_refund, 2);
-                                            } elseif ($resolution->merchant_action === 'refund_denied' && $resolution->resolution_status !== 'resolution_approved') {
-                                                echo 'Denied';
-                                            } elseif ($resolution->category === 'Refund' && $disp_refund > 0) {
-                                                echo CURRENCY_TYPE . ' ' . number_format($disp_refund, 2) . ' (Pending)';
-                                            } else {
-                                                echo 'N/A';
-                                            }
-                                            ?>
+                                    <?php 
+                                    $disp_amount = (float)($resolution->refund_amount ?? 0);
+                                    if ($disp_amount <= 0) {
+                                        if (!empty($product) && !empty($product->price)) {
+                                            $disp_amount = (float)(($product->special_price > 0) ? $product->special_price : $product->price);
+                                        } elseif (!empty($order)) {
+                                            $disp_amount = (float)($order->grand_total ?: $order->subtotal);
+                                        }
+                                    }
+
+                                    $currency_sym = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
+                                    $is_refund_remedy = ($resolution->category === 'Refund' || in_array($resolution->merchant_action, ['refund_approved', 'refund_denied'], true));
+                                    if (!$is_refund_remedy) {
+                                        $amount_label = $this->lang->line('item_value') ?: 'Item Value';
+                                        $amount_val = ($disp_amount > 0) ? $currency_sym . ' ' . number_format($disp_amount, 2) : 'N/A';
+                                        $amount_cls = ($disp_amount > 0) ? 'font-weight-bold text-dark' : 'text-muted';
+                                    } else {
+                                        $amount_label = $this->lang->line('refund_amount') ?: 'Refund Amount';
+                                        if ($resolution->merchant_action === 'refund_approved' || $resolution->resolution_status === 'resolution_approved') {
+                                            $amount_val = $currency_sym . ' ' . number_format($disp_amount, 2);
+                                            $amount_cls = 'font-weight-bold text-success';
+                                        } elseif ($resolution->merchant_action === 'refund_denied' && $resolution->resolution_status !== 'resolution_approved') {
+                                            $amount_val = $this->lang->line('denied') ?: 'Denied';
+                                            $amount_cls = 'font-weight-bold text-danger';
+                                        } elseif ($disp_amount > 0) {
+                                            $amount_val = $currency_sym . ' ' . number_format($disp_amount, 2) . ' (' . ($this->lang->line('pending') ?: 'Pending') . ')';
+                                            $amount_cls = 'font-weight-bold text-warning';
+                                        } else {
+                                            $amount_val = 'N/A';
+                                            $amount_cls = 'text-muted';
+                                        }
+                                    }
+                                    ?>
+                                    <p><b><?php echo $amount_label; ?>:</b><br>
+                                        <span class="<?php echo $amount_cls; ?>">
+                                            <?php echo $amount_val; ?>
                                         </span>
                                     </p>
                                 </div>
@@ -281,7 +296,16 @@ span.label,
                     <?php endif; ?>
 
                     <!-- Workflow 5B: Replacement Fulfilment & Delivery Confirmation Card -->
-                    <?php if ($is_replacement_ticket && ($is_shopper_won || $resolution->merchant_action === 'replacement_completed' || $resolution->status === 'Processing')): ?>
+                    <?php 
+                    $show_replacement_fulfilment_card = $is_replacement_ticket && (
+                        $is_shopper_won 
+                        || in_array($resolution->merchant_action, ['replacement_approved', 'replacement_completed'], true) 
+                        || in_array($resolution->status, ['Processing', 'Close', 'Close (Final)'], true)
+                        || !empty($resolution->shopper_receipt_confirmed)
+                        || !empty($resolution->admin_replacement_exception)
+                    );
+                    ?>
+                    <?php if ($show_replacement_fulfilment_card): ?>
                         <div class="panel panel-default" style="border: 1px solid #bce8f1; border-left: 4px solid #337ab7; border-radius: 6px; margin-bottom: 20px;">
                             <div class="panel-heading" style="border-bottom: 1px solid #bce8f1; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <span style="font-weight: 700; color: #245269; font-size: 14px;">
@@ -291,23 +315,46 @@ span.label,
                                     <span class="label label-success" style="font-size: 11px;"><i class="fa fa-check"></i> Receipt Confirmed</span>
                                 <?php elseif (!empty($resolution->admin_replacement_exception)): ?>
                                     <span class="label label-info" style="font-size: 11px;"><i class="fa fa-truck"></i> Verified via Carrier Proof</span>
-                                <?php else: ?>
+                                <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
                                     <span class="label label-warning font-weight-bold" style="font-size: 11px; color: #b38600;"><i class="fa fa-clock-o"></i> Confirmation Required</span>
+                                <?php else: ?>
+                                    <span class="label label-info font-weight-bold" style="font-size: 11px;"><i class="fa fa-clock-o"></i> Replacement Approved — Awaiting Fulfilment</span>
                                 <?php endif; ?>
                             </div>
                             <div class="panel-body" style="padding: 15px;">
+                                <?php 
+                                $del_opt_display = (!empty($resolution->delivery_option) && !in_array($resolution->delivery_option, ['none', 'n/a'], true)) 
+                                    ? ucwords(str_replace('_', ' ', $resolution->delivery_option)) 
+                                    : 'Merchant Arrangement';
+                                ?>
                                 <?php if (!empty($resolution->shopper_receipt_confirmed)): ?>
                                     <div class="alert alert-success" style="margin: 0;">
-                                        <i class="fa fa-check-circle"></i> <strong>Replacement Received:</strong> You have confirmed physical receipt of the replacement item. The dispute resolution is successfully closed (Final).
+                                        <i class="fa fa-check-circle"></i> <strong>Replacement Received:</strong> You have confirmed physical receipt of the replacement item. The dispute resolution is successfully completed and closed (Final).
                                     </div>
                                 <?php elseif (!empty($resolution->admin_replacement_exception)): ?>
                                     <div class="alert alert-info" style="margin: 0;">
                                         <i class="fa fa-info-circle"></i> <strong>Delivery Verified:</strong> Delivery was confirmed via carrier delivery proof by Yellow Markets Support (<?= htmlspecialchars($resolution->admin_replacement_exception_notes); ?>).
                                     </div>
-                                <?php else: ?>
+                                <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
                                     <p style="margin-bottom: 12px; font-size: 14px;">
-                                        The Merchant has arranged replacement via <strong><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?></strong>.
-                                        Please inspect the replacement item upon delivery and confirm receipt below:
+                                        The Merchant has marked the replacement as delivered / collected via <strong><?php echo htmlspecialchars($del_opt_display); ?></strong>.
+                                        <br>Per Yellow Markets policy, your confirmation is required before merchant payout can be released. Please inspect the replacement item upon delivery/collection and confirm receipt below:
+                                    </p>
+                                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                        <button type="button" class="btn btn-success" data-toggle="modal" data-target="#confirmReceiptModal">
+                                            <i class="fa fa-check"></i> I have received the replacement item
+                                        </button>
+                                        <button type="button" class="btn btn-default" data-toggle="modal" data-target="#reportNotReceivedModal">
+                                            <i class="fa fa-times text-danger"></i> I have not received it
+                                        </button>
+                                    </div>
+                                <?php else: ?>
+                                    <p style="margin-bottom: 10px; font-size: 14px;">
+                                        The Merchant has agreed to replace the item via <strong><?php echo htmlspecialchars($del_opt_display); ?></strong>.
+                                        <br>The replacement item is currently being prepared for delivery / collection. Yellow Markets holds the merchant's payout until you confirm physical receipt or a delivery exception is verified.
+                                    </p>
+                                    <p style="margin-bottom: 12px; font-size: 13px;" class="text-muted">
+                                        <em>If you have already collected or received the replacement item, please confirm receipt below:</em>
                                     </p>
                                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                         <button type="button" class="btn btn-success" data-toggle="modal" data-target="#confirmReceiptModal">

@@ -1485,6 +1485,7 @@ $lang['no_notifications_found'] = 'Aucune notification trouvée.';
 $lang['no_replacement_for_product'] = 'Aucun remplacement pour le produit';
 $lang['resolution_status'] = 'Statut de la résolution';
 $lang['refund_amount'] = 'Montant du remboursement';
+$lang['item_value'] = 'Valeur de l\'article';
 $lang['addon_purchased_success_title'] = 'Service AddOn de livraison YellowMarkets acheté';
 $lang['addon_payment_required_tooltip'] = 'Veuillez acheter et régler le service AddOn de livraison YM avant de marquer le remplacement comme terminé.';
 $lang['addon_service_payment_required'] = 'Paiement du service AddOn de livraison YM requis';
