@@ -273,6 +273,10 @@ body {
     font-size: 11px;
 }
 
+.details-table td {
+    overflow-wrap: anywhere;
+}
+
 .details-table .section-heading {
     font-size: 15px;
     font-weight: bold;
@@ -557,114 +561,78 @@ body {
         <table class="details-table">
 
             <tr>
-
                 <td width="50%" class="section-heading">
                     Bill to Merchant
                 </td>
-                <td width="50%">
-
-    <strong>
-        <?php echo $e($merchant_name); ?>
-    </strong>
-    <br>
-
-    <?php if (!empty($merchant_email)): ?>
-        <?php echo $e($merchant_email); ?>
-        <br>
-    <?php endif; ?>
-
-    <?php if (!empty($merchant_address)): ?>
-        <strong>Address:</strong>
-        <?php echo nl2br($e($merchant_address)); ?>
-        <br>
-    <?php endif; ?>
-
-    <?php if (!empty($merchant_brn)): ?>
-        <strong>BRN:</strong>
-        <?php echo $e($merchant_brn); ?>
-        <br>
-    <?php endif; ?>
-
-    Merchant reference:
-    <?php echo $e($merchant_name); ?>
-
-</td>
 
                 <td width="50%" class="section-heading">
                     Invoice details
                 </td>
-
             </tr>
 
             <tr>
 
-                <td>
+                <!-- LEFT SIDE: MERCHANT DETAILS -->
+                <td width="50%">
+
                     <strong><?php echo $e($merchant_name); ?></strong>
+                    <br>
+
+                    <?php if (!empty($merchant_email)): ?>
+                        <?php echo $e($merchant_email); ?>
+                        <br>
+                    <?php endif; ?>
+
+                    <?php if (!empty($merchant_address)): ?>
+                        <strong>Address:</strong>
+                        <?php echo nl2br($e($merchant_address)); ?>
+                        <br>
+                    <?php endif; ?>
+
+                    <?php if (!empty($merchant_brn)): ?>
+                        <strong>BRN:</strong>
+                        <?php echo $e($merchant_brn); ?>
+                        <br>
+                    <?php endif; ?>
+
+                    <strong>Merchant reference:</strong>
+                    <?php echo $e($merchant_name); ?>
+
                 </td>
 
-                <td>
-                    <span class="detail-label">Invoice number</span>
-                    <span class="detail-value"><?php echo $e($purchase_id); ?></span>
+                <!-- RIGHT SIDE: INVOICE DETAILS -->
+                <td width="50%">
+
+                    <strong>Invoice number:</strong>
+                    <?php echo $e($purchase_id); ?>
+                    <br>
+
+                    <strong>Invoice date:</strong>
+                    <?php echo $e($invoice_date); ?>
+                    <br>
+
+                    <strong>Currency:</strong>
+                    <?php echo $e($currency); ?>
+
+                    <?php if (!empty($order_number)): ?>
+                        <br>
+                        <strong>Order reference:</strong>
+                        <?php echo $e($order_number); ?>
+                    <?php endif; ?>
+
+                    <?php if (!empty($ticket_number)): ?>
+                        <br>
+                        <strong>Resolution ticket:</strong>
+                        <?php echo $e($ticket_number); ?>
+                    <?php endif; ?>
+
+                    <br>
+
+                    <strong>Add-on:</strong>
+                    <?php echo $e($addon_name); ?>
+
                 </td>
 
-            </tr>
-
-            <tr>
-
-                <td>
-                    <?php echo $e($merchant_email); ?>
-                </td>
-
-                <td>
-                    <span class="detail-label">Invoice date</span>
-                    <span class="detail-value"><?php echo $e($invoice_date); ?></span>
-                </td>
-
-            </tr>
-
-            <tr>
-
-                <td>
-                    Merchant reference: <?php echo $e($merchant_name); ?>
-                </td>
-
-                <td>
-                    <span class="detail-label">Currency</span>
-                    <span class="detail-value"><?php echo $e($currency); ?></span>
-                </td>
-
-            </tr>
-
-            <?php if (!empty($order_number)): ?>
-
-                <tr>
-                    <td></td>
-                    <td>
-                        <span class="detail-label">Order reference</span>
-                        <span class="detail-value"><?php echo $e($order_number); ?></span>
-                    </td>
-                </tr>
-
-            <?php endif; ?>
-
-            <?php if (!empty($ticket_number)): ?>
-
-                <tr>
-                    <td></td>
-                    <td>
-                        <span class="detail-label">Resolution ticket</span>
-                        <span class="detail-value"><?php echo $e($ticket_number); ?></span>
-                    </td>
-                </tr>
-
-            <?php endif; ?>
-
-            <tr>
-                <td></td>
-                <td>
-                    <span class="detail-label">Add-on</span>
-                    <span class="detail-value"><?php echo $e($addon_name); ?></span>
-                </td>
             </tr>
 
         </table>
