@@ -44,7 +44,9 @@ $company_name = 'MYP Online Marketing Ltd';
 
 $company_service = 'Yellow Markets - A MYP Network Service';
 
-$company_address = '14 Avenue Sodnac, Quatre Bornes, Mauritius | Postal code: 72256';
+$company_address = '14 Avenue Sodnac, Quatre Bornes, Mauritius';
+
+$company_postal_code = '72256';
 
 $company_email = 'acct@themyp.com';
 
@@ -77,21 +79,17 @@ $is_paid = in_array(
 // INVOICE CALCULATIONS
 // ==========================================
 
-// Base price excluding VAT
 $subtotal = $price;
 
-// Calculate VAT
 $vat_amount = ($price * $vat_percent) / 100;
 
-// Calculate total including VAT
 $invoice_total = $price + $vat_amount;
 
-// Use saved final price if it matches calculated total
+// Use stored final price when it matches calculated total
 if ($final_price > 0 && abs($final_price - $invoice_total) < 0.01) {
     $invoice_total = $final_price;
 }
 
-// Payment calculation
 $paid_amount = $is_paid ? $invoice_total : 0;
 
 $amount_due = max(0, $invoice_total - $paid_amount);
@@ -107,6 +105,16 @@ $e = function($value) {
         'UTF-8'
     );
 };
+
+// ==========================================
+// CLEAN DESCRIPTION
+// ==========================================
+
+$clean_description = html_entity_decode(
+    strip_tags($description),
+    ENT_QUOTES,
+    'UTF-8'
+);
 
 // ==========================================
 // LOGO
@@ -169,25 +177,29 @@ if (empty($logo_image_src)) {
 
 <style>
 
+/* ==========================================
+   GENERAL
+========================================== */
+
 * {
     box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    padding: 25px;
+    padding: 15px;
     background: #eef1f5;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     color: #172b4d;
 }
 
 .invoice-box {
     width: 100%;
     max-width: 800px;
-    min-height: 760px;
+    min-height: 0;
     margin: auto;
-    padding: 28px;
+    padding: 18px;
     background: #fff;
     border: 1px solid #cbd3df;
 }
@@ -198,8 +210,8 @@ body {
 
 .header {
     width: 100%;
-    padding-bottom: 18px;
-    margin-bottom: 18px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
     border-bottom: 2px solid #d6a900;
 }
 
@@ -215,32 +227,31 @@ body {
 }
 
 .logo-container {
-    background-color: #23282d;
-    padding: 10px 16px;
-    border-radius: 4px;
     display: inline-block;
-    vertical-align: middle;
+    padding: 7px 10px;
+    background-color: #23282d;
+    border-radius: 4px;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
 
 .logo-container img {
     display: block;
-    width: 135px;
+    width: 115px;
     max-width: 100%;
     height: auto;
     border: 0;
 }
 
 .brand-subtitle {
-    margin-top: 6px;
-    font-size: 10px;
+    margin-top: 4px;
+    font-size: 9px;
     color: #68778b;
 }
 
 .invoice-heading {
     text-align: right;
-    font-size: 21px;
+    font-size: 19px;
     font-weight: bold;
     letter-spacing: 1px;
     color: #172b4d;
@@ -248,8 +259,8 @@ body {
 
 .invoice-number {
     text-align: right;
-    margin-top: 6px;
-    font-size: 10px;
+    margin-top: 4px;
+    font-size: 9px;
     color: #52647b;
 }
 
@@ -258,18 +269,18 @@ body {
 ========================================== */
 
 .company-details {
-    line-height: 1.8;
     margin-bottom: 0;
-    padding-bottom: 15px;
-    font-size: 11px;
+    padding-bottom: 9px;
+    font-size: 10px;
+    line-height: 1.5;
     color: #33445e;
     border-bottom: 1px solid #cbd3df;
 }
 
 .company-name {
+    font-size: 11px;
     font-weight: bold;
     color: #172b4d;
-    font-size: 12px;
 }
 
 .company-details strong {
@@ -281,21 +292,22 @@ body {
 ========================================== */
 
 .billing-section {
-    padding-top: 18px;
-    margin-bottom: 18px;
+    padding-top: 10px;
+    margin-bottom: 10px;
 }
 
 .billing-heading {
-    margin-bottom: 8px;
-    font-size: 15px;
+    margin-bottom: 5px;
+    font-size: 13px;
     font-weight: bold;
     color: #172b4d;
 }
 
 .billing-details {
-    font-size: 11px;
-    line-height: 1.8;
+    font-size: 10px;
+    line-height: 1.6;
     color: #33445e;
+    overflow-wrap: anywhere;
 }
 
 .billing-details strong {
@@ -308,8 +320,8 @@ body {
 
 .details-wrapper {
     width: 100%;
-    padding: 18px 0;
-    margin-bottom: 20px;
+    padding: 9px 0;
+    margin-bottom: 10px;
     border-top: 1px solid #cbd3df;
     border-bottom: 1px solid #cbd3df;
 }
@@ -320,27 +332,28 @@ body {
 }
 
 .details-table td {
-    padding: 5px 4px;
+    padding: 3px 4px;
     border: none;
     vertical-align: top;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .details-table .section-heading {
-    font-size: 15px;
+    padding-bottom: 6px;
+    font-size: 12px;
     font-weight: bold;
     color: #172b4d;
-    padding-bottom: 13px;
 }
 
 .details-table .detail-label {
     display: inline-block;
-    width: 115px;
+    width: 105px;
     color: #52647b;
 }
 
 .details-table .detail-value {
     color: #172b4d;
+    overflow-wrap: anywhere;
 }
 
 /* ==========================================
@@ -349,26 +362,28 @@ body {
 
 .items-table {
     width: 100%;
-    margin-top: 15px;
-    margin-bottom: 25px;
+    margin-top: 8px;
+    margin-bottom: 12px;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .items-table th {
-    padding: 11px 8px;
+    padding: 7px 5px;
     background: #edf0f4;
     color: #172b4d;
     border-bottom: 1px solid #cbd3df;
-    font-size: 10px;
+    font-size: 9px;
     text-align: left;
 }
 
 .items-table td {
-    padding: 12px 8px;
+    padding: 7px 5px;
     border-bottom: 1px solid #cbd3df;
-    font-size: 11px;
+    font-size: 9px;
     color: #33445e;
     vertical-align: top;
+    overflow-wrap: anywhere;
 }
 
 .text-center {
@@ -389,23 +404,24 @@ body {
 }
 
 .bottom-table > tbody > tr > td {
-    padding: 5px;
+    padding: 3px;
     border: none;
     vertical-align: top;
 }
 
 .payment-heading,
 .total-heading {
-    padding-bottom: 12px;
-    font-size: 14px;
+    padding-bottom: 6px;
+    font-size: 12px;
     font-weight: bold;
     color: #172b4d;
 }
 
 .payment-info {
-    font-size: 11px;
-    line-height: 1.9;
+    font-size: 9px;
+    line-height: 1.5;
     color: #33445e;
+    overflow-wrap: anywhere;
 }
 
 .status-paid {
@@ -424,16 +440,16 @@ body {
 }
 
 .total-table td {
-    padding: 8px 3px;
+    padding: 5px 3px;
     border-bottom: 1px solid #dce1e8;
-    font-size: 11px;
+    font-size: 9px;
     color: #33445e;
 }
 
 .total-table .grand-total td {
-    padding-top: 10px;
-    padding-bottom: 10px;
-    font-size: 16px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 13px;
     font-weight: bold;
     color: #172b4d;
     border-top: 2px solid #172b4d;
@@ -445,11 +461,11 @@ body {
 ========================================== */
 
 .invoice-footer {
-    margin-top: 45px;
-    padding-top: 15px;
+    margin-top: 12px;
+    padding-top: 8px;
     border-top: 1px solid #cbd3df;
-    font-size: 10px;
-    line-height: 1.9;
+    font-size: 9px;
+    line-height: 1.5;
     color: #68778b;
 }
 
@@ -462,64 +478,217 @@ body {
 ========================================== */
 
 .print-section {
-    margin-top: 30px;
+    margin-top: 15px;
     text-align: center;
 }
 
 .btn-print {
-    padding: 12px 25px;
+    padding: 10px 20px;
     border: none;
     border-radius: 4px;
     background: #ffd200;
     color: #000;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: bold;
     cursor: pointer;
 }
 
 /* ==========================================
-   PRINT SETTINGS
+   A4 PRINT SETTINGS
 ========================================== */
 
 @page {
-    size: A4;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 6mm;
 }
 
 @media print {
 
+    html,
     body {
-        padding: 0;
-        background: #fff;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        width: 100%;
+        height: auto;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 9px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
     .invoice-box {
-        width: 100%;
-        max-width: none;
-        min-height: auto;
-        padding: 10px;
-        border: none;
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 5px !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
     }
 
-    .print-section {
-        display: none !important;
-    }
+    /* HEADER */
 
-    .items-table th {
-        background: #edf0f4 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+    .header {
+        padding-bottom: 7px !important;
+        margin-bottom: 8px !important;
+        border-bottom: 2px solid #d6a900 !important;
     }
 
     .logo-container {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        padding: 5px 8px !important;
+        background: #23282d !important;
     }
 
-    .header {
-        border-bottom: 2px solid #d6a900;
+    .logo-container img {
+        width: 105px !important;
+        height: auto !important;
+    }
+
+    .brand-subtitle {
+        margin-top: 3px !important;
+        font-size: 8px !important;
+    }
+
+    .invoice-heading {
+        font-size: 17px !important;
+    }
+
+    .invoice-number {
+        margin-top: 3px !important;
+        font-size: 8px !important;
+    }
+
+    /* COMPANY */
+
+    .company-details {
+        margin-bottom: 0 !important;
+        padding-bottom: 7px !important;
+        font-size: 9px !important;
+        line-height: 1.4 !important;
+    }
+
+    .company-name {
+        font-size: 10px !important;
+    }
+
+    /* BILL TO MERCHANT */
+
+    .billing-section {
+        padding-top: 8px !important;
+        margin-bottom: 7px !important;
+    }
+
+    .billing-heading {
+        margin-bottom: 4px !important;
+        font-size: 12px !important;
+    }
+
+    .billing-details {
+        font-size: 9px !important;
+        line-height: 1.4 !important;
+    }
+
+    /* INVOICE DETAILS */
+
+    .details-wrapper {
+        padding: 7px 0 !important;
+        margin-bottom: 7px !important;
+    }
+
+    .details-table td {
+        padding: 3px !important;
+        font-size: 9px !important;
+    }
+
+    .details-table .section-heading {
+        padding-bottom: 5px !important;
+        font-size: 11px !important;
+    }
+
+    .details-table .detail-label {
+        width: 95px !important;
+    }
+
+    /* ITEMS */
+
+    .items-table {
+        margin-top: 6px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .items-table th {
+        padding: 5px 4px !important;
+        font-size: 8px !important;
+        background: #edf0f4 !important;
+    }
+
+    .items-table td {
+        padding: 5px 4px !important;
+        font-size: 8px !important;
+    }
+
+    /* PAYMENT */
+
+    .bottom-table > tbody > tr > td {
+        padding: 2px !important;
+    }
+
+    .payment-heading,
+    .total-heading {
+        padding-bottom: 5px !important;
+        font-size: 10px !important;
+    }
+
+    .payment-info {
+        font-size: 8px !important;
+        line-height: 1.4 !important;
+    }
+
+    .total-table td {
+        padding: 4px 3px !important;
+        font-size: 8px !important;
+    }
+
+    .total-table .grand-total td {
+        padding: 5px 3px !important;
+        font-size: 11px !important;
+    }
+
+    /* FOOTER */
+
+    .invoice-footer {
+        margin-top: 8px !important;
+        padding-top: 6px !important;
+        font-size: 8px !important;
+        line-height: 1.4 !important;
+    }
+
+    /* HIDE BUTTON */
+
+    .print-section,
+    .btn-print {
+        display: none !important;
+    }
+
+    /* PREVENT UNNECESSARY BREAKS */
+
+    .header,
+    .company-details,
+    .billing-section,
+    .details-wrapper,
+    .items-table,
+    .bottom-table,
+    .invoice-footer {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    tr {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
     }
 
 }
@@ -588,7 +757,6 @@ body {
 
     <!-- ======================================
          COMPANY INFORMATION
-         MYP ONLINE MARKETING LTD
     ======================================= -->
 
     <div class="company-details">
@@ -602,19 +770,29 @@ body {
         <br>
 
         <strong>Address:</strong>
+
         <?php echo $e($company_address); ?>
 
         <br>
 
+        <strong>Postal code:</strong>
+
+        <?php echo $e($company_postal_code); ?>
+
+        <br>
+
         <strong>Email:</strong>
+
         <?php echo $e($company_email); ?>
 
         | <strong>Phone:</strong>
+
         <?php echo $e($company_phone); ?>
 
         <br>
 
         <strong>BRN:</strong>
+
         <?php echo $e($company_brn); ?>
 
     </div>
@@ -633,6 +811,7 @@ body {
         <div class="billing-details">
 
             <strong>Merchant legal name:</strong>
+
             <?php echo $e($merchant_name); ?>
 
             <br>
@@ -669,7 +848,9 @@ body {
 
             <strong>Merchant reference:</strong>
 
-            <?php echo $e($merchant_reference); ?>
+            <?php echo !empty($merchant_reference)
+                ? $e($merchant_reference)
+                : 'N/A'; ?>
 
         </div>
 
@@ -845,23 +1026,13 @@ body {
                         <?php echo $e($addon_name); ?>
                     </strong>
 
-                    <?php if (!empty($description)): ?>
+                    <?php if (!empty($clean_description)): ?>
 
                         <br>
 
                         <span style="color:#52647b;">
 
-                            <?php
-                            echo nl2br(
-                                $e(
-                                    html_entity_decode(
-                                        strip_tags($description),
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    )
-                                )
-                            );
-                            ?>
+                            <?php echo nl2br($e($clean_description)); ?>
 
                         </span>
 
@@ -871,7 +1042,7 @@ body {
 
                         <br>
 
-                        <span style="font-size:10px;color:#68778b;">
+                        <span style="font-size:8px;color:#68778b;">
 
                             Replacement Delivery for Order #
 
@@ -1108,7 +1279,7 @@ body {
          PRINT / DOWNLOAD BUTTON
     ======================================= -->
 
-    <!-- <?php if (empty($is_pdf)): ?>
+    <?php if (empty($is_pdf)): ?>
 
         <div class="print-section">
 
@@ -1124,7 +1295,7 @@ body {
 
         </div>
 
-    <?php endif; ?> -->
+    <?php endif; ?>
 
 </div>
 
