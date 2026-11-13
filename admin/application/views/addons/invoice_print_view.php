@@ -163,7 +163,7 @@ body {
 .invoice-box {
     width: 100%;
     max-width: 800px;
-    min-height: 760px;
+    min-height: 0;
     margin: auto;
     padding: 28px;
     background: #fff;
@@ -420,44 +420,162 @@ body {
 }
 
 @page {
-    size: A4;
-    margin: 10mm;
+    size: A4 portrait;
+    margin: 6mm;
 }
 
 @media print {
 
+    html,
     body {
-        padding: 0;
-        background: #fff;
+        width: 100%;
+        height: auto;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        font-size: 9px !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
     .invoice-box {
-        width: 100%;
-        max-width: none;
-        min-height: auto;
-        padding: 10px;
-        border: none;
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 6px !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .header {
+        padding-bottom: 7px !important;
+        margin-bottom: 8px !important;
+        border-bottom: 2px solid #d6a900 !important;
+    }
+
+    .logo-container {
+        padding: 6px 10px !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .logo-container img {
+        width: 105px !important;
+        height: auto !important;
+    }
+
+    .brand-subtitle {
+        margin-top: 3px !important;
+        font-size: 8px !important;
+    }
+
+    .invoice-heading {
+        font-size: 18px !important;
+    }
+
+    .invoice-number {
+        margin-top: 3px !important;
+        font-size: 9px !important;
+    }
+
+    .company-details {
+        margin-bottom: 9px !important;
+        font-size: 9px !important;
+        line-height: 1.35 !important;
+    }
+
+    .details-wrapper {
+        padding: 8px 0 !important;
+        margin-bottom: 8px !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .details-table td {
+        padding: 3px 4px !important;
+        font-size: 9px !important;
+        line-height: 1.3 !important;
+    }
+
+    .details-table .section-heading {
+        padding-bottom: 5px !important;
+        font-size: 12px !important;
+    }
+
+    .items-table {
+        margin-top: 7px !important;
+        margin-bottom: 10px !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .items-table th {
+        padding: 6px 5px !important;
+        font-size: 8px !important;
+        background: #edf0f4 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .items-table td {
+        padding: 6px 5px !important;
+        font-size: 9px !important;
+        line-height: 1.3 !important;
+    }
+
+    .bottom-table {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .bottom-table > tbody > tr > td {
+        padding: 3px !important;
+    }
+
+    .payment-heading,
+    .total-heading {
+        padding-bottom: 5px !important;
+        font-size: 11px !important;
+    }
+
+    .payment-info {
+        font-size: 9px !important;
+        line-height: 1.4 !important;
+    }
+
+    .total-table td {
+        padding: 4px 3px !important;
+        font-size: 9px !important;
+    }
+
+    .total-table .grand-total td {
+        padding-top: 5px !important;
+        padding-bottom: 5px !important;
+        font-size: 12px !important;
+    }
+
+    .invoice-footer {
+        margin-top: 10px !important;
+        padding-top: 7px !important;
+        font-size: 8px !important;
+        line-height: 1.4 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .print-section {
         display: none !important;
     }
 
-    .items-table th {
-        background: #edf0f4 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    .logo-container {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    .header {
-        border-bottom: 2px solid #d6a900;
+    /* Keep invoice sections together where possible. */
+    .header,
+    .company-details,
+    .details-wrapper,
+    .items-table,
+    .bottom-table,
+    .invoice-footer {
+        page-break-after: avoid;
     }
 }
 
