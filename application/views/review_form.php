@@ -54,28 +54,28 @@ if (!empty($form_data) && is_array($form_data)) {
                     <?php endif; ?>
                 </div>
 
-                <h1 class="ym-review-title">Yellow Markets Reviews</h1>
-                <h2 class="ym-review-subtitle">Your Opinion Counts</h2>
+                <h1 class="ym-review-title"><?= $this->lang->line('ym_reviews_title') ?: 'Yellow Markets Reviews' ?></h1>
+                <h2 class="ym-review-subtitle"><?= $this->lang->line('ym_reviews_subtitle') ?: 'Your Opinion Counts' ?></h2>
 
                 <div class="ym-review-copy">
-                    <p>Thank you for contributing to our community by reviewing the vendor's service and products.</p>
-                    <p>Your feedback aids shoppers and merchants on Yellow Markets.com. Rate your experience and products from 1 to 5, where 1 is poor and 5 is excellent.</p>
-                    <p>Your review is anonymous and valuable in enhancing our platform.</p>
+                    <p><?= $this->lang->line('ym_reviews_p1') ?: "Thank you for contributing to our community by reviewing the vendor's service and products." ?></p>
+                    <p><?= $this->lang->line('ym_reviews_p2') ?: "Your feedback aids shoppers and merchants on Yellow Markets.com. Rate your experience and products from 1 to 5, where 1 is poor and 5 is excellent." ?></p>
+                    <p><?= $this->lang->line('ym_reviews_p3') ?: "Your review is anonymous and valuable in enhancing our platform." ?></p>
                 </div>
 
                 <div class="ym-review-action-area">
                     <?php if ($is_view_mode): ?>
-                        <a href="<?= base_url('review/form/' . $order_id . '?mode=edit') ?>" class="ym-btn-action ym-btn-edit">Edit Review</a>
-                        <a href="<?= base_url('shops/shop_details/' . $merchant_id) ?>" class="ym-btn-action ym-btn-secondary" style="margin-top: 10px;">Visit eShop</a>
+                        <a href="<?= base_url('review/form/' . $order_id . '?mode=edit') ?>" class="ym-btn-action ym-btn-edit"><?= $this->lang->line('edit_review') ?: 'Edit Review' ?></a>
+                        <a href="<?= base_url('shops/shop_details/' . $merchant_id) ?>" class="ym-btn-action ym-btn-secondary" style="margin-top: 10px;"><?= $this->lang->line('visit_eshop') ?: 'Visit eShop' ?></a>
                     <?php else: ?>
                         <button type="submit" form="ym-review-form" class="ym-btn-action ym-btn-submit">
-                            <?= $is_edit_mode ? 'Update Review' : 'Submit' ?>
+                            <?= $is_edit_mode ? ($this->lang->line('update_review') ?: 'Update Review') : ($this->lang->line('submit_review') ?: 'Submit') ?>
                         </button>
                     <?php endif; ?>
                 </div>
 
                 <div class="ym-review-copyright">
-                    &copy; YellowMarkets.com - All Rights Reserved.
+                    &copy; YellowMarkets.com - <?= $this->lang->line('all_rights_reserved') ?: 'All Rights Reserved.' ?>
                 </div>
             </div>
         </div>
@@ -103,11 +103,11 @@ if (!empty($form_data) && is_array($form_data)) {
 
                     <div class="ym-rating-row">
                         <div class="ym-field-pill ym-service-label-pill">
-                            Customer Service
+                            <?= $this->lang->line('customer_service') ?: 'Customer Service' ?>
                         </div>
 
                         <div class="ym-rating-controls-wrapper">
-                            <label class="ym-rating-prompt">How was the service provided?</label>
+                            <label class="ym-rating-prompt"><?= $this->lang->line('how_was_service_provided') ?: 'How was the service provided?' ?></label>
                             
                             <input type="hidden" name="merchant_rating" id="merchant_rating" value="<?= $merchant_rating_val ?>" required>
                             
@@ -124,18 +124,18 @@ if (!empty($form_data) && is_array($form_data)) {
                             </div>
 
                             <div class="ym-scale-labels-row">
-                                <span class="ym-scale-text scale-poor">Poor</span>
-                                <span class="ym-scale-text scale-good">Good</span>
-                                <span class="ym-scale-text scale-excellent">Excellent</span>
+                                <span class="ym-scale-text scale-poor"><?= $this->lang->line('rating_poor') ?: 'Poor' ?></span>
+                                <span class="ym-scale-text scale-good"><?= $this->lang->line('rating_good') ?: 'Good' ?></span>
+                                <span class="ym-scale-text scale-excellent"><?= $this->lang->line('rating_excellent') ?: 'Excellent' ?></span>
                             </div>
                         </div>
                     </div>
 
                     <div class="ym-comment-wrapper">
-                        <label class="ym-comment-label">Do you want to add a comment?</label>
+                        <label class="ym-comment-label"><?= $this->lang->line('do_you_want_to_add_comment') ?: 'Do you want to add a comment?' ?></label>
                         <textarea name="merchant_comments" 
                                   class="ym-comment-textarea" 
-                                  placeholder="Write your comments about the customer service here..."
+                                  placeholder="<?= htmlspecialchars($this->lang->line('customer_service_comment_placeholder') ?: 'Write your comments about the customer service here...', ENT_QUOTES, 'UTF-8') ?>"
                                   <?= $is_view_mode ? 'readonly' : '' ?>><?= htmlspecialchars($merchant_comment_val) ?></textarea>
                     </div>
                 </div>
@@ -167,7 +167,7 @@ if (!empty($form_data) && is_array($form_data)) {
                                 </div>
 
                                 <div class="ym-rating-controls-wrapper">
-                                    <label class="ym-rating-prompt">How was the product purchased?</label>
+                                    <label class="ym-rating-prompt"><?= $this->lang->line('how_was_product_purchased') ?: 'How was the product purchased?' ?></label>
                                     
                                     <input type="hidden" name="ratings[<?= $p_id ?>]" id="rating_product_<?= $p_id ?>" value="<?= $p_rating_val ?>" class="ym-required-product-rating" data-product="<?= htmlspecialchars($p_name) ?>" required>
                                     
@@ -184,18 +184,18 @@ if (!empty($form_data) && is_array($form_data)) {
                                     </div>
 
                                     <div class="ym-scale-labels-row">
-                                        <span class="ym-scale-text scale-poor">Poor</span>
-                                        <span class="ym-scale-text scale-good">Good</span>
-                                        <span class="ym-scale-text scale-excellent">Excellent</span>
+                                        <span class="ym-scale-text scale-poor"><?= $this->lang->line('rating_poor') ?: 'Poor' ?></span>
+                                        <span class="ym-scale-text scale-good"><?= $this->lang->line('rating_good') ?: 'Good' ?></span>
+                                        <span class="ym-scale-text scale-excellent"><?= $this->lang->line('rating_excellent') ?: 'Excellent' ?></span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="ym-comment-wrapper">
-                                <label class="ym-comment-label">Do you want to add a comment?</label>
+                                <label class="ym-comment-label"><?= $this->lang->line('do_you_want_to_add_comment') ?: 'Do you want to add a comment?' ?></label>
                                 <textarea name="comments[<?= $p_id ?>]" 
                                           class="ym-comment-textarea" 
-                                          placeholder="Write your comments about this product here..."
+                                          placeholder="<?= htmlspecialchars($this->lang->line('product_comment_placeholder') ?: 'Write your comments about this product here...', ENT_QUOTES, 'UTF-8') ?>"
                                           <?= $is_view_mode ? 'readonly' : '' ?>><?= htmlspecialchars($p_comment_val) ?></textarea>
                             </div>
                         </div>
@@ -604,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function () {
 function validateReviewForm() {
     var merchantRating = document.getElementById('merchant_rating');
     if (!merchantRating || !merchantRating.value || parseInt(merchantRating.value) < 1) {
-        alert('Please provide a Customer Service rating for the merchant.');
+        alert('<?= addslashes($this->lang->line('alert_rate_customer_service') ?: 'Please provide a Customer Service rating for the merchant.') ?>');
         var merchantSec = document.querySelector('.ym-merchant-section');
         if (merchantSec) merchantSec.scrollIntoView({ behavior: 'smooth' });
         return false;
@@ -615,7 +615,7 @@ function validateReviewForm() {
         var pInput = productRatings[i];
         if (!pInput.value || parseInt(pInput.value) < 1) {
             var prodName = pInput.getAttribute('data-product') || 'product';
-            alert('Please provide a rating for: ' + prodName);
+            alert('<?= addslashes($this->lang->line('alert_rate_product') ?: 'Please provide a rating for: ') ?>' + prodName);
             pInput.closest('.ym-product-section').scrollIntoView({ behavior: 'smooth' });
             return false;
         }

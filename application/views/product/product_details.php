@@ -621,9 +621,11 @@ $lang = $this->session->userdata('site_lang');
 
                                             // Featured testimony
                                             $feat = !empty($product_rating->featured_review) ? $product_rating->featured_review : null;
-                                            $feat_name = !empty($feat->customer_name) ? $feat->customer_name : ($prod_total > 0 ? 'Verified Shopper' : 'Shopper Feedback');
+                                            $feat_default_name = ($prod_total > 0) ? ($this->lang->line('verified_shopper') ?: 'Verified Shopper') : ($this->lang->line('shopper_feedback') ?: 'Shopper Feedback');
+                                            $feat_name = !empty($feat->customer_name) ? $feat->customer_name : $feat_default_name;
                                             $feat_rating = !empty($feat->rating) ? (int)$feat->rating : ($prod_total > 0 ? 5 : 5);
-                                            $feat_text = !empty($feat->comments) ? $feat->comments : ($prod_total > 0 ? 'Great product and excellent customer service on Yellow Markets.' : 'Be the first to review this product after purchase to help our community of shoppers!');
+                                            $feat_default_text = ($prod_total > 0) ? ($this->lang->line('default_feat_text_with_reviews') ?: 'Great product and excellent customer service on Yellow Markets.') : ($this->lang->line('default_feat_text_empty') ?: 'Be the first to review this product after purchase to help our community of shoppers!');
+                                            $feat_text = !empty($feat->comments) ? $feat->comments : $feat_default_text;
                                             $feat_initials = '';
                                             $words = explode(' ', trim($feat_name));
                                             if (count($words) >= 2) {
@@ -640,7 +642,8 @@ $lang = $this->session->userdata('site_lang');
                                             } elseif (!empty($categoryList->CategoryDetails->cat_name)) {
                                                 $cat_label = $categoryList->CategoryDetails->cat_name;
                                             }
-                                            $header_breadcrumb = strtoupper($company_name . ' | ' . $cat_label . ' REVIEW');
+                                            $cat_review_str = $this->lang->line('reviews_tab') ?: 'REVIEW';
+                                            $header_breadcrumb = strtoupper($company_name . ' | ' . $cat_label . ' ' . $cat_review_str);
                                         ?>
                                         <div class="review-summary">
                                             <div>
@@ -675,15 +678,15 @@ $lang = $this->session->userdata('site_lang');
 
                                         <div class="review-list">
                                             <div class="list-heading">
-                                                <span><strong id="reviews-count-display"><?= $prod_total ?></strong> <?= $prod_total == 1 ? 'review' : 'reviews' ?></span>
+                                                <span><strong id="reviews-count-display"><?= $prod_total ?></strong> <?= $prod_total == 1 ? ($this->lang->line('review_singular') ?: 'review') : ($this->lang->line('reviews_plural') ?: 'reviews') ?></span>
                                                 <div class="review-sort-wrap" style="position: relative;">
                                                     <button type="button" class="sort-btn" id="review-sort-btn">
-                                                        <span id="sort-current-text">Sort</span> <i class="fa fa-angle-down" style="margin-left: 4px;"></i>
+                                                        <span id="sort-current-text"><?= $this->lang->line('sort_label') ?: 'Sort' ?></span> <i class="fa fa-angle-down" style="margin-left: 4px;"></i>
                                                     </button>
                                                     <ul id="review-sort-dropdown" style="display: none; position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); list-style: none; padding: 6px 0; margin: 4px 0 0; z-index: 100; min-width: 140px; font-size: 13px;">
-                                                        <li><a href="javascript:void(0)" class="sort-option active" data-sort="newest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;">Newest</a></li>
-                                                        <li><a href="javascript:void(0)" class="sort-option" data-sort="highest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;">Highest Rating</a></li>
-                                                        <li><a href="javascript:void(0)" class="sort-option" data-sort="lowest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;">Lowest Rating</a></li>
+                                                        <li><a href="javascript:void(0)" class="sort-option active" data-sort="newest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;"><?= $this->lang->line('sort_newest') ?: 'Newest' ?></a></li>
+                                                        <li><a href="javascript:void(0)" class="sort-option" data-sort="highest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;"><?= $this->lang->line('sort_highest') ?: 'Highest Rating' ?></a></li>
+                                                        <li><a href="javascript:void(0)" class="sort-option" data-sort="lowest" style="display: block; padding: 6px 14px; color: #333; text-decoration: none;"><?= $this->lang->line('sort_lowest') ?: 'Lowest Rating' ?></a></li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -706,24 +709,24 @@ $lang = $this->session->userdata('site_lang');
                                                             $time_ago = date('d M Y', $rev_time);
                                                             if (time() - $rev_time < 31536000) {
                                                                 $diff_d = round((time() - $rev_time) / 86400);
-                                                                if ($diff_d == 0) $time_ago = 'Today';
-                                                                elseif ($diff_d == 1) $time_ago = 'Yesterday';
-                                                                elseif ($diff_d < 30) $time_ago = $diff_d . ' days ago';
-                                                                elseif ($diff_d < 365) $time_ago = round($diff_d / 30) . ' months ago';
+                                                                if ($diff_d == 0) $time_ago = $this->lang->line('time_today') ?: 'Today';
+                                                                elseif ($diff_d == 1) $time_ago = $this->lang->line('time_yesterday') ?: 'Yesterday';
+                                                                elseif ($diff_d < 30) $time_ago = $diff_d . ' ' . ($this->lang->line('time_days_ago') ?: 'days ago');
+                                                                elseif ($diff_d < 365) $time_ago = round($diff_d / 30) . ' ' . ($this->lang->line('time_months_ago') ?: 'months ago');
                                                             } else {
-                                                                $time_ago = round((time() - $rev_time) / 31536000) . ' year ago';
+                                                                $time_ago = round((time() - $rev_time) / 31536000) . ' ' . ($this->lang->line('time_year_ago') ?: 'year ago');
                                                             }
 
                                                             // Generate a review headline / title
-                                                            $review_title = 'Great Product';
+                                                            $review_title = $this->lang->line('default_review_headline_great') ?: 'Great Product';
                                                             if ($item_r == 5) {
-                                                                $review_title = ($idx % 2 == 1) ? 'They Are Just The Best' : 'Great Product';
+                                                                $review_title = ($idx % 2 == 1) ? ($this->lang->line('default_review_headline_best') ?: 'They Are Just The Best') : ($this->lang->line('default_review_headline_great') ?: 'Great Product');
                                                             } elseif ($item_r == 4) {
-                                                                $review_title = 'Good Quality and Fit';
+                                                                $review_title = $this->lang->line('default_review_headline_good') ?: 'Good Quality and Fit';
                                                             } elseif ($item_r == 3) {
-                                                                $review_title = 'Satisfactory Experience';
+                                                                $review_title = $this->lang->line('default_review_headline_satisfactory') ?: 'Satisfactory Experience';
                                                             } else {
-                                                                $review_title = 'Product Review';
+                                                                $review_title = $this->lang->line('default_review_headline_general') ?: 'Product Review';
                                                             }
                                                         ?>
                                                         <article class="review" data-rating="<?= $item_r ?>" data-time="<?= $rev_time ?>">
@@ -731,7 +734,7 @@ $lang = $this->session->userdata('site_lang');
                                                                 <span class="avatar"><?= $initials ?></span>
                                                                 <div>
                                                                     <b><?= htmlspecialchars($shopper_name) ?></b>
-                                                                    <span class="verified">Verified Shopper</span>
+                                                                    <span class="verified"><?= $this->lang->line('verified_shopper') ?: 'Verified Shopper' ?></span>
                                                                     <?php if (!empty($ProductData->AttributesWithOptions)): ?>
                                                                         <p><?= htmlspecialchars($ProductData->name) ?></p>
                                                                     <?php endif; ?>
@@ -739,28 +742,28 @@ $lang = $this->session->userdata('site_lang');
                                                                 <time><?= $time_ago ?></time>
                                                             </div>
                                                             <p class="item-score">
-                                                                ITEM: &nbsp;<?= $item_r ?> <span>★</span> &nbsp;|&nbsp; SERVICE: <?= $service_r ?> <span>★</span>
+                                                                <?= $this->lang->line('review_item_label') ?: 'ITEM:' ?> &nbsp;<?= $item_r ?> <span>★</span> &nbsp;|&nbsp; <?= $this->lang->line('review_service_label') ?: 'SERVICE:' ?> <?= $service_r ?> <span>★</span>
                                                             </p>
                                                             <h3><?= htmlspecialchars($review_title) ?></h3>
                                                             <p><?= nl2br(htmlspecialchars($rev->comments)) ?></p>
                                                             <div class="helpful">
-                                                                Was this helpful? 
-                                                                <button type="button" class="btn-helpful" data-helpful aria-label="Helpful review" aria-pressed="false">↑</button>
-                                                                <button type="button" class="btn-helpful" data-helpful aria-label="Not helpful review" aria-pressed="false">↓</button>
+                                                                <?= $this->lang->line('was_this_helpful') ?: 'Was this helpful?' ?> 
+                                                                <button type="button" class="btn-helpful" data-helpful aria-label="<?= htmlspecialchars($this->lang->line('helpful_review_label') ?: 'Helpful review', ENT_QUOTES, 'UTF-8') ?>" aria-pressed="false">↑</button>
+                                                                <button type="button" class="btn-helpful" data-helpful aria-label="<?= htmlspecialchars($this->lang->line('not_helpful_review_label') ?: 'Not helpful review', ENT_QUOTES, 'UTF-8') ?>" aria-pressed="false">↓</button>
                                                             </div>
                                                         </article>
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
                                                     <div style="padding: 40px 15px; text-align: center; color: #777;">
                                                         <i class="fa fa-comment-dots" style="font-size: 38px; color: #ffce00; margin-bottom: 12px; display: block;"></i>
-                                                        <h4 style="color: #333; margin-bottom: 6px; font-weight: bold;">No published reviews yet</h4>
-                                                        <p style="font-size: 14px; color: #666;">Be the first to review this product after purchase!</p>
+                                                        <h4 style="color: #333; margin-bottom: 6px; font-weight: bold;"><?= $this->lang->line('no_published_reviews_yet') ?: 'No published reviews yet' ?></h4>
+                                                        <p style="font-size: 14px; color: #666;"><?= $this->lang->line('be_first_to_review') ?: 'Be the first to review this product after purchase!' ?></p>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
 
                                             <?php if (!empty($product_reviews) && count($product_reviews) > 2): ?>
-                                                <button type="button" class="show-more-btn" id="reviews-show-more">Show More</button>
+                                                <button type="button" class="show-more-btn" id="reviews-show-more"><?= $this->lang->line('reviews_show_more') ?: ($this->lang->line('show_more') ?: 'Show More') ?></button>
                                             <?php endif; ?>
                                         </div>
                                     </div>
@@ -2426,7 +2429,7 @@ $lang = $this->session->userdata('site_lang');
 </script>
 
 <!-- Floating Reviews Ribbon -->
-<a class="reviews-ribbon" id="open-reviews-ribbon" href="#reviews" title="View Customer Reviews">REVIEWS</a>
+<a class="reviews-ribbon" id="open-reviews-ribbon" href="#reviews" title="<?= htmlspecialchars($this->lang->line('reviews_ribbon_title') ?: 'View Customer Reviews', ENT_QUOTES, 'UTF-8') ?>"><?= $this->lang->line('reviews_ribbon') ?: 'REVIEWS' ?></a>
 
 <style>
 /* Reviews Tab Figma Wireframe Styles */
@@ -2740,7 +2743,8 @@ $(document).ready(function() {
         e.preventDefault();
         var sortType = $(this).data('sort');
         var sortText = $(this).text();
-        $('#sort-current-text').text('Sort: ' + sortText);
+        var sortLabel = '<?= addslashes($this->lang->line('sort_label') ?: 'Sort') ?>';
+        $('#sort-current-text').text(sortLabel + ': ' + sortText);
         $('.sort-option').removeClass('active');
         $(this).addClass('active');
         $('#review-sort-dropdown').hide();

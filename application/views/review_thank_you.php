@@ -13,16 +13,16 @@ $edit_review_url = !empty($order_id) ? base_url('review/form/' . $order_id . '?m
         <!-- LEFT COLUMN: Dark Hero Banner with Laptop background -->
         <div class="ym-thankyou-left-col">
             <div class="ym-thankyou-left-content">
-                <h1 class="ym-thankyou-brand-title">Yellow Markets Reviews</h1>
-                <h2 class="ym-thankyou-brand-subtitle">Your Opinion Counts</h2>
+                <h1 class="ym-thankyou-brand-title"><?= $this->lang->line('ym_reviews_title') ?: 'Yellow Markets Reviews' ?></h1>
+                <h2 class="ym-thankyou-brand-subtitle"><?= $this->lang->line('ym_reviews_subtitle') ?: 'Your Opinion Counts' ?></h2>
 
                 <div class="ym-thankyou-brand-copy">
-                    <p>Thank you for helping other shoppers make a decision. Your Review also help merchant and it gives YellowMarkets.com an online voice for merchant and us.</p>
-                    <p>Your review will be anonymous to the Public.</p>
+                    <p><?= $this->lang->line('ym_thankyou_p1') ?: "Thank you for helping other shoppers make a decision. Your Review also help merchant and it gives YellowMarkets.com an online voice for merchant and us." ?></p>
+                    <p><?= $this->lang->line('ym_thankyou_p2') ?: "Your review will be anonymous to the Public." ?></p>
                 </div>
 
                 <div class="ym-thankyou-eshop-btn-wrap">
-                    <a href="<?= $shop_url ?>" class="ym-btn-visit-eshop">Visit eShop</a>
+                    <a href="<?= $shop_url ?>" class="ym-btn-visit-eshop"><?= $this->lang->line('visit_eshop') ?: 'Visit eShop' ?></a>
                 </div>
             </div>
         </div>
@@ -38,15 +38,15 @@ $edit_review_url = !empty($order_id) ? base_url('review/form/' . $order_id . '?m
                     <?php endif; ?>
                 </div>
 
-                <h1 class="ym-thankyou-heading">Thank You For The Review</h1>
+                <h1 class="ym-thankyou-heading"><?= $this->lang->line('thank_you_for_the_review') ?: 'Thank You For The Review' ?></h1>
 
                 <div class="ym-thankyou-published-text">
-                    Great Your Review Was Published
+                    <?= $this->lang->line('great_your_review_published') ?: 'Great Your Review Was Published' ?>
                 </div>
 
                 <div class="ym-thankyou-buttons-group">
-                    <a href="<?= $view_review_url ?>" class="ym-btn-view-review">View Review</a>
-                    <a href="<?= $edit_review_url ?>" class="ym-btn-edit-review">Edit Review</a>
+                    <a href="<?= $view_review_url ?>" class="ym-btn-view-review"><?= $this->lang->line('view_review') ?: 'View Review' ?></a>
+                    <a href="<?= $edit_review_url ?>" class="ym-btn-edit-review"><?= $this->lang->line('edit_review') ?: 'Edit Review' ?></a>
                 </div>
             </div>
         </div>
