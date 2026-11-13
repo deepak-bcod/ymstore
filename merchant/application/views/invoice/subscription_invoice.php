@@ -45,8 +45,33 @@ $invoice_number = $order['invoice_number']
 $order_reference = $order['order_reference']
     ?? 'SUB-ORDER-' . $invoice_id;
 
-$subscription_reference = $order['subscription_reference']
-    ?? 'N/A';
+// =====================================================
+// SUBSCRIPTION NAME
+// =====================================================
+
+$subscription_reference = '';
+
+if (
+    isset($order['subscription_reference']) &&
+    trim((string)$order['subscription_reference']) !== ''
+) {
+    $subscription_reference = $order['subscription_reference'];
+
+} elseif (
+    isset($order['subscription_name']) &&
+    trim((string)$order['subscription_name']) !== ''
+) {
+    $subscription_reference = $order['subscription_name'];
+
+} elseif (
+    isset($plan['name']) &&
+    trim((string)$plan['name']) !== ''
+) {
+    $subscription_reference = $plan['name'];
+
+} else {
+    $subscription_reference = $plan_name;
+}
 
 // =====================================================
 // MERCHANT DETAILS
@@ -833,12 +858,12 @@ body {
                         <?php echo $e($merchant_email); ?>
                     </div>
 
-                    <div class="detail-line">
+                    <!-- <div class="detail-line">
                         <span class="detail-label">
                             Merchant reference:
                         </span>
                         <?php echo $e($merchant_reference); ?>
-                    </div>
+                    </div> -->
 
                 </td>
 
