@@ -816,12 +816,12 @@ body {
                         <?php echo $e($merchant_email); ?>
                     </div>
 
-                    <div class="detail-line">
+                    <!-- <div class="detail-line">
                         <span class="detail-label">
                             Merchant reference:
                         </span>
                         <?php echo $e($merchant_reference); ?>
-                    </div>
+                    </div> -->
 
                 </td>
 

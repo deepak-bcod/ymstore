@@ -554,8 +554,8 @@ body {
                     <?php echo $e($merchant_brn); ?><br>
                 <?php endif; ?>
 
-                <!-- <strong>Merchant reference:</strong>
-                <?php echo $e($merchant_name); ?> -->
+                <strong>Merchant reference:</strong>
+                <?php echo $e($merchant_name); ?>
             </td>
 
             <td width="50%">
