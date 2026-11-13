@@ -762,13 +762,15 @@ body {
 
         Yellow Markets - A MYP Network Service<br>
 
-        [Verified supplier address]<br>
+        Yellow Markets - A MYP Network Service<br>
 
-        [Verified supplier email] | [Telephone]<br>
+        Address:  14 Avenue Sodnac, Quatre Bornes, Mauritius Postal code: 72256<br>
 
-        BRN: [Verified supplier BRN]<br>
+        Email : acct@themyp.com | Phone : +230 5252 5772<br>
 
-        VAT number: [Verified supplier VAT number]
+        BRN: C14124113<br>
+
+        
 
     </div>
 
