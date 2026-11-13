@@ -216,7 +216,7 @@ tbody tr:hover td.sticky-action-col {
                         <th style="width: 120px;">Request</th>
                         <th style="width: 160px;">Status / Next</th>
                         <th style="width: 100px;">Updated</th>
-                        <th class="sticky-action-col">Action</th>
+                        <!--th class="sticky-action-col">Action</th-->
                     </tr>
                 </thead>
                 <tbody>
@@ -287,7 +287,7 @@ tbody tr:hover td.sticky-action-col {
                                 <td>
                                     <div class="small font-weight-bold"><?= htmlspecialchars($guidance['last_activity']); ?></div>
                                 </td>
-                                <td class="sticky-action-col">
+                                <!--td class="sticky-action-col">
                                     <div class="d-flex align-items-center justify-content-center" style="gap: 4px;">
                                         <a href="<?= $view_url; ?>" class="btn btn-sm btn-info text-nowrap" title="Open and manage ticket">
                                             <i class="fa fa-eye"></i> Manage
@@ -296,7 +296,7 @@ tbody tr:hover td.sticky-action-col {
                                             <i class="fa fa-chevron-down toggle-icon"></i>
                                         </button>
                                     </div>
-                                </td>
+                                </td-->
                             </tr>
                             <!-- Secondary Detail Disclosure Row -->
                             <tr id="detail-<?= $res->id; ?>" class="collapse detail-row">
