@@ -61,8 +61,27 @@ $invoice_number = $order['invoice_number']
 $order_reference = $order['order_reference']
     ?? 'SUB-ORDER-' . $invoice_id;
 
-$subscription_reference = $order['subscription_reference']
-    ?? 'N/A';
+// =====================================================
+// SUBSCRIPTION NAME / REFERENCE
+// =====================================================
+
+$subscription_reference = '';
+
+if (!empty($order['subscription_reference'])) {
+    $subscription_reference = $order['subscription_reference'];
+
+} elseif (!empty($order['subscription_name'])) {
+    $subscription_reference = $order['subscription_name'];
+
+} elseif (!empty($plan['name'])) {
+    $subscription_reference = $plan['name'];
+
+} elseif (!empty($plan_name)) {
+    $subscription_reference = $plan_name;
+
+} else {
+    $subscription_reference = 'Subscription Plan';
+}
 
 // =====================================================
 // MERCHANT DETAILS
