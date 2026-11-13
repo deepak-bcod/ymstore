@@ -419,11 +419,11 @@ tbody tr:hover td.sticky-action-col {
                                                 <td>
                                                     <div class="small font-weight-bold"><?php echo htmlspecialchars($guidance['last_activity']); ?></div>
                                                 </td>
-                                                <td class="sticky-action-col">
+                                                <!--td class="sticky-action-col">
                                                     <a href="<?php echo $view_url; ?>" class="btn btn-sm btn-info text-nowrap" title="<?php echo $this->lang->line('view') ?: 'View'; ?>">
                                                         <i class="fa fa-eye"></i> <?php echo $this->lang->line('view') ?: 'View'; ?>
                                                     </a>
-                                                </td>
+                                                </td-->
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
@@ -537,11 +537,11 @@ tbody tr:hover td.sticky-action-col {
                                         </div>
                                     </div>
 
-                                    <div class="res-card-footer">
+                                    <!--div class="res-card-footer">
                                         <a href="<?php echo $view_url; ?>" class="btn btn-info btn-view-card">
                                             <i class="fa fa-eye"></i> <?php echo $this->lang->line('view') ?: 'View Ticket Details'; ?>
                                         </a>
-                                    </div>
+                                    </div-->
                                 </div>
                             <?php endforeach; ?>
                         <?php else: ?>

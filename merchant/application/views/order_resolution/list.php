@@ -126,7 +126,7 @@ span.label,
                             <th style="width: 14%;">Request</th>
                             <th style="width: 16%;">Status / Next</th>
                             <th style="width: 12%;">Updated</th>
-                            <th style="width: 10%;"><?= $this->lang->line('action') ?: 'Action'; ?></th>
+                            <!--th style="width: 10%;"><?= $this->lang->line('action') ?: 'Action'; ?></th-->
                         </tr>
                     </thead>
                     <tbody>
@@ -191,11 +191,11 @@ span.label,
                                     <td>
                                         <div class="small font-weight-bold"><?= htmlspecialchars($guidance['last_activity']); ?></div>
                                     </td>
-                                    <td>
+                                    <!--td>
                                         <a href="<?= $view_url; ?>" class="btn btn-sm btn-info text-nowrap">
                                             <i class="fa fa-eye"></i> <?= $this->lang->line('view') ?: 'View'; ?>
                                         </a>
-                                    </td>
+                                    </td-->
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
