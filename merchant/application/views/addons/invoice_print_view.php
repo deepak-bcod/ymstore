@@ -573,7 +573,7 @@ body {
                 </td>
 
                 <td>
-                    <span class="detail-label">Invoice number</span>
+                    <span class="detail-label">Invoice number :</span>
                     <span class="detail-value"><?php echo $e($purchase_id); ?></span>
                 </td>
 
@@ -586,7 +586,7 @@ body {
                 </td>
 
                 <td>
-                    <span class="detail-label">Invoice date</span>
+                    <span class="detail-label">Invoice date :</span>
                     <span class="detail-value"><?php echo $e($invoice_date); ?></span>
                 </td>
 
@@ -599,7 +599,7 @@ body {
                 </td>
 
                 <td>
-                    <span class="detail-label">Currency</span>
+                    <span class="detail-label">Currency :</span>
                     <span class="detail-value"><?php echo $e($currency); ?></span>
                 </td>
 
@@ -632,7 +632,7 @@ body {
             <tr>
                 <td></td>
                 <td>
-                    <span class="detail-label">Add-on</span>
+                    <span class="detail-label">Add-on :</span>
                     <span class="detail-value"><?php echo $e($addon_name); ?></span>
                 </td>
             </tr>
