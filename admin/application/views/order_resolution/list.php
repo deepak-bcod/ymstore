@@ -228,30 +228,21 @@ tbody tr:hover td.sticky-action-col {
                             $mAction = trim($res->merchant_action ?? '');
                             $has_mAction = (!empty($mAction) && !in_array(strtolower($mAction), ['none', 'n/a'], true));
                             
-                            // Determine wireframe workflow stage & next actor
-                            $is_closed = in_array($res->status, ['Close', 'Close (Final)', 'Done'], true);
-                            if ($is_closed) {
-                                $wf_status = 'Closed';
+                            // Determine workflow stage & next actor guidance (YM-18)
+                            $guidance = $this->OrderResolutionModel->get_next_action_guidance($res);
+                            $wf_status = $guidance['status_label'];
+                            $wf_next = $guidance['actor'];
+                            if ($guidance['actor_code'] === 'none') {
                                 $wf_key = 'closed';
-                                $wf_next = 'None';
-                            } elseif ($res->status === 'Processing') {
-                                if ($res->category === 'Replacement' && $mAction !== 'replacement_completed') {
-                                    $wf_status = 'Awaiting Fulfilment';
-                                    $wf_key = 'awaiting_merchant';
-                                    $wf_next = htmlspecialchars($res->merchant_name ?: 'Merchant');
-                                } else {
-                                    $wf_status = 'Awaiting Shopper';
-                                    $wf_key = 'awaiting_shopper';
-                                    $wf_next = htmlspecialchars($shopper_name);
-                                }
+                            } elseif ($guidance['actor_code'] === 'merchant') {
+                                $wf_key = 'awaiting_merchant';
+                            } elseif ($guidance['actor_code'] === 'shopper') {
+                                $wf_key = 'awaiting_shopper';
                             } else {
-                                $wf_status = 'Admin Review';
                                 $wf_key = 'admin_review';
-                                $wf_next = 'YM Admin';
                             }
 
-                            $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . $shopper_name . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status . ' ' . $wf_status . ' ' . $wf_next);
-                            $updated_text = (date('Y-m-d', $res->created_at) === date('Y-m-d')) ? 'Today' : ((date('Y-m-d', $res->created_at) === date('Y-m-d', strtotime('-1 day'))) ? 'Yesterday' : date('d M Y', $res->created_at));
+                            $search_blob = strtolower($res->ticket_number . ' ' . $res->order_number . ' ' . ($res->product_name ?? '') . ' ' . $shopper_name . ' ' . ($res->merchant_name ?? '') . ' ' . $res->category . ' ' . $res->status . ' ' . $guidance['actor'] . ' ' . $guidance['short_action'] . ' ' . $guidance['action']);
                         ?>
                             <tr data-search="<?= htmlspecialchars($search_blob); ?>" data-workflow="<?= $wf_key; ?>">
                                 <td>
@@ -281,16 +272,20 @@ tbody tr:hover td.sticky-action-col {
                                 <td>
                                     <div>
                                         <span class="badge-status-<?= $status_slug; ?>">
-                                            <?= htmlspecialchars($wf_status); ?>
+                                            <?= htmlspecialchars($res->status); ?>
                                         </span>
                                     </div>
-                                    <div class="small text-muted mt-1">
-                                        <i class="fa fa-user-circle-o"></i> <?= $wf_next; ?>
+                                    <div class="mt-1">
+                                        <span class="badge <?= $guidance['badge_class']; ?> text-nowrap" style="font-size: 11px;">
+                                            <i class="fa fa-user-circle"></i> Next: <?= htmlspecialchars($guidance['actor']); ?>
+                                        </span>
+                                    </div>
+                                    <div class="small text-muted mt-1 text-truncate" style="max-width: 170px;" title="<?= htmlspecialchars($guidance['action']); ?>">
+                                        <i class="fa fa-info-circle text-secondary"></i> <?= htmlspecialchars($guidance['short_action']); ?>
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="small font-weight-bold"><?= $updated_text; ?></div>
-                                    <div class="small text-muted"><?= date('h:i A', $res->created_at); ?> MUT</div>
+                                    <div class="small font-weight-bold"><?= htmlspecialchars($guidance['last_activity']); ?></div>
                                 </td>
                                 <td class="sticky-action-col">
                                     <div class="d-flex align-items-center justify-content-center" style="gap: 4px;">

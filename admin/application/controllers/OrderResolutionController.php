@@ -359,6 +359,9 @@ class OrderResolutionController extends CI_Controller
         $admin_id      = $this->session->userdata('LoginID') ?: ($_SESSION['LoginID'] ?? 1);
         $ticket_number = trim($this->input->post('ticket_number', true));
         $notes         = trim($this->input->post('notes', true));
+        $transaction_ref = trim($this->input->post('transaction_ref', true));
+        $confirm_verification = (int)$this->input->post('confirm_verification', true);
+        $reconciled_amount = (float)$this->input->post('reconciled_amount', true);
 
         // Permission Guard: Only Accounting (@Acct) or Super Admin/Administrator can mark done
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
@@ -367,10 +370,47 @@ class OrderResolutionController extends CI_Controller
             return;
         }
 
+        // Visible structured safeguard validations
+        if (empty($transaction_ref)) {
+            $this->json_response(false, 'Transaction Reference / Payment Ref ID is required to mark refund as Done.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
+        }
+
+        if (empty($confirm_verification)) {
+            $this->json_response(false, 'You must confirm that the refund has been verified and processed to the shopper.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
+        }
+
+        // Handle refund transfer evidence upload if provided
+        $evidence_file = '';
+        if (isset($_FILES['refund_evidence']) && !empty($_FILES['refund_evidence']['name'])) {
+            $upload_path = './uploads/order_resolution/';
+            if (!is_dir($upload_path)) {
+                @mkdir($upload_path, 0777, true);
+            }
+            $config['upload_path']   = $upload_path;
+            $config['allowed_types'] = 'jpg|jpeg|png|pdf|webp';
+            $config['max_size']      = 1024; // 1MB - MYP Policy
+            $config['encrypt_name']  = true;
+            $this->load->library('upload', $config);
+
+            if ($this->upload->do_upload('refund_evidence')) {
+                $fileData = $this->upload->data();
+                $evidence_file = $fileData['file_name'];
+            } else {
+                $upload_err = strip_tags($this->upload->display_errors('', ''));
+                if (empty($upload_err)) {
+                    $upload_err = 'Invalid payment proof file or size exceeds 1 MB.';
+                }
+                $this->json_response(false, $upload_err, [], 'order_resolution/view/' . $ticket_number . '?as=acct');
+                return;
+            }
+        }
+
         // Get ticket details to retrieve customer_id and product/order info before updating
         $res_ticket = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
 
-        $res = $this->OrderResolutionModel->admin_mark_done($ticket_number, $admin_id, $notes);
+        $res = $this->OrderResolutionModel->admin_mark_done($ticket_number, $admin_id, $notes, $transaction_ref, $evidence_file);
 
         // If action was successful, send notification to the customer
         if (isset($res['status']) && $res['status'] && $res_ticket && !empty($res_ticket->customer_id)) {
@@ -524,11 +564,23 @@ class OrderResolutionController extends CI_Controller
         $decision      = trim($this->input->post('decision', true)); // 'approved' or 'denied'
         $remedy        = trim($this->input->post('remedy', true)) ?: 'return_refund';
         $notes         = trim($this->input->post('notes', true));
+        $confirm_verdict = (int)$this->input->post('confirm_verdict', true);
 
         // Permission Guard: Only Support (@Help) or Super Admin/Administrator can record resolution decisions
         $user_role = strtolower(trim((string)($this->session->userdata('UserRole') ?: ($_SESSION['UserRole'] ?? ''))));
         if (!empty($user_role) && strpos($user_role, 'account') !== false && strpos($user_role, 'admin') === false) {
             $this->json_response(false, 'Unauthorized: Only Support (@Help) can make dispute decisions.', [], 'order_resolution/view/' . $ticket_number . '?as=acct');
+            return;
+        }
+
+        // Visible structured safeguard validations
+        if (empty($notes) || strlen($notes) < 5) {
+            $this->json_response(false, 'Please provide an official decision reason and evidence summary (minimum 5 characters).', [], 'order_resolution/view/' . $ticket_number . '?as=help');
+            return;
+        }
+
+        if (empty($confirm_verdict)) {
+            $this->json_response(false, 'You must confirm that this ruling is verified against case evidence.', [], 'order_resolution/view/' . $ticket_number . '?as=help');
             return;
         }
 
