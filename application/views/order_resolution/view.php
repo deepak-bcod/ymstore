@@ -676,11 +676,11 @@ span.label,
                                                     <input type="file" name="attachment" class="form-control" accept="image/*,.pdf">
                                                     <small class="text-muted"><?php echo $this->lang->line('optional_attachment') ?: 'Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)'; ?></small>
                                                 </div>
-                                                <div class="col-sm-4 col-md-4 text-right" style="display: none;">
+                                                <div class="col-sm-4 col-md-4 text-right" >
                                                     <button type="submit" class="btn btn-warning btn-block font-weight-bold" style="background-color: #f0ad4e; color: #fff;">
                                                         <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('send_to_support') ?: 'Send to Support'; ?>
                                                     </button>
-                                                    <small class="text-muted text-center" style="display: block; margin-top: 4px; font-size: 11px;">
+                                                    <small class="text-muted text-center" style="display: block; margin-top: 4px; font-size: 11px;display: none;">
                                                         <i class="fa fa-bell-o"></i> <?php echo $this->lang->line('alerts_support_directly') ?: 'Alerts Support specialists directly'; ?>
                                                     </small>
                                                 </div>
