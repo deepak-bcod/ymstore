@@ -30,22 +30,38 @@ $show_description = (
     stripos($addon_name, 'Flash Sales') !== false
 );
 
-// Show ONLY the required description line
+// Get first line dynamically from database
 $one_line_description = '';
 
 if ($show_description && !empty($description)) {
 
+    // Remove HTML tags but preserve line breaks
+    $plain_description = preg_replace(
+        '/<\s*br\s*\/?>|<\/\s*(p|div|li|h[1-6])\s*>/i',
+        "\n",
+        $description
+    );
+
     $plain_description = html_entity_decode(
-        strip_tags($description),
+        strip_tags($plain_description),
         ENT_QUOTES,
         'UTF-8'
     );
 
-    if (preg_match(
-        '/The Daily Delight:\s*One Product for One Day/i',
+    // Get only the first non-empty line
+    $description_lines = preg_split(
+        '/\r\n|\r|\n/',
         $plain_description
-    )) {
-        $one_line_description = 'The Daily Delight: One Product for One Day';
+    );
+
+    foreach ($description_lines as $line) {
+
+        $line = trim(preg_replace('/\s+/', ' ', $line));
+
+        if ($line !== '') {
+            $one_line_description = $line;
+            break;
+        }
     }
 }
 
