@@ -622,57 +622,57 @@ body {
 
                 <td>
 
-    <strong><?php echo $e($addon_name); ?></strong>
+                        <strong><?php echo $e($addon_name); ?></strong>
 
-  <?php if ($show_description && !empty($description)): ?>
+                    <?php if ($show_description && !empty($description)): ?>
 
-    <?php
-        $description_heading = '';
+                        <?php
+                            $description_heading = '';
 
-        // Extract only the first bold heading from the description HTML
-        if (preg_match(
-            '/<(strong|b)\b[^>]*>(.*?)<\/\1>/is',
-            $description,
-            $matches
-        )) {
-            $description_heading = trim(
-                html_entity_decode(
-                    strip_tags($matches[2]),
-                    ENT_QUOTES,
-                    'UTF-8'
-                )
-            );
-        }
-    ?>
+                            // Extract only the first bold heading from the description HTML
+                            if (preg_match(
+                                '/<(strong|b)\b[^>]*>(.*?)<\/\1>/is',
+                                $description,
+                                $matches
+                            )) {
+                                $description_heading = trim(
+                                    html_entity_decode(
+                                        strip_tags($matches[2]),
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    )
+                                );
+                            }
+                        ?>
 
-    <?php if (!empty($description_heading)): ?>
-        <br>
-        <span style="font-size:9px;color:#52647b;">
-            <?php echo $e($description_heading); ?>
-        </span>
-    <?php endif; ?>
+                        <?php if (!empty($description_heading)): ?>
+                            <br>
+                            <span style="font-size:9px;color:#52647b;">
+                                <?php echo $e($description_heading); ?>
+                            </span>
+                        <?php endif; ?>
 
-<?php endif; ?>
+                    <?php endif; ?>
 
 
-    <?php if (!empty($order_number)): ?>
+                        <?php if (!empty($order_number)): ?>
 
-        <br>
+                            <br>
 
-        <span style="font-size:9px;color:#68778b;">
+                            <span style="font-size:9px;color:#68778b;">
 
-            Replacement Delivery for Order #
-            <?php echo $e($order_number); ?>
+                                Replacement Delivery for Order #
+                                <?php echo $e($order_number); ?>
 
-            <?php if (!empty($ticket_number)): ?>
-                (Ticket <?php echo $e($ticket_number); ?>)
-            <?php endif; ?>
+                                <?php if (!empty($ticket_number)): ?>
+                                    (Ticket <?php echo $e($ticket_number); ?>)
+                                <?php endif; ?>
 
-        </span>
+                            </span>
 
-    <?php endif; ?>
+                        <?php endif; ?>
 
-</td>
+                </td>
 
                 <td class="text-center">1</td>
 
