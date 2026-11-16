@@ -836,36 +836,36 @@ body {
 
                 <td>
 
-    <strong><?php echo $e($addon_name); ?></strong>
+                    <strong><?php echo $e($addon_name); ?></strong>
 
-    <?php if ($show_description && !empty($one_line_description)): ?>
+                    <?php if ($show_description && !empty($one_line_description)): ?>
 
-        <br>
+                        <br>
 
-        <span style="color:#52647b; white-space:nowrap;">
-            <?php echo $e($one_line_description); ?>
-        </span>
+                        <span style="color:#52647b; white-space:nowrap;">
+                            <?php echo $e($one_line_description); ?>
+                        </span>
 
-    <?php endif; ?>
+                    <?php endif; ?>
 
-    <!-- <?php if (!empty($order_number)): ?>
+                    <!-- <?php if (!empty($order_number)): ?>
 
-        <br>
+                        <br>
 
-        <span style="font-size:10px;color:#68778b;">
+                        <span style="font-size:10px;color:#68778b;">
 
-            Replacement Delivery for Order #
-            <?php echo $e($order_number); ?>
+                            Replacement Delivery for Order #
+                            <?php echo $e($order_number); ?>
 
-            <?php if (!empty($ticket_number)): ?>
-                (Ticket <?php echo $e($ticket_number); ?>)
-            <?php endif; ?>
+                            <?php if (!empty($ticket_number)): ?>
+                                (Ticket <?php echo $e($ticket_number); ?>)
+                            <?php endif; ?>
 
-        </span>
+                        </span>
 
-    <?php endif; ?> -->
+                    <?php endif; ?> -->
 
-</td>
+                </td>
 
                 <td class="text-center">1</td>
 
