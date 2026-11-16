@@ -596,10 +596,10 @@ $lang = $this->session->userdata('site_lang');
                                             if ($merch_avg >= 4.5) {
                                                 $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
                                                 $m_badge_alt = 'Merchant 5 Stars Trusted Badge';
-                                            } elseif ($merch_avg >= 3.5) {
+                                            } elseif ($merch_avg >= 3.5 && $merch_avg <= 4.4) {
                                                 $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
                                                 $m_badge_alt = 'Merchant 4 Stars Trusted Badge';
-                                            } elseif ($merch_avg >= 2.5) {
+                                            } elseif ($merch_avg >= 2.5 && $merch_avg <= 3.4) {
                                                 $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
                                                 $m_badge_alt = 'Merchant 3 Stars Trusted Badge';
                                             } else {
@@ -610,10 +610,10 @@ $lang = $this->session->userdata('site_lang');
                                             if ($prod_avg >= 4.5) {
                                                 $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
                                                 $p_badge_alt = 'Product 5 Stars Trusted Badge';
-                                            } elseif ($prod_avg >= 3.5) {
+                                            } elseif ($prod_avg >= 3.5 && $prod_avg <= 4.4) {
                                                 $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
                                                 $p_badge_alt = 'Product 4 Stars Trusted Badge';
-                                            } elseif ($prod_avg >= 2.5) {
+                                            } elseif ($prod_avg >= 2.5 && $prod_avg <= 3.4) {
                                                 $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
                                                 $p_badge_alt = 'Product 3 Stars Trusted Badge';
                                             } else {
@@ -752,11 +752,7 @@ $lang = $this->session->userdata('site_lang');
                                                             </p>
                                                             <h3><?= htmlspecialchars($review_title) ?></h3>
                                                             <p><?= nl2br(htmlspecialchars($rev->comments)) ?></p>
-                                                            <div class="helpful">
-                                                                <?= $this->lang->line('was_this_helpful') ?: 'Was this helpful?' ?> 
-                                                                <button type="button" class="btn-helpful" data-helpful aria-label="<?= htmlspecialchars($this->lang->line('helpful_review_label') ?: 'Helpful review', ENT_QUOTES, 'UTF-8') ?>" aria-pressed="false">↑</button>
-                                                                <button type="button" class="btn-helpful" data-helpful aria-label="<?= htmlspecialchars($this->lang->line('not_helpful_review_label') ?: 'Not helpful review', ENT_QUOTES, 'UTF-8') ?>" aria-pressed="false">↓</button>
-                                                            </div>
+                                                            
                                                         </article>
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
@@ -2435,7 +2431,6 @@ $lang = $this->session->userdata('site_lang');
 </script>
 
 <!-- Floating Reviews Ribbon -->
-<a class="reviews-ribbon" id="open-reviews-ribbon" href="#reviews" title="<?= htmlspecialchars($this->lang->line('reviews_ribbon_title') ?: 'View Customer Reviews', ENT_QUOTES, 'UTF-8') ?>"><?= $this->lang->line('reviews_ribbon') ?: 'REVIEWS' ?></a>
 
 <style>
 /* Reviews Tab Figma Wireframe Styles */

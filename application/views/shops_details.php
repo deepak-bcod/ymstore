@@ -99,9 +99,9 @@
 											// Only assign badge if avg rating is 3 or above
 											$badge = '';
 											if ($avg >= 2.5) {
-												if ($avg >= 2.5) {
+												if ($avg >= 2.5 && $avg <= 3.4) {
 													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_3_stars.svg';
-												} elseif ($avg >= 3.5) {
+												} elseif ($avg >= 3.5 && $avg <= 4.4) {
 													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_4_stars.svg';
 												} elseif ($avg >= 4.5) {
 													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_5_stars.svg';
