@@ -307,20 +307,6 @@ class ProductReviewController extends CI_Controller {
                     $m_id = (int)$m['merchant_id'];
                     $trade_name = htmlspecialchars($m['publication_name'] ?? 'N/A');
                     $vendor_name = htmlspecialchars($m['vendor_name'] ?? 'N/A');
-                    $email = htmlspecialchars($m['email'] ?? '');
-                    $phone = htmlspecialchars($m['phone_no'] ?? '');
-
-                    $contact_html = '<div style="font-size:12px; line-height: 1.4;">';
-                    if (!empty($email)) {
-                        $contact_html .= '<div><i class="fa fa-envelope text-muted mr-1"></i> ' . $email . '</div>';
-                    }
-                    if (!empty($phone)) {
-                        $contact_html .= '<div><i class="fa fa-phone text-muted mr-1"></i> ' . $phone . '</div>';
-                    }
-                    if (empty($email) && empty($phone)) {
-                        $contact_html .= '<span class="text-muted">N/A</span>';
-                    }
-                    $contact_html .= '</div>';
 
                     $pub_reviews = (int)($m['total_published_reviews'] ?? 0);
                     $reviews_badge = '<span class="badge badge-light border font-weight-bold" style="font-size:12px; padding: 6px 12px; border-radius: 12px;">' . $pub_reviews . '</span>';
@@ -330,31 +316,6 @@ class ProductReviewController extends CI_Controller {
                         $rating_html = '<div style="font-weight:700; color:#111; font-size:14px;"><span style="color:#f59e0b;">★</span> ' . number_format($avg, 1) . ' / 5</div>';
                     } else {
                         $rating_html = '<span class="text-muted" style="font-size:12px;">Unrated</span>';
-                    }
-
-                    // Badge preview calculation
-                    $badge_img_url = '';
-                    $badge_label = '';
-                    if ($pub_reviews > 0 && $avg >= 2.5) {
-                        if ($avg >= 4.5) {
-                            $badge_img_url = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
-                            $badge_label = '5 Stars Badge';
-                        } elseif ($avg >= 3.5) {
-                            $badge_img_url = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
-                            $badge_label = '4 Stars Badge';
-                        } else {
-                            $badge_img_url = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
-                            $badge_label = '3 Stars Badge';
-                        }
-                    }
-
-                    if (!empty($badge_img_url)) {
-                        $preview_html = '<div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                            <img src="' . $badge_img_url . '" width="55" height="55" alt="' . $badge_label . '" style="object-fit:contain;">
-                            <small class="text-muted font-weight-bold">' . $badge_label . '</small>
-                        </div>';
-                    } else {
-                        $preview_html = '<span class="badge badge-light text-muted border py-1 px-2" style="font-size:11px;">No Badge (< 2.5★ / 0 Reviews)</span>';
                     }
 
                     $is_enabled = (int)($m['is_badge_enabled'] ?? 1);
@@ -375,13 +336,10 @@ class ProductReviewController extends CI_Controller {
                     ';
 
                     $data[] = array(
-                        "merchant_id"       => '#' . $m_id,
                         "trade_name"        => '<strong>' . $trade_name . '</strong>',
                         "vendor_name"       => $vendor_name,
-                        "contact"           => $contact_html,
                         "published_reviews" => $reviews_badge,
                         "avg_rating"        => $rating_html,
-                        "badge_preview"     => $preview_html,
                         "toggle_badge"      => $toggle_html
                     );
                 }

@@ -201,14 +201,11 @@
                     <table class="table table-bordered table-hover text-center" id="merchantBadgeTable" style="width: 100%;">
                         <thead style="background: #f8fafc;">
                             <tr>
-                                <th style="width: 70px;">ID</th>
                                 <th>Trade / Shop Name</th>
                                 <th>Merchant Name</th>
-                                <th>Contact</th>
-                                <th style="width: 120px;">Published Reviews</th>
-                                <th style="width: 120px;">Average Rating</th>
-                                <th style="width: 140px;">Badge Preview</th>
-                                <th style="width: 140px;">Front-End Badge</th>
+                                <th style="width: 160px;">Published Reviews</th>
+                                <th style="width: 160px;">Average Rating</th>
+                                <th style="width: 160px;">Front-End Badge</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -398,19 +395,17 @@ function initMerchantBadgeTable() {
             }
         },
         'columns': [
-            { data: 'merchant_id' },
             { data: 'trade_name' },
             { data: 'vendor_name' },
-            { data: 'contact' },
             { data: 'published_reviews' },
             { data: 'avg_rating' },
-            { data: 'badge_preview' },
             { data: 'toggle_badge' }
         ],
-        'order': [[0, 'desc']],
+        'order': [[0, 'asc']],
         'columnDefs': [
-            { 'targets': [6, 7], 'orderable': false },
-            { 'className': 'text-center', 'targets': [0, 4, 5, 6, 7] }
+            { 'targets': [4], 'orderable': false },
+            { 'className': 'text-center', 'targets': [2, 3, 4] },
+            { 'className': 'text-left', 'targets': [0, 1] }
         ]
     });
 }
