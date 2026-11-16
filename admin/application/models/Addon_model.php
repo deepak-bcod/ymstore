@@ -124,6 +124,7 @@ class Addon_model extends CI_Model {
     }
 
     
+
 public function get_purchase_by_id($purchase_id, $merchant_id = null)
 {
     $this->db->select('
@@ -131,18 +132,28 @@ public function get_purchase_by_id($purchase_id, $merchant_id = null)
         p.merchant_id,
         DATE_FORMAT(p.created_at, "%d %M %Y") AS date,
         p.status AS payment_status,
+
         c.name AS addon_service_name,
+        c.name AS addon_category_name,
+
         s.title AS addon_name,
-        
         s.description AS addon_description,
         s.price,
         s.final_price,
         s.vat_percent,
+
         COALESCE(NULLIF(p.amount, 0), MAX(txn.amount), s.final_price) AS amount,
+
         MAX(res.order_number) AS order_number,
         MAX(res.ticket_number) AS ticket_number,
         MAX(txn.transaction_ref) AS transaction_ref,
-        COALESCE(NULLIF(pub.publication_name, \'\'), NULLIF(pub.company_name, \'\'), \'Merchant\') AS merchant_name,
+
+        COALESCE(
+            NULLIF(pub.publication_name, \'\'),
+            NULLIF(pub.company_name, \'\'),
+            \'Merchant\'
+        ) AS merchant_name,
+
         pub.email AS merchant_email,
         pub.brn_no AS merchant_brn,
         pub.company_address AS merchant_address,
@@ -160,12 +171,10 @@ public function get_purchase_by_id($purchase_id, $merchant_id = null)
 
     $this->db->where('p.id', $purchase_id);
 
-    // Merchant ownership verification
     if ($merchant_id !== null) {
         $this->db->where('p.merchant_id', $merchant_id);
     }
 
-    // Only paid purchases
     $this->db->where_in('p.status', ['paid', 'success', 'completed']);
 
     $this->db->group_by('p.id');
@@ -174,6 +183,7 @@ public function get_purchase_by_id($purchase_id, $merchant_id = null)
 
     return $query->row();
 }
+
 
 
 }

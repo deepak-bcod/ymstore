@@ -22,6 +22,9 @@ $merchant_brn = $addon_purchase->merchant_brn ?? '';
 $service_name = $addon_purchase->addon_service_name ?? '';
 $addon_name = $addon_purchase->addon_name ?? '';
 $description = $addon_purchase->addon_description ?? '';
+
+
+
 $addon_category_name = strtolower(
     trim($addon_purchase->addon_category_name ?? '')
 );
@@ -31,6 +34,7 @@ $show_description = in_array(
     ['daily deals', 'flash sales'],
     TRUE
 );
+
 
 $order_number = $addon_purchase->order_number ?? '';
 $ticket_number = $addon_purchase->ticket_number ?? '';
@@ -428,6 +432,22 @@ body {
     cursor: pointer;
 }
 
+/* Description: show only one line */
+
+.description-one-line {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    font-size: 9px;
+    color: #52647b;
+    line-height: 1.4;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
 @page {
     size: A4 portrait;
     margin: 6mm;
@@ -801,45 +821,48 @@ body {
                     <strong><?php echo $e($service_name); ?></strong>
                 </td>
 
-                <td>
+                
+<td>
 
-                    <strong><?php echo $e($addon_name); ?></strong>
+    <strong><?php echo $e($addon_name); ?></strong>
 
-                    <?php if (!empty($description)): ?>
-        <br>
-        <span style="display:block; font-size:9px; color:#52647b; line-height:1.4; white-space:normal;">
-            <?php
-            echo nl2br(
-                $e(
-                    html_entity_decode(
-                        strip_tags($description),
-                        ENT_QUOTES,
-                        'UTF-8'
-                    )
-                )
-            );
-            ?>
+    <?php if ($show_description && !empty($description)): ?>
+
+        <?php
+        $clean_description = html_entity_decode(
+            strip_tags($description),
+            ENT_QUOTES,
+            'UTF-8'
+        );
+
+        $clean_description = trim(
+            preg_replace('/\s+/', ' ', $clean_description)
+        );
+        ?>
+
+        <span class="description-one-line">
+            <?php echo $e($clean_description); ?>
         </span>
+
     <?php endif; ?>
 
-                    <?php if (!empty($order_number)): ?>
+    <?php if (!empty($order_number)): ?>
 
-                        <br>
+        <br>
 
-                        <span style="font-size:10px;color:#68778b;">
+        <span style="font-size:10px;color:#68778b;">
+            Replacement Delivery for Order #
+            <?php echo $e($order_number); ?>
 
-                            Replacement Delivery for Order #
-                            <?php echo $e($order_number); ?>
+            <?php if (!empty($ticket_number)): ?>
+                (Ticket <?php echo $e($ticket_number); ?>)
+            <?php endif; ?>
+        </span>
 
-                            <?php if (!empty($ticket_number)): ?>
-                                (Ticket <?php echo $e($ticket_number); ?>)
-                            <?php endif; ?>
+    <?php endif; ?>
 
-                        </span>
+</td>
 
-                    <?php endif; ?>
-
-                </td>
 
                 <td class="text-center">1</td>
 
