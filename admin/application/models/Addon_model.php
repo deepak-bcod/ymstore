@@ -133,9 +133,8 @@ public function get_purchase_by_id($purchase_id, $merchant_id = null)
         p.status AS payment_status,
         c.name AS addon_service_name,
         s.title AS addon_name,
-        MAX(s.description) AS addon_description,
-MAX(c.name) AS addon_category_name,
-       
+        
+        s.description AS addon_description,
         s.price,
         s.final_price,
         s.vat_percent,
