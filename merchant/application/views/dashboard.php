@@ -97,9 +97,9 @@ $CI = &get_instance();
 						$badge = '';
 						if ($is_badge_enabled == 1 && $total_reviews > 0 && $avg >= 2.5) {
 							if ($avg >= 4.5) {
-								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_5_stars.png';
+								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_5_stars.svg';
 							} elseif ($avg >= 3.5) {
-								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_4_stars.png';
+								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_4_stars.svg';
 							} else {
 								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_3_stars.svg';
 							}
