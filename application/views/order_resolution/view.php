@@ -585,19 +585,12 @@ span.label,
                             </span>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <span class="badge font-weight-bold" style="color: #b38600;"><?php echo count($shopper_admin_msgs); ?> <?php echo count($shopper_admin_msgs) === 1 ? 'Message' : 'Messages'; ?></span>
-                                <?php if ($resolution->resolution_status !== 'resolution_requested' && $resolution->status !== 'Close (Final)'): ?>
-                                    <button type="button" class="btn btn-xs btn-warning font-weight-bold" data-toggle="modal" data-target="#resolutionRequestModal">
-                                        <i class="fa fa-gavel"></i> <?php echo $this->lang->line('request_formal_escalation') ?: 'Request Formal Admin Escalation'; ?>
-                                    </button>
-                                <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
-                                    <span class="label label-warning" style="font-weight: 600;"><i class="fa fa-gavel"></i> Formally Escalated</span>
-                                <?php endif; ?>
                             </div>
                         </div>
 
                         <div class="panel-body" style="padding: 15px;">
                             <div class="alert alert-warning py-2 px-3" style="font-size: 13px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                                <div><i class="fa fa-lock text-warning"></i> <strong>Private Support Thread:</strong> Confidential dispute investigation with YellowMarkets Support.</div>
+                                <div><i class="fa fa-lock text-warning"></i></div>
                                 <span class="label label-warning font-weight-bold" style="color: #b38600;"><i class="fa fa-eye-slash"></i> Hidden from Merchant</span>
                             </div>
 
@@ -655,24 +648,8 @@ span.label,
                                         </div>
                                         <div style="font-size: 13px; line-height: 1.6;">
                                             <p style="margin-bottom: 6px;"><strong>Available Next Actions:</strong></p>
-                                            <ul style="margin-bottom: 10px; padding-left: 20px;">
-                                                <li><strong>Send a Message to Support (composer below):</strong> Directly alerts YellowMarkets Support specialists (@Help / @Acct) to review this private thread and assist you with updates, questions, or coordination. It does not alter the formal replacement approval.</li>
-                                                <li><strong>Request Formal Admin Escalation:</strong> Formally opens an administrative review with YellowMarkets Support leadership to adjudicate the dispute if merchant coordination has failed or the replacement was not received.</li>
-                                            </ul>
                                         </div>
-                                        <?php if ($resolution->resolution_status !== 'resolution_requested' && $resolution->status !== 'Close (Final)'): ?>
-                                            <div style="padding-top: 10px; border-top: 1px solid #faebcc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                                <span class="text-muted small">Need formal administrative intervention?</span>
-                                                <button type="button" class="btn btn-xs btn-warning font-weight-bold" data-toggle="modal" data-target="#resolutionRequestModal">
-                                                    <i class="fa fa-gavel"></i> <?php echo $this->lang->line('request_formal_escalation') ?: 'Request Formal Admin Escalation'; ?>
-                                                </button>
-                                            </div>
-                                        <?php elseif ($resolution->resolution_status === 'resolution_requested'): ?>
-                                            <div style="padding-top: 8px; border-top: 1px solid #faebcc;">
-                                                <span class="label label-warning font-weight-bold"><i class="fa fa-gavel"></i> Formally Escalated</span>
-                                                <span class="text-muted small" style="margin-left: 5px;">This case is currently under formal YellowMarkets Support investigation.</span>
-                                            </div>
-                                        <?php endif; ?>
+                                        
                                     </div>
                                 <?php endif; ?>
                             </div>
