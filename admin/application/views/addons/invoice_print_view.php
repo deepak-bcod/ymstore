@@ -22,6 +22,15 @@ $merchant_brn = $addon_purchase->merchant_brn ?? '';
 $service_name = $addon_purchase->addon_service_name ?? '';
 $addon_name = $addon_purchase->addon_name ?? '';
 $description = $addon_purchase->addon_description ?? '';
+$addon_category_name = strtolower(
+    trim($addon_purchase->addon_category_name ?? '')
+);
+
+$show_description = in_array(
+    $addon_category_name,
+    ['daily deals', 'flash sales'],
+    TRUE
+);
 
 $order_number = $addon_purchase->order_number ?? '';
 $ticket_number = $addon_purchase->ticket_number ?? '';
@@ -797,24 +806,21 @@ body {
                     <strong><?php echo $e($addon_name); ?></strong>
 
                     <?php if (!empty($description)): ?>
-
-                        <br>
-
-                        <span style="color:#52647b;">
-                            <?php
-                            echo nl2br(
-                                $e(
-                                    html_entity_decode(
-                                        strip_tags($description),
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    )
-                                )
-                            );
-                            ?>
-                        </span>
-
-                    <?php endif; ?>
+        <br>
+        <span style="display:block; font-size:9px; color:#52647b; line-height:1.4; white-space:normal;">
+            <?php
+            echo nl2br(
+                $e(
+                    html_entity_decode(
+                        strip_tags($description),
+                        ENT_QUOTES,
+                        'UTF-8'
+                    )
+                )
+            );
+            ?>
+        </span>
+    <?php endif; ?>
 
                     <?php if (!empty($order_number)): ?>
 
