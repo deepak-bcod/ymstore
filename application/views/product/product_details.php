@@ -350,9 +350,9 @@ $lang = $this->session->userdata('site_lang');
                                                                     }
                                                                     if ($badge != '') {
                                                                     ?>
-                                                                        <img src="<?= $badge; ?>"
+                                                                        <!--img src="<?= $badge; ?>"
                                                                             alt="<?php echo $this->lang->line('trust_badge'); ?>"
-                                                                            width="100" class="badge-product-details">
+                                                                            width="100" class="badge-product-details"-->
                                                                     <?php } ?>
                                                                 </div>
                                                             </div>
