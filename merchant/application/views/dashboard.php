@@ -89,23 +89,24 @@ $CI = &get_instance();
 
 					</ul>
 					<?php 
-						$avg = round($rating->avg_rating); // average rating from model
+						$avg = !empty($rating->avg_rating) ? (float)$rating->avg_rating : 0.0;
+						$total_reviews = !empty($rating->total_reviews) ? (int)$rating->total_reviews : 0;
 
-						// Only assign badge if avg rating is 3 or above
+						// Strictly consider rating with status published: only assign badge if published reviews exist and avg rating >= 2.5
 						$badge = '';
-						if ($avg >= 3) {
-							if ($avg == 3) {
-								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_3_stars.svg';
-							} elseif ($avg == 4) {
-								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_4_stars.svg';
-							} elseif ($avg == 5) {
+						if ($total_reviews > 0 && $avg >= 2.5) {
+							if ($avg >= 4.5) {
 								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_5_stars.svg';
+							} elseif ($avg >= 3.5) {
+								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_4_stars.svg';
+							} else {
+								$badge = BASE_URL2 . '/uploads/trust_badges/ym_trusted_badges_3_stars.svg';
 							}
 						}
 
 					?>
 
-					<?php if($badge): ?>
+					<?php if(!empty($badge)): ?>
 						<p><?php echo lang('my_achievements'); ?></p>
 						<img src="<?= $badge; ?>" alt="Trust Badge" width="100">
 					<?php endif; ?>

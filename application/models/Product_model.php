@@ -505,11 +505,11 @@ class Product_model extends CI_Model {
 
         $p_id = (int)$product_id;
 
-        // Calculate average rating and total review count
+        // Calculate average rating and total review count (strictly published)
         $this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
         $this->db->from('ym_product_reviews');
         $this->db->where('product_id', $p_id);
-        $this->db->where('status', 'published');
+        $this->db->where("LOWER(status) = 'published'", NULL, FALSE);
         $row = $this->db->get()->row();
 
         $avg = (!empty($row) && $row->avg_rating !== null) ? round((float)$row->avg_rating, 1) : 0;
@@ -520,7 +520,7 @@ class Product_model extends CI_Model {
             $this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
             $this->db->from('ym_product_reviews');
             $this->db->where("product_id IN (SELECT id FROM products WHERE parent_id = {$p_id})", NULL, FALSE);
-            $this->db->where('status', 'published');
+            $this->db->where("LOWER(status) = 'published'", NULL, FALSE);
             $v_row = $this->db->get()->row();
             if (!empty($v_row) && (int)$v_row->total_reviews > 0) {
                 $avg = round((float)$v_row->avg_rating, 1);
@@ -528,7 +528,7 @@ class Product_model extends CI_Model {
             }
         }
 
-        // Fetch top featured testimony (highest rating with comment)
+        // Fetch top featured testimony (highest rating with comment) - strictly published
         $this->db->select("
             pr.id,
             pr.rating,
@@ -544,7 +544,7 @@ class Product_model extends CI_Model {
             $this->db->where('pr.product_id', $p_id);
             $this->db->or_where("pr.product_id IN (SELECT id FROM products WHERE parent_id = {$p_id})", NULL, FALSE);
         $this->db->group_end();
-        $this->db->where('pr.status', 'published');
+        $this->db->where("LOWER(pr.status) = 'published'", NULL, FALSE);
         $this->db->where('pr.comments IS NOT NULL', NULL, FALSE);
         $this->db->where("TRIM(pr.comments) != ''", NULL, FALSE);
         $this->db->order_by('pr.rating', 'DESC');
@@ -588,7 +588,7 @@ class Product_model extends CI_Model {
             $this->db->where('pr.product_id', $p_id);
             $this->db->or_where("pr.product_id IN (SELECT id FROM products WHERE parent_id = {$p_id})", NULL, FALSE);
         $this->db->group_end();
-        $this->db->where('pr.status', 'published');
+        $this->db->where("LOWER(pr.status) = 'published'", NULL, FALSE);
 
         if ($sort === 'highest') {
             $this->db->order_by('pr.rating', 'DESC');

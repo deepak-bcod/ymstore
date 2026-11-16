@@ -335,22 +335,23 @@ $lang = $this->session->userdata('site_lang');
                                                                 <!-- Right: badge -->
                                                                 <div class="right-badge">
                                                                     <?php
+                                                                    $merch_total_count = !empty($merchant_rating->total_reviews) ? (int)$merchant_rating->total_reviews : (!empty($rating->total_reviews) ? (int)$rating->total_reviews : 0);
                                                                     $avg_badge_val = !empty($rating->avg_rating) ? (float)$rating->avg_rating : (!empty($merchant_rating->avg_rating) ? (float)$merchant_rating->avg_rating : 0);
-                                                                    if ($avg_badge_val >= 4.5) {
-                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
-                                                                    } elseif ($avg_badge_val >= 3.5) {
-                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
-                                                                    } elseif ($avg_badge_val >= 2.5) {
-                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
-                                                                    } else {
-                                                                        $badge = '';
+                                                                    $badge = '';
+                                                                    if ($merch_total_count > 0 && $avg_badge_val >= 2.5) {
+                                                                        if ($avg_badge_val >= 4.5) {
+                                                                            $badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                                                                        } elseif ($avg_badge_val >= 3.5) {
+                                                                            $badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                                                                        } else {
+                                                                            $badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                                                        }
                                                                     }
-    
-    if($badge != ''){
-    ?>
-                                                                    <img src="<?= $badge; ?>"
-                                                                        alt="<?php echo $this->lang->line('trust_badge'); ?>"
-                                                                        width="100" class="badge-product-details">
+                                                                    if ($badge != '') {
+                                                                    ?>
+                                                                        <img src="<?= $badge; ?>"
+                                                                            alt="<?php echo $this->lang->line('trust_badge'); ?>"
+                                                                            width="100" class="badge-product-details">
                                                                     <?php } ?>
                                                                 </div>
                                                             </div>
@@ -364,20 +365,24 @@ $lang = $this->session->userdata('site_lang');
                                                                 <!-- Right: badge -->
                                                                 <div class="right-badge">
                                                                     <?php
+                                                                    $merch_total_count = !empty($merchant_rating->total_reviews) ? (int)$merchant_rating->total_reviews : (!empty($rating->total_reviews) ? (int)$rating->total_reviews : 0);
                                                                     $avg_badge_val = !empty($rating->avg_rating) ? (float)$rating->avg_rating : (!empty($merchant_rating->avg_rating) ? (float)$merchant_rating->avg_rating : 0);
-                                                                    if ($avg_badge_val >= 4.5) {
-                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
-                                                                    } elseif ($avg_badge_val >= 3.5) {
-                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
-                                                                    } elseif ($avg_badge_val >= 2.5) {
-                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
-                                                                    } else {
-                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_1_stars.png');
+                                                                    $badge = '';
+                                                                    if ($merch_total_count > 0 && $avg_badge_val >= 2.5) {
+                                                                        if ($avg_badge_val >= 4.5) {
+                                                                            $badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
+                                                                        } elseif ($avg_badge_val >= 3.5) {
+                                                                            $badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
+                                                                        } else {
+                                                                            $badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                                                        }
                                                                     }
+                                                                    if ($badge != '') {
                                                                     ?>
-                                                                    <img src="<?= $badge; ?>"
-                                                                        alt="<?php echo $this->lang->line('trust_badge'); ?>"
-                                                                        width="100" class="badge-product-details">
+                                                                        <img src="<?= $badge; ?>"
+                                                                            alt="<?php echo $this->lang->line('trust_badge'); ?>"
+                                                                            width="100" class="badge-product-details">
+                                                                    <?php } ?>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -592,39 +597,43 @@ $lang = $this->session->userdata('site_lang');
                                             $merch_avg = !empty($merchant_rating->avg_rating) ? (float)$merchant_rating->avg_rating : (!empty($rating->avg_rating) ? (float)$rating->avg_rating : 0);
                                             $merch_total = !empty($merchant_rating->total_reviews) ? (int)$merchant_rating->total_reviews : (!empty($rating->total_reviews) ? (int)$rating->total_reviews : 0);
 
-                                            // Determine Merchant Badge from uploads/trust_badges
-                                            if ($merch_avg >= 4.5) {
-                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
-                                                $m_badge_alt = 'Merchant 5 Stars Trusted Badge';
-                                            } elseif ($merch_avg >= 3.5 && $merch_avg <= 4.4) {
-                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
-                                                $m_badge_alt = 'Merchant 4 Stars Trusted Badge';
-                                            } elseif ($merch_avg >= 2.5 && $merch_avg <= 3.4) {
-                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
-                                                $m_badge_alt = 'Merchant 3 Stars Trusted Badge';
-                                            } else {
-                                                $m_badge_img = '';
+                                            // Determine Merchant Badge (left position in circle-pair) - strictly consider published rating
+                                            $m_badge_img = '';
+                                            $m_badge_alt = '';
+                                            if ($merch_total > 0 && $merch_avg >= 2.5) {
+                                                if ($merch_avg >= 4.5) {
+                                                    $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
+                                                    $m_badge_alt = 'Merchant 5 Stars Trusted Badge';
+                                                } elseif ($merch_avg >= 3.5) {
+                                                    $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
+                                                    $m_badge_alt = 'Merchant 4 Stars Trusted Badge';
+                                                } else {
+                                                    $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                                    $m_badge_alt = 'Merchant 3 Stars Trusted Badge';
+                                                }
                                             }
 
-                                            // Determine Product Badge from uploads/trust_badges
-                                            if ($prod_avg >= 4.5) {
-                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
-                                                $p_badge_alt = 'Product 5 Stars Trusted Badge';
-                                            } elseif ($prod_avg >= 3.5 && $prod_avg <= 4.4) {
-                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
-                                                $p_badge_alt = 'Product 4 Stars Trusted Badge';
-                                            } elseif ($prod_avg >= 2.5 && $prod_avg <= 3.4) {
-                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
-                                                $p_badge_alt = 'Product 3 Stars Trusted Badge';
-                                            } else {
-                                                $p_badge_img = '';
+                                            // Determine Product Badge (right position in circle-pair) - strictly consider published rating
+                                            $p_badge_img = '';
+                                            $p_badge_alt = '';
+                                            if ($prod_total > 0 && $prod_avg >= 2.5) {
+                                                if ($prod_avg >= 4.5) {
+                                                    $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
+                                                    $p_badge_alt = 'Product 5 Stars Trusted Badge';
+                                                } elseif ($prod_avg >= 3.5) {
+                                                    $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
+                                                    $p_badge_alt = 'Product 4 Stars Trusted Badge';
+                                                } else {
+                                                    $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                                                    $p_badge_alt = 'Product 3 Stars Trusted Badge';
+                                                }
                                             }
 
                                             // Featured testimony
                                             $feat = !empty($product_rating->featured_review) ? $product_rating->featured_review : null;
                                             $feat_default_name = ($prod_total > 0) ? ($this->lang->line('verified_shopper') ?: 'Verified Shopper') : ($this->lang->line('shopper_feedback') ?: 'Shopper Feedback');
                                             $feat_name = !empty($feat->customer_name) ? $feat->customer_name : $feat_default_name;
-                                            $feat_rating = !empty($feat->rating) ? (int)$feat->rating : ($prod_total > 0 ? 5 : 5);
+                                            $feat_rating = !empty($feat->rating) ? (int)$feat->rating : 0;
                                             $feat_default_text = ($prod_total > 0) ? ($this->lang->line('default_feat_text_with_reviews') ?: 'Great product and excellent customer service on Yellow Markets.') : ($this->lang->line('default_feat_text_empty') ?: 'Be the first to review this product after purchase to help our community of shoppers!');
                                             $feat_text = !empty($feat->comments) ? $feat->comments : $feat_default_text;
                                             $feat_initials = '';

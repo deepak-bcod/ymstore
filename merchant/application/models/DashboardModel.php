@@ -161,12 +161,26 @@ class DashboardModel extends CI_Model {
     }
 
 	public function get_avg_ratings_by_merchant($merchant_id) {
-        $this->db->select('merchant_id, AVG(rating) as avg_rating');
-        $this->db->from('product_reviews');
-        $this->db->where('merchant_id', $merchant_id);
-        $this->db->group_by('merchant_id');
-        $query = $this->db->get();
-        return $query->row(); // one merchant
+        if ($this->db->table_exists('ym_merchant_reviews')) {
+            $this->db->select('merchant_id, AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+            $this->db->from('ym_merchant_reviews');
+            $this->db->where('merchant_id', (int)$merchant_id);
+            $this->db->where('LOWER(status)', 'published');
+            $this->db->group_by('merchant_id');
+            $query = $this->db->get();
+            return $query->row();
+        } elseif ($this->db->table_exists('product_reviews')) {
+            $this->db->select('merchant_id, AVG(rating) as avg_rating, COUNT(id) as total_reviews');
+            $this->db->from('product_reviews');
+            $this->db->where('merchant_id', (int)$merchant_id);
+            if ($this->db->field_exists('status', 'product_reviews')) {
+                $this->db->where('LOWER(status)', 'published');
+            }
+            $this->db->group_by('merchant_id');
+            $query = $this->db->get();
+            return $query->row();
+        }
+        return null;
     }
 
 }
