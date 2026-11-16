@@ -432,20 +432,6 @@ body {
     cursor: pointer;
 }
 
-/* Description: show only one line */
-
-.description-one-line {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    font-size: 9px;
-    color: #52647b;
-    line-height: 1.4;
-
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
 
 
 @page {
