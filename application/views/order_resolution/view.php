@@ -288,16 +288,16 @@ span.label,
                                     </h4>
                                     <p style="margin: 0; font-size: 13px;">
                                         <?php if ($is_replacement_ticket): ?>
-                                            Yellow Markets Support has approved a <strong>Product Replacement</strong>. The Merchant is required to arrange and deliver a replacement item.
+                                            <?php echo $this->lang->line('decision_replacement_approved_desc') ?: 'Yellow Markets Support has approved a <strong>Product Replacement</strong>. The Merchant is required to arrange and deliver a replacement item.'; ?>
                                         <?php else: ?>
-                                            Yellow Markets Support has approved a <strong>Return and Refund</strong>. Once item return is confirmed, your refund will be processed.
+                                            <?php echo $this->lang->line('decision_return_refund_approved_desc') ?: 'Yellow Markets Support has approved a <strong>Return and Refund</strong>. Once item return is confirmed, your refund will be processed.'; ?>
                                         <?php endif; ?>
                                         <?php if (!empty($resolution->admin_decision_reason)): ?>
-                                            <br><em>Decision Reason: <?php echo htmlspecialchars($resolution->admin_decision_reason); ?></em>
+                                            <br><em><?php echo $this->lang->line('decision_reason_label') ?: 'Decision Reason'; ?>: <?php echo htmlspecialchars($resolution->admin_decision_reason); ?></em>
                                         <?php endif; ?>
                                     </p>
                                 </div>
-                                <span class="label label-success" style="font-size: 12px; padding: 5px 10px; margin-top: 5px;">Resolution Approved</span>
+                                <span class="label label-success" style="font-size: 12px; padding: 5px 10px; margin-top: 5px;"><?php echo $this->lang->line('resolution_approved_badge') ?: 'Resolution Approved'; ?></span>
                             </div>
                         </div>
                     <?php elseif ($is_merchant_won): ?>
@@ -306,9 +306,9 @@ span.label,
                                 <i class="fa fa-gavel"></i> <?php echo $this->lang->line('decision_favour_merchant') ?: 'Official Resolution Decision: In Favour of Merchant'; ?>
                             </h4>
                             <p style="margin: 0; font-size: 13px;">
-                                Yellow Markets Support has reviewed the evidence and upheld the merchant's original decision. This dispute ticket is closed (Final).
+                                <?php echo $this->lang->line('decision_merchant_won_desc') ?: 'Yellow Markets Support has reviewed the evidence and upheld the merchant\'s original decision. This dispute ticket is closed (Final).'; ?>
                                 <?php if (!empty($resolution->admin_decision_reason)): ?>
-                                    <br><em>Decision Reason: <?php echo htmlspecialchars($resolution->admin_decision_reason); ?></em>
+                                    <br><em><?php echo $this->lang->line('decision_reason_label') ?: 'Decision Reason'; ?>: <?php echo htmlspecialchars($resolution->admin_decision_reason); ?></em>
                                 <?php endif; ?>
                             </p>
                         </div>
@@ -328,59 +328,58 @@ span.label,
                         <div class="panel panel-default" style="border: 1px solid #bce8f1; border-left: 4px solid #337ab7; border-radius: 6px; margin-bottom: 20px;">
                             <div class="panel-heading" style="border-bottom: 1px solid #bce8f1; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <span style="font-weight: 700; color: #245269; font-size: 14px;">
-                                    <i class="fa fa-truck text-primary"></i> Replacement Fulfilment & Delivery Status
+                                    <i class="fa fa-truck text-primary"></i> <?php echo $this->lang->line('replacement_fulfilment_delivery_status') ?: 'Replacement Fulfilment & Delivery Status'; ?>
                                 </span>
                                 <?php if (!empty($resolution->shopper_receipt_confirmed)): ?>
-                                    <span class="label label-success" style="font-size: 11px;"><i class="fa fa-check"></i> Receipt Confirmed</span>
+                                    <span class="label label-success" style="font-size: 11px;"><i class="fa fa-check"></i> <?php echo $this->lang->line('receipt_confirmed') ?: 'Receipt Confirmed'; ?></span>
                                 <?php elseif (!empty($resolution->admin_replacement_exception)): ?>
-                                    <span class="label label-info" style="font-size: 11px;"><i class="fa fa-truck"></i> Verified via Carrier Proof</span>
+                                    <span class="label label-info" style="font-size: 11px;"><i class="fa fa-truck"></i> <?php echo $this->lang->line('delivery_verified_carrier_proof') ?: 'Verified via Carrier Proof'; ?></span>
                                 <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
-                                    <span class="label label-warning font-weight-bold" style="font-size: 11px; color: #b38600;"><i class="fa fa-clock-o"></i> Confirmation Required</span>
+                                    <span class="label label-warning font-weight-bold" style="font-size: 11px; color: #b38600;"><i class="fa fa-clock-o"></i> <?php echo $this->lang->line('confirmation_required') ?: 'Confirmation Required'; ?></span>
                                 <?php else: ?>
-                                    <span class="label label-info font-weight-bold" style="font-size: 11px;"><i class="fa fa-clock-o"></i> Replacement Approved — Awaiting Fulfilment</span>
+                                    <span class="label label-info font-weight-bold" style="font-size: 11px;"><i class="fa fa-clock-o"></i> <?php echo $this->lang->line('replacement_approved_awaiting_fulfilment') ?: 'Replacement Approved — Awaiting Fulfilment'; ?></span>
                                 <?php endif; ?>
                             </div>
                             <div class="panel-body" style="padding: 15px;">
                                 <?php 
                                 $del_opt_display = (!empty($resolution->delivery_option) && !in_array($resolution->delivery_option, ['none', 'n/a'], true)) 
-                                    ? ucwords(str_replace('_', ' ', $resolution->delivery_option)) 
-                                    : 'Merchant Arrangement';
+                                    ? ($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))) 
+                                    : ($this->lang->line('merchant_arrangement') ?: 'Merchant Arrangement');
                                 ?>
                                 <?php if (!empty($resolution->shopper_receipt_confirmed)): ?>
                                     <div class="alert alert-success" style="margin: 0;">
-                                        <i class="fa fa-check-circle"></i> <strong>Replacement Received:</strong> You have confirmed physical receipt of the replacement item. The dispute resolution is successfully completed and closed (Final).
+                                        <i class="fa fa-check-circle"></i> <strong><?php echo $this->lang->line('replacement_received') ?: 'Replacement Received:'; ?></strong> <?php echo $this->lang->line('replacement_received_confirmed_desc') ?: 'You have confirmed physical receipt of the replacement item. The dispute resolution is successfully completed and closed (Final).'; ?>
                                     </div>
                                 <?php elseif (!empty($resolution->admin_replacement_exception)): ?>
                                     <div class="alert alert-info" style="margin: 0;">
-                                        <i class="fa fa-info-circle"></i> <strong>Delivery Verified:</strong> Delivery was confirmed via carrier delivery proof by Yellow Markets Support (<?= htmlspecialchars($resolution->admin_replacement_exception_notes); ?>).
+                                        <i class="fa fa-info-circle"></i> <strong><?php echo $this->lang->line('delivery_verified') ?: 'Delivery Verified:'; ?></strong> <?php echo sprintf($this->lang->line('delivery_verified_desc') ?: 'Delivery was confirmed via carrier delivery proof by Yellow Markets Support (%s).', htmlspecialchars($resolution->admin_replacement_exception_notes)); ?>
                                     </div>
                                 <?php elseif ($resolution->merchant_action === 'replacement_completed'): ?>
                                     <p style="margin-bottom: 12px; font-size: 14px;">
-                                        The Merchant has marked the replacement as delivered / collected via <strong><?php echo htmlspecialchars($del_opt_display); ?></strong>.
-                                        <br>Per Yellow Markets policy, your confirmation is required before merchant payout can be released. Please inspect the replacement item upon delivery/collection and confirm receipt below:
+                                        <?php echo sprintf($this->lang->line('merchant_marked_replacement_delivered_notice') ?: 'The Merchant has marked the replacement as delivered / collected via <strong>%s</strong>.', htmlspecialchars($del_opt_display)); ?>
+                                        <br><?php echo $this->lang->line('replacement_inspection_notice') ?: 'Per Yellow Markets policy, your confirmation is required before merchant payout can be released. Please inspect the replacement item upon delivery/collection and confirm receipt below:'; ?>
                                     </p>
                                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                         <button type="button" class="btn btn-success" data-toggle="modal" data-target="#confirmReceiptModal">
-                                            <i class="fa fa-check"></i> I have received the replacement item
+                                            <i class="fa fa-check"></i> <?php echo $this->lang->line('btn_i_have_received_replacement') ?: 'I have received the replacement item'; ?>
                                         </button>
                                         <button type="button" class="btn btn-default" data-toggle="modal" data-target="#reportNotReceivedModal">
-                                            <i class="fa fa-times text-danger"></i> I have not received it
+                                            <i class="fa fa-times text-danger"></i> <?php echo $this->lang->line('btn_i_have_not_received_it') ?: 'I have not received it'; ?>
                                         </button>
                                     </div>
                                 <?php else: ?>
                                     <p style="margin-bottom: 10px; font-size: 14px;">
-                                        The Merchant has agreed to replace the item via <strong><?php echo htmlspecialchars($del_opt_display); ?></strong>.
-                                        <br>The replacement item is currently being prepared for delivery / collection. Yellow Markets holds the merchant's payout until you confirm physical receipt or a delivery exception is verified.
+                                        <?php echo sprintf($this->lang->line('merchant_agreed_replacement_preparing_notice') ?: 'The Merchant has agreed to replace the item via <strong>%s</strong>.', htmlspecialchars($del_opt_display)); ?>
                                     </p>
                                     <p style="margin-bottom: 12px; font-size: 13px;" class="text-muted">
-                                        <em>If you have already collected or received the replacement item, please confirm receipt below:</em>
+                                        <em><?php echo $this->lang->line('already_collected_confirm_prompt') ?: 'If you have already collected or received the replacement item, please confirm receipt below:'; ?></em>
                                     </p>
                                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                         <button type="button" class="btn btn-success" data-toggle="modal" data-target="#confirmReceiptModal">
-                                            <i class="fa fa-check"></i> I have received the replacement item
+                                            <i class="fa fa-check"></i> <?php echo $this->lang->line('btn_i_have_received_replacement') ?: 'I have received the replacement item'; ?>
                                         </button>
                                         <button type="button" class="btn btn-default" data-toggle="modal" data-target="#reportNotReceivedModal">
-                                            <i class="fa fa-times text-danger"></i> I have not received it
+                                            <i class="fa fa-times text-danger"></i> <?php echo $this->lang->line('btn_i_have_not_received_it') ?: 'I have not received it'; ?>
                                         </button>
                                     </div>
                                 <?php endif; ?>
@@ -413,24 +412,24 @@ span.label,
                     <div class="panel panel-default" style="border: 1px solid #dcd1ea; border-left: 4px solid #6f42c1; border-radius: 6px; margin-top: 25px; margin-bottom: 25px;">
                         <div class="panel-heading" style="border-bottom: 1px solid #dcd1ea; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <span style="font-weight: 700; color: #4a2d7a; font-size: 14px;">
-                                <i class="fa fa-link" style="color: #6f42c1;"></i> Linked Original Request & Affected Item Context
+                                <i class="fa fa-link" style="color: #6f42c1;"></i> <?php echo $this->lang->line('linked_original_request_context_title') ?: 'Linked Original Request & Affected Item Context'; ?>
                             </span>
                             <div>
-                                <span class="label font-weight-bold" style="color: #6f42c1; font-size: 11px; margin-right: 5px;"><i class="fa fa-history"></i> Original Request Context</span>
-                                <span class="label label-danger" style="font-size: 11px;"><i class="fa fa-times-circle"></i> Merchant Rejected</span>
+                                <span class="label font-weight-bold" style="color: #6f42c1; font-size: 11px; margin-right: 5px;"><i class="fa fa-history"></i> <?php echo $this->lang->line('original_request_context') ?: 'Original Request Context'; ?></span>
+                                <span class="label label-danger" style="font-size: 11px;"><i class="fa fa-times-circle"></i> <?php echo $this->lang->line('merchant_rejected') ?: 'Merchant Rejected'; ?></span>
                             </div>
                         </div>
                         <div class="panel-body" style="padding: 15px;">
                             <div class="row">
                                 <!-- Col 1: Affected Item & Variant -->
                                 <div class="col-sm-4 col-md-4" style="border-right: 1px solid #eee; margin-bottom: 15px;">
-                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;">Affected Order Item</div>
+                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;"><?php echo $this->lang->line('affected_order_item') ?: 'Affected Order Item'; ?></div>
                                     <div style="font-size: 15px; font-weight: bold; color: #333;">
-                                        <?php echo htmlspecialchars($item_context->product_name ?: ($product ? $product->name : 'Item Not Found')); ?>
+                                        <?php echo htmlspecialchars($item_context->product_name ?: ($product ? $product->name : ($this->lang->line('item_not_found') ?: 'Item Not Found'))); ?>
                                     </div>
                                     <div style="margin-top: 8px; padding: 8px 10px; border-radius: 4px; background: #fff; border: 1px solid #e5e5e5;">
                                         <div class="small" style="margin-bottom: 5px;">
-                                            <strong class="text-secondary"><i class="fa fa-tags"></i> Variant:</strong>
+                                            <strong class="text-secondary"><i class="fa fa-tags"></i> <?php echo $this->lang->line('variant') ?: 'Variant:'; ?></strong>
                                             <?php if ($item_context->has_variant): ?>
                                                 <span class="label label-default" style="font-size: 11px; font-weight: normal; margin-left: 3px;">
                                                     <?php echo htmlspecialchars($item_context->variant_display); ?>
@@ -440,35 +439,35 @@ span.label,
                                             <?php endif; ?>
                                         </div>
                                         <div class="small" style="margin-bottom: 5px;">
-                                            <strong class="text-secondary"><i class="fa fa-cubes"></i> Disputed Quantity:</strong>
-                                            <span class="label label-info" style="font-size: 11px; margin-left: 3px;"><?php echo (int)$item_context->disputed_qty; ?> unit(s)</span>
+                                            <strong class="text-secondary"><i class="fa fa-cubes"></i> <?php echo $this->lang->line('disputed_quantity') ?: 'Disputed Quantity:'; ?></strong>
+                                            <span class="label label-info" style="font-size: 11px; margin-left: 3px;"><?php echo (int)$item_context->disputed_qty; ?> <?php echo (int)$item_context->disputed_qty === 1 ? ($this->lang->line('unit_singular') ?: 'unit') : ($this->lang->line('unit_plural') ?: 'unit(s)'); ?></span>
                                         </div>
                                         <div class="small">
-                                            <strong class="text-secondary"><i class="fa fa-money"></i> Financial Basis:</strong>
+                                            <strong class="text-secondary"><i class="fa fa-money"></i> <?php echo $this->lang->line('financial_basis') ?: 'Financial Basis:'; ?></strong>
                                             <span style="font-weight: bold; color: #333; margin-left: 3px;"><?php echo $currency; ?> <?php echo number_format($item_context->total_price, 2); ?></span>
-                                            <small class="text-muted">(<?php echo $currency; ?> <?php echo number_format($item_context->unit_price, 2); ?> / unit)</small>
+                                            <small class="text-muted">(<?php echo $currency; ?> <?php echo number_format($item_context->unit_price, 2); ?> / <?php echo $this->lang->line('unit_singular') ?: 'unit'; ?>)</small>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Col 2: Order & Reference Mapping -->
                                 <div class="col-sm-4 col-md-4" style="border-right: 1px solid #eee; margin-bottom: 15px;">
-                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;">Order & Reference Mapping</div>
+                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;"><?php echo $this->lang->line('order_reference_mapping') ?: 'Order & Reference Mapping'; ?></div>
                                     <table class="table table-condensed table-borderless" style="font-size: 13px; margin-bottom: 0;">
                                         <tr>
-                                            <td class="text-muted" style="width: 50%; padding: 4px 0;"><i class="fa fa-shopping-cart text-primary"></i> Order Number:</td>
+                                            <td class="text-muted" style="width: 50%; padding: 4px 0;"><i class="fa fa-shopping-cart text-primary"></i> <?php echo $this->lang->line('order_number') ?: 'Order Number'; ?>:</td>
                                             <td style="font-weight: bold; padding: 4px 0;">
-                                                <a href="<?php echo $order_link_url; ?>" target="_blank" style="text-decoration: underline;" title="View Order #<?php echo htmlspecialchars($target_order_ref); ?> in My Orders">
+                                                <a href="<?php echo $order_link_url; ?>" target="_blank" style="text-decoration: underline;" title="<?php echo sprintf($this->lang->line('view_order_title') ?: 'View Order #%s in My Orders', htmlspecialchars($target_order_ref)); ?>">
                                                     #<?php echo htmlspecialchars($item_context->order_number); ?>
                                                 </a>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-building text-info"></i> Merchant Order ID:</td>
+                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-building text-info"></i> <?php echo $this->lang->line('merchant_order_id') ?: 'Merchant Order ID'; ?>:</td>
                                             <td style="font-weight: bold; padding: 4px 0;"><?php echo htmlspecialchars($item_context->merchant_order_number); ?></td>
                                         </tr>
                                         <tr>
-                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-exchange" style="color: #6f42c1;"></i> Original Request:</td>
+                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-exchange" style="color: #6f42c1;"></i> <?php echo $this->lang->line('original_request') ?: 'Original Request'; ?>:</td>
                                             <td style="font-weight: bold; padding: 4px 0;">
                                                 <span class="label label-default"><?php echo htmlspecialchars($item_context->request_reference); ?></span>
                                                 <small class="text-muted">(<?php echo htmlspecialchars($item_context->request_type_label); ?>)</small>
@@ -476,7 +475,7 @@ span.label,
                                         </tr>
                                         <?php if (!empty($item_context->request_date)): ?>
                                         <tr>
-                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-calendar"></i> Request Date:</td>
+                                            <td class="text-muted" style="padding: 4px 0;"><i class="fa fa-calendar"></i> <?php echo $this->lang->line('request_date') ?: 'Request Date'; ?>:</td>
                                             <td style="padding: 4px 0;"><?php echo date('d M Y, h:i A', $item_context->request_date); ?> MUT</td>
                                         </tr>
                                         <?php endif; ?>
@@ -485,7 +484,7 @@ span.label,
 
                                 <!-- Col 3: Original Rejection Context -->
                                 <div class="col-sm-4 col-md-4">
-                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;">Original Rejection Context</div>
+                                    <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;"><?php echo $this->lang->line('original_rejection_context') ?: 'Original Rejection Context'; ?></div>
                                     <div style="margin-bottom: 8px;">
                                         <span class="label label-danger" style="font-size: 11px; padding: 3px 6px;">
                                             <i class="fa fa-ban"></i> <?php echo htmlspecialchars($item_context->rejection_status); ?>
@@ -495,13 +494,13 @@ span.label,
                                         <?php endif; ?>
                                     </div>
                                     <div class="small" style="margin-bottom: 8px;">
-                                        <strong class="text-secondary">Your Original Request Reason:</strong>
+                                        <strong class="text-secondary"><?php echo $this->lang->line('your_original_request_reason') ?: 'Your Original Request Reason:'; ?></strong>
                                         <div style="margin-top: 3px; padding: 6px 10px; border-radius: 4px; background: #fff; border: 1px solid #e5e5e5; font-size: 12px; line-height: 1.4;">
                                             <?php echo htmlspecialchars($item_context->customer_reason); ?>
                                         </div>
                                     </div>
                                     <div class="small">
-                                        <strong class="text-secondary">Merchant Rejection Reason / Note:</strong>
+                                        <strong class="text-secondary"><?php echo $this->lang->line('merchant_rejection_reason_note') ?: 'Merchant Rejection Reason / Note:'; ?></strong>
                                         <div style="margin-top: 3px; padding: 6px 10px; border-radius: 4px; background: #fff9f9; border: 1px solid #f5c6cb; color: #a94442; font-size: 12px; line-height: 1.4;">
                                             <i class="fa fa-commenting-o"></i> <?php echo htmlspecialchars($item_context->rejection_reason); ?>
                                         </div>
@@ -515,28 +514,28 @@ span.label,
                     <div class="panel panel-info" style="border: 1px solid #bce8f1; border-left: 4px solid #31708f; border-radius: 6px; margin-top: 25px; margin-bottom: 25px; background-color: #fbfcff;">
                         <div class="panel-heading" style="background-color: #ebf7fd; border-bottom: 1px solid #bce8f1; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <span style="font-weight: 700; color: #245269; font-size: 14px;">
-                                <i class="fa fa-file-text-o text-info"></i> <?php echo $this->lang->line('original_dispute_claim_title') ?: 'Original Dispute Claim & Submitted Evidence'; ?>
+                                <i class="fa fa-file-text-o text-info"></i> <?php echo $this->lang->line('original_dispute_claim_heading') ?: ($this->lang->line('original_dispute_claim_title') ?: 'Original Dispute Claim & Submitted Evidence'); ?>
                             </span>
                             <div>
-                                <span class="label label-info" style="font-size: 11px; margin-right: 5px;"><i class="fa fa-gavel"></i> Dispute Origin</span>
-                                <span class="text-muted small"><i class="fa fa-clock-o"></i> Submitted: <?php echo date('d M Y, h:i A', $resolution->created_at); ?> MUT</span>
+                                <span class="label label-info" style="font-size: 11px; margin-right: 5px;"><i class="fa fa-gavel"></i> <?php echo $this->lang->line('dispute_origin') ?: 'Dispute Origin'; ?></span>
+                                <span class="text-muted small"><i class="fa fa-clock-o"></i> <?php echo $this->lang->line('submitted') ?: 'Submitted'; ?>: <?php echo date('d M Y, h:i A', $resolution->created_at); ?> MUT</span>
                             </div>
                         </div>
                         <div class="panel-body" style="padding: 15px;">
                             <div class="row">
                                 <div class="col-md-8">
                                     <div style="margin-bottom: 10px;">
-                                        <strong class="text-muted" style="font-size: 12px; text-transform: uppercase;">Your Original Claim / Statement:</strong>
+                                        <strong class="text-muted" style="font-size: 12px; text-transform: uppercase;"><?php echo $this->lang->line('your_original_claim_statement') ?: 'Your Original Claim / Statement:'; ?></strong>
                                         <div style="padding: 12px; margin-top: 5px; border-radius: 4px; background: #fff; border: 1px solid #ddd; font-size: 14px; line-height: 1.6; min-height: 50px;">
-                                            <?php echo !empty($resolution->message) ? nl2br(htmlspecialchars($resolution->message, ENT_QUOTES, 'UTF-8')) : '<em class="text-muted">No text description provided.</em>'; ?>
+                                            <?php echo !empty($resolution->message) ? nl2br(htmlspecialchars($resolution->message, ENT_QUOTES, 'UTF-8')) : '<em class="text-muted">' . ($this->lang->line('no_text_description_provided') ?: 'No text description provided.') . '</em>'; ?>
                                         </div>
                                     </div>
                                     <div class="small text-muted">
-                                        <i class="fa fa-info-circle text-primary"></i> <strong>Shared Dispute Context:</strong> This is the initial resolution request you submitted following the merchant's rejection. Visible to you, the merchant, and YellowMarkets Support for dispute evaluation.
+                                        <i class="fa fa-info-circle text-primary"></i> <strong><?php echo $this->lang->line('shared_dispute_context') ?: 'Shared Dispute Context:'; ?></strong> <?php echo $this->lang->line('shared_dispute_context_shopper_desc') ?: 'This is the initial resolution request you submitted following the merchant\'s rejection. Visible to you, the merchant, and YellowMarkets Support for dispute evaluation.'; ?>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <strong class="text-muted" style="font-size: 12px; text-transform: uppercase;">Submitted Evidence:</strong>
+                                    <strong class="text-muted" style="font-size: 12px; text-transform: uppercase;"><?php echo $this->lang->line('submitted_evidence') ?: 'Submitted Evidence:'; ?></strong>
                                     <?php if (!empty($resolution->attachment)): 
                                         $att_ext = strtolower(pathinfo($resolution->attachment, PATHINFO_EXTENSION));
                                         $is_img  = in_array($att_ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true);
@@ -552,7 +551,7 @@ span.label,
                                                 </span>
                                                 <div class="btn-group btn-group-xs">
                                                     <a href="<?php echo $att_preview_url; ?>" target="_blank" class="btn btn-xs btn-primary">
-                                                        <i class="fa fa-eye"></i> Preview
+                                                        <i class="fa fa-eye"></i> <?php echo $this->lang->line('preview') ?: 'Preview'; ?>
                                                     </a>
                                                     <a href="<?php echo $att_download_url; ?>" class="btn btn-xs btn-default">
                                                         <i class="fa fa-download"></i>
@@ -569,7 +568,7 @@ span.label,
                                         </div>
                                     <?php else: ?>
                                         <div style="padding: 12px; margin-top: 5px; border-radius: 4px; background: #fff; border: 1px solid #ddd;" class="text-muted small">
-                                            <i class="fa fa-ban"></i> No file attachment uploaded with original request.
+                                            <i class="fa fa-ban"></i> <?php echo $this->lang->line('no_attachment_uploaded') ?: 'No file attachment uploaded with original request.'; ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -584,14 +583,14 @@ span.label,
                                 <i class="fa fa-shield text-warning" style="margin-right: 5px;"></i> <?php echo $this->lang->line('conversion_shopper_admin_tab') ?: 'YellowMarkets Support (Shopper ↔ Support)'; ?>
                             </span>
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <span class="badge font-weight-bold" style="color: #b38600;"><?php echo count($shopper_admin_msgs); ?> <?php echo count($shopper_admin_msgs) === 1 ? 'Message' : 'Messages'; ?></span>
+                                <span class="badge font-weight-bold" style="color: #b38600;"><?php echo count($shopper_admin_msgs); ?> <?php echo count($shopper_admin_msgs) === 1 ? ($this->lang->line('message') ?: 'Message') : ($this->lang->line('messages') ?: 'Messages'); ?></span>
                             </div>
                         </div>
 
                         <div class="panel-body" style="padding: 15px;">
                             <div class="alert alert-warning py-2 px-3" style="font-size: 13px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <div><i class="fa fa-lock text-warning"></i></div>
-                                <span class="label label-warning font-weight-bold" style="color: #b38600;"><i class="fa fa-eye-slash"></i> Hidden from Merchant</span>
+                                <span class="label label-warning font-weight-bold" style="color: #b38600;"><i class="fa fa-eye-slash"></i> <?php echo $this->lang->line('hidden_from_merchant') ?: 'Hidden from Merchant'; ?></span>
                             </div>
 
                             <div class="chat-box" style="margin-bottom: 20px;">
@@ -617,8 +616,8 @@ span.label,
                                                 <div class="chat-attachment-box" style="margin-top: 8px; padding: 6px 10px; background: rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.08); border-radius: 4px; display: inline-block; max-width: 100%;">
                                                     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                                         <span style="font-size: 12px; color: #555;">
-                                                            <i class="fa <?php echo $is_img ? 'fa-file-image-o text-info' : ($is_pdf ? 'fa-file-pdf-o text-danger' : 'fa-paperclip'); ?>"></i>
-                                                            <strong><?php echo htmlspecialchars($msg->attachment); ?></strong>
+                                                             <i class="fa <?php echo $is_img ? 'fa-file-image-o text-info' : ($is_pdf ? 'fa-file-pdf-o text-danger' : 'fa-paperclip'); ?>"></i>
+                                                             <strong><?php echo htmlspecialchars($msg->attachment); ?></strong>
                                                         </span>
                                                         <div class="btn-group btn-group-xs">
                                                             <a href="<?php echo $att_preview_url; ?>" target="_blank" class="btn btn-xs btn-primary">
@@ -646,10 +645,6 @@ span.label,
                                             <i class="fa fa-info-circle text-warning" style="font-size: 16px;"></i>
                                             <strong><?php echo $this->lang->line('support_channel_ready_info') ?: 'No conversation messages with YellowMarkets Support yet.'; ?></strong>
                                         </div>
-                                        <div style="font-size: 13px; line-height: 1.6;">
-                                            <p style="margin-bottom: 6px;"><strong>Available Next Actions:</strong></p>
-                                        </div>
-                                        
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -660,14 +655,14 @@ span.label,
                                     <div class="panel-heading" style="border-bottom: 1px solid #faebcc;">
                                         <div style="display: flex; justify-content: space-between; align-items: center;">
                                             <h4 class="panel-title" style="font-weight: 600; color: #8a6d3b;"><i class="fa fa-shield"></i> <?php echo $this->lang->line('message_to_support') ?: 'Message to YellowMarkets Support'; ?></h4>
-                                            <span class="label label-warning font-weight-bold" style="color: #b38600; font-size: 11px;"><i class="fa fa-lock"></i> Private Support Channel</span>
+                                            <span class="label label-warning font-weight-bold" style="color: #b38600; font-size: 11px;"><i class="fa fa-lock"></i> <?php echo $this->lang->line('private_support_channel') ?: 'Private Support Channel'; ?></span>
                                         </div>
                                     </div>
                                     <div class="panel-body" style="padding: 15px;">
                                         <div class="alert alert-warning py-2 px-3" style="font-size: 12px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; border-radius: 4px;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                                                <div><i class="fa fa-bell-o text-warning"></i> <strong>Consequence:</strong> Clicking "Send to Support" sends your message and <strong>immediately alerts YellowMarkets Support Team (@Help / @Acct)</strong> for inquiry and coordination.</div>
-                                                <div><i class="fa fa-eye-slash"></i> <strong>Visibility:</strong> Confidential between You and Support (Hidden from Merchant).</div>
+                                                <div><i class="fa fa-bell-o text-warning"></i> <strong><?php echo $this->lang->line('consequence') ?: 'Consequence:'; ?></strong> <?php echo $this->lang->line('support_consequence_notice') ?: 'Clicking "Send to Support" sends your message and immediately alerts YellowMarkets Support Team (@Help / @Acct) for inquiry and coordination.'; ?></div>
+                                                <div><i class="fa fa-eye-slash"></i> <strong><?php echo $this->lang->line('visibility') ?: 'Visibility:'; ?></strong> <?php echo $this->lang->line('support_visibility_notice') ?: 'Confidential between You and Support (Hidden from Merchant).'; ?></div>
                                             </div>
                                         </div>
                                         <form action="<?php echo base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data" class="ajax-resolution-form">
@@ -686,7 +681,7 @@ span.label,
                                                         <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('send_to_support') ?: 'Send to Support'; ?>
                                                     </button>
                                                     <small class="text-muted text-center" style="display: block; margin-top: 4px; font-size: 11px;">
-                                                        <i class="fa fa-bell-o"></i> Alerts Support specialists directly
+                                                        <i class="fa fa-bell-o"></i> <?php echo $this->lang->line('alerts_support_directly') ?: 'Alerts Support specialists directly'; ?>
                                                     </small>
                                                 </div>
                                             </div>
@@ -715,9 +710,6 @@ span.label,
                 </div>
                 <div class="modal-body">
                     <p style="font-size: 13px; line-height: 1.5;"><?php echo $this->lang->line('escalate_modal_desc') ?: 'Formally request YellowMarkets Support (@Help) administrative mediation. This will re-open formal dispute investigation if you disagree with the merchant resolution or the replacement was not fulfilled.'; ?></p>
-                    <div class="alert alert-info py-2 px-3" style="font-size: 12px; margin-bottom: 15px;">
-                        <i class="fa fa-info-circle"></i> <strong>Consequence:</strong> Submitting this request formally escalates your dispute to YellowMarkets Support leadership for official administrative adjudication.
-                    </div>
                     <div class="form-group">
                         <label><?php echo $this->lang->line('message_description') ?: 'Reason / Additional Details:'; ?> <span class="text-danger">*</span></label>
                         <textarea name="message" class="form-control" rows="4" placeholder="<?php echo $this->lang->line('explain_mediation_reason') ?: 'Explain why you are requesting formal escalation to Yellow Markets Support...'; ?>" required></textarea>
@@ -742,21 +734,21 @@ span.label,
                 <input type="hidden" name="received" value="yes">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title font-weight-bold text-success"><i class="fa fa-check-circle"></i> Confirm Receipt of Replacement</h4>
+                    <h4 class="modal-title font-weight-bold text-success"><i class="fa fa-check-circle"></i> <?php echo $this->lang->line('confirm_receipt_replacement_title') ?: 'Confirm Receipt of Replacement'; ?></h4>
                 </div>
                 <div class="modal-body">
-                    <p>Please confirm that you have received the replacement product in satisfactory condition.</p>
+                    <p><?php echo $this->lang->line('confirm_receipt_replacement_desc') ?: 'Please confirm that you have received the replacement product in satisfactory condition.'; ?></p>
                     <div class="form-group">
-                        <label>Notes / Feedback (optional):</label>
-                        <textarea name="notes" class="form-control" rows="3" placeholder="Optional comments regarding the received replacement..."></textarea>
+                        <label><?php echo $this->lang->line('notes_feedback_optional') ?: 'Notes / Feedback (optional):'; ?></label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="<?php echo $this->lang->line('notes_feedback_placeholder') ?: 'Optional comments regarding the received replacement...'; ?>"></textarea>
                     </div>
                     <div class="alert alert-info small" style="margin-bottom: 0;">
-                        <i class="fa fa-info-circle"></i> Once confirmed, this resolution dispute will be completed and permanently closed (Final).
+                        <i class="fa fa-info-circle"></i> <?php echo $this->lang->line('confirm_receipt_final_warning') ?: 'Once confirmed, this resolution dispute will be completed and permanently closed (Final).'; ?>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success font-weight-bold"><i class="fa fa-check"></i> Yes, I Received It</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel') ?: 'Cancel'; ?></button>
+                    <button type="submit" class="btn btn-success font-weight-bold"><i class="fa fa-check"></i> <?php echo $this->lang->line('btn_yes_received_it') ?: 'Yes, I Received It'; ?></button>
                 </div>
             </form>
         </div>
@@ -772,18 +764,18 @@ span.label,
                 <input type="hidden" name="received" value="no">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title font-weight-bold text-danger"><i class="fa fa-exclamation-triangle"></i> Report Replacement Not Received</h4>
+                    <h4 class="modal-title font-weight-bold text-danger"><i class="fa fa-exclamation-triangle"></i> <?php echo $this->lang->line('report_replacement_not_received_title') ?: 'Report Replacement Not Received'; ?></h4>
                 </div>
                 <div class="modal-body">
-                    <p>If you have not received the replacement item or experienced delivery issues, report the details below. Yellow Markets Support will investigate with the merchant.</p>
+                    <p><?php echo $this->lang->line('report_replacement_not_received_desc') ?: 'If you have not received the replacement item or experienced delivery issues, report the details below. Yellow Markets Support will investigate with the merchant.'; ?></p>
                     <div class="form-group">
-                        <label>Issue Details (required):</label>
-                        <textarea name="notes" class="form-control" rows="3" placeholder="Explain the non-receipt or delivery issue in detail..." required></textarea>
+                        <label><?php echo $this->lang->line('issue_details_required') ?: 'Issue Details (required):'; ?></label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="<?php echo $this->lang->line('explain_non_receipt_placeholder') ?: 'Explain the non-receipt or delivery issue in detail...'; ?>" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger font-weight-bold">Report Non-Receipt</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel') ?: 'Cancel'; ?></button>
+                    <button type="submit" class="btn btn-danger font-weight-bold"><?php echo $this->lang->line('btn_report_non_receipt') ?: 'Report Non-Receipt'; ?></button>
                 </div>
             </form>
         </div>

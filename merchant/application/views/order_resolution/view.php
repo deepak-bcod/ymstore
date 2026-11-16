@@ -175,14 +175,14 @@ nav.sidebar,
                             <div class="col-md-4 col-sm-6">
                                 <strong><?= $this->lang->line('merchant_action') ?: 'Merchant Action'; ?>:</strong> 
                                 <?php if (!empty($resolution->merchant_action) && !in_array(strtolower($resolution->merchant_action), ['none', 'n/a'], true)): ?>
-                                    <span class="text-primary font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->merchant_action)); ?></span>
+                                    <span class="text-primary font-weight-bold"><?= htmlspecialchars($this->lang->line($resolution->merchant_action) ?: ucwords(str_replace('_', ' ', $resolution->merchant_action))); ?></span>
                                 <?php else: ?>
                                     <span class="badge badge-warning font-weight-bold" style="color: #b38600;"><?= htmlspecialchars($this->lang->line('pending') ?: 'Pending'); ?></span>
                                 <?php endif; ?>
                             </div>
                             <div class="col-md-4 col-sm-6">
                                 <strong><?= $this->lang->line('delivery_option') ?: 'Delivery Option'; ?>:</strong> 
-                                <span class="text-success font-weight-bold"><?= ucwords(str_replace('_', ' ', $resolution->delivery_option)); ?></span>
+                                <span class="text-success font-weight-bold"><?= htmlspecialchars($this->lang->line($resolution->delivery_option) ?: ucwords(str_replace('_', ' ', $resolution->delivery_option))); ?></span>
                             </div>
                             <div class="col-md-4 col-sm-6">
                                 <?php 
@@ -258,9 +258,9 @@ nav.sidebar,
                                 <?php if (!empty($is_addon_paid)): ?>
                                     <span class="badge badge-success p-2"><i class="fa fa-check"></i> <?= $this->lang->line('addon_status_paid') ?: 'AddOn Paid'; ?></span>
                                 <?php elseif ($is_completed_delivery): ?>
-                                    <span class="badge badge-success p-2"><i class="fa fa-check-circle"></i> Completed Delivery</span>
+                                    <span class="badge badge-success p-2"><i class="fa fa-check-circle"></i> <?= $this->lang->line('completed_delivery') ?: 'Completed Delivery'; ?></span>
                                 <?php elseif ($is_closed_ticket): ?>
-                                    <span class="badge badge-secondary p-2"><i class="fa fa-ban"></i> Cancelled (Ticket Closed)</span>
+                                    <span class="badge badge-secondary p-2"><i class="fa fa-ban"></i> <?= $this->lang->line('cancelled_ticket_closed') ?: 'Cancelled (Ticket Closed)'; ?></span>
                                 <?php elseif (!empty($is_addon_failed)): ?>
                                     <span class="badge badge-danger p-2"><i class="fa fa-times"></i> <?= $this->lang->line('payment_failed') ?: 'Payment Failed'; ?></span>
                                 <?php else: ?>
@@ -270,11 +270,11 @@ nav.sidebar,
                             <div class="card-body">
                                 <p class="text-muted mb-3">
                                     <?php if ($is_closed_ticket && empty($is_addon_paid)): ?>
-                                        This resolution ticket was closed. The pending YellowMarkets delivery service request has been cancelled, and no further payment is required.
+                                        <?= $this->lang->line('addon_closed_ticket_cancelled_notice') ?: 'This resolution ticket was closed. The pending YellowMarkets delivery service request has been cancelled, and no further payment is required.'; ?>
                                     <?php elseif ($is_completed_delivery): ?>
-                                        The replacement product for this order has been marked dispatched / delivered by the Merchant.
+                                        <?= $this->lang->line('addon_completed_delivery_notice') ?: 'The replacement product for this order has been marked dispatched / delivered by the Merchant.'; ?>
                                     <?php elseif (!empty($is_addon_paid)): ?>
-                                        Your YM Delivery AddOn Service payment has been confirmed. YellowMarkets logistics will collect and deliver the replacement product.
+                                        <?= $this->lang->line('addon_confirmed_logistics_notice') ?: 'Your YM Delivery AddOn Service payment has been confirmed. YellowMarkets logistics will collect and deliver the replacement product.'; ?>
                                     <?php else: ?>
                                         <?= $this->lang->line('ym_delivery_addon_desc') ?: 'You selected Yellow Markets delivery for this replacement. Accounting (@Acct) has requested you to purchase the replacement delivery service as an AddOn Service so logistics can collect and deliver the replacement product.'; ?>
                                     <?php endif; ?>
@@ -299,7 +299,7 @@ nav.sidebar,
                                                 <td><strong>#<?= htmlspecialchars($resolution->order_number); ?></strong></td>
                                                 <td><span class="badge badge-secondary"><?= htmlspecialchars($resolution->ticket_number); ?></span></td>
                                                 <td><?= htmlspecialchars($product ? $product->name : 'N/A'); ?></td>
-                                                <td><span class="text-info font-weight-bold">YellowMarkets Delivery</span></td>
+                                                <td><span class="text-info font-weight-bold"><?= $this->lang->line('ym_delivery') ?: 'YellowMarkets Delivery'; ?></span></td>
                                                 <td>
                                                     <strong><?= htmlspecialchars($delivery_addon_service->title ?? 'YM Delivery'); ?></strong>
                                                     <?php if (!empty($delivery_addon_service->category_name)): ?>
@@ -311,9 +311,9 @@ nav.sidebar,
                                                     <?php if (!empty($is_addon_paid)): ?>
                                                         <span class="badge badge-success"><i class="fa fa-check"></i> <?= $this->lang->line('paid') ?: 'Paid'; ?></span>
                                                     <?php elseif ($is_completed_delivery): ?>
-                                                        <span class="badge badge-info"><i class="fa fa-check-circle"></i> Completed</span>
+                                                        <span class="badge badge-info"><i class="fa fa-check-circle"></i> <?= $this->lang->line('completed') ?: 'Completed'; ?></span>
                                                     <?php elseif ($is_closed_ticket): ?>
-                                                        <span class="badge badge-secondary"><i class="fa fa-ban"></i> Cancelled</span>
+                                                        <span class="badge badge-secondary"><i class="fa fa-ban"></i> <?= $this->lang->line('cancelled') ?: 'Cancelled'; ?></span>
                                                     <?php elseif (!empty($is_addon_failed)): ?>
                                                         <span class="badge badge-danger"><i class="fa fa-times"></i> <?= $this->lang->line('failed') ?: 'Failed'; ?></span>
                                                     <?php else: ?>
@@ -321,27 +321,27 @@ nav.sidebar,
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <?= !empty($addon_transaction->transaction_ref) ? htmlspecialchars($addon_transaction->transaction_ref) : (!empty($addon_purchase) ? 'Purchase #' . $addon_purchase->id : (($is_closed_ticket && empty($is_addon_paid)) ? 'Not Processed' : 'Awaiting Payment')); ?>
+                                                    <?= !empty($addon_transaction->transaction_ref) ? htmlspecialchars($addon_transaction->transaction_ref) : (!empty($addon_purchase) ? 'Purchase #' . $addon_purchase->id : (($is_closed_ticket && empty($is_addon_paid)) ? ($this->lang->line('not_processed') ?: 'Not Processed') : ($this->lang->line('awaiting_payment') ?: 'Awaiting Payment'))); ?>
                                                 </td>
                                                 <td>
                                                     <?php if (!empty($is_addon_paid)): ?>
                                                         <button class="btn btn-sm btn-success disabled" disabled>
                                                             <i class="fa fa-check"></i> <?= $this->lang->line('addon_service_paid') ?: 'Purchased'; ?>
                                                         </button>
-                                                        <a href="<?= base_url('addons/download_invoice/' . $resolution->addon_purchase_id); ?>" class="btn btn-sm btn-outline-primary ml-1" target="_blank" title="View / Download Invoice">
+                                                        <a href="<?= base_url('addons/download_invoice/' . $resolution->addon_purchase_id); ?>" class="btn btn-sm btn-outline-primary ml-1" target="_blank" title="<?= $this->lang->line('view_download_invoice') ?: 'View / Download Invoice'; ?>">
                                                             <i class="fa fa-file-text-o"></i> <?= $this->lang->line('invoice') ?: 'Invoice'; ?>
                                                         </a>
                                                     <?php elseif ($is_completed_delivery): ?>
                                                         <button class="btn btn-sm btn-secondary disabled" disabled>
-                                                            <i class="fa fa-check"></i> Fulfilment Completed
+                                                            <i class="fa fa-check"></i> <?= $this->lang->line('fulfilment_completed') ?: 'Fulfilment Completed'; ?>
                                                         </button>
                                                     <?php elseif ($is_closed_ticket): ?>
                                                         <button class="btn btn-sm btn-secondary disabled" disabled title="Ticket is closed; payment no longer available">
-                                                            <i class="fa fa-ban"></i> Cancelled (Ticket Closed)
+                                                            <i class="fa fa-ban"></i> <?= $this->lang->line('cancelled_ticket_closed') ?: 'Cancelled (Ticket Closed)'; ?>
                                                         </button>
                                                     <?php elseif (!empty($is_addon_failed)): ?>
                                                         <a href="<?= base_url('addons/buy_resolution_delivery/' . $resolution->ticket_number); ?>" class="btn btn-sm btn-warning font-weight-bold">
-                                                            <i class="fa fa-refresh"></i> Retry Payment
+                                                            <i class="fa fa-refresh"></i> <?= $this->lang->line('retry_payment') ?: 'Retry Payment'; ?>
                                                         </a>
                                                     <?php else: ?>
                                                         <a href="<?= base_url('addons/buy_resolution_delivery/' . $resolution->ticket_number); ?>" class="btn btn-sm btn-info font-weight-bold">
@@ -356,11 +356,11 @@ nav.sidebar,
                                 <div class="alert alert-light border py-2 mb-0">
                                     <strong><i class="fa fa-info-circle"></i> <?= $this->lang->line('instructions') ?: 'Instructions'; ?>:</strong>
                                     <?php if ($is_closed_ticket && empty($is_addon_paid)): ?>
-                                        This resolution ticket is closed. No further delivery add-on purchase, payment, or fulfilment action is required.
+                                        <?= $this->lang->line('addon_instruction_closed') ?: 'This resolution ticket is closed. No further delivery add-on purchase, payment, or fulfilment action is required.'; ?>
                                     <?php elseif ($is_completed_delivery): ?>
-                                        Replacement delivery has been completed. The ticket record is maintained for reference and payout audit.
+                                        <?= $this->lang->line('addon_instruction_completed') ?: 'Replacement delivery has been completed. The ticket record is maintained for reference and payout audit.'; ?>
                                     <?php elseif (!empty($is_addon_paid)): ?>
-                                        Payment confirmed. YellowMarkets delivery will be scheduled, and our logistics partner will collect and deliver the replacement product.
+                                        <?= $this->lang->line('addon_instruction_confirmed') ?: 'Payment confirmed. YellowMarkets delivery will be scheduled, and our logistics partner will collect and deliver the replacement product.'; ?>
                                     <?php else: ?>
                                         <?= $this->lang->line('addon_merchant_instruction') ?: 'Click "Purchase AddOn Service" to complete the payment. Once confirmed, YellowMarkets delivery will be scheduled, and our logistics partner will collect and deliver the replacement product.'; ?>
                                     <?php endif; ?>
@@ -371,7 +371,7 @@ nav.sidebar,
 
                     <!-- Warning Callout Matching MYP Wireframe -->
                     <div class="alert alert-warning py-3 mb-3" style="border-left: 4px solid #d4ac00; color: #22272c; font-size: 14px;">
-                        <i class="fa fa-info-circle text-warning mr-1"></i> <strong>The original Merchant decision has already been made. This Resolution Request is under YM Admin review. Merchant cannot issue a second verdict.</strong>
+                        <i class="fa fa-info-circle text-warning mr-1"></i> <strong><?= $this->lang->line('merchant_decision_made_admin_review_warning') ?: 'The original Merchant decision has already been made. This Resolution Request is under YM Admin review. Merchant cannot issue a second verdict.'; ?></strong>
                     </div>
 
                     <?php if (in_array($resolution->status, ['Close', 'Close (Final)'], true)): ?>
@@ -382,7 +382,7 @@ nav.sidebar,
 
                     <!-- YM Admin Decision and Merchant Actions Section -->
                     <div class="p-3 bg-light border rounded mb-4">
-                        <h6 class="font-weight-bold mb-2"><i class="fa fa-gavel"></i> YM Admin decision and Merchant actions</h6>
+                        <h6 class="font-weight-bold mb-2"><i class="fa fa-gavel"></i> <?= $this->lang->line('admin_decision_merchant_actions_title') ?: 'YM Admin decision and Merchant actions'; ?></h6>
 
                         <?php 
                         $admin_dec = $resolution->admin_decision ?? '';
@@ -401,70 +401,70 @@ nav.sidebar,
                         <?php if ($is_approved_shopper): ?>
                             <?php if ($is_replacement): ?>
                                 <div class="alert alert-success py-2 mb-3">
-                                    <strong><i class="fa fa-check-circle"></i> YM Admin Decision: In Favour of Shopper – Replacement</strong>
-                                    <p class="mb-0 small">Both parties have received official decision notification. Disputed funds remain held pending fulfilment and Shopper receipt confirmation.</p>
+                                    <strong><i class="fa fa-check-circle"></i> <?= $this->lang->line('admin_decision_shopper_replacement') ?: 'YM Admin Decision: In Favour of Shopper – Replacement'; ?></strong>
+                                    <p class="mb-0 small"><?= $this->lang->line('admin_decision_shopper_replacement_desc') ?: 'Both parties have received official decision notification. Disputed funds remain held pending fulfilment and Shopper receipt confirmation.'; ?></p>
                                 </div>
-                                <h6 class="font-weight-bold text-dark mt-2 mb-1">Required Merchant fulfilment</h6>
-                                <p class="text-muted small mb-3">Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) is required before disputed payout eligibility.</p>
+                                <h6 class="font-weight-bold text-dark mt-2 mb-1"><?= $this->lang->line('required_merchant_fulfilment') ?: 'Required Merchant fulfilment'; ?></h6>
+                                <p class="text-muted small mb-3"><?= $this->lang->line('required_merchant_fulfilment_replacement_desc') ?: 'Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) is required before disputed payout eligibility.'; ?></p>
                                 <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
                                     <?php if ($resolution->merchant_action !== 'replacement_completed'): ?>
                                         <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
-                                            <i class="fa fa-truck"></i> Arrange replacement
+                                            <i class="fa fa-truck"></i> <?= $this->lang->line('btn_arrange_replacement') ?: 'Arrange replacement'; ?>
                                         </button>
                                         <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
-                                            <i class="fa fa-check-square-o"></i> Mark dispatched / delivered
+                                            <i class="fa fa-check-square-o"></i> <?= $this->lang->line('btn_mark_dispatched_delivered') ?: 'Mark dispatched / delivered'; ?>
                                         </button>
                                     <?php else: ?>
                                         <span class="badge badge-success p-2">
-                                            <i class="fa fa-check-circle"></i> Replacement Marked Dispatched / Delivered
+                                            <i class="fa fa-check-circle"></i> <?= $this->lang->line('replacement_marked_dispatched_delivered') ?: 'Replacement Marked Dispatched / Delivered'; ?>
                                         </span>
                                     <?php endif; ?>
                                 </div>
                             <?php else: ?>
                                 <div class="alert alert-success py-2 mb-3">
-                                    <strong><i class="fa fa-check-circle"></i> YM Admin Decision: In Favour of Shopper – Return and Refund</strong>
-                                    <p class="mb-0 small">Both parties have received official decision notification.</p>
+                                    <strong><i class="fa fa-check-circle"></i> <?= $this->lang->line('admin_decision_shopper_refund') ?: 'YM Admin Decision: In Favour of Shopper – Return and Refund'; ?></strong>
+                                    <p class="mb-0 small"><?= $this->lang->line('admin_decision_shopper_refund_desc') ?: 'Both parties have received official decision notification.'; ?></p>
                                 </div>
-                                <h6 class="font-weight-bold text-dark mt-2 mb-1">Required Merchant fulfilment</h6>
-                                <p class="text-muted small mb-3">Shopper return must be confirmed before Accounting processes the refund. YM Admin can document a justified return-confirmation exception.</p>
+                                <h6 class="font-weight-bold text-dark mt-2 mb-1"><?= $this->lang->line('required_merchant_fulfilment') ?: 'Required Merchant fulfilment'; ?></h6>
+                                <p class="text-muted small mb-3"><?= $this->lang->line('required_merchant_fulfilment_refund_desc') ?: 'Shopper return must be confirmed before Accounting processes the refund. YM Admin can document a justified return-confirmation exception.'; ?></p>
                                 <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
                                     <?php if (empty($resolution->merchant_return_confirmed)): ?>
                                         <button type="button" class="btn btn-dark btn-sm" data-toggle="modal" data-target="#confirmReturnModal" data-bs-toggle="modal" data-bs-target="#confirmReturnModal">
-                                            <i class="fa fa-undo"></i> Confirm item returned
+                                            <i class="fa fa-undo"></i> <?= $this->lang->line('btn_confirm_item_returned') ?: 'Confirm item returned'; ?>
                                         </button>
                                     <?php else: ?>
                                         <span class="badge badge-success p-2">
-                                            <i class="fa fa-check-circle"></i> Returned Item Confirmed by Merchant
+                                            <i class="fa fa-check-circle"></i> <?= $this->lang->line('returned_item_confirmed_merchant') ?: 'Returned Item Confirmed by Merchant'; ?>
                                         </span>
                                     <?php endif; ?>
                                 </div>
                             <?php endif; ?>
                         <?php elseif ($is_approved_merchant): ?>
                             <div class="alert alert-secondary py-2 mb-0">
-                                <strong><i class="fa fa-lock"></i> YM Admin Decision: In Favour of Merchant</strong>
-                                <p class="mb-0 small">Original rejection upheld. Dispute hold becomes eligible for release under the 7-day after Completed payout rule.</p>
+                                <strong><i class="fa fa-lock"></i> <?= $this->lang->line('admin_decision_merchant_won') ?: 'YM Admin Decision: In Favour of Merchant'; ?></strong>
+                                <p class="mb-0 small"><?= $this->lang->line('admin_decision_merchant_won_desc') ?: 'Original rejection upheld. Dispute hold becomes eligible for release under the 7-day after Completed payout rule.'; ?></p>
                             </div>
                         <?php else: ?>
                             <div class="alert alert-warning py-2 mb-2" style="border-left: 3px solid #d4ac00;">
-                                <i class="fa fa-clock-o"></i> <strong>Admin decision pending.</strong> The Merchant may respond privately but cannot decide the Resolution outcome.
+                                <i class="fa fa-clock-o"></i> <strong><?= $this->lang->line('admin_decision_pending_merchant_notice') ?: 'Admin decision pending. The Merchant may respond privately but cannot decide the Resolution outcome.'; ?></strong>
                             </div>
                             <?php if ($is_replacement && !in_array($resolution->status, ['Close', 'Close (Final)'], true)): ?>
                                 <div class="mt-2 pt-2 border-top">
-                                    <h6 class="font-weight-bold text-dark mb-1">Required Merchant fulfilment</h6>
-                                    <p class="text-muted small mb-2">Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) releases hold subject to payout eligibility.</p>
+                                    <h6 class="font-weight-bold text-dark mb-1"><?= $this->lang->line('required_merchant_fulfilment') ?: 'Required Merchant fulfilment'; ?></h6>
+                                    <p class="text-muted small mb-2"><?= $this->lang->line('required_merchant_fulfilment_replacement_desc') ?: 'Merchant arranges replacement. Select existing delivery method. Shopper confirmation (or documented Admin exception) releases hold subject to payout eligibility.'; ?></p>
                                     <div class="d-flex flex-wrap align-items-center" style="gap: 10px;">
                                         <?php if ($resolution->merchant_action !== 'replacement_completed'): ?>
                                             <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#replacementApproveModal" data-bs-toggle="modal" data-bs-target="#replacementApproveModal">
-                                                <i class="fa fa-truck"></i> Arrange replacement
+                                                <i class="fa fa-truck"></i> <?= $this->lang->line('btn_arrange_replacement') ?: 'Arrange replacement'; ?>
                                             </button>
                                             <?php if (!empty($resolution->delivery_option) && !in_array($resolution->delivery_option, ['none', 'n/a'], true)): ?>
                                                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#replacementCompletedModal" data-bs-toggle="modal" data-bs-target="#replacementCompletedModal">
-                                                    <i class="fa fa-check-square-o"></i> Mark dispatched / delivered
+                                                    <i class="fa fa-check-square-o"></i> <?= $this->lang->line('btn_mark_dispatched_delivered') ?: 'Mark dispatched / delivered'; ?>
                                                 </button>
                                             <?php endif; ?>
                                         <?php else: ?>
                                             <span class="badge badge-success p-2">
-                                                <i class="fa fa-check-circle"></i> Replacement Marked Dispatched / Delivered
+                                                <i class="fa fa-check-circle"></i> <?= $this->lang->line('replacement_marked_dispatched_delivered') ?: 'Replacement Marked Dispatched / Delivered'; ?>
                                             </span>
                                         <?php endif; ?>
                                     </div>
@@ -500,25 +500,25 @@ nav.sidebar,
                 <div class="card mb-4 shadow-sm border-0" style="border-left: 4px solid #6f42c1 !important;">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center py-2 px-3">
                         <span class="font-weight-bold text-dark" style="font-size: 14px;">
-                            <i class="fa fa-link mr-1" style="color: #6f42c1;"></i> Linked Original Request & Affected Item Context
+                            <i class="fa fa-link mr-1" style="color: #6f42c1;"></i> <?= $this->lang->line('linked_original_request_context_title') ?: 'Linked Original Request & Affected Item Context'; ?>
                         </span>
                         <div>
-                            <span class="badge mr-1 font-weight-bold" style="color: #6f42c1;"><i class="fa fa-history"></i> Original Request Context</span>
-                            <span class="badge badge-danger"><i class="fa fa-times-circle"></i> Merchant Rejected</span>
+                            <span class="badge mr-1 font-weight-bold" style="color: #6f42c1;"><i class="fa fa-history"></i> <?= $this->lang->line('original_request_context') ?: 'Original Request Context'; ?></span>
+                            <span class="badge badge-danger"><i class="fa fa-times-circle"></i> <?= $this->lang->line('merchant_rejected') ?: 'Merchant Rejected'; ?></span>
                         </div>
                     </div>
                     <div class="card-body p-3">
                         <div class="row">
                             <!-- Col 1: Affected Item & Variant -->
                             <div class="col-md-4 mb-3 mb-md-0 border-right">
-                                <div class="text-muted small text-uppercase font-weight-bold mb-1">Affected Order Item</div>
+                                <div class="text-muted small text-uppercase font-weight-bold mb-1"><?= $this->lang->line('affected_order_item') ?: 'Affected Order Item'; ?></div>
                                 <div class="font-weight-bold text-dark" style="font-size: 15px;">
-                                    <?= htmlspecialchars($item_context->product_name ?: ($product ? $product->name : 'Item Not Found')); ?>
+                                    <?= htmlspecialchars($item_context->product_name ?: ($product ? $product->name : ($this->lang->line('item_not_found') ?: 'Item Not Found'))); ?>
                                 </div>
                                 
                                 <div class="mt-2 p-2 rounded" style="border: 1px solid #e9ecef;">
                                     <div class="small mb-1">
-                                        <strong class="text-secondary"><i class="fa fa-tags"></i> Variant:</strong>
+                                        <strong class="text-secondary"><i class="fa fa-tags"></i> <?= $this->lang->line('variant') ?: 'Variant:'; ?></strong>
                                         <?php if ($item_context->has_variant): ?>
                                             <span class="badge badge-light border text-dark font-weight-normal ml-1" style="font-size: 12px;">
                                                 <?= htmlspecialchars($item_context->variant_display); ?>
@@ -528,31 +528,31 @@ nav.sidebar,
                                         <?php endif; ?>
                                     </div>
                                     <div class="small mb-1">
-                                        <strong class="text-secondary"><i class="fa fa-cubes"></i> Disputed Quantity:</strong>
-                                        <span class="badge badge-info ml-1 font-weight-bold" style="font-size: 12px;"><?= (int)$item_context->disputed_qty; ?> unit(s)</span>
+                                        <strong class="text-secondary"><i class="fa fa-cubes"></i> <?= $this->lang->line('disputed_quantity') ?: 'Disputed Quantity:'; ?></strong>
+                                        <span class="badge badge-info ml-1 font-weight-bold" style="font-size: 12px;"><?= (int)$item_context->disputed_qty; ?> <?= (int)$item_context->disputed_qty === 1 ? ($this->lang->line('unit_singular') ?: 'unit') : ($this->lang->line('unit_plural') ?: 'unit(s)'); ?></span>
                                     </div>
                                     <div class="small">
-                                        <strong class="text-secondary"><i class="fa fa-money"></i> Item Financial Basis:</strong>
+                                        <strong class="text-secondary"><i class="fa fa-money"></i> <?= $this->lang->line('item_financial_basis') ?: 'Item Financial Basis:'; ?></strong>
                                         <span class="font-weight-bold text-dark ml-1"><?= $currency; ?> <?= number_format($item_context->total_price, 2); ?></span>
-                                        <small class="text-muted">(<?= $currency; ?> <?= number_format($item_context->unit_price, 2); ?> / unit)</small>
+                                        <small class="text-muted">(<?= $currency; ?> <?= number_format($item_context->unit_price, 2); ?> / <?= $this->lang->line('unit_singular') ?: 'unit'; ?>)</small>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Col 2: Order & Reference Mapping -->
                             <div class="col-md-4 mb-3 mb-md-0 border-right">
-                                <div class="text-muted small text-uppercase font-weight-bold mb-1">Order & Reference Mapping</div>
+                                <div class="text-muted small text-uppercase font-weight-bold mb-1"><?= $this->lang->line('order_reference_mapping') ?: 'Order & Reference Mapping'; ?></div>
                                 <table class="table table-sm table-borderless mb-0" style="font-size: 13px;">
                                     <tr>
-                                        <td class="text-muted py-1" style="width: 48%;"><i class="fa fa-shopping-cart text-primary"></i> Shopper Order:</td>
+                                        <td class="text-muted py-1" style="width: 48%;"><i class="fa fa-shopping-cart text-primary"></i> <?= $this->lang->line('shopper_order') ?: 'Shopper Order:'; ?></td>
                                         <td class="font-weight-bold py-1">#<?= htmlspecialchars($item_context->order_number); ?></td>
                                     </tr>
                                     <tr>
-                                        <td class="text-muted py-1"><i class="fa fa-building text-info"></i> Merchant Order ID:</td>
+                                        <td class="text-muted py-1"><i class="fa fa-building text-info"></i> <?= $this->lang->line('merchant_order_id') ?: 'Merchant Order ID:'; ?></td>
                                         <td class="font-weight-bold py-1"><?= htmlspecialchars($item_context->merchant_order_number); ?></td>
                                     </tr>
                                     <tr>
-                                        <td class="text-muted py-1"><i class="fa fa-exchange" style="color: #6f42c1;"></i> Original Request:</td>
+                                        <td class="text-muted py-1"><i class="fa fa-exchange" style="color: #6f42c1;"></i> <?= $this->lang->line('original_request') ?: 'Original Request:'; ?></td>
                                         <td class="font-weight-bold py-1">
                                             <span class="badge badge-secondary"><?= htmlspecialchars($item_context->request_reference); ?></span>
                                             <small class="text-muted">(<?= htmlspecialchars($item_context->request_type_label); ?>)</small>
@@ -560,7 +560,7 @@ nav.sidebar,
                                     </tr>
                                     <?php if (!empty($item_context->request_date)): ?>
                                     <tr>
-                                        <td class="text-muted py-1"><i class="fa fa-calendar"></i> Request Date:</td>
+                                        <td class="text-muted py-1"><i class="fa fa-calendar"></i> <?= $this->lang->line('request_date') ?: 'Request Date:'; ?></td>
                                         <td class="py-1"><?= date('d M Y, h:i A', $item_context->request_date); ?> MUT</td>
                                     </tr>
                                     <?php endif; ?>
@@ -569,7 +569,7 @@ nav.sidebar,
 
                             <!-- Col 3: Original Rejection & History -->
                             <div class="col-md-4">
-                                <div class="text-muted small text-uppercase font-weight-bold mb-1">Original Rejection Context</div>
+                                <div class="text-muted small text-uppercase font-weight-bold mb-1"><?= $this->lang->line('original_rejection_context') ?: 'Original Rejection Context'; ?></div>
                                 <div class="mb-2">
                                     <span class="badge badge-danger p-1 px-2" style="font-size: 12px;">
                                         <i class="fa fa-ban mr-1"></i> <?= htmlspecialchars($item_context->rejection_status); ?>
@@ -580,14 +580,14 @@ nav.sidebar,
                                 </div>
 
                                 <div class="small mb-2">
-                                    <strong class="text-secondary">Original Customer Reason:</strong>
+                                    <strong class="text-secondary"><?= $this->lang->line('original_customer_reason') ?: 'Original Customer Reason:'; ?></strong>
                                     <div class="p-1 px-2 mt-1 rounded bg-light border text-dark" style="font-size: 12px; line-height: 1.4;">
                                         <?= htmlspecialchars($item_context->customer_reason); ?>
                                     </div>
                                 </div>
 
                                 <div class="small">
-                                    <strong class="text-secondary">Merchant Rejection Reason / Note:</strong>
+                                    <strong class="text-secondary"><?= $this->lang->line('merchant_rejection_reason_note') ?: 'Merchant Rejection Reason / Note:'; ?></strong>
                                     <div class="p-1 px-2 mt-1 rounded border text-danger" style="font-size: 12px; line-height: 1.4;">
                                         <i class="fa fa-commenting-o mr-1"></i> <?= htmlspecialchars($item_context->rejection_reason); ?>
                                     </div>
@@ -669,13 +669,13 @@ nav.sidebar,
                             <span class="font-weight-bold text-dark" style="font-size: 15px;">
                                 <i class="fa fa-shield text-info mr-1"></i> <?= $this->lang->line('conversion_merchant_admin_tab') ?: 'Support & Accounting (Merchant ↔ Support & Accounting)'; ?>
                             </span>
-                            <span class="badge badge-pill badge-info px-2 py-1"><?= count($merchant_admin_msgs); ?> <?= count($merchant_admin_msgs) === 1 ? 'Message' : 'Messages'; ?></span>
+                            <span class="badge badge-pill badge-info px-2 py-1"><?= count($merchant_admin_msgs); ?> <?= count($merchant_admin_msgs) === 1 ? ($this->lang->line('message') ?: 'Message') : ($this->lang->line('messages') ?: 'Messages'); ?></span>
                         </div>
 
                         <div class="card-body p-3">
                             <div class="alert alert-warning py-2 px-3 mb-3 d-flex justify-content-between align-items-center flex-wrap" style="font-size: 13px; color: #856404; border: 1px solid #ffeeba;">
-                                <div><i class="fa fa-lock text-warning mr-1"></i> <strong>Private Support &amp; Accounting Thread:</strong> Confidential coordination with YellowMarkets Support (@Help) and Accounting (@Acct). Both authorized teams have access to this thread.</div>
-                                <span class="badge badge-warning"><i class="fa fa-eye-slash"></i> Hidden from Shopper</span>
+                                <div><i class="fa fa-lock text-warning mr-1"></i> <strong><?= $this->lang->line('private_support_acct_thread') ?: 'Private Support & Accounting Thread:'; ?></strong> <?= $this->lang->line('private_support_acct_thread_desc') ?: 'Confidential coordination with YellowMarkets Support (@Help) and Accounting (@Acct). Both authorized teams have access to this thread.'; ?></div>
+                                <span class="badge badge-warning"><i class="fa fa-eye-slash"></i> <?= $this->lang->line('hidden_from_shopper') ?: 'Hidden from Shopper'; ?></span>
                             </div>
                             <div class="chat-container mb-3" style="max-height: 480px; overflow-y: auto; padding: 12px; background: #fafbfc; border: 1px solid #e9ecef; border-radius: 6px;">
                                 <?php if (!empty($merchant_admin_msgs)): ?>
@@ -738,8 +738,8 @@ nav.sidebar,
                                     <div class="card-body p-3">
                                         <div class="alert alert-warning py-1 px-3 mb-3" style="font-size: 12px; color: #856404; border: 1px solid #ffeeba;">
                                             <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                                <div><i class="fa fa-shield mr-1"></i> <strong>Recipient:</strong> YellowMarkets Support &amp; Accounting (@Help / @Acct)</div>
-                                                <div><i class="fa fa-eye-slash mr-1"></i> <strong>Visibility:</strong> Confidential coordination between Merchant, Support, and Accounting. Both Support and Accounting can access this thread. <em>Shopper cannot view this thread.</em></div>
+                                                <div><i class="fa fa-shield mr-1"></i> <strong><?= $this->lang->line('recipient_label') ?: 'Recipient:'; ?></strong> <?= $this->lang->line('merchant_acct_recipient_notice') ?: 'YellowMarkets Support & Accounting (@Help / @Acct)'; ?></div>
+                                                <div><i class="fa fa-eye-slash mr-1"></i> <strong><?= $this->lang->line('visibility') ?: 'Visibility:'; ?></strong> <?= $this->lang->line('merchant_acct_visibility_notice') ?: 'Confidential coordination between Merchant, Support, and Accounting. Both Support and Accounting can access this thread. Shopper cannot view this thread.'; ?></div>
                                             </div>
                                         </div>
                                         <form action="<?= base_url('order_resolution/reply'); ?>" method="POST" enctype="multipart/form-data">
@@ -780,19 +780,19 @@ nav.sidebar,
             <form action="<?= base_url('order_resolution/confirm_item_returned'); ?>" method="POST" class="ajax-resolution-form">
                 <input type="hidden" name="ticket_number" value="<?= htmlspecialchars($resolution->ticket_number); ?>">
                 <div class="modal-header bg-light">
-                    <h5 class="modal-title font-weight-bold text-dark"><i class="fa fa-undo"></i> Confirm Returned Item</h5>
+                    <h5 class="modal-title font-weight-bold text-dark"><i class="fa fa-undo"></i> <?= $this->lang->line('confirm_returned_item_title') ?: 'Confirm Returned Item'; ?></h5>
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="text-muted small">Record evidence that the disputed item was returned by the shopper. Refund processing remains with Accounting.</p>
+                    <p class="text-muted small"><?= $this->lang->line('confirm_returned_item_desc') ?: 'Record evidence that the disputed item was returned by the shopper. Refund processing remains with Accounting.'; ?></p>
                     <div class="form-group">
-                        <label class="font-weight-bold">Evidence / Reference (required):</label>
-                        <textarea name="evidence" class="form-control" rows="3" placeholder="Return tracking number, collection receipt or inspection notes" required></textarea>
+                        <label class="font-weight-bold"><?= $this->lang->line('evidence_reference_required') ?: 'Evidence / Reference (required):'; ?></label>
+                        <textarea name="evidence" class="form-control" rows="3" placeholder="<?= $this->lang->line('evidence_return_placeholder') ?: 'Return tracking number, collection receipt or inspection notes'; ?>" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal"><?= $this->lang->line('cancel') ?: 'Cancel'; ?></button>
-                    <button type="submit" class="btn btn-dark btn-sm">Confirm Item Returned</button>
+                    <button type="submit" class="btn btn-dark btn-sm"><?= $this->lang->line('btn_confirm_item_returned') ?: 'Confirm Item Returned'; ?></button>
                 </div>
             </form>
         </div>

@@ -274,7 +274,7 @@ tbody tr:hover td.sticky-action-col {
                     <div class="row resolution-header-row" style="margin-bottom: 20px;">
                         <div class="col-xs-12 col-sm-8 col-md-8">
                             <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #212529;"><?php echo $this->lang->line('order_resolution_requests') ?: 'Order Resolution Requests'; ?></h1>
-                            <div class="text-muted" style="font-size: 13px; margin-top: 4px;">Review your cases and communicate privately with YM Admin</div>
+                            <div class="text-muted" style="font-size: 13px; margin-top: 4px;"><?php echo $this->lang->line('review_cases_communicate_admin') ?: 'Review your cases and communicate privately with YM Admin'; ?></div>
                         </div>
                         <div class="col-xs-12 col-sm-4 col-md-4 text-right resolution-btn-wrap">
                             <a href="<?php echo base_url('order_resolution/create'); ?>" class="btn btn-info">
@@ -294,19 +294,19 @@ tbody tr:hover td.sticky-action-col {
                     <div class="row" style="margin-bottom: 20px;">
                         <div class="col-xs-4 col-sm-4 col-md-4">
                             <div style="background: #fff; border: 1px solid #dce1e5; border-radius: 9px; padding: 14px;">
-                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;">Under review</span>
+                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;"><?php echo $this->lang->line('stat_under_review') ?: 'Under review'; ?></span>
                                 <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 6px 0 0 0;"><?= $stats['under_review'] ?? 0; ?></h3>
                             </div>
                         </div>
                         <div class="col-xs-4 col-sm-4 col-md-4">
                             <div style="background: #fff; border: 1px solid #dce1e5; border-radius: 9px; padding: 14px;">
-                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;">Action required</span>
+                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;"><?php echo $this->lang->line('stat_action_required') ?: 'Action required'; ?></span>
                                 <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 6px 0 0 0;"><?= $stats['action_required'] ?? 0; ?></h3>
                             </div>
                         </div>
                         <div class="col-xs-4 col-sm-4 col-md-4">
                             <div style="background: #fff; border: 1px solid #dce1e5; border-radius: 9px; padding: 14px;">
-                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;">Closed</span>
+                                <span style="font-size: 11px; text-transform: uppercase; color: #64748b; font-weight: 700; display: block;"><?php echo $this->lang->line('stat_closed') ?: 'Closed'; ?></span>
                                 <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 6px 0 0 0;"><?= $stats['closed'] ?? 0; ?></h3>
                             </div>
                         </div>
@@ -316,14 +316,14 @@ tbody tr:hover td.sticky-action-col {
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 18px;">
                         <div class="row">
                             <div class="col-sm-8 col-xs-12" style="margin-bottom: 8px;">
-                                <input type="text" id="shopperTicketSearch" class="form-control" placeholder="Search ticket, order, or product..." oninput="filterShopperRows()">
+                                <input type="text" id="shopperTicketSearch" class="form-control" placeholder="<?php echo $this->lang->line('search_shopper_tickets_placeholder') ?: 'Search ticket, order, or product...'; ?>" oninput="filterShopperRows()">
                             </div>
                             <div class="col-sm-4 col-xs-12">
                                 <select id="shopperWorkflowFilter" class="form-control" onchange="filterShopperRows()">
-                                    <option value="">All statuses</option>
-                                    <option value="admin_review">Admin Review</option>
-                                    <option value="awaiting_shopper">Awaiting Shopper</option>
-                                    <option value="closed">Closed</option>
+                                    <option value=""><?php echo $this->lang->line('filter_all_statuses') ?: 'All statuses'; ?></option>
+                                    <option value="admin_review"><?php echo $this->lang->line('filter_admin_review') ?: 'Admin Review'; ?></option>
+                                    <option value="awaiting_shopper"><?php echo $this->lang->line('filter_awaiting_shopper') ?: 'Awaiting Shopper'; ?></option>
+                                    <option value="closed"><?php echo $this->lang->line('filter_closed') ?: 'Closed'; ?></option>
                                 </select>
                             </div>
                         </div>
@@ -336,9 +336,9 @@ tbody tr:hover td.sticky-action-col {
                                 <thead class="thead-light">
                                     <tr>
                                         <th style="width: 110px;"><?php echo $this->lang->line('ticket_no') ?: 'Ticket #'; ?></th>
-                                        <th style="min-width: 170px;" class="text-left"><?php echo $this->lang->line('order_number') ?: 'Order / Product'; ?></th>
-                                        <th style="width: 110px;"><?php echo $this->lang->line('category') ?: 'Category / Priority'; ?></th>
-                                        <th style="width: 160px;"><?php echo $this->lang->line('escalation_status') ?: 'Status / Next'; ?></th>
+                                        <th style="min-width: 170px;" class="text-left"><?php echo $this->lang->line('order_item') ?: 'Order / Product'; ?></th>
+                                        <th style="width: 110px;"><?php echo $this->lang->line('category_priority') ?: 'Category / Priority'; ?></th>
+                                        <th style="width: 160px;"><?php echo $this->lang->line('status_next') ?: 'Status / Next'; ?></th>
                                         <th style="width: 110px;"><?php echo $this->lang->line('last_activity') ?: 'Last Activity'; ?></th>
                                         <!--th class="sticky-action-col"><?php echo $this->lang->line('action') ?: 'Action'; ?></th-->
                                     </tr>
@@ -409,7 +409,7 @@ tbody tr:hover td.sticky-action-col {
                                                     </div>
                                                     <div class="mt-1">
                                                         <span class="label <?php echo ($guidance['actor_code'] === 'shopper') ? 'label-warning' : (($guidance['actor_code'] === 'merchant') ? 'label-primary' : (($guidance['actor_code'] === 'none') ? 'label-default' : 'label-info')); ?>" style="display: inline-block; font-size: 11px;">
-                                                            <i class="fa fa-user-circle"></i> Next: <?php echo htmlspecialchars($guidance['actor']); ?>
+                                                            <i class="fa fa-user-circle"></i> <?php echo $this->lang->line('next_step') ?: 'Next'; ?>: <?php echo htmlspecialchars($guidance['actor']); ?>
                                                         </span>
                                                     </div>
                                                     <div class="small text-muted mt-1 text-truncate" style="max-width: 160px;" title="<?php echo htmlspecialchars($guidance['action']); ?>">
@@ -527,7 +527,7 @@ tbody tr:hover td.sticky-action-col {
                                         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 10px; margin-top: 8px;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                                 <span class="label <?php echo ($guidance['actor_code'] === 'shopper') ? 'label-warning' : (($guidance['actor_code'] === 'merchant') ? 'label-primary' : (($guidance['actor_code'] === 'none') ? 'label-default' : 'label-info')); ?>" style="font-size: 11px;">
-                                                    <i class="fa fa-user-circle"></i> Next: <?php echo htmlspecialchars($guidance['actor']); ?>
+                                                    <i class="fa fa-user-circle"></i> <?php echo $this->lang->line('next_step') ?: 'Next'; ?>: <?php echo htmlspecialchars($guidance['actor']); ?>
                                                 </span>
                                                 <span class="label label-default" style="font-size: 10px;"><?php echo htmlspecialchars($guidance['short_action']); ?></span>
                                             </div>
