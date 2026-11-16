@@ -30,21 +30,23 @@ $show_description = (
     stripos($addon_name, 'Flash Sales') !== false
 );
 
-// Convert description into one line
+// Show ONLY the required description line
 $one_line_description = '';
 
 if ($show_description && !empty($description)) {
-    $one_line_description = trim(
-        preg_replace(
-            '/\s+/',
-            ' ',
-            html_entity_decode(
-                strip_tags($description),
-                ENT_QUOTES,
-                'UTF-8'
-            )
-        )
+
+    $plain_description = html_entity_decode(
+        strip_tags($description),
+        ENT_QUOTES,
+        'UTF-8'
     );
+
+    if (preg_match(
+        '/The Daily Delight:\s*One Product for One Day/i',
+        $plain_description
+    )) {
+        $one_line_description = 'The Daily Delight: One Product for One Day';
+    }
 }
 
 $order_number = $addon_purchase->order_number ?? '';
