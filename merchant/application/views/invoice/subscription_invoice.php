@@ -71,18 +71,16 @@ $expiry_date = $formatDate(
 
 // =====================================================
 // SUBSCRIPTION ID
-// IMPORTANT:
-// subscription_id / new_subscription_id must contain
-// the newly generated subscription record ID.
 // =====================================================
 
 $new_subscription_id = $getValue($order, [
     'new_subscription_id',
     'subscription_id',
     'subscription_record_id'
-], $invoice_id);
+], '');
 
 $old_subscription_id = $getValue($order, [
+    'renewal_of_subscription_id',
     'renewal_of',
     'previous_subscription_id',
     'old_subscription_id',
@@ -94,20 +92,9 @@ $old_subscription_id = $getValue($order, [
 // =====================================================
 
 $is_renewal = (
-    !empty($order['is_renewal']) &&
-    (string)$order['is_renewal'] === '1'
+    $old_subscription_id !== '' &&
+    (int)$old_subscription_id > 0
 );
-
-if ($old_subscription_id !== '') {
-    $is_renewal = true;
-}
-
-if (
-    !empty($order['purchase_type']) &&
-    strtolower($order['purchase_type']) === 'renewal'
-) {
-    $is_renewal = true;
-}
 
 // =====================================================
 // SUBSCRIPTION NAME

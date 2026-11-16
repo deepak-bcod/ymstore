@@ -173,77 +173,159 @@ class Subscription_model extends CI_Model
         return 7;
     }
 
-    public function subscribe_plan($publisher_id, $plan_id, $ip = null)
-    {
-        $plan = $this->get_plan_by_id($plan_id);
-        if (!$plan) return false;
+    
+public function subscribe_plan($publisher_id, $plan_id, $ip = null, $order_id = null)
+{
+    $plan = $this->get_plan_by_id($plan_id);
 
-        $start_date = date('Y-m-d H:i:s');
-        $ip = $ip ?: ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
-
-        $existing = $this->db->order_by('id', 'DESC')->get_where('publisher_subscriptions', [
-            'publisher_id' => $publisher_id
-        ])->row_array();
-
-        // If renewing the same active plan before it expires, extend from current end_date
-        if ($existing && $existing['status'] === 'active' && !empty($existing['end_date']) && strtotime($existing['end_date']) > strtotime($start_date) && $existing['plan_id'] == $plan_id) {
-            $end_date = date('Y-m-d H:i:s', strtotime('+1 year', strtotime($existing['end_date'])));
-        } else {
-            $end_date = date('Y-m-d H:i:s', strtotime('+1 year', strtotime($start_date)));
-        }
-
-        if ($existing) {
-            // Update existing subscription to active and reset reminder tracking
-            $updateData = [
-                'plan_id'    => $plan_id,
-                'status'     => 'active',
-                'start_date' => $start_date,
-                'end_date'   => $end_date,
-                'ip'         => $ip,
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-            if ($this->db->field_exists('reminder_month_sent', 'publisher_subscriptions')) {
-                $updateData['reminder_month_sent']    = 0;
-                $updateData['reminder_month_sent_at'] = NULL;
-                $updateData['reminder_week_sent']     = 0;
-                $updateData['reminder_week_sent_at']  = NULL;
-            }
-            $this->db->where('id', $existing['id'])->update('publisher_subscriptions', $updateData);
-        } else {
-            $data = [
-                'publisher_id' => $publisher_id,
-                'plan_id'      => $plan_id,
-                'status'       => 'active',
-                'start_date'   => $start_date,
-                'end_date'     => $end_date,
-                'ip'           => $ip,
-                'created_at'   => date('Y-m-d H:i:s'),
-                'updated_at'   => NULL
-            ];
-            if ($this->db->field_exists('reminder_month_sent', 'publisher_subscriptions')) {
-                $data['reminder_month_sent']    = 0;
-                $data['reminder_month_sent_at'] = NULL;
-                $data['reminder_week_sent']     = 0;
-                $data['reminder_week_sent_at']  = NULL;
-            }
-        }
-
-        // Synchronize end_date to latest subscription_orders record for easy display in subscription list
-        $this->ensure_subscription_invoice_schema();
-        if ($this->db->table_exists('subscription_orders') && $this->db->field_exists('end_date', 'subscription_orders')) {
-            $latest_order = $this->db
-                ->where('publisher_id', $publisher_id)
-                ->order_by('id', 'DESC')
-                ->limit(1)
-                ->get('subscription_orders')
-                ->row_array();
-            if ($latest_order) {
-                $this->db->where('id', $latest_order['id'])->update('subscription_orders', ['end_date' => $end_date]);
-            }
-        }
-
-        return true;
+    if (!$plan) {
+        return false;
     }
+
+    $now = date('Y-m-d H:i:s');
+    $today = strtotime(date('Y-m-d 00:00:00'));
+    $ip = $ip ?: ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+
+    $this->db->trans_begin();
+
+    // 1. Find the latest subscription for this publisher.
+    $existing = $this->db
+        ->where('publisher_id', $publisher_id)
+        ->order_by('id', 'DESC')
+        ->limit(1)
+        ->get('publisher_subscriptions')
+        ->row_array();
+
+    $renewal_of_subscription_id = null;
+    $start_timestamp = $today;
+
+    // 2. Determine whether this is a renewal of the same plan.
+    if (
+        $existing &&
+        (int) $existing['plan_id'] === (int) $plan_id
+    ) {
+        $renewal_of_subscription_id = (int) $existing['id'];
+
+        // If the current subscription is still active,
+        // start the new term on the day after its expiry.
+        if (
+            $existing['status'] === 'active' &&
+            !empty($existing['end_date']) &&
+            strtotime($existing['end_date']) >= $today
+        ) {
+            $start_timestamp = strtotime(
+                '+1 day',
+                strtotime(date('Y-m-d', strtotime($existing['end_date'])))
+            );
+        }
+    }
+
+    // 3. Calculate the new yearly term.
+    $start_date = date('Y-m-d 00:00:00', $start_timestamp);
+
+    // End on the day before the next anniversary.
+    $end_timestamp = strtotime('+1 year', $start_timestamp) - 1;
+
+    $end_date = date('Y-m-d H:i:s', $end_timestamp);
+
+    // 4. Find and validate the exact paid order.
+    $order = null;
+
+    if (!empty($order_id)) {
+        $order = $this->db
+            ->where('id', (int) $order_id)
+            ->where('publisher_id', $publisher_id)
+            ->where('plan_id', $plan_id)
+            ->where('status', 'paid')
+            ->get('subscription_orders')
+            ->row_array();
+    } else {
+        // Backward-compatible fallback.
+        // It is safer to pass the exact order ID from the payment callback.
+        $order = $this->db
+            ->where('publisher_id', $publisher_id)
+            ->where('plan_id', $plan_id)
+            ->where('status', 'paid')
+            ->where('new_subscription_id IS NULL', null, false)
+            ->order_by('id', 'DESC')
+            ->limit(1)
+            ->get('subscription_orders')
+            ->row_array();
+
+        if ($order) {
+            $order_id = (int) $order['id'];
+        }
+    }
+
+    // Do not create a subscription without a matching paid order.
+    if (!$order) {
+        $this->db->trans_rollback();
+        return false;
+    }
+
+    // 5. Deactivate the previous active subscription.
+    // The previous record is preserved; it is never overwritten.
+    $this->db
+        ->where('publisher_id', $publisher_id)
+        ->where('status', 'active')
+        ->update('publisher_subscriptions', [
+            'status'     => 'expired',
+            'updated_at' => $now
+        ]);
+
+    // 6. Insert a completely new subscription record.
+    $subscription_data = [
+        'publisher_id' => $publisher_id,
+        'plan_id'      => $plan_id,
+        'status'       => 'active',
+        'start_date'   => $start_date,
+        'end_date'     => $end_date,
+        'ip'           => $ip,
+        'created_at'   => $now,
+        'updated_at'   => null,
+
+        'reminder_month_sent'    => 0,
+        'reminder_month_sent_at' => null,
+        'reminder_week_sent'     => 0,
+        'reminder_week_sent_at'  => null
+    ];
+
+    $this->db->insert(
+        'publisher_subscriptions',
+        $subscription_data
+    );
+
+    $new_subscription_id = (int) $this->db->insert_id();
+
+    if ($new_subscription_id <= 0) {
+        $this->db->trans_rollback();
+        return false;
+    }
+
+    // 7. Update the exact paid order with both subscription IDs.
+    $order_update = [
+        'renewal_of_subscription_id' => $renewal_of_subscription_id,
+        'new_subscription_id'        => $new_subscription_id,
+        'end_date'                   => $end_date,
+        'updated_at'                 => $now
+    ];
+
+    $this->db
+        ->where('id', $order_id)
+        ->where('publisher_id', $publisher_id)
+        ->update('subscription_orders', $order_update);
+
+    // 8. Check and commit transaction.
+    if ($this->db->trans_status() === false) {
+        $this->db->trans_rollback();
+        return false;
+    }
+
+    $this->db->trans_commit();
+
+    // Return the newly created subscription ID.
+    return $new_subscription_id;
+}
 
     public function get_plan_by_id($plan_id)
     {
