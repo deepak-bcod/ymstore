@@ -252,7 +252,6 @@ class ProductReviewModel extends CI_Model
 
             $this->db->select("pr.*, " . $pr_status_expr . ",
                                COALESCE(pr.product_name, p.name, 'Product') AS product_name,
-                               p.product_image,
                                pub.publication_name, pub.trade_name,
                                mr.order_id,
                                COALESCE(mr.B2B_order_id, bo.order_id, '') AS B2B_order_id,
@@ -265,7 +264,8 @@ class ProductReviewModel extends CI_Model
             $this->db->join('customers c', 'c.id = mr.customer_id', 'left');
             $this->db->join('b2b_orders bo', 'bo.order_id = mr.order_id', 'left');
             $this->db->where('pr.id', (int)$id);
-            return $this->db->get()->row_array();
+            $query = $this->db->get();
+            return $query ? $query->row_array() : null;
         }
         return null;
     }

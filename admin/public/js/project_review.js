@@ -238,8 +238,14 @@ function viewReviewDetails(type, reviewId) {
                 $('#pro-review-popup').html('<div class="alert alert-danger">' + (response.msg || 'Failed to load details') + '</div>');
             }
         },
-        error: function() {
-            $('#pro-review-popup').html('<div class="alert alert-danger">Error fetching review details.</div>');
+        error: function(xhr) {
+            var err = 'Error fetching review details.';
+            if (xhr && xhr.responseJSON && xhr.responseJSON.msg) {
+                err = xhr.responseJSON.msg;
+            } else if (xhr && xhr.responseText && xhr.responseText.length < 500) {
+                err = xhr.responseText;
+            }
+            $('#pro-review-popup').html('<div class="alert alert-danger">' + err + '</div>');
         }
     });
 }

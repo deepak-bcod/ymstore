@@ -206,50 +206,56 @@ class ProductReviewController extends CI_Controller {
 
     public function viewOrderReviews()
     {
-        $review_id = (int)$this->input->post('review_id');
-        $type = trim((string)$this->input->post('type'));
-        if (empty($type)) {
-            $type = 'merchant';
-        }
+        try {
+            $review_id = (int)$this->input->post('review_id');
+            $type = trim((string)$this->input->post('type'));
+            if (empty($type)) {
+                $type = 'merchant';
+            }
 
-        if (empty($review_id)) {
-            echo json_encode(array("flag" => 0, "msg" => "Invalid review ID."));
-            exit;
-        }
-
-        $review = $this->ProductReviewModel->getSingleReviewDetails($type, $review_id);
-        if (empty($review)) {
-            // Fallback for parent order reviews
-            $details = $this->ProductReviewModel->getOrderReviewDetails($review_id);
-            if (empty($details)) {
-                echo json_encode(array("flag" => 0, "msg" => "Review details not found."));
+            if (empty($review_id)) {
+                echo json_encode(array("flag" => 0, "msg" => "Invalid review ID."));
                 exit;
             }
-            $data['details'] = $details;
-            $data['review_type'] = 'all';
+
+            $review = $this->ProductReviewModel->getSingleReviewDetails($type, $review_id);
+            if (empty($review)) {
+                // Fallback for parent order reviews
+                $details = $this->ProductReviewModel->getOrderReviewDetails($review_id);
+                if (empty($details)) {
+                    echo json_encode(array("flag" => 0, "msg" => "Review details not found."));
+                    exit;
+                }
+                $data['details'] = $details;
+                $data['review_type'] = 'all';
+                $html = $this->load->view('product_review/popup-data', $data, true);
+                echo json_encode(array(
+                    "flag"        => 1, 
+                    "data"        => $html,
+                    "modal_title" => '<i class="fa fa-star text-warning mr-2"></i> Order Reviews & Moderation'
+                ));
+                exit;
+            }
+
+            $data['review'] = $review;
+            $data['review_type'] = $type;
             $html = $this->load->view('product_review/popup-data', $data, true);
+
+            $modal_title = ($type === 'merchant') 
+                ? '<i class="fa fa-store text-info mr-2"></i> Merchant Service Review' 
+                : '<i class="fa fa-box mr-2" style="color: #6f42c1;"></i> Product Review';
+
             echo json_encode(array(
                 "flag"        => 1, 
                 "data"        => $html,
-                "modal_title" => '<i class="fa fa-star text-warning mr-2"></i> Order Reviews & Moderation'
+                "modal_title" => $modal_title
             ));
             exit;
+        } catch (Throwable $e) {
+            log_message('error', 'viewOrderReviews error: ' . $e->getMessage());
+            echo json_encode(array("flag" => 0, "msg" => "Error loading review: " . $e->getMessage()));
+            exit;
         }
-
-        $data['review'] = $review;
-        $data['review_type'] = $type;
-        $html = $this->load->view('product_review/popup-data', $data, true);
-
-        $modal_title = ($type === 'merchant') 
-            ? '<i class="fa fa-store text-info mr-2"></i> Merchant Service Review' 
-            : '<i class="fa fa-box mr-2" style="color: #6f42c1;"></i> Product Review';
-
-        echo json_encode(array(
-            "flag"        => 1, 
-            "data"        => $html,
-            "modal_title" => $modal_title
-        ));
-        exit;
     }
 
     public function delete_review()
