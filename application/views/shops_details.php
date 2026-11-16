@@ -87,34 +87,31 @@
 							<div class="block-content left-shop-block">
 								<div class="pic-shop-div">  
 								<?php 
-									$shop_image = !empty($shop_details->shop_image) && file_exists(FCPATH.'merchant/public/images/shop_images/'.$shop->shop_image) ? base_url('merchant/public/images/shop_images/'.$shop_details->shop_image) : 'http://via.placeholder.com/135x135';
-								
+									$shop_img_file = !empty($shop_details->shop_image) ? $shop_details->shop_image : '';
+									$shop_image = (!empty($shop_img_file) && file_exists(FCPATH.'merchant/public/images/shop_images/'.$shop_img_file)) 
+										? base_url('merchant/public/images/shop_images/'.$shop_img_file) 
+										: 'http://via.placeholder.com/135x135';
 								?>         
-								<img src="<?php echo $shop_image; ?>" alt="<?php echo $shop->vendor_name; ?>" class="imagebox">
+								<img src="<?php echo $shop_image; ?>" alt="<?php echo !empty($shop_details->publication_name) ? htmlspecialchars($shop_details->publication_name) : 'Shop'; ?>" class="imagebox">
 
 								<div class="badge-shop-left">
-																			<?php 
-											$avg = round($rating->avg_rating); // average rating from model
+									<?php 
+										$avg = !empty($rating->avg_rating) ? (float)$rating->avg_rating : 0.0;
 
-											// Only assign badge if avg rating is 3 or above
-											$badge = '';
-											if ($avg >= 3) {
-												if ($avg == 3) {
-													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_3_stars.svg';
-												} elseif ($avg == 4) {
-													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_4_stars.svg';
-												} elseif ($avg == 5) {
-													$badge = IMAGE_URL . '/uploads/trust_badges/ym_trusted_badges_5_stars.svg';
-												}
-											}
-
-										?>
-
-										<?php if($badge): ?>
-											<img src="<?= $badge; ?>" alt="Trust Badge" width="100">
-										<?php endif; ?>
-										</div>
-									</div>
+										// Illustrative selection based on rating calculation
+										if ($avg >= 4.5) {
+											$badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+										} elseif ($avg >= 3.5) {
+											$badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+										} elseif ($avg >= 2.5) {
+											$badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+										} else {
+											$badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+										}
+									?>
+									<img src="<?= $badge; ?>" alt="<?= $this->lang->line('trust_badge_alt') ?: 'Trust Badge'; ?>" width="100">
+								</div>
+								</div>
 								<ul>
 									<li>
                            				<label>
