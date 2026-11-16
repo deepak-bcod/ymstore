@@ -22,15 +22,6 @@ $merchant_brn = $addon_purchase->merchant_brn ?? '';
 $service_name = $addon_purchase->addon_service_name ?? '';
 $addon_name = $addon_purchase->addon_name ?? '';
 $description = $addon_purchase->addon_description ?? '';
-$addon_category_name = strtolower(
-    trim($addon_purchase->addon_category_name ?? '')
-);
-
-$show_description = in_array(
-    $addon_category_name,
-    ['daily deals', 'flash sales'],
-    TRUE
-);
 
 $order_number = $addon_purchase->order_number ?? '';
 $ticket_number = $addon_purchase->ticket_number ?? '';
@@ -801,45 +792,48 @@ body {
                     <strong><?php echo $e($service_name); ?></strong>
                 </td>
 
-                <td>
+              
+<td>
+    <?php
+    // Use the correct service category variable
+    $service_type = strtolower(trim($service_name));
 
-                    <strong><?php echo $e($addon_name); ?></strong>
+    // Show description ONLY for Daily Deals and Flash Sales
+    if (
+        in_array($service_type, ['daily deals', 'flash sales'], TRUE)
+        && !empty($description)
+    ) {
 
-                    <?php if (!empty($description)): ?>
-        <br>
-        <span style="display:block; font-size:9px; color:#52647b; line-height:1.4; white-space:normal;">
-            <?php
-            echo nl2br(
-                $e(
-                    html_entity_decode(
-                        strip_tags($description),
-                        ENT_QUOTES,
-                        'UTF-8'
-                    )
-                )
-            );
-            ?>
-        </span>
-    <?php endif; ?>
+        $clean_description = html_entity_decode(
+            strip_tags($description),
+            ENT_QUOTES,
+            'UTF-8'
+        );
 
-                    <?php if (!empty($order_number)): ?>
+        $clean_description = trim(
+            preg_replace('/\s+/', ' ', $clean_description)
+        );
 
-                        <br>
+        // Remove the long promotional description
+        $parts = preg_split(
+            '/\s+Welcome to\b/i',
+            $clean_description,
+            2
+        );
 
-                        <span style="font-size:10px;color:#68778b;">
+        $clean_description = trim($parts[0]);
 
-                            Replacement Delivery for Order #
-                            <?php echo $e($order_number); ?>
+        if (!empty($clean_description)) {
+    ?>
+            <span style="color:#52647b;">
+                <?php echo $e($clean_description); ?>
+            </span>
+    <?php
+        }
+    }
+    ?>
+</td>
 
-                            <?php if (!empty($ticket_number)): ?>
-                                (Ticket <?php echo $e($ticket_number); ?>)
-                            <?php endif; ?>
-
-                        </span>
-
-                    <?php endif; ?>
-
-                </td>
 
                 <td class="text-center">1</td>
 

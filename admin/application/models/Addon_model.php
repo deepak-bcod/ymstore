@@ -133,10 +133,9 @@ public function get_purchase_by_id($purchase_id, $merchant_id = null)
         p.status AS payment_status,
         c.name AS addon_service_name,
         s.title AS addon_name,
-        
-        s.description AS addon_description,
         s.price,
         s.final_price,
+        s.description AS addon_description,
         s.vat_percent,
         COALESCE(NULLIF(p.amount, 0), MAX(txn.amount), s.final_price) AS amount,
         MAX(res.order_number) AS order_number,
