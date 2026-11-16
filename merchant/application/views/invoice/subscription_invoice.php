@@ -1,166 +1,274 @@
 
 <?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
 // =====================================================
-// YELLOW MARKETS - SUBSCRIPTION INVOICE
+// YELLOW MARKETS - SUBSCRIPTION / RENEWAL INVOICE
 // =====================================================
 
 $e = function ($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 };
 
-$publisher = isset($order['publisher']) && is_array($order['publisher'])
+$publisher = (isset($order['publisher']) && is_array($order['publisher']))
     ? $order['publisher'] : [];
 
-$plan = isset($order['plan']) && is_array($order['plan'])
+$plan = (isset($order['plan']) && is_array($order['plan']))
     ? $order['plan'] : [];
 
-// Basic invoice information
+$getValue = function ($source, $keys, $default = '') {
+    if (!is_array($source)) {
+        return $default;
+    }
+
+    foreach ($keys as $key) {
+        if (isset($source[$key]) && trim((string)$source[$key]) !== '') {
+            return $source[$key];
+        }
+    }
+
+    return $default;
+};
+
+$formatDate = function ($date, $fallback = 'N/A') {
+    if (empty($date)) {
+        return $fallback;
+    }
+
+    $timestamp = strtotime($date);
+
+    return ($timestamp !== false)
+        ? date('d F Y', $timestamp)
+        : $fallback;
+};
+
+// =====================================================
+// BASIC INVOICE INFORMATION
+// =====================================================
+
 $invoice_id = $order['id'] ?? '';
-$merchant_name = $publisher['publication_name']
-    ?? $publisher['name'] ?? 'N/A';
 
-$plan_name = $plan['name'] ?? 'Subscription Plan';
-
-$amount = isset($order['amount'])
-    ? (float)$order['amount'] : 0;
-
-$status = strtolower($order['status'] ?? 'unpaid');
-
-$currency = $order['currency'] ?? 'MUR';
-
-// Dates
-$created_timestamp = !empty($order['created_at'])
-    ? strtotime($order['created_at']) : time();
-
-$created_date = date('d F Y', $created_timestamp);
-
-$expiry_date = !empty($order['expiry_date'])
-    ? date('d F Y', strtotime($order['expiry_date']))
-    : date('d F Y', strtotime('+1 year', $created_timestamp));
-
-// Invoice references
 $invoice_number = $order['invoice_number']
     ?? 'SUB-INV-' . str_pad($invoice_id, 6, '0', STR_PAD_LEFT);
 
 $order_reference = $order['order_reference']
     ?? 'SUB-ORDER-' . $invoice_id;
 
+$currency = $order['currency'] ?? 'MUR';
+
+$status = strtolower($order['status'] ?? 'unpaid');
+
+$created_timestamp = !empty($order['created_at'])
+    ? strtotime($order['created_at'])
+    : time();
+
+$created_date = date('d F Y', $created_timestamp);
+
+$expiry_date = $formatDate(
+    $order['expiry_date'] ?? '',
+    date('d F Y', strtotime('+1 year', $created_timestamp))
+);
+
+// =====================================================
+// SUBSCRIPTION ID
+// IMPORTANT:
+// subscription_id / new_subscription_id must contain
+// the newly generated subscription record ID.
+// =====================================================
+
+$new_subscription_id = $getValue($order, [
+    'new_subscription_id',
+    'subscription_id',
+    'subscription_record_id'
+], $invoice_id);
+
+$old_subscription_id = $getValue($order, [
+    'renewal_of',
+    'previous_subscription_id',
+    'old_subscription_id',
+    'renewed_from_subscription_id'
+], '');
+
+// =====================================================
+// RENEWAL DETECTION
+// =====================================================
+
+$is_renewal = (
+    !empty($order['is_renewal']) &&
+    (string)$order['is_renewal'] === '1'
+);
+
+if ($old_subscription_id !== '') {
+    $is_renewal = true;
+}
+
+if (
+    !empty($order['purchase_type']) &&
+    strtolower($order['purchase_type']) === 'renewal'
+) {
+    $is_renewal = true;
+}
+
 // =====================================================
 // SUBSCRIPTION NAME
 // =====================================================
 
-$subscription_reference = '';
+$plan_name = $plan['name'] ?? 'Subscription Plan';
 
-if (
-    isset($order['subscription_reference']) &&
-    trim((string)$order['subscription_reference']) !== ''
-) {
-    $subscription_reference = $order['subscription_reference'];
+$subscription_reference = $getValue($order, [
+    'subscription_reference',
+    'subscription_name'
+], $plan_name);
 
-} elseif (
-    isset($order['subscription_name']) &&
-    trim((string)$order['subscription_name']) !== ''
-) {
-    $subscription_reference = $order['subscription_name'];
+// =====================================================
+// SUBSCRIPTION TERMS
+// =====================================================
 
-} elseif (
-    isset($plan['name']) &&
-    trim((string)$plan['name']) !== ''
-) {
-    $subscription_reference = $plan['name'];
+$term = $order['term'] ?? 'Yearly';
 
-} else {
-    $subscription_reference = $plan_name;
-}
+$billing_period = $order['billing_period'] ?? $term;
+
+// Previous term
+$previous_term_reference = $getValue($order, [
+    'previous_term_reference',
+    'old_term_reference',
+    'previous_term_id'
+], 'N/A');
+
+$previous_term_start = $getValue($order, [
+    'previous_term_start',
+    'old_term_start',
+    'previous_start_date'
+]);
+
+$previous_term_expiry = $getValue($order, [
+    'previous_term_expiry',
+    'old_term_expiry',
+    'previous_expiry_date'
+]);
+
+// New term
+$new_term_reference = $getValue($order, [
+    'new_term_reference',
+    'current_term_reference',
+    'term_reference',
+    'term_id'
+], 'N/A');
+
+$new_term_start = $getValue($order, [
+    'new_term_start',
+    'current_term_start',
+    'term_start_date'
+]);
+
+$new_term_expiry = $getValue($order, [
+    'new_term_expiry',
+    'current_term_expiry',
+    'term_expiry_date'
+]);
+
+// Service dates
+$service_start_date = $formatDate(
+    $new_term_start,
+    $created_date
+);
+
+$service_expiry_date = $formatDate(
+    $new_term_expiry,
+    $expiry_date
+);
 
 // =====================================================
 // MERCHANT DETAILS
 // =====================================================
-// Read the first available, non-empty value from the publisher data.
-// The exact database column names must be included in the controller's
-// $order['publisher'] result.
-$getPublisherValue = function (array $source, array $keys, $default = 'N/A') {
-    foreach ($keys as $key) {
-        if (isset($source[$key]) && trim((string)$source[$key]) !== '') {
-            return $source[$key];
-        }
-    }
-    return $default;
-};
 
-$merchant_name = $getPublisherValue($publisher, [
-    'publication_name', 'legal_name', 'merchant_legal_name', 'business_name', 'name'
+$merchant_name = $getValue($publisher, [
+    'publication_name',
+    'legal_name',
+    'merchant_legal_name',
+    'business_name',
+    'name'
 ], 'N/A');
 
-$merchant_address = $getPublisherValue($publisher, [
-    'billing_address', 'business_address', 'company_address',
-    'registered_address', 'merchant_address', 'address',
-    'address_line_1', 'address1', 'street_address'
+$merchant_address = $getValue($publisher, [
+    'billing_address',
+    'business_address',
+    'company_address',
+    'registered_address',
+    'merchant_address',
+    'address',
+    'address_line_1',
+    'address1',
+    'street_address'
 ], 'N/A');
 
-$merchant_brn = $getPublisherValue($publisher, [
-    'brn_number', 'brn_no', 'business_registration_number',
-    'business_reg_no', 'company_brn', 'merchant_brn', 'brn', 'BRN'
+$merchant_brn = $getValue($publisher, [
+    'brn_number',
+    'brn_no',
+    'business_registration_number',
+    'business_reg_no',
+    'company_brn',
+    'merchant_brn',
+    'brn',
+    'BRN'
 ], 'N/A');
 
-$merchant_email = $getPublisherValue($publisher, [
-    'billing_email', 'business_email', 'merchant_email', 'email'
+$merchant_email = $getValue($publisher, [
+    'billing_email',
+    'business_email',
+    'merchant_email',
+    'email'
 ], 'N/A');
 
-$merchant_phone = $getPublisherValue($publisher, [
-    'billing_phone', 'phone_no', 'mobile_no', 'contact_number', 'phone'
+$merchant_phone = $getValue($publisher, [
+    'billing_phone',
+    'phone_no',
+    'mobile_no',
+    'contact_number',
+    'phone'
 ], 'N/A');
-
-$merchant_reference = $getPublisherValue($publisher, [
-    'merchant_reference', 'publisher_reference', 'reference_code'
-], 'N/A');
-
-// VAT
-// Supply vat_rate from your actual invoice data.
-// Default is 0% when no VAT rate is supplied.
 
 // =====================================================
-// SUBSCRIPTION PRICE AND VAT CALCULATION
+// PRICE AND VAT
 // =====================================================
 
-// Get yearly price from subscription plan
+$amount = isset($order['amount'])
+    ? (float)$order['amount']
+    : 0;
+
 $yearly_price = (float)(
-    $plan['yearly_price']
+    $order['invoice_amount']
+    ?? $plan['yearly_price']
     ?? $plan['yearlyPrice']
     ?? $plan['price']
     ?? $amount
 );
 
-// Get VAT percentage from subscription plan
 $vat_rate = (float)(
-    $plan['vat_rate']
+    $order['vat_rate']
+    ?? $plan['vat_rate']
     ?? $plan['vat_percentage']
     ?? $plan['ym_vat']
-    ?? $order['vat_rate']
     ?? 0
 );
 
-// Subtotal = Yearly Price
 $subtotal = $yearly_price;
 
-// Calculate VAT
 $vat_amount = ($subtotal * $vat_rate) / 100;
 
-// Final Price = Yearly Price + VAT
-$invoice_total = isset($plan['final_price'])
-    ? (float)$plan['final_price']
-    : ($subtotal + $vat_amount);
+$invoice_total = isset($order['final_price'])
+    ? (float)$order['final_price']
+    : (isset($plan['final_price'])
+        ? (float)$plan['final_price']
+        : $subtotal + $vat_amount);
 
-// Payment information
+// =====================================================
+// PAYMENT INFORMATION
+// =====================================================
+
 $payment_allocated = ($status === 'paid')
-    ? $invoice_total : 0;
-
-$amount_due = max(0, $invoice_total - $payment_allocated);
-
-
-// Payment information
-$payment_allocated = ($status === 'paid')
-    ? $invoice_total : 0;
+    ? $invoice_total
+    : 0;
 
 $amount_due = max(0, $invoice_total - $payment_allocated);
 
@@ -170,18 +278,9 @@ $payment_method = $order['payment_method']
 $transaction_reference = $order['transaction_reference']
     ?? 'N/A';
 
-// Subscription term
-$term = $order['term'] ?? 'Yearly';
-
-$billing_period = $order['billing_period'] ?? 'Yearly';
-
 // =====================================================
 // LOGO
 // =====================================================
-
-// Prefer a transparent logo file.
-// Place yellow-markets-logo-transparent.png in one
-// of the locations below.
 
 $logo_image_src = '';
 
@@ -190,10 +289,7 @@ $candidate_logos = [
     FCPATH . 'uploads/yellow-markets-logo.png',
     FCPATH . 'public/images/yellow-markets-logo-transparent.png',
     dirname(FCPATH) . '/merchant/public/images/yellow-markets-logo-transparent.png',
-
-    // Existing logo fallback.
-    // This may have a black background baked into the PNG.
-    dirname(FCPATH) . '/merchant/public/images/yellow-markets-logo-yellow-white.png',
+    dirname(FCPATH) . '/merchant/public/images/yellow-markets-logo-yellow-white.png'
 ];
 
 foreach ($candidate_logos as $logo_path) {
@@ -202,7 +298,7 @@ foreach ($candidate_logos as $logo_path) {
 
         $ext = strtolower(pathinfo($logo_path, PATHINFO_EXTENSION));
 
-        $mime = ($ext === 'jpg' || $ext === 'jpeg')
+        $mime = in_array($ext, ['jpg', 'jpeg'])
             ? 'image/jpeg'
             : 'image/png';
 
@@ -213,14 +309,6 @@ foreach ($candidate_logos as $logo_path) {
     }
 }
 
-if (
-    empty($logo_image_src) &&
-    !empty($logo_src) &&
-    strpos($logo_src, 'data:image') === 0
-) {
-    $logo_image_src = $logo_src;
-}
-
 ?>
 
 <!DOCTYPE html>
@@ -229,7 +317,6 @@ if (
 <head>
 
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Invoice - <?php echo $e($invoice_number); ?></title>
@@ -257,37 +344,23 @@ body {
     padding: 25px 30px;
     background: #ffffff;
     box-shadow: 0 0 5px rgba(0,0,0,0.12);
-    box-sizing: border-box;
 }
 
-/* PRINT BUTTON */
-
-.print-button {
-    text-align: right;
-    margin-bottom: 12px;
-}
-
-.print-button button {
-    padding: 8px 18px;
-    background: #e3ad13;
-    color: #ffffff;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-/* HEADER */
-
-.header-table {
+.header-table,
+.details-table,
+.service-table,
+.bottom-table,
+.totals-table {
     width: 100%;
     border-collapse: collapse;
+}
+
+.header-table {
     table-layout: fixed;
 }
 
 .header-table td {
     vertical-align: middle;
-    padding: 0;
 }
 
 .logo-box {
@@ -305,29 +378,21 @@ body {
     width: auto;
     height: auto;
     object-fit: contain;
-    background: transparent;
-    border: 0;
 }
 
 .invoice-heading {
-    display: block;
-    width: 100%;
     text-align: right;
     font-size: 21px;
     font-weight: bold;
     color: #202938;
-    white-space: normal;
     overflow-wrap: anywhere;
-    word-break: normal;
 }
 
 .invoice-number-small {
     font-size: 10px;
-    color: #666666;
+    color: #666;
     text-align: right;
 }
-
-/* YELLOW LINE */
 
 .yellow-line {
     width: 100%;
@@ -336,22 +401,16 @@ body {
     margin: 12px 0;
 }
 
-/* SUBSCRIPTION DETAILS TITLE */
-
 .subscription-title {
     font-size: 19px;
     font-weight: bold;
-    letter-spacing: 0.3px;
     color: #202938;
     margin: 18px 0 12px;
 }
 
-/* COMPANY INFORMATION */
-
 .company-details {
     font-size: 10px;
     line-height: 1.5;
-    color: #333333;
 }
 
 .company-name {
@@ -364,20 +423,14 @@ body {
     margin: 12px 0;
 }
 
-/* MERCHANT AND INVOICE DETAILS */
-
-.details-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
 .details-table td {
     width: 50%;
     vertical-align: top;
     padding: 5px 12px 8px 0;
 }
 
-.section-heading {
+.section-heading,
+.service-heading {
     font-size: 12px;
     font-weight: bold;
     color: #202938;
@@ -387,7 +440,7 @@ body {
 .detail-line {
     font-size: 10px;
     line-height: 1.5;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
     overflow-wrap: anywhere;
 }
 
@@ -395,26 +448,17 @@ body {
     font-weight: bold;
 }
 
-/* SERVICE TABLE */
-
 .service-heading {
-    font-size: 12px;
-    font-weight: bold;
     margin: 12px 0 7px;
-    color: #202938;
 }
 
 .service-table {
-    width: 100%;
-    max-width: 100%;
-    border-collapse: collapse;
-    font-size: 10px;
     table-layout: fixed;
+    font-size: 10px;
 }
 
 .service-table th {
     background: #eeeeef;
-    color: #303030;
     font-weight: bold;
     text-align: left;
     padding: 9px 7px;
@@ -436,11 +480,7 @@ body {
     text-align: right !important;
 }
 
-/* PAYMENT AND TOTALS */
-
 .bottom-table {
-    width: 100%;
-    border-collapse: collapse;
     margin-top: 15px;
 }
 
@@ -465,17 +505,12 @@ body {
     font-weight: bold;
 }
 
-/* TOTALS */
-
 .totals-table {
-    width: 100%;
-    border-collapse: collapse;
     font-size: 10px;
 }
 
 .totals-table td {
     padding: 4px 0;
-    vertical-align: middle;
 }
 
 .totals-table .invoice-total td {
@@ -491,42 +526,27 @@ body {
     padding-top: 7px;
 }
 
-/* SERVICE NOTES */
-
 .service-notes {
     margin-top: 12px;
     font-size: 10px;
     line-height: 1.5;
 }
 
-/* FOOTER */
-
 .invoice-footer {
     border-top: 1px solid #d9dfe5;
     margin-top: 15px;
     padding-top: 10px;
     font-size: 9px;
+    color: #555;
     line-height: 1.5;
-    color: #555555;
 }
-
-/* MOBILE */
 
 @media screen and (max-width: 650px) {
 
     .invoice-wrapper {
         width: 100%;
-        max-width: 100%;
         margin: 0;
         padding: 15px;
-    }
-
-    .details-table td {
-        padding-right: 5px;
-    }
-
-    .bottom-table > tbody > tr > td {
-        padding-right: 5px;
     }
 
     .service-table {
@@ -537,10 +557,7 @@ body {
     .service-table td {
         padding: 5px 3px;
     }
-
 }
-
-/* A4 PRINT */
 
 @page {
     size: A4 portrait;
@@ -549,27 +566,21 @@ body {
 
 @media print {
 
-    html,
-    body {
+    html, body {
         width: 100%;
         margin: 0 !important;
         padding: 0 !important;
-        background: #ffffff !important;
-        color: #303030;
+        background: #fff !important;
         font-size: 9px;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
     .invoice-wrapper {
-        display: block !important;
         width: 100% !important;
         max-width: 100% !important;
-        min-width: 0 !important;
         margin: 0 !important;
         padding: 0 5mm !important;
-        box-sizing: border-box !important;
-        overflow: visible !important;
         box-shadow: none !important;
     }
 
@@ -578,50 +589,18 @@ body {
     .service-table,
     .bottom-table {
         width: 100% !important;
-        max-width: 100% !important;
         table-layout: fixed !important;
-    }
-
-    .header-table td:first-child {
-        width: 55% !important;
-    }
-
-    .header-table td:last-child {
-        width: 45% !important;
-        padding-left: 8px !important;
-        padding-right: 2px !important;
-    }
-
-    .invoice-heading,
-    .invoice-number-small {
-        width: 100% !important;
-        text-align: right !important;
-        white-space: normal !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    .service-table th,
-    .service-table td {
-        overflow-wrap: anywhere !important;
-        word-break: normal !important;
-    }
-
-    .print-button {
-        display: none !important;
     }
 
     .logo-box {
         background: #23282d !important;
         padding: 9px 18px !important;
-        border-radius: 4px !important;
-        -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
     .logo {
         max-width: 145px !important;
         max-height: 38px !important;
-        background: transparent !important;
     }
 
     .invoice-heading {
@@ -633,81 +612,45 @@ body {
         margin: 12px 0 8px !important;
     }
 
-    .company-details {
+    .company-details,
+    .detail-line,
+    .payment-details {
         font-size: 9px !important;
-        line-height: 1.35 !important;
     }
 
     .yellow-line {
         margin: 8px 0 !important;
-        height: 3px !important;
     }
 
     .divider {
         margin: 7px 0 !important;
     }
 
-    .section-heading,
-    .service-heading {
-        font-size: 10px !important;
-        margin-bottom: 4px !important;
-    }
-
     .details-table td {
         padding: 3px 8px 5px 0 !important;
-    }
-
-    .detail-line {
-        font-size: 9px !important;
-        line-height: 1.35 !important;
-        margin-bottom: 1px !important;
-    }
-
-    .service-heading {
-        margin-top: 8px !important;
     }
 
     .service-table {
         font-size: 9px !important;
     }
 
-    .service-table th {
-        padding: 6px 5px !important;
-    }
-
+    .service-table th,
     .service-table td {
-        padding: 7px 5px !important;
+        padding: 6px 5px !important;
+        overflow-wrap: anywhere !important;
     }
 
     .bottom-table {
         margin-top: 9px !important;
     }
 
-    .bottom-table > tbody > tr > td {
-        padding-right: 8px !important;
-    }
-
-    .payment-details {
-        font-size: 9px !important;
-        line-height: 1.4 !important;
-    }
-
     .totals-table {
         font-size: 9px !important;
-    }
-
-    .totals-table td {
-        padding: 3px 0 !important;
     }
 
     .totals-table .invoice-total td {
         font-size: 11px !important;
         padding: 5px 0 !important;
-    }
-
-    .service-notes {
-        margin-top: 6px !important;
-        font-size: 9px !important;
     }
 
     .invoice-footer {
@@ -716,14 +659,9 @@ body {
         font-size: 8px !important;
     }
 
-    table {
-        page-break-inside: auto;
-    }
-
     tr {
         page-break-inside: avoid !important;
     }
-
 }
 
 </style>
@@ -733,14 +671,6 @@ body {
 <body>
 
 <div class="invoice-wrapper">
-
-    <!-- PRINT BUTTON -->
-
-    <!-- <div class="print-button">
-        <button type="button" onclick="window.print();">
-            Print / Save as PDF
-        </button>
-    </div> -->
 
     <!-- HEADER -->
 
@@ -762,7 +692,7 @@ body {
 
                     <?php } else { ?>
 
-                        <strong style="font-size:18px;color:#ffffff;">
+                        <strong style="font-size:18px;color:#fff;">
                             Yellow Markets
                         </strong>
 
@@ -804,121 +734,131 @@ body {
 
         Yellow Markets - A MYP Network Service<br>
 
-        Address:  14 Avenue Sodnac, Quatre Bornes, Mauritius | Postal code: 72256<br>
+        Address: 14 Avenue Sodnac, Quatre Bornes, Mauritius |
+        Postal code: 72256<br>
 
-        Email : acct@themyp.com | Phone : +230 5252 5772<br>
+        Email: acct@themyp.com |
+        Phone: +230 5252 5772<br>
 
-        BRN: C14124113<br>
-
-       
+        BRN: C14124113
 
     </div>
 
     <div class="divider"></div>
 
-    <!-- BILL TO MERCHANT / INVOICE DETAILS -->
+    <!-- MERCHANT AND INVOICE DETAILS -->
 
     <table class="details-table">
 
         <tbody>
+        <tr>
 
-            <tr>
+            <td>
 
-                <td>
+                <div class="section-heading">
+                    Bill to Merchant
+                </div>
 
-                    <div class="section-heading">
-                        Bill to Merchant
+                <div class="detail-line">
+                    <strong>Merchant legal name:</strong>
+                    <?php echo $e($merchant_name); ?>
+                </div>
+
+                <div class="detail-line">
+                    <strong>Billing address:</strong>
+                    <?php echo $e($merchant_address); ?>
+                </div>
+
+                <div class="detail-line">
+                    <strong>BRN:</strong>
+                    <?php echo $e($merchant_brn); ?>
+                </div>
+
+                <div class="detail-line">
+                    <strong>Billing email:</strong>
+                    <?php echo $e($merchant_email); ?>
+                </div>
+
+            </td>
+
+            <td>
+
+                <div class="section-heading">
+                    Invoice details
+                </div>
+
+                <div class="detail-line">
+                    <strong>Invoice number:</strong>
+                    <?php echo $e($invoice_number); ?>
+                </div>
+
+                <div class="detail-line">
+                    <strong>Invoice date:</strong>
+                    <?php echo $e($created_date); ?>
+                </div>
+
+                <div class="detail-line">
+                    <strong>Currency:</strong>
+                    <?php echo $e($currency); ?>
+                </div>
+
+                <div class="detail-line">
+                    <strong>Order reference:</strong>
+                    <?php echo $e($order_reference); ?>
+                </div>
+
+                <?php if ($is_renewal) { ?>
+
+                    <div class="detail-line">
+                        <strong>Renewal of:</strong>
+                        <?php echo $e($old_subscription_id); ?>
                     </div>
 
                     <div class="detail-line">
-                        <span class="detail-label">
-                            Merchant legal name:
-                        </span>
-                        <?php echo $e($merchant_name); ?>
+                        <strong>New Subscription ID:</strong>
+                        <?php echo $e($new_subscription_id); ?>
                     </div>
 
                     <div class="detail-line">
-                        <span class="detail-label">
-                            Billing address:
-                        </span>
-                        <?php echo $e($merchant_address); ?>
+                        <strong>Previous term:</strong>
+                        <?php echo $e($previous_term_reference); ?>
+
+                        <?php if ($previous_term_start && $previous_term_expiry) { ?>
+                            <br>
+                            <?php echo $e($formatDate($previous_term_start)); ?>
+                            -
+                            <?php echo $e($formatDate($previous_term_expiry)); ?>
+                        <?php } ?>
                     </div>
 
                     <div class="detail-line">
-                        <span class="detail-label">
-                            BRN:
-                        </span>
-                        <?php echo $e($merchant_brn); ?>
+                        <strong>New term:</strong>
+                        <?php echo $e($new_term_reference); ?>
+                        - <?php echo $e($term); ?>
                     </div>
+
+                <?php } else { ?>
 
                     <div class="detail-line">
-                        <span class="detail-label">
-                            Billing email:
-                        </span>
-                        <?php echo $e($merchant_email); ?>
-                    </div>
-
-                    <!-- <div class="detail-line">
-                        <span class="detail-label">
-                            Merchant reference:
-                        </span>
-                        <?php echo $e($merchant_reference); ?>
-                    </div> -->
-
-                </td>
-
-                <td>
-
-                    <div class="section-heading">
-                        Invoice details
-                    </div>
-
-                    <div class="detail-line">
-                        <span class="detail-label">
-                            Invoice number:
-                        </span>
-                        <?php echo $e($invoice_number); ?>
-                    </div>
-
-                    <div class="detail-line">
-                        <span class="detail-label">
-                            Invoice date:
-                        </span>
-                        <?php echo $e($created_date); ?>
-                    </div>
-
-                    <div class="detail-line">
-                        <span class="detail-label">
-                            Currency:
-                        </span>
-                        <?php echo $e($currency); ?>
-                    </div>
-
-                    <div class="detail-line">
-                        <span class="detail-label">
-                            Order reference:
-                        </span>
-                        <?php echo $e($order_reference); ?>
-                    </div>
-
-                    <div class="detail-line">
-                        <span class="detail-label">
-                            Subscription:
-                        </span>
+                        <strong>Subscription:</strong>
                         <?php echo $e($subscription_reference); ?>
                     </div>
 
                     <div class="detail-line">
-                        <span class="detail-label">
-                            Term:
-                        </span>
+                        <strong>Subscription ID:</strong>
+                        <?php echo $e($new_subscription_id); ?>
+                    </div>
+
+                    <div class="detail-line">
+                        <strong>Term:</strong>
                         <?php echo $e($term); ?>
                     </div>
 
-                </td>
+                <?php } ?>
 
-            </tr>
+            </td>
 
+        </tr>
         </tbody>
 
     </table>
@@ -928,75 +868,82 @@ body {
     <!-- SERVICE INFORMATION -->
 
     <div class="service-heading">
-        Subscription Information
+
+        <?php echo $is_renewal
+            ? 'Renewal Information'
+            : 'Subscription Information'; ?>
+
     </div>
 
     <table class="service-table">
 
         <thead>
+        <tr>
 
-            <tr>
+            <th width="25%">Service Name</th>
 
-                <th width="25%">
-                    Service Name
-                </th>
+            <th width="32%">Description</th>
 
-                <th width="32%">
-                    Description
-                </th>
+            <th width="22%">Service Dates</th>
 
-                <th width="22%">
-                    Service Dates
-                </th>
+            <th width="5%" class="text-center">Qty</th>
 
-                <th width="5%" class="text-center">
-                    Qty
-                </th>
+            <th width="8%" class="text-right">Unit Price</th>
 
-                <th width="8%" class="text-right">
-                    Unit Price
-                </th>
+            <th width="8%" class="text-right">Amount</th>
 
-                <th width="8%" class="text-right">
-                    Amount
-                </th>
-
-            </tr>
-
+        </tr>
         </thead>
 
         <tbody>
+        <tr>
 
-            <tr>
+            <td>
+                <?php echo $e($plan_name); ?>
+            </td>
 
-                <td>
-                    <?php echo $e($plan_name); ?>
-                </td>
+            <td>
 
-                <td>
+                <?php if ($is_renewal) { ?>
+
+                    Yearly renewal of
+                    <?php echo $e($old_subscription_id); ?><br>
+
+                    New Subscription ID:
+                    <?php echo $e($new_subscription_id); ?><br>
+
+                    Previous term:
+                    <?php echo $e($previous_term_reference); ?>
+
+                <?php } else { ?>
+
                     Initial paid subscription plan<br>
-                    Billing period: <?php echo $e($billing_period); ?>
-                </td>
 
-                <td>
-                    Start: <?php echo $e($created_date); ?><br>
-                    Expiry: <?php echo $e($expiry_date); ?>
-                </td>
+                    Billing period:
+                    <?php echo $e($billing_period); ?>
 
-                <td class="text-center">
-                    1
-                </td>
+                <?php } ?>
 
-                <td class="text-right">
-                    <?php echo number_format($subtotal, 2); ?>
-                </td>
+            </td>
 
-                <td class="text-right">
-                    <?php echo number_format($subtotal, 2); ?>
-                </td>
+            <td>
+                Start: <?php echo $e($service_start_date); ?><br>
+                Expiry: <?php echo $e($service_expiry_date); ?>
+            </td>
 
-            </tr>
+            <td class="text-center">
+                1
+            </td>
 
+            <td class="text-right">
+                <?php echo number_format($subtotal, 2); ?>
+            </td>
+
+            <td class="text-right">
+                <?php echo number_format($subtotal, 2); ?>
+            </td>
+
+        </tr>
         </tbody>
 
     </table>
@@ -1006,125 +953,114 @@ body {
     <table class="bottom-table">
 
         <tbody>
+        <tr>
 
-            <tr>
+            <td>
 
-                <td>
+                <div class="section-heading">
+                    Payment Information
+                </div>
 
-                    <div class="section-heading">
-                        Payment Information
-                    </div>
+                <div class="payment-details">
 
-                    <div class="payment-details">
+                    <strong>Accepted method:</strong>
+                    <?php echo $e($payment_method); ?><br>
 
-                        <strong>Accepted method:</strong>
-                        <?php echo $e($payment_method); ?><br>
+                    <strong>Status at issue:</strong>
 
-                        <strong>Status at issue:</strong>
+                    <span class="<?php echo ($status === 'paid')
+                        ? 'status-paid'
+                        : 'status-unpaid'; ?>">
 
-                        <span class="<?php echo ($status === 'paid') ? 'status-paid' : 'status-unpaid'; ?>">
-                            <?php echo $e(ucfirst($status)); ?>
-                        </span>
+                        <?php echo $e(ucfirst($status)); ?>
 
-                        <br>
+                    </span>
 
-                        <?php if ($transaction_reference !== 'N/A') { ?>
+                    <br>
 
-                            <strong>Transaction reference:</strong>
-                            <?php echo $e($transaction_reference); ?><br>
+                    <?php if ($transaction_reference !== 'N/A') { ?>
 
-                        <?php } ?>
+                        <strong>Transaction reference:</strong>
+                        <?php echo $e($transaction_reference); ?><br>
 
-                        An invoice does not confirm receipt of payment.
-                        A separate payment confirmation or receipt follows
-                        verified payment.
+                    <?php } ?>
 
-                    </div>
+                    An invoice does not confirm receipt of payment.
+                    A separate payment confirmation or receipt follows
+                    verified payment.
 
-                    <div class="service-notes">
+                </div>
 
-                        <strong>Service notes</strong><br>
+                <div class="service-notes">
 
-                        Yearly subscription term as shown in Service Dates.
+                    <strong>Service notes</strong><br>
 
-                    </div>
+                    <?php if ($is_renewal) { ?>
 
-                </td>
+                        Subscription renewal for the new term shown
+                        in the invoice details.
 
-                <td>
+                    <?php } else { ?>
 
-                    <div class="section-heading">
-                        Invoice totals (<?php echo $e($currency); ?>)
-                    </div>
+                        Initial subscription term as shown in
+                        Service Dates.
 
-                    <table class="totals-table">
+                    <?php } ?>
 
-                        <tr>
+                </div>
 
-                            <td>
-                                Subtotal
-                            </td>
+            </td>
 
-                            <td class="text-right">
-                                <?php echo number_format($subtotal, 2); ?>
-                            </td>
+            <td>
 
-                        </tr>
+                <div class="section-heading">
+                    Invoice totals (<?php echo $e($currency); ?>)
+                </div>
 
-                        <tr>
+                <table class="totals-table">
 
-                            <td>
-                                VAT (<?php echo number_format($vat_rate, 2); ?>%)
-                            </td>
+                    <tr>
+                        <td>Subtotal</td>
+                        <td class="text-right">
+                            <?php echo number_format($subtotal, 2); ?>
+                        </td>
+                    </tr>
 
-                            <td class="text-right">
-                                <?php echo number_format($vat_amount, 2); ?>
-                            </td>
+                    <tr>
+                        <td>
+                            VAT (<?php echo number_format($vat_rate, 2); ?>%)
+                        </td>
+                        <td class="text-right">
+                            <?php echo number_format($vat_amount, 2); ?>
+                        </td>
+                    </tr>
 
-                        </tr>
+                    <tr class="invoice-total">
+                        <td>Invoice total</td>
+                        <td class="text-right">
+                            <?php echo number_format($invoice_total, 2); ?>
+                        </td>
+                    </tr>
 
-                        <tr class="invoice-total">
+                    <tr>
+                        <td>Verified payment allocated</td>
+                        <td class="text-right">
+                            <?php echo number_format($payment_allocated, 2); ?>
+                        </td>
+                    </tr>
 
-                            <td>
-                                Invoice total
-                            </td>
+                    <tr class="due-total">
+                        <td>Amount due at issue</td>
+                        <td class="text-right">
+                            <?php echo number_format($amount_due, 2); ?>
+                        </td>
+                    </tr>
 
-                            <td class="text-right">
-                                <?php echo number_format($invoice_total, 2); ?>
-                            </td>
+                </table>
 
-                        </tr>
+            </td>
 
-                        <tr>
-
-                            <td>
-                                Verified payment allocated
-                            </td>
-
-                            <td class="text-right">
-                                <?php echo number_format($payment_allocated, 2); ?>
-                            </td>
-
-                        </tr>
-
-                        <tr class="due-total">
-
-                            <td>
-                                Amount due at issue
-                            </td>
-
-                            <td class="text-right">
-                                <?php echo number_format($amount_due, 2); ?>
-                            </td>
-
-                        </tr>
-
-                    </table>
-
-                </td>
-
-            </tr>
-
+        </tr>
         </tbody>
 
     </table>
@@ -1137,8 +1073,6 @@ body {
 
         Yellow Markets - A MYP Network Service<br>
 
-        [Approved billing terms / verified support contact]<br>
-
         Thank you for using Yellow Markets.
 
     </div>
@@ -1146,5 +1080,4 @@ body {
 </div>
 
 </body>
-
 </html>
