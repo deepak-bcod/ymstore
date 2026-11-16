@@ -128,8 +128,8 @@ span.label,
                     <?php endif; ?>
 
                     <?php $guidance = $this->OrderResolutionModel->get_next_action_guidance($resolution); ?>
-                    <!-- Next Action & Responsible Actor Banner (YM-18) -->
-                    <div class="alert alert-info" style="border-left: 5px solid #17a2b8; background-color: #f0f9ff; border-color: #b8e2f2; margin-bottom: 20px; border-radius: 6px; padding: 15px;">
+                    <!-- Next Action & Responsible Actor Banner (YM-18) - Hidden per customer view requirements -->
+                    <div class="alert alert-info" style="display: none; border-left: 5px solid #17a2b8; background-color: #f0f9ff; border-color: #b8e2f2; margin-bottom: 20px; border-radius: 6px; padding: 15px;">
                         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                             <div>
                                 <span class="label <?php echo ($guidance['actor_code'] === 'shopper') ? 'label-warning' : (($guidance['actor_code'] === 'merchant') ? 'label-primary' : (($guidance['actor_code'] === 'none') ? 'label-default' : 'label-info')); ?>" style="font-size: 13px; padding: 4px 8px;">
@@ -422,7 +422,7 @@ span.label,
                         <div class="panel-body" style="padding: 15px;">
                             <div class="row">
                                 <!-- Col 1: Affected Item & Variant -->
-                                <div class="col-sm-4 col-md-4" style="border-right: 1px solid #eee; margin-bottom: 15px;">
+                                <div class="col-sm-6 col-md-6" style="border-right: 1px solid #eee; margin-bottom: 15px;">
                                     <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;"><?php echo $this->lang->line('affected_order_item') ?: 'Affected Order Item'; ?></div>
                                     <div style="font-size: 15px; font-weight: bold; color: #333;">
                                         <?php echo htmlspecialchars($item_context->product_name ?: ($product ? $product->name : ($this->lang->line('item_not_found') ?: 'Item Not Found'))); ?>
@@ -451,7 +451,7 @@ span.label,
                                 </div>
 
                                 <!-- Col 2: Order & Reference Mapping -->
-                                <div class="col-sm-4 col-md-4" style="border-right: 1px solid #eee; margin-bottom: 15px;">
+                                <div class="col-sm-6 col-md-6" style="margin-bottom: 15px;">
                                     <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;"><?php echo $this->lang->line('order_reference_mapping') ?: 'Order & Reference Mapping'; ?></div>
                                     <table class="table table-condensed table-borderless" style="font-size: 13px; margin-bottom: 0;">
                                         <tr>
@@ -482,8 +482,8 @@ span.label,
                                     </table>
                                 </div>
 
-                                <!-- Col 3: Original Rejection Context -->
-                                <div class="col-sm-4 col-md-4">
+                                <!-- Col 3: Original Rejection Context - Hidden per shopper view requirements -->
+                                <div class="col-sm-4 col-md-4" style="display: none;">
                                     <div class="text-muted small text-uppercase" style="font-weight: bold; margin-bottom: 5px;"><?php echo $this->lang->line('original_rejection_context') ?: 'Original Rejection Context'; ?></div>
                                     <div style="margin-bottom: 8px;">
                                         <span class="label label-danger" style="font-size: 11px; padding: 3px 6px;">
@@ -517,7 +517,7 @@ span.label,
                                 <i class="fa fa-file-text-o text-info"></i> <?php echo $this->lang->line('original_dispute_claim_heading') ?: ($this->lang->line('original_dispute_claim_title') ?: 'Original Dispute Claim & Submitted Evidence'); ?>
                             </span>
                             <div>
-                                <span class="label label-info" style="font-size: 11px; margin-right: 5px;"><i class="fa fa-gavel"></i> <?php echo $this->lang->line('dispute_origin') ?: 'Dispute Origin'; ?></span>
+                                <span class="label label-info" style="display: none; font-size: 11px; margin-right: 5px;"><i class="fa fa-gavel"></i> <?php echo $this->lang->line('dispute_origin') ?: 'Dispute Origin'; ?></span>
                                 <span class="text-muted small"><i class="fa fa-clock-o"></i> <?php echo $this->lang->line('submitted') ?: 'Submitted'; ?>: <?php echo date('d M Y, h:i A', $resolution->created_at); ?> MUT</span>
                             </div>
                         </div>
@@ -530,7 +530,7 @@ span.label,
                                             <?php echo !empty($resolution->message) ? nl2br(htmlspecialchars($resolution->message, ENT_QUOTES, 'UTF-8')) : '<em class="text-muted">' . ($this->lang->line('no_text_description_provided') ?: 'No text description provided.') . '</em>'; ?>
                                         </div>
                                     </div>
-                                    <div class="small text-muted">
+                                    <div class="small text-muted" style="display: none;">
                                         <i class="fa fa-info-circle text-primary"></i> <strong><?php echo $this->lang->line('shared_dispute_context') ?: 'Shared Dispute Context:'; ?></strong> <?php echo $this->lang->line('shared_dispute_context_shopper_desc') ?: 'This is the initial resolution request you submitted following the merchant\'s rejection. Visible to you, the merchant, and YellowMarkets Support for dispute evaluation.'; ?>
                                     </div>
                                 </div>
@@ -588,7 +588,7 @@ span.label,
                         </div>
 
                         <div class="panel-body" style="padding: 15px;">
-                            <div class="alert alert-warning py-2 px-3" style="font-size: 13px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div class="alert alert-warning py-2 px-3" style="display: none; font-size: 13px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <div><i class="fa fa-lock text-warning"></i></div>
                                 <span class="label label-warning font-weight-bold" style="color: #b38600;"><i class="fa fa-eye-slash"></i> <?php echo $this->lang->line('hidden_from_merchant') ?: 'Hidden from Merchant'; ?></span>
                             </div>
@@ -659,7 +659,7 @@ span.label,
                                         </div>
                                     </div>
                                     <div class="panel-body" style="padding: 15px;">
-                                        <div class="alert alert-warning py-2 px-3" style="font-size: 12px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; border-radius: 4px;">
+                                        <div class="alert alert-warning py-2 px-3" style="display: none; font-size: 12px; margin-bottom: 15px; color: #8a6d3b; border: 1px solid #faebcc; border-radius: 4px;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                                                 <div><i class="fa fa-bell-o text-warning"></i> <strong><?php echo $this->lang->line('consequence') ?: 'Consequence:'; ?></strong> <?php echo $this->lang->line('support_consequence_notice') ?: 'Clicking "Send to Support" sends your message and immediately alerts YellowMarkets Support Team (@Help / @Acct) for inquiry and coordination.'; ?></div>
                                                 <div><i class="fa fa-eye-slash"></i> <strong><?php echo $this->lang->line('visibility') ?: 'Visibility:'; ?></strong> <?php echo $this->lang->line('support_visibility_notice') ?: 'Confidential between You and Support (Hidden from Merchant).'; ?></div>
@@ -676,7 +676,7 @@ span.label,
                                                     <input type="file" name="attachment" class="form-control" accept="image/*,.pdf">
                                                     <small class="text-muted"><?php echo $this->lang->line('optional_attachment') ?: 'Optional attachment: JPG, PNG, WEBP, PDF (Max: 1 MB)'; ?></small>
                                                 </div>
-                                                <div class="col-sm-4 col-md-4 text-right">
+                                                <div class="col-sm-4 col-md-4 text-right" style="display: none;">
                                                     <button type="submit" class="btn btn-warning btn-block font-weight-bold" style="background-color: #f0ad4e; color: #fff;">
                                                         <i class="fa fa-paper-plane"></i> <?php echo $this->lang->line('send_to_support') ?: 'Send to Support'; ?>
                                                     </button>
