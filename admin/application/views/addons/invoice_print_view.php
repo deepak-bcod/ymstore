@@ -795,13 +795,18 @@ body {
               
 <td>
     <?php
-    // Use the correct service category variable
+
     $service_type = strtolower(trim($service_name));
 
-    // Show description ONLY for Daily Deals and Flash Sales
+    $clean_description = '';
+
     if (
-        in_array($service_type, ['daily deals', 'flash sales'], TRUE)
-        && !empty($description)
+        in_array(
+            $service_type,
+            ['daily deals', 'flash sales'],
+            TRUE
+        ) &&
+        !empty($description)
     ) {
 
         $clean_description = html_entity_decode(
@@ -814,7 +819,7 @@ body {
             preg_replace('/\s+/', ' ', $clean_description)
         );
 
-        // Remove the long promotional description
+        // Remove promotional text when it starts with Welcome to
         $parts = preg_split(
             '/\s+Welcome to\b/i',
             $clean_description,
@@ -822,14 +827,14 @@ body {
         );
 
         $clean_description = trim($parts[0]);
+    }
 
-        if (!empty($clean_description)) {
+    if (!empty($clean_description)) {
     ?>
-            <span style="color:#52647b;">
-                <?php echo $e($clean_description); ?>
-            </span>
+        <span style="color:#52647b;">
+            <?php echo $e($clean_description); ?>
+        </span>
     <?php
-        }
     }
     ?>
 </td>
