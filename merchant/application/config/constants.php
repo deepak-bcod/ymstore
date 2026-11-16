@@ -143,7 +143,7 @@ defined('SIS_DATE_FM') ||  define('SIS_DATE_FM','d/m/Y');
 defined('SIS_DATE_FM_WT') ||  define('SIS_DATE_FM_WT','d/m/Y | h:i A');
 
 
-defined('CSSJS_VERSION') ||  define('CSSJS_VERSION','29112232'); // ddmmyy01, ddmmyy02 etc
+defined('CSSJS_VERSION') ||  define('CSSJS_VERSION','29112233'); // ddmmyy01, ddmmyy02 etc
 
 defined('SITE_LOGO') ||  define('SITE_LOGO', IMAGE_URL . '/uploads/yellow-markets-logo.png');
-defined('CURRENCY_TYPE') ||  define('CURRENCY_TYPE', 'MUR');
+defined('CURRENCY_TYPE') ||  define('CURRENCY_TYPE', 'MUR');
