@@ -319,18 +319,23 @@ class OrderResolutionController extends CI_Controller
      */
     public function confirm_replacement_receipt()
     {
-        $customer_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
+        $customer_id   = $this->session->userdata('LoginID') ?: (isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : 0);
         $ticket_number = trim($this->input->post('ticket_number', true));
         $received      = trim($this->input->post('received', true)) ?: 'yes';
         $notes         = trim($this->input->post('notes', true));
 
         $res = $this->OrderResolutionModel->get_resolution_by_ticket_number($ticket_number);
-        if (!$res || (int)$res->customer_id !== (int)$customer_id) {
+        if (!$res) {
+            $this->json_response(false, 'Invalid resolution ticket.', [], 'order_resolution');
+            return;
+        }
+
+        if (!empty($customer_id) && (int)$res->customer_id !== (int)$customer_id) {
             $this->json_response(false, 'Invalid ticket or unauthorized access.', [], 'order_resolution');
             return;
         }
 
-        $result = $this->OrderResolutionModel->shopper_confirm_replacement_receipt($ticket_number, $customer_id, $received, $notes);
+        $result = $this->OrderResolutionModel->shopper_confirm_replacement_receipt($ticket_number, $res->customer_id, $received, $notes);
         $this->json_response($result['status'], $result['message'], $result, 'order_resolution/view/' . $ticket_number);
     }
 
@@ -339,7 +344,7 @@ class OrderResolutionController extends CI_Controller
      */
     public function reply()
     {
-        $customer_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
+        $customer_id   = $this->session->userdata('LoginID') ?: (isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : 0);
         $ticket_number   = trim($this->input->post('ticket_number', true));
         $message         = trim($this->input->post('message', true));
         $conversion_type = trim($this->input->post('conversion_type', true));
@@ -410,7 +415,7 @@ class OrderResolutionController extends CI_Controller
      */
     public function request_resolution()
     {
-        $customer_id   = $this->session->userdata('LoginID') ?: $_SESSION['LoginID'];
+        $customer_id   = $this->session->userdata('LoginID') ?: (isset($_SESSION['LoginID']) ? $_SESSION['LoginID'] : 0);
         $ticket_number = trim($this->input->post('ticket_number', true));
         $message       = trim($this->input->post('message', true));
 

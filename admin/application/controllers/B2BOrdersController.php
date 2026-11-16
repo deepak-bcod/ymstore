@@ -12583,9 +12583,9 @@ class B2BOrdersController extends CI_Controller
 		// -------------------------------------------------------------
 		// 1. Check Order Resolutions in order_resolutions
 		// Per user rules:
-		// - Close (Final) – Refund Approved : Open
-		// - Close – Replacement Complete    : Open
-		// - Close – Refund Denied           : Remain unavailable unless another existing rule permits payout
+		// - Close (Final) â€“ Refund Approved : Open
+		// - Close â€“ Replacement Complete    : Open
+		// - Close â€“ Refund Denied           : Remain unavailable unless another existing rule permits payout
 		// - Escalation In Progress          : Remain unavailable (On Hold)
 		// - Any other pending or incomplete : Remain unavailable (On Hold)
 		// -------------------------------------------------------------
@@ -12618,11 +12618,11 @@ class B2BOrdersController extends CI_Controller
 					}
 
 					// Approved Final States:
-					// 1. Close (Final) – Refund Approved
+					// 1. Close (Final) â€“ Refund Approved
 					$is_refund_approved = ($r_status === 'Close (Final)' || $r_status === 'Close') &&
 						($r_action === 'refund_approved' || $r_res_status === 'resolution_approved' || $r_category === 'Refund');
 
-					// 2. Close – Replacement Complete
+					// 2. Close â€“ Replacement Complete
 					$is_replacement_complete = ($r_status === 'Close' || $r_status === 'Close (Final)') &&
 						(in_array($r_action, ['replacement_completed', 'replacement_approved'], true) || $r_category === 'Replacement');
 
@@ -12786,7 +12786,7 @@ class B2BOrdersController extends CI_Controller
 			return;
 		}
 
-		// ✅ Ensure all orders belong to SAME publisher
+		// âœ… Ensure all orders belong to SAME publisher
 		$publisher_id = $orders[0]->publisher_id;
 		foreach ($orders as $o) {
 			if ($o->publisher_id != $publisher_id) {
@@ -12795,7 +12795,7 @@ class B2BOrdersController extends CI_Controller
 			}
 		}
 
-		// ✅ Ensure no order has an unresolved return, replacement, or refund request
+		// âœ… Ensure no order has an unresolved return, replacement, or refund request
 		foreach ($orders as $o) {
 			$eligibility = $this->checkPayoutEligibility($o->order_id);
 			if (!$eligibility['allowed']) {
@@ -12808,7 +12808,7 @@ class B2BOrdersController extends CI_Controller
 			}
 		}
 
-		// ✅ Start Transaction
+		// âœ… Start Transaction
 		$this->db->trans_start();
 
 		if (count($ids) == 1) 
@@ -15372,7 +15372,7 @@ class B2BOrdersController extends CI_Controller
 			$cancel_sales_order_item = $this->B2BOrdersModel->cancel_order_request($sales_order_id, $reason_for_cancel, $User_id);
 
 
-			// ✅ Get order_id
+			// âœ… Get order_id
 			// $orderData = $this->db->select('order_id')
 			// 	->from('b2b_orders')
 			// 	->where('webshop_order_id', $webshop_order_id)
@@ -15383,14 +15383,14 @@ class B2BOrdersController extends CI_Controller
 
 			if (!empty($order_id)) {
 
-				// ✅ Get all products from this order
+				// âœ… Get all products from this order
 				$orderItems = $this->db->select('product_id, qty_ordered')
 					->from('b2b_order_items')
 					->where('order_id', $B2BOrderDetails->order_id)
 					->get()
 					->result();
 
-				// ✅ Loop and update inventory
+				// âœ… Loop and update inventory
 				if (!empty($orderItems)) {
 					foreach ($orderItems as $item) {
 
@@ -19223,7 +19223,7 @@ public function AssignParentDeliveryPopup()
 		$this->db->where('webshop_order_id', $webshop_order_id)
 			->update('b2b_orders', ['status' => $order_status]);
 
-		// ✅ Get order_id
+		// âœ… Get order_id
 		$orderData = $this->db->select('order_id')
 			->from('b2b_orders')
 			->where('webshop_order_id', $webshop_order_id)
@@ -19234,14 +19234,14 @@ public function AssignParentDeliveryPopup()
 
 		if (!empty($order_id)) {
 
-			// ✅ Get all products from this order
+			// âœ… Get all products from this order
 			$orderItems = $this->db->select('product_id, qty_ordered')
 				->from('b2b_order_items')
 				->where('order_id', $order_id)
 				->get()
 				->result();
 
-			// ✅ Loop and update inventory
+			// âœ… Loop and update inventory
 			if (!empty($orderItems)) {
 				foreach ($orderItems as $item) {
 

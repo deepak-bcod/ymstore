@@ -1659,9 +1659,9 @@ class OrderResolutionModel extends CI_Model
         // Post structured details in conversation thread
         $currency_code = defined('CURRENCY_TYPE') ? CURRENCY_TYPE : 'MUR';
         $reply_msg = "Accounting has verified and processed the refund from the merchant's 14-day hold-back balance.\n"
-            . "• Reconciled Refund Amount: {$currency_code} " . number_format((float)($res->refund_amount ?? 0), 2) . "\n"
-            . "• Bank Transaction Reference / Payment Ref ID: {$ref_str}\n"
-            . (!empty($notes) ? "• Notes: {$notes}\n" : "")
+            . "â€¢ Reconciled Refund Amount: {$currency_code} " . number_format((float)($res->refund_amount ?? 0), 2) . "\n"
+            . "â€¢ Bank Transaction Reference / Payment Ref ID: {$ref_str}\n"
+            . (!empty($notes) ? "â€¢ Notes: {$notes}\n" : "")
             . "Shopper refund is complete. Ticket is marked as Done and ready for final closure.";
         $this->add_reply($ticket_number, 'acct', $admin_id, 'Accounting Team (@Acct)', $reply_msg, $evidence_file, $this->input->ip_address(), 'merchant_admin');
 
@@ -1844,7 +1844,7 @@ class OrderResolutionModel extends CI_Model
             }
 
             $remedy_title = ($clean_remedy === 'replacement') ? 'Replacement' : 'Return and Refund';
-            $audit_note = "Official Admin Decision: In Favour of Shopper – {$remedy_title}. Reason: {$notes}";
+            $audit_note = "Official Admin Decision: In Favour of Shopper â€“ {$remedy_title}. Reason: {$notes}";
             try {
                 $this->audit_log($res->id, $ticket_number, $res->status, 'Processing', "Decision: In Favour of Shopper ({$remedy_title})", 'admin', $admin_id, $audit_note, 'admin', 'admin_shopper');
             } catch (\Throwable $e) {
@@ -1853,13 +1853,13 @@ class OrderResolutionModel extends CI_Model
 
             // Post system notices in both threads
             try {
-                $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper – {$remedy_title}." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'shopper_admin');
+                $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper â€“ {$remedy_title}." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'shopper_admin');
             } catch (\Throwable $e) {
                 log_message('error', 'add_reply shopper_admin error: ' . $e->getMessage());
             }
 
             try {
-                $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper – {$remedy_title}. Merchant fulfilment is required." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'merchant_admin');
+                $this->add_reply($ticket_number, 'help', $admin_id, 'Support Team (@Help)', "Official Resolution Decision: In Favour of Shopper â€“ {$remedy_title}. Merchant fulfilment is required." . ($notes ? "\nReason: {$notes}" : ""), '', '', 'merchant_admin');
             } catch (\Throwable $e) {
                 log_message('error', 'add_reply merchant_admin error: ' . $e->getMessage());
             }
@@ -1889,7 +1889,7 @@ class OrderResolutionModel extends CI_Model
                 }
             }
 
-            return ['status' => true, 'message' => "Resolution decision recorded: In Favour of Shopper – {$remedy_title}."];
+            return ['status' => true, 'message' => "Resolution decision recorded: In Favour of Shopper â€“ {$remedy_title}."];
         } else {
             // Scenario 2: Decision in Favour of Merchant
             $update_data = [
@@ -2097,8 +2097,54 @@ class OrderResolutionModel extends CI_Model
                 'updated_at'                => $time,
             ]);
 
-            // Release dispute hold on merchant order
-            $this->update_payout_eligibility_for_resolution($res);
+            // Locate and un-hold the specific ES order (b2b_orders) for this replacement ticket
+            $b2b_targets = [];
+            if (!empty($res->b2b_order_id)) {
+                $b_row = $this->db->where('order_id', (int)$res->b2b_order_id)->get('b2b_orders')->row();
+                if ($b_row) {
+                    $b2b_targets[(int)$b_row->order_id] = $b_row;
+                }
+            }
+            if (empty($b2b_targets) && !empty($res->order_id)) {
+                $q = $this->db->where('webshop_order_id', (int)$res->order_id);
+                if (!empty($res->merchant_id)) {
+                    $q->where('publisher_id', (int)$res->merchant_id);
+                }
+                $b_rows = $q->get('b2b_orders')->result();
+                foreach ($b_rows as $b_row) {
+                    $b2b_targets[(int)$b_row->order_id] = $b_row;
+                }
+            }
+            if (empty($b2b_targets) && !empty($res->product_id) && !empty($res->order_id)) {
+                $b_rows = $this->db->select('bo.*')
+                    ->from('b2b_orders bo')
+                    ->join('b2b_order_items boi', 'boi.order_id = bo.order_id', 'inner')
+                    ->where('bo.webshop_order_id', (int)$res->order_id)
+                    ->where('boi.product_id', (int)$res->product_id)
+                    ->get()->result();
+                foreach ($b_rows as $b_row) {
+                    $b2b_targets[(int)$b_row->order_id] = $b_row;
+                }
+            }
+
+            foreach ($b2b_targets as $b_oid => $b_row) {
+                if (empty($res->b2b_order_id)) {
+                    $this->db->where('id', $res->id)->update('order_resolutions', ['b2b_order_id' => $b_oid]);
+                }
+                // Un-hold payout: release from 3 (On Hold) to 1 (Not Paid / Available for Payout)
+                if ((int)($b_row->payout_status ?? 1) === 3) {
+                    $this->db->where('order_id', $b_oid)->update('b2b_orders', [
+                        'payout_status' => 1,
+                        'updated_at'    => $time
+                    ]);
+                }
+                // Also update any linked sales_order_replacement to status 3 (Replaced)
+                $this->db->where_in('order_id', [(int)$b_oid, (int)$res->order_id])
+                    ->update('sales_order_replacement', ['status' => 3]);
+            }
+
+            // Release dispute hold on merchant order using fresh resolution record
+            $this->update_payout_eligibility_for_resolution($res->id);
 
             $audit_note = "Shopper confirmed physical receipt of replacement item." . ($notes ? " Notes: {$notes}" : "");
             $this->audit_log($res->id, $ticket_number, $res->status, 'Close (Final)', 'Shopper Replacement Receipt Confirmed', 'shopper', $customer_id, $audit_note, 'shopper', 'shopper_admin');
@@ -2396,7 +2442,7 @@ class OrderResolutionModel extends CI_Model
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##MERCHANT_NAME##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_merchant_name($res), 'Yellow Markets'];
         $custom_subject = ($lang_code === 'fr')
-            ? "Résolution de commande No. : {$res->ticket_number} - Fermé"
+            ? "RÃ©solution de commande No. : {$res->ticket_number} - FermÃ©"
             : "Order Resolution No.: {$res->ticket_number} - Closed";
         $this->CommonModel->sendCommonHTMLEmail($m_email, 'order-resolution-ticket-closed-merchant', $tempVars, $dynamicVars, $lang_code, $custom_subject);
     }
@@ -2434,7 +2480,7 @@ class OrderResolutionModel extends CI_Model
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##SHOPPER_NAME##', '##TICKET_URL##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, $this->get_shopper_name($res), base_url('order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
         $custom_subject = ($lang_code === 'fr')
-            ? "Résolution de commande No.{$res->ticket_number} - Aucun remplacement pour le produit"
+            ? "RÃ©solution de commande No.{$res->ticket_number} - Aucun remplacement pour le produit"
             : "Order Resolution No.{$res->ticket_number} - No Replacement for Product";
         $this->CommonModel->sendCommonHTMLEmail($shopper_email, 'order-resolution-replacement-denied-shopper', $tempVars, $dynamicVars, $lang_code, $custom_subject);
     }
@@ -2450,7 +2496,7 @@ class OrderResolutionModel extends CI_Model
         $tempVars = ['##TICKET_NUMBER##', '##ORDER_NUMBER##', '##TICKET_URL##', '##WEBSHOPNAME##'];
         $dynamicVars = [$res->ticket_number, $res->order_number, base_url('admin/order_resolution/view/' . $res->ticket_number), 'Yellow Markets'];
         $custom_subject = ($lang_code === 'fr')
-            ? "Résolution de commande No. : {$res->ticket_number} - Aucun remplacement pour le produit"
+            ? "RÃ©solution de commande No. : {$res->ticket_number} - Aucun remplacement pour le produit"
             : "Order Resolution No.: {$res->ticket_number} - No Replacement for Product";
         $this->CommonModel->sendCommonHTMLEmail($help_email, 'order-resolution-replacement-denied-help', $tempVars, $dynamicVars, $lang_code, $custom_subject);
     }
@@ -3289,6 +3335,9 @@ class OrderResolutionModel extends CI_Model
         } elseif (is_string($res)) {
             $res = $this->get_resolution_by_ticket_number($res);
             if (!$res) return;
+        } elseif (is_object($res) && !empty($res->id)) {
+            $fresh = $this->get_resolution_by_id((int)$res->id);
+            if ($fresh) $res = $fresh;
         }
 
         $order_ids = [];
@@ -3298,13 +3347,17 @@ class OrderResolutionModel extends CI_Model
         if (!empty($res->order_id)) {
             $order_ids[] = (int)$res->order_id;
         }
+        if (!empty($res->order_number) && is_numeric($res->order_number)) {
+            $order_ids[] = (int)$res->order_number;
+        }
+        $order_ids = array_unique(array_filter($order_ids));
 
         if (empty($order_ids)) {
             return;
         }
 
         // Find relevant b2b_orders
-        $this->db->select('order_id, webshop_order_id, publisher_id, payout_status, status')
+        $b2b_query = $this->db->select('order_id, webshop_order_id, publisher_id, payout_status, status')
             ->from('b2b_orders')
             ->group_start()
                 ->where_in('order_id', $order_ids)
@@ -3312,10 +3365,22 @@ class OrderResolutionModel extends CI_Model
             ->group_end();
 
         if (!empty($res->merchant_id)) {
-            $this->db->where('publisher_id', (int)$res->merchant_id);
+            $b2b_query->where('publisher_id', (int)$res->merchant_id);
         }
 
-        $b2b_orders = $this->db->get()->result_array();
+        $b2b_orders = $b2b_query->get()->result_array();
+
+        // Fallback without merchant filter if none found
+        if (empty($b2b_orders)) {
+            $b2b_orders = $this->db->select('order_id, webshop_order_id, publisher_id, payout_status, status')
+                ->from('b2b_orders')
+                ->group_start()
+                    ->where_in('order_id', $order_ids)
+                    ->or_where_in('webshop_order_id', $order_ids)
+                ->group_end()
+                ->get()->result_array();
+        }
+
         if (empty($b2b_orders)) {
             return;
         }
@@ -3328,7 +3393,7 @@ class OrderResolutionModel extends CI_Model
             }
 
             $pair_ids = array_unique(array_filter([$oid, (int)$order['webshop_order_id']]));
-            $resolutions = $this->db->select('id, status, merchant_action, category, resolution_status, is_active_dispute')
+            $resolutions = $this->db->select('id, ticket_number, order_id, b2b_order_id, status, merchant_action, category, resolution_status, is_active_dispute, shopper_receipt_confirmed, admin_replacement_exception, admin_decision, admin_remedy')
                 ->from('order_resolutions')
                 ->group_start()
                     ->where_in('order_id', $pair_ids)
@@ -3356,10 +3421,9 @@ class OrderResolutionModel extends CI_Model
                 }
 
                 $is_refund_app = ($r_st === 'Close (Final)' || $r_st === 'Close') &&
-                    ($r_act === 'refund_approved' || $r_res === 'resolution_approved' || $r_cat === 'Refund');
+                    ($r_act === 'refund_approved' || $r_res === 'resolution_approved' || ($r_cat === 'Refund' && $r_act !== 'refund_denied' && $r_res !== 'resolution_denied' && ($r['admin_decision'] ?? '') !== 'in_favour_merchant'));
 
                 // Workflow 5B: For replacement disputes, payout release strictly requires confirmed shopper receipt or documented admin exception.
-                // Do not treat merchant completion as shopper confirmation.
                 $is_replacement = ($r_cat === 'Replacement') || (($r['admin_remedy'] ?? '') === 'replacement') || in_array($r_act, ['replacement_completed', 'replacement_approved'], true);
                 $is_receipt_verified = !empty($r['shopper_receipt_confirmed']) || !empty($r['admin_replacement_exception']);
 
@@ -3378,7 +3442,7 @@ class OrderResolutionModel extends CI_Model
             }
 
             if ($has_active || $has_refunded || $has_unverified_replacement) {
-                // Workflow 5A & 5B: Refunded amount or unverified replacement must not be paid to Merchant; remains on hold (status 3)
+                // Refunded amount or unverified replacement must not be paid to Merchant; remains on hold (status 3)
                 if ($payout_status !== 3) {
                     $this->db->where('order_id', $oid)->update('b2b_orders', ['payout_status' => 3]);
                 }
