@@ -620,35 +620,37 @@ body {
                     <strong><?php echo $e($service_name); ?></strong>
                 </td>
 
-                <td style="white-space:normal; vertical-align:top;">
+                <td>
 
     <strong><?php echo $e($addon_name); ?></strong>
 
-   <?php if ($show_description && !empty($description)): ?>
+  <?php if ($show_description && !empty($description)): ?>
 
-    <br>
+    <?php
+        $description_heading = '';
 
-    <span style="
-        display:block;
-        font-size:9px;
-        color:#52647b;
-        white-space:normal;
-        word-wrap:break-word;
-        overflow-wrap:break-word;
-        line-height:1.4;
-        max-height:none;
-        overflow:visible;
-    ">
-        <?php
-            echo $e(
+        // Extract only the first bold heading from the description HTML
+        if (preg_match(
+            '/<(strong|b)\b[^>]*>(.*?)<\/\1>/is',
+            $description,
+            $matches
+        )) {
+            $description_heading = trim(
                 html_entity_decode(
-                    strip_tags($description),
+                    strip_tags($matches[2]),
                     ENT_QUOTES,
                     'UTF-8'
                 )
             );
-        ?>
-    </span>
+        }
+    ?>
+
+    <?php if (!empty($description_heading)): ?>
+        <br>
+        <span style="font-size:9px;color:#52647b;">
+            <?php echo $e($description_heading); ?>
+        </span>
+    <?php endif; ?>
 
 <?php endif; ?>
 
