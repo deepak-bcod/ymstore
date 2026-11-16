@@ -793,21 +793,56 @@ body {
                 </td>
 
               <td>
-    <?php if (!empty($description)): ?>
+    <strong><?php echo $e($addon_name); ?></strong>
 
-        <span style="color:#52647b;">
-            <?php
-            $clean_description = html_entity_decode(
-                strip_tags($description),
-                ENT_QUOTES,
-                'UTF-8'
-            );
+    <?php
+    $service_type = strtolower(trim($service_name));
 
-            echo $e(trim(preg_replace('/\s+/', ' ', $clean_description)));
-            ?>
+    // Show description only for Daily Deals and Flash Sales
+    if (in_array($service_type, ['daily deals', 'flash sales'], TRUE) && !empty($description)) {
+
+        $clean_description = html_entity_decode(
+            strip_tags($description),
+            ENT_QUOTES,
+            'UTF-8'
+        );
+
+        $clean_description = trim(
+            preg_replace('/\s+/', ' ', $clean_description)
+        );
+
+        // Remove long description after "Welcome to"
+        $parts = preg_split(
+            '/\s+Welcome to\b/i',
+            $clean_description,
+            2
+        );
+
+        $clean_description = trim($parts[0]);
+
+        if (!empty($clean_description)):
+    ?>
+            <br>
+            <span style="color:#52647b;">
+                <?php echo $e($clean_description); ?>
+            </span>
+    <?php
+        endif;
+    }
+    ?>
+
+    <?php if (!empty($order_number)): ?>
+        <br>
+        <span style="font-size:10px;color:#68778b;">
+            Replacement Delivery for Order #
+            <?php echo $e($order_number); ?>
+
+            <?php if (!empty($ticket_number)): ?>
+                (Ticket <?php echo $e($ticket_number); ?>)
+            <?php endif; ?>
         </span>
-
     <?php endif; ?>
+
 </td>
 
                 <td class="text-center">1</td>
