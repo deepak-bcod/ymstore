@@ -107,7 +107,7 @@ class ProductReviewController extends CI_Controller {
 
                     // Order link / display (with click to view review details)
                     $order_display = !empty($r['B2B_order_id']) ? htmlspecialchars($r['B2B_order_id']) : ('#' . ($r['order_id'] ?? ''));
-                    $order_link = '<a href="javascript:void(0)" onclick="viewOrderReviews(' . $parent_id . ')" title="Click to view review details" style="color:#007bff; font-weight:700; text-decoration:underline; cursor:pointer;">' . $order_display . '</a>';
+                    $order_link = '<a href="javascript:void(0)" onclick="viewReviewDetails(\'' . $type . '\', ' . $id . ')" title="Click to view review details" style="color:#007bff; font-weight:700; text-decoration:underline; cursor:pointer;">' . $order_display . '</a>';
 
                     // Action buttons (Independent Publish / Reject / Pending)
                     $action_btns = '<div class="btn-group btn-group-sm" role="group" style="gap:4px;">';
@@ -207,21 +207,48 @@ class ProductReviewController extends CI_Controller {
     public function viewOrderReviews()
     {
         $review_id = (int)$this->input->post('review_id');
+        $type = trim((string)$this->input->post('type'));
+        if (empty($type)) {
+            $type = 'merchant';
+        }
+
         if (empty($review_id)) {
             echo json_encode(array("flag" => 0, "msg" => "Invalid review ID."));
             exit;
         }
 
-        $details = $this->ProductReviewModel->getOrderReviewDetails($review_id);
-        if (empty($details)) {
-            echo json_encode(array("flag" => 0, "msg" => "Review details not found."));
+        $review = $this->ProductReviewModel->getSingleReviewDetails($type, $review_id);
+        if (empty($review)) {
+            // Fallback for parent order reviews
+            $details = $this->ProductReviewModel->getOrderReviewDetails($review_id);
+            if (empty($details)) {
+                echo json_encode(array("flag" => 0, "msg" => "Review details not found."));
+                exit;
+            }
+            $data['details'] = $details;
+            $data['review_type'] = 'all';
+            $html = $this->load->view('product_review/popup-data', $data, true);
+            echo json_encode(array(
+                "flag"        => 1, 
+                "data"        => $html,
+                "modal_title" => '<i class="fa fa-star text-warning mr-2"></i> Order Reviews & Moderation'
+            ));
             exit;
         }
 
-        $data['details'] = $details;
+        $data['review'] = $review;
+        $data['review_type'] = $type;
         $html = $this->load->view('product_review/popup-data', $data, true);
 
-        echo json_encode(array("flag" => 1, "data" => $html));
+        $modal_title = ($type === 'merchant') 
+            ? '<i class="fa fa-store text-info mr-2"></i> Merchant Service Review' 
+            : '<i class="fa fa-box mr-2" style="color: #6f42c1;"></i> Product Review';
+
+        echo json_encode(array(
+            "flag"        => 1, 
+            "data"        => $html,
+            "modal_title" => $modal_title
+        ));
         exit;
     }
 

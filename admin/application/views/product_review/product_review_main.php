@@ -493,7 +493,9 @@ function changeReviewStatus(type, id, status, fromModal) {
                     alert(response.msg);
                 }
 
-                if (fromModal && window.activeParentReviewId) {
+                if (fromModal && window.activeReviewType && window.activeReviewId) {
+                    viewReviewDetails(window.activeReviewType, window.activeReviewId);
+                } else if (fromModal && window.activeParentReviewId) {
                     viewOrderReviews(window.activeParentReviewId);
                 }
 
@@ -510,19 +512,34 @@ function changeReviewStatus(type, id, status, fromModal) {
     });
 }
 
-function viewOrderReviews(parentReviewId) {
-    window.activeParentReviewId = parentReviewId;
+function viewReviewDetails(type, reviewId) {
+    window.activeReviewType = type;
+    window.activeReviewId = reviewId;
+    window.activeParentReviewId = reviewId;
+
+    var defaultTitle = (type === 'merchant')
+        ? '<i class="fa fa-store text-info mr-2"></i> Merchant Service Review'
+        : '<i class="fa fa-box mr-2" style="color: #6f42c1;"></i> Product Review';
+
+    $('#reviewDetailsLabel').html(defaultTitle);
+
     $.ajax({
         type: 'POST',
         url: BASE_URL + 'ProductReviewController/viewOrderReviews',
         dataType: 'json',
-        data: { review_id: parentReviewId },
+        data: { 
+            type: type,
+            review_id: reviewId 
+        },
         beforeSend: function() {
             $('#pro-review-popup').html('<div class="text-center py-4"><i class="fa fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Loading review details...</p></div>');
             $('#review_details').modal('show');
         },
         success: function(response) {
             if (response.flag == 1) {
+                if (response.modal_title) {
+                    $('#reviewDetailsLabel').html(response.modal_title);
+                }
                 $('#pro-review-popup').html(response.data);
             } else {
                 $('#pro-review-popup').html('<div class="alert alert-danger">' + (response.msg || 'Failed to load details') + '</div>');
@@ -532,6 +549,10 @@ function viewOrderReviews(parentReviewId) {
             $('#pro-review-popup').html('<div class="alert alert-danger">Error fetching review details.</div>');
         }
     });
+}
+
+function viewOrderReviews(parentReviewId) {
+    viewReviewDetails('merchant', parentReviewId);
 }
 
 function deleteReviewItem(type, id) {

@@ -230,6 +230,46 @@ class ProductReviewModel extends CI_Model
         return false;
     }
 
+    /**
+     * Get single review details by type ('merchant' or 'product') and id
+     */
+    public function getSingleReviewDetails($type, $id)
+    {
+        if ($type === 'merchant') {
+            $this->db->select("mr.*, pub.publication_name, pub.company_name, pub.trade_name, pub.shop_image,
+                               COALESCE(CONCAT(c.first_name, ' ', c.last_name), CONCAT(bo.customer_firstname, ' ', bo.customer_lastname), 'Shopper') AS customer_name,
+                               COALESCE(c.email_id, bo.customer_email, '') AS customer_email,
+                               COALESCE(mr.B2B_order_id, bo.order_id, '') AS B2B_order_id");
+            $this->db->from('ym_merchant_reviews mr');
+            $this->db->join('publisher pub', 'pub.id = mr.merchant_id', 'left');
+            $this->db->join('customers c', 'c.id = mr.customer_id', 'left');
+            $this->db->join('b2b_orders bo', 'bo.order_id = mr.order_id', 'left');
+            $this->db->where('mr.id', (int)$id);
+            return $this->db->get()->row_array();
+        } elseif ($type === 'product') {
+            $has_pr_status = $this->db->field_exists('status', 'ym_product_reviews');
+            $pr_status_expr = $has_pr_status ? "COALESCE(pr.status, mr.status, 'pending') AS status" : "COALESCE(mr.status, 'pending') AS status";
+
+            $this->db->select("pr.*, " . $pr_status_expr . ",
+                               COALESCE(pr.product_name, p.name, 'Product') AS product_name,
+                               p.product_image,
+                               pub.publication_name, pub.trade_name,
+                               mr.order_id,
+                               COALESCE(mr.B2B_order_id, bo.order_id, '') AS B2B_order_id,
+                               COALESCE(CONCAT(c.first_name, ' ', c.last_name), CONCAT(bo.customer_firstname, ' ', bo.customer_lastname), 'Shopper') AS customer_name,
+                               COALESCE(c.email_id, bo.customer_email, '') AS customer_email");
+            $this->db->from('ym_product_reviews pr');
+            $this->db->join('ym_merchant_reviews mr', 'mr.id = pr.review_id', 'left');
+            $this->db->join('products p', 'p.id = pr.product_id', 'left');
+            $this->db->join('publisher pub', 'pub.id = mr.merchant_id', 'left');
+            $this->db->join('customers c', 'c.id = mr.customer_id', 'left');
+            $this->db->join('b2b_orders bo', 'bo.order_id = mr.order_id', 'left');
+            $this->db->where('pr.id', (int)$id);
+            return $this->db->get()->row_array();
+        }
+        return null;
+    }
+
     public function getOrderReviewDetails($parent_review_id)
     {
         // 1. Fetch merchant review
