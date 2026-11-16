@@ -60,21 +60,17 @@ function initReviewDataTable() {
         'columns': [
             { data: 'id' },
             { data: 'order_id' },
-            { data: 'target_name' },
-            { data: 'customer_name' },
-            { data: 'email_id' },
             { data: 'rating' },
-            { data: 'review' },
             { data: 'created_at' },
             { data: 'status' },
             { data: 'action' },
             { data: 'view_url' },
             { data: 'delete' }
         ],
-        'order': [[7, 'desc']],
+        'order': [[3, 'desc']],
         'columnDefs': [
-            { 'targets': [0, 9, 10, 11], 'orderable': false },
-            { 'className': 'text-center', 'targets': [0, 1, 5, 8, 9, 10, 11] }
+            { 'targets': [0, 5, 6, 7], 'orderable': false },
+            { 'className': 'text-center', 'targets': [0, 1, 2, 3, 4, 5, 6, 7] }
         ]
     });
 }

@@ -37,7 +37,6 @@
         border-bottom: 1px solid #dee2e6;
     }
     #DataTables_Table_Project_Review_list {
-        min-width: 1350px !important;
         width: 100% !important;
         margin-bottom: 0 !important;
     }
@@ -45,12 +44,6 @@
     #DataTables_Table_Project_Review_list td {
         vertical-align: middle !important;
         white-space: nowrap !important;
-    }
-    #DataTables_Table_Project_Review_list th:nth-child(7),
-    #DataTables_Table_Project_Review_list td:nth-child(7) {
-        white-space: normal !important;
-        min-width: 220px !important;
-        max-width: 320px !important;
     }
 
     /* Custom visible horizontal scrollbar */
@@ -300,21 +293,17 @@ function initReviewDataTable() {
         'columns': [
             { data: 'id' },
             { data: 'order_id' },
-            { data: 'target_name' },
-            { data: 'customer_name' },
-            { data: 'email_id' },
             { data: 'rating' },
-            { data: 'review' },
             { data: 'created_at' },
             { data: 'status' },
             { data: 'action' },
             { data: 'view_url' },
             { data: 'delete' }
         ],
-        'order': [[7, 'desc']],
+        'order': [[3, 'desc']],
         'columnDefs': [
-            { 'targets': [0, 9, 10, 11], 'orderable': false },
-            { 'className': 'text-center', 'targets': [0, 1, 5, 8, 9, 10, 11] }
+            { 'targets': [0, 5, 6, 7], 'orderable': false },
+            { 'className': 'text-center', 'targets': [0, 1, 2, 3, 4, 5, 6, 7] }
         ]
     });
 }
@@ -342,11 +331,9 @@ function switchReviewCategory(category, elem) {
 
     // Update column headers & indicator across all header elements (including DataTables scroll clone)
     if (category === 'merchant') {
-        $('[id="col-target-header"]').text('Merchant Name');
         $('[id="col-rating-header"]').text('Service Rating');
         $('#indicator-text').text('Merchant Service Reviews');
     } else {
-        $('[id="col-target-header"]').text('Product Name');
         $('[id="col-rating-header"]').text('Product Rating');
         $('#indicator-text').text('Product Reviews');
     }
