@@ -210,10 +210,20 @@ class Shop_model extends CI_Model {
         $avg   = (!empty($row) && $row->avg_rating !== null) ? round((float)$row->avg_rating, 1) : 0.0;
         $total = (!empty($row) && $row->total_reviews !== null) ? (int)$row->total_reviews : 0;
 
+        // Check if front-end trust badge is enabled by admin
+        $is_badge_enabled = 1;
+        if ($this->db->table_exists('publisher') && $this->db->field_exists('is_badge_enabled', 'publisher')) {
+            $pub = $this->db->select('is_badge_enabled')->from('publisher')->where('id', $m_id)->get()->row();
+            if ($pub && isset($pub->is_badge_enabled)) {
+                $is_badge_enabled = (int)$pub->is_badge_enabled;
+            }
+        }
+
         return (object)[
-            'merchant_id'   => $m_id,
-            'avg_rating'    => $avg,
-            'total_reviews' => $total
+            'merchant_id'      => $m_id,
+            'avg_rating'       => $avg,
+            'total_reviews'    => $total,
+            'is_badge_enabled' => $is_badge_enabled
         ];
     }
 

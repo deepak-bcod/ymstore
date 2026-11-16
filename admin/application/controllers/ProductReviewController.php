@@ -30,6 +30,7 @@ class ProductReviewController extends CI_Controller {
             $data['side_menu'] = 'webshop';
             $data['current_tab'] = 'product_reviews';
             $data['status_counts'] = $this->ProductReviewModel->getStatusCounts();
+            $data['merchant_count'] = $this->ProductReviewModel->getMerchantBadgeCount();
 
             $this->load->view('product_review/product_review_main', $data);
         } else {
@@ -280,6 +281,154 @@ class ProductReviewController extends CI_Controller {
             "msg"    => "Updated " . $count . " review(s) to " . ucfirst($status) . ".",
             "counts" => $this->ProductReviewModel->getStatusCounts()
         ));
+        exit;
+    }
+
+    public function ajaxmerchantbadgelist()
+    {
+        try {
+            $draw = isset($_POST['draw']) ? (int)$_POST['draw'] : 1;
+            $row = isset($_POST['start']) ? (int)$_POST['start'] : 0;
+            $rowperpage = isset($_POST['length']) ? (int)$_POST['length'] : 50;
+
+            $search_param = array();
+            if (!empty($_POST['search']['value'])) {
+                $search_param['keyword'] = trim($_POST['search']['value']);
+            }
+
+            $merchantList = $this->ProductReviewModel->getMerchantBadgeList($row, $rowperpage, $search_param);
+            $totalRecords = $this->ProductReviewModel->getMerchantBadgeCount(array());
+            $totalRecordwithFilter = $this->ProductReviewModel->getMerchantBadgeCount($search_param);
+
+            $data = array();
+
+            if (!empty($merchantList)) {
+                foreach ($merchantList as $m) {
+                    $m_id = (int)$m['merchant_id'];
+                    $trade_name = htmlspecialchars($m['publication_name'] ?? 'N/A');
+                    $vendor_name = htmlspecialchars($m['vendor_name'] ?? 'N/A');
+                    $email = htmlspecialchars($m['email'] ?? '');
+                    $phone = htmlspecialchars($m['phone_no'] ?? '');
+
+                    $contact_html = '<div style="font-size:12px; line-height: 1.4;">';
+                    if (!empty($email)) {
+                        $contact_html .= '<div><i class="fa fa-envelope text-muted mr-1"></i> ' . $email . '</div>';
+                    }
+                    if (!empty($phone)) {
+                        $contact_html .= '<div><i class="fa fa-phone text-muted mr-1"></i> ' . $phone . '</div>';
+                    }
+                    if (empty($email) && empty($phone)) {
+                        $contact_html .= '<span class="text-muted">N/A</span>';
+                    }
+                    $contact_html .= '</div>';
+
+                    $pub_reviews = (int)($m['total_published_reviews'] ?? 0);
+                    $reviews_badge = '<span class="badge badge-light border font-weight-bold" style="font-size:12px; padding: 6px 12px; border-radius: 12px;">' . $pub_reviews . '</span>';
+
+                    $avg = round((float)($m['avg_rating'] ?? 0), 1);
+                    if ($pub_reviews > 0 && $avg > 0) {
+                        $rating_html = '<div style="font-weight:700; color:#111; font-size:14px;"><span style="color:#f59e0b;">★</span> ' . number_format($avg, 1) . ' / 5</div>';
+                    } else {
+                        $rating_html = '<span class="text-muted" style="font-size:12px;">Unrated</span>';
+                    }
+
+                    // Badge preview calculation
+                    $badge_img_url = '';
+                    $badge_label = '';
+                    if ($pub_reviews > 0 && $avg >= 2.5) {
+                        if ($avg >= 4.5) {
+                            $badge_img_url = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+                            $badge_label = '5 Stars Badge';
+                        } elseif ($avg >= 3.5) {
+                            $badge_img_url = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+                            $badge_label = '4 Stars Badge';
+                        } else {
+                            $badge_img_url = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
+                            $badge_label = '3 Stars Badge';
+                        }
+                    }
+
+                    if (!empty($badge_img_url)) {
+                        $preview_html = '<div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                            <img src="' . $badge_img_url . '" width="55" height="55" alt="' . $badge_label . '" style="object-fit:contain;">
+                            <small class="text-muted font-weight-bold">' . $badge_label . '</small>
+                        </div>';
+                    } else {
+                        $preview_html = '<span class="badge badge-light text-muted border py-1 px-2" style="font-size:11px;">No Badge (< 2.5★ / 0 Reviews)</span>';
+                    }
+
+                    $is_enabled = (int)($m['is_badge_enabled'] ?? 1);
+                    $checked = ($is_enabled === 1) ? 'checked' : '';
+                    $status_text = ($is_enabled === 1) ? 'Enabled' : 'Disabled';
+                    $status_color = ($is_enabled === 1) ? '#28a745' : '#dc3545';
+
+                    $toggle_html = '
+                        <div class="d-flex align-items-center justify-content-center" style="gap: 8px;">
+                            <label class="switch-toggle" style="margin-bottom:0;">
+                                <input type="checkbox" id="switch_merchant_' . $m_id . '" data-id="' . $m_id . '" ' . $checked . ' onchange="toggleMerchantBadge(' . $m_id . ', this.checked)">
+                                <span class="slider round"></span>
+                            </label>
+                            <span id="label_merchant_' . $m_id . '" style="font-weight:700; font-size:12px; min-width:60px; color:' . $status_color . ';">
+                                ' . $status_text . '
+                            </span>
+                        </div>
+                    ';
+
+                    $data[] = array(
+                        "merchant_id"       => '#' . $m_id,
+                        "trade_name"        => '<strong>' . $trade_name . '</strong>',
+                        "vendor_name"       => $vendor_name,
+                        "contact"           => $contact_html,
+                        "published_reviews" => $reviews_badge,
+                        "avg_rating"        => $rating_html,
+                        "badge_preview"     => $preview_html,
+                        "toggle_badge"      => $toggle_html
+                    );
+                }
+            }
+
+            echo json_encode(array(
+                "draw"            => $draw,
+                "recordsTotal"    => $totalRecords,
+                "recordsFiltered" => $totalRecordwithFilter,
+                "data"            => $data,
+                "aaData"          => $data
+            ));
+            exit;
+        } catch (Exception $e) {
+            echo json_encode(array(
+                "draw"            => 1,
+                "recordsTotal"    => 0,
+                "recordsFiltered" => 0,
+                "data"            => array(),
+                "aaData"          => array(),
+                "error"           => $e->getMessage()
+            ));
+            exit;
+        }
+    }
+
+    public function toggle_merchant_badge()
+    {
+        $merchant_id = (int)$this->input->post('merchant_id');
+        $status = (int)$this->input->post('is_badge_enabled');
+
+        if (empty($merchant_id)) {
+            echo json_encode(array("flag" => 0, "msg" => "Invalid merchant ID provided."));
+            exit;
+        }
+
+        $updated = $this->ProductReviewModel->toggleMerchantBadge($merchant_id, $status);
+
+        if ($updated) {
+            echo json_encode(array(
+                "flag"   => 1,
+                "msg"    => "Front-end merchant trust badge " . ($status ? "enabled" : "disabled") . " successfully.",
+                "status" => $status
+            ));
+        } else {
+            echo json_encode(array("flag" => 0, "msg" => "Failed to update merchant badge status."));
+        }
         exit;
     }
 }

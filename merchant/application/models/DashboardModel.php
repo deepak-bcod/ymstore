@@ -161,6 +161,14 @@ class DashboardModel extends CI_Model {
     }
 
 	public function get_avg_ratings_by_merchant($merchant_id) {
+        $is_badge_enabled = 1;
+        if ($this->db->table_exists('publisher') && $this->db->field_exists('is_badge_enabled', 'publisher')) {
+            $pub = $this->db->select('is_badge_enabled')->from('publisher')->where('id', (int)$merchant_id)->get()->row();
+            if ($pub && isset($pub->is_badge_enabled)) {
+                $is_badge_enabled = (int)$pub->is_badge_enabled;
+            }
+        }
+
         if ($this->db->table_exists('ym_merchant_reviews')) {
             $this->db->select('merchant_id, AVG(rating) as avg_rating, COUNT(id) as total_reviews');
             $this->db->from('ym_merchant_reviews');
@@ -168,7 +176,11 @@ class DashboardModel extends CI_Model {
             $this->db->where('LOWER(status)', 'published');
             $this->db->group_by('merchant_id');
             $query = $this->db->get();
-            return $query->row();
+            $row = $query->row();
+            if ($row) {
+                $row->is_badge_enabled = $is_badge_enabled;
+            }
+            return $row;
         } elseif ($this->db->table_exists('product_reviews')) {
             $this->db->select('merchant_id, AVG(rating) as avg_rating, COUNT(id) as total_reviews');
             $this->db->from('product_reviews');
@@ -178,7 +190,11 @@ class DashboardModel extends CI_Model {
             }
             $this->db->group_by('merchant_id');
             $query = $this->db->get();
-            return $query->row();
+            $row = $query->row();
+            if ($row) {
+                $row->is_badge_enabled = $is_badge_enabled;
+            }
+            return $row;
         }
         return null;
     }

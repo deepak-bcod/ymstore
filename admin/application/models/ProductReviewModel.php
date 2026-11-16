@@ -18,6 +18,11 @@ class ProductReviewModel extends CI_Model
                 @$this->db->query("ALTER TABLE `ym_product_reviews` ADD INDEX `idx_product_status` (`product_id`, `status`)");
             }
         }
+        if ($this->db->table_exists('publisher')) {
+            if (!$this->db->field_exists('is_badge_enabled', 'publisher')) {
+                @$this->db->query("ALTER TABLE `publisher` ADD COLUMN `is_badge_enabled` TINYINT(1) NOT NULL DEFAULT 1 AFTER `status`");
+            }
+        }
     }
 
     /**
@@ -266,5 +271,97 @@ class ProductReviewModel extends CI_Model
             return $this->db->delete('ym_product_reviews');
         }
         return false;
+    }
+
+    /**
+     * Get paginated merchants list with ratings and badge status
+     */
+    public function getMerchantBadgeList($start = 0, $limit = 50, $search_param = array())
+    {
+        $this->_ensure_schema_compatibility();
+        $has_col = $this->db->field_exists('is_badge_enabled', 'publisher');
+        $badge_col = $has_col ? "COALESCE(pub.is_badge_enabled, 1) AS is_badge_enabled" : "1 AS is_badge_enabled";
+
+        $sql = "
+            SELECT 
+                pub.id AS merchant_id,
+                pub.publication_name,
+                pub.vendor_name,
+                pub.email,
+                pub.phone_no,
+                pub.status AS merchant_status,
+                {$badge_col},
+                COUNT(mr.id) AS total_published_reviews,
+                COALESCE(AVG(mr.rating), 0) AS avg_rating
+            FROM publisher pub
+            LEFT JOIN ym_merchant_reviews mr 
+                ON mr.merchant_id = pub.id 
+                AND LOWER(mr.status) = 'published'
+            WHERE (pub.remove_flag = 0 OR pub.remove_flag IS NULL)
+        ";
+
+        if (!empty($search_param['keyword'])) {
+            $kw = $this->db->escape_like_str($search_param['keyword']);
+            $sql .= " AND (
+                pub.publication_name LIKE '%{$kw}%' 
+                OR pub.vendor_name LIKE '%{$kw}%' 
+                OR pub.email LIKE '%{$kw}%' 
+                OR pub.phone_no LIKE '%{$kw}%' 
+                OR pub.id = '{$kw}'
+            )";
+        }
+
+        $sql .= " GROUP BY pub.id ORDER BY pub.id DESC";
+
+        if ($limit > 0) {
+            $sql .= " LIMIT " . (int)$start . ", " . (int)$limit;
+        }
+
+        $query = $this->db->query($sql);
+        return $query ? $query->result_array() : array();
+    }
+
+    /**
+     * Get total count of merchants matching search
+     */
+    public function getMerchantBadgeCount($search_param = array())
+    {
+        $sql = "
+            SELECT COUNT(*) AS total 
+            FROM publisher pub 
+            WHERE (pub.remove_flag = 0 OR pub.remove_flag IS NULL)
+        ";
+
+        if (!empty($search_param['keyword'])) {
+            $kw = $this->db->escape_like_str($search_param['keyword']);
+            $sql .= " AND (
+                pub.publication_name LIKE '%{$kw}%' 
+                OR pub.vendor_name LIKE '%{$kw}%' 
+                OR pub.email LIKE '%{$kw}%' 
+                OR pub.phone_no LIKE '%{$kw}%' 
+                OR pub.id = '{$kw}'
+            )";
+        }
+
+        $query = $this->db->query($sql);
+        if ($query && $row = $query->row()) {
+            return (int)$row->total;
+        }
+        return 0;
+    }
+
+    /**
+     * Toggle front-end trust badge status for a merchant
+     */
+    public function toggleMerchantBadge($merchant_id, $status)
+    {
+        if (empty($merchant_id)) {
+            return false;
+        }
+        $this->_ensure_schema_compatibility();
+        $this->db->where('id', (int)$merchant_id);
+        return $this->db->update('publisher', array(
+            'is_badge_enabled' => (int)$status
+        ));
     }
 }

@@ -68,6 +68,47 @@
         background: #adb5bd;
         border-radius: 6px;
     }
+
+    /* Switch Toggle Styling for Merchant Badge */
+    .switch-toggle {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 26px;
+    }
+    .switch-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .switch-toggle .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #dc3545;
+        transition: .3s;
+        border-radius: 26px;
+    }
+    .switch-toggle .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+    }
+    .switch-toggle input:checked + .slider {
+        background-color: #28a745;
+    }
+    .switch-toggle input:checked + .slider:before {
+        transform: translateX(22px);
+    }
     .dataTables_scrollBody::-webkit-scrollbar-thumb:hover,
     .table-responsive::-webkit-scrollbar-thumb:hover {
         background: #6c757d;
@@ -86,7 +127,7 @@
         </div>
     </div>
 
-    <!-- 2 Top-Level Tabs: 1. Merchant Service Reviews, 2. Product Reviews -->
+    <!-- 3 Top-Level Tabs: 1. Merchant Service Reviews, 2. Product Reviews, 3. Merchant Badge Controls -->
     <ul class="nav nav-tabs mb-4" id="reviewMainCategoryTabs" style="border-bottom: 2px solid #e2e8f0; font-size: 15px;">
         <li class="nav-item">
             <a class="nav-link active font-weight-bold" id="tab-merchant-reviews" href="javascript:void(0)" onclick="switchReviewCategory('merchant', this)" style="padding: 12px 26px; border-radius: 8px 8px 0 0; cursor: pointer;">
@@ -100,64 +141,79 @@
                 <span class="badge ml-2" id="badge-tab-product" style="background:#6f42c1; color:#fff;"><?= $status_counts['product_all'] ?? 0 ?></span>
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link font-weight-bold text-muted" id="tab-merchant-badges" href="javascript:void(0)" onclick="switchReviewCategory('badge', this)" style="padding: 12px 26px; border-radius: 8px 8px 0 0; cursor: pointer;">
+                <i class="fa fa-award mr-2" style="color: #f59e0b;"></i> 3. Merchant Badge Controls
+                <span class="badge ml-2" id="badge-tab-merchant-badges" style="background:#f59e0b; color:#fff;"><?= $merchant_count ?? 0 ?></span>
+            </a>
+        </li>
     </ul>
 
-    <!-- Status Filter Pills for Active Tab -->
-    <div class="row mb-3 align-items-center" style="margin-bottom: 20px;">
-        <div class="col-md-8">
-            <ul class="nav nav-pills" id="reviewStatusTabs" style="gap: 8px;">
-                <li class="nav-item">
-                    <a class="nav-link active" href="javascript:void(0)" onclick="filterByStatus('all', this)" style="border-radius: 20px; font-weight: 600; padding: 7px 18px;">
-                        All <span class="badge badge-secondary ml-1" id="badge-status-all"><?= $status_counts['merchant_all'] ?? 0 ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-warning" href="javascript:void(0)" onclick="filterByStatus('pending', this)" style="border-radius: 20px; font-weight: 600; padding: 7px 18px;">
-                        <i class="fa fa-clock"></i> Pending <span class="badge badge-warning ml-1" id="badge-status-pending" style="background:#ffc107;color:#212529;"><?= $status_counts['merchant_pending'] ?? 0 ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-success" href="javascript:void(0)" onclick="filterByStatus('published', this)" style="border-radius: 20px; font-weight: 600; padding: 7px 18px;">
-                        <i class="fa fa-check-circle"></i> Published <span class="badge badge-success ml-1" id="badge-status-published" style="background:#28a745;"><?= $status_counts['merchant_published'] ?? 0 ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-danger" href="javascript:void(0)" onclick="filterByStatus('rejected', this)" style="border-radius: 20px; font-weight: 600; padding: 7px 18px;">
-                        <i class="fa fa-times-circle"></i> Rejected <span class="badge badge-danger ml-1" id="badge-status-rejected" style="background:#dc3545;"><?= $status_counts['merchant_rejected'] ?? 0 ?></span>
-                    </a>
-                </li>
-            </ul>
-        </div>
+    <!-- Reviews Section (Tabs 1 & 2) -->
+    <div id="card-reviews-section">
+        <!-- Main Table Container -->
+        <div class="card shadow-sm" style="border: 1px solid #e5e7eb; border-radius: 8px;">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #e5e7eb;">
+                <div class="d-flex align-items-center" style="gap: 10px;">
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="bulkAction('published')" style="font-weight: 600;">
+                        <i class="fa fa-check"></i> Bulk Publish
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkAction('rejected')" style="font-weight: 600;">
+                        <i class="fa fa-times"></i> Bulk Reject
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="bulkAction('pending')" style="font-weight: 600;">
+                        <i class="fa fa-clock"></i> Bulk Set Pending
+                    </button>
+                </div>
+                <div class="text-muted small">
+                    <span class="badge badge-light border py-2 px-3 text-secondary mr-2" style="font-size: 13px; font-weight: 600;">
+                        Viewing: <span id="indicator-text" class="text-dark font-weight-bold">Merchant Service Reviews</span>
+                    </span>
+                    * Pending and Rejected reviews are strictly hidden from public store and product pages.
+                </div>
+            </div>
 
-        <div class="col-md-4 text-right">
-            <span class="badge badge-light border py-2 px-3 text-secondary" style="font-size: 13px; font-weight: 600;">
-                Viewing: <span id="indicator-text" class="text-dark font-weight-bold">Merchant Service Reviews</span>
-            </span>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="padding: 15px;">
+                    <?php include('product_review_list.php'); ?>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Main Table Container -->
-    <div class="card shadow-sm" style="border: 1px solid #e5e7eb; border-radius: 8px;">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #e5e7eb;">
-            <div class="d-flex align-items-center" style="gap: 10px;">
-                <button type="button" class="btn btn-sm btn-outline-success" onclick="bulkAction('published')" style="font-weight: 600;">
-                    <i class="fa fa-check"></i> Bulk Publish
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkAction('rejected')" style="font-weight: 600;">
-                    <i class="fa fa-times"></i> Bulk Reject
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="bulkAction('pending')" style="font-weight: 600;">
-                    <i class="fa fa-clock"></i> Bulk Set Pending
-                </button>
+    <!-- Merchant Badge Controls Section (Tab 3) -->
+    <div id="card-merchant-badges-section" style="display: none;">
+        <div class="card shadow-sm" style="border: 1px solid #e5e7eb; border-radius: 8px;">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #e5e7eb;">
+                <div>
+                    <h5 class="mb-0 font-weight-bold" style="font-size: 16px;"><i class="fa fa-award text-warning mr-2"></i> Merchant Trust Badge Front-End Controls</h5>
+                    <small class="text-muted">Enable or disable trust badge display on the front-end (Merchant eShop & Product pages) per merchant.</small>
+                </div>
+                <div class="text-right">
+                    <span class="badge badge-light border py-2 px-3 text-secondary" style="font-size: 13px; font-weight: 600;">
+                        Total Merchants: <span class="text-dark font-weight-bold"><?= $merchant_count ?? 0 ?></span>
+                    </span>
+                </div>
             </div>
-            <div class="text-muted small">
-                * Pending and Rejected reviews are strictly hidden from public store and product pages.
-            </div>
-        </div>
 
-        <div class="card-body p-0">
-            <div class="table-responsive" style="padding: 15px;">
-                <?php include('product_review_list.php'); ?>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="padding: 15px;">
+                    <table class="table table-bordered table-hover text-center" id="merchantBadgeTable" style="width: 100%;">
+                        <thead style="background: #f8fafc;">
+                            <tr>
+                                <th style="width: 70px;">ID</th>
+                                <th>Trade / Shop Name</th>
+                                <th>Merchant Name</th>
+                                <th>Contact</th>
+                                <th style="width: 120px;">Published Reviews</th>
+                                <th style="width: 120px;">Average Rating</th>
+                                <th style="width: 140px;">Badge Preview</th>
+                                <th style="width: 140px;">Front-End Badge</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -267,7 +323,21 @@ function initReviewDataTable() {
 }
 
 function switchReviewCategory(category, elem) {
+    if (category === 'badge') {
+        window.currentTypeFilter = 'badge';
+        $('#reviewMainCategoryTabs .nav-link').removeClass('active').addClass('text-muted');
+        $('#tab-merchant-badges').addClass('active').removeClass('text-muted');
+        $('#card-reviews-section').hide();
+        $('#card-merchant-badges-section').show();
+        initMerchantBadgeTable();
+        return;
+    }
+
     window.currentTypeFilter = category;
+
+    // Show reviews section and hide badge section
+    $('#card-merchant-badges-section').hide();
+    $('#card-reviews-section').show();
 
     // Update main tab active classes
     $('#reviewMainCategoryTabs .nav-link').removeClass('active').addClass('text-muted');
@@ -284,13 +354,8 @@ function switchReviewCategory(category, elem) {
         $('#indicator-text').text('Product Reviews');
     }
 
-    // Update status badge counts
-    updateStatusCountBadges(category);
-
     // Reset status filter to 'all'
     window.currentStatusFilter = 'all';
-    $('#reviewStatusTabs .nav-link').removeClass('active');
-    $('#reviewStatusTabs .nav-link').first().addClass('active');
 
     // Uncheck check-all
     $('#ckbCheckAllReviews').prop('checked', false);
@@ -298,6 +363,100 @@ function switchReviewCategory(category, elem) {
     if (reviewTable) {
         reviewTable.ajax.reload();
     }
+}
+
+var merchantBadgeTable = null;
+function initMerchantBadgeTable() {
+    if (merchantBadgeTable) {
+        merchantBadgeTable.ajax.reload();
+        return;
+    }
+
+    merchantBadgeTable = $('#merchantBadgeTable').DataTable({
+        'processing': true,
+        'serverSide': true,
+        'serverMethod': 'post',
+        'responsive': true,
+        'destroy': true,
+        'language': {
+            searchPlaceholder: "Search by Merchant Name, Trade Name, Email, ID...",
+            search: "_INPUT_",
+            lengthMenu: "Show _MENU_ entries",
+            paginate: {
+                previous: '<i class="fas fa-angle-left"></i>',
+                next: '<i class="fas fa-angle-right"></i>'
+            }
+        },
+        'iDisplayLength': 50,
+        'pageLength': 50,
+        'lengthMenu': [[10, 25, 50, 100, 200], [10, 25, 50, 100, 200]],
+        'ajax': {
+            'url': BASE_URL + 'ProductReviewController/ajaxmerchantbadgelist',
+            'type': 'POST',
+            'error': function(xhr, error, thrown) {
+                console.error("Merchant Badge DataTable error: ", xhr.responseText);
+            }
+        },
+        'columns': [
+            { data: 'merchant_id' },
+            { data: 'trade_name' },
+            { data: 'vendor_name' },
+            { data: 'contact' },
+            { data: 'published_reviews' },
+            { data: 'avg_rating' },
+            { data: 'badge_preview' },
+            { data: 'toggle_badge' }
+        ],
+        'order': [[0, 'desc']],
+        'columnDefs': [
+            { 'targets': [6, 7], 'orderable': false },
+            { 'className': 'text-center', 'targets': [0, 4, 5, 6, 7] }
+        ]
+    });
+}
+
+function toggleMerchantBadge(merchantId, isChecked) {
+    var newStatus = isChecked ? 1 : 0;
+    var labelElem = $('#label_merchant_' + merchantId);
+
+    $.ajax({
+        type: 'POST',
+        url: BASE_URL + 'ProductReviewController/toggle_merchant_badge',
+        dataType: 'json',
+        data: {
+            merchant_id: merchantId,
+            is_badge_enabled: newStatus
+        },
+        success: function(response) {
+            if (response.flag == 1) {
+                if (newStatus === 1) {
+                    labelElem.text('Enabled').css('color', '#28a745');
+                } else {
+                    labelElem.text('Disabled').css('color', '#dc3545');
+                }
+                if (typeof swal !== 'undefined') {
+                    swal({
+                        title: newStatus ? "Badge Enabled!" : "Badge Disabled!",
+                        text: response.msg,
+                        icon: "success",
+                        timer: 1500,
+                        buttons: false
+                    });
+                }
+            } else {
+                $('#switch_merchant_' + merchantId).prop('checked', !isChecked);
+                if (typeof swal !== 'undefined') {
+                    swal("Error", response.msg || "Failed to update badge status.", "error");
+                } else {
+                    alert(response.msg || "Failed to update badge status.");
+                }
+            }
+        },
+        error: function(xhr) {
+            $('#switch_merchant_' + merchantId).prop('checked', !isChecked);
+            alert("An error occurred while updating merchant badge status.");
+        }
+    });
 }
 
 function updateStatusCountBadges(category) {
