@@ -28,10 +28,10 @@ span.label,
 .badge-warning { color: #b38600 !important; }
 .badge-light { color: #495057 !important; }
 
-/* Remove background color from alert boxes, chat messages and text containers */
-.alert:not(.alert-dismissible),
-.bg-light,
-.card-header.bg-light,
+/* Remove background color from alert boxes, chat messages and text containers within main content */
+.main-box .alert:not(.alert-dismissible),
+.main-box .bg-light,
+.main-box .card-header.bg-light,
 .chat-container,
 .chat-msg,
 .chat-msg-shopper,
@@ -41,6 +41,17 @@ span.label,
 .chat-attachment-box {
     background: transparent !important;
     background-color: transparent !important;
+}
+
+/* Ensure sidebar retains standard Yellow Markets brand yellow background (Image 3) */
+#sidebarMenu,
+#sidebarMenu.bg-light,
+nav#sidebarMenu,
+nav.sidebar,
+.sidebar,
+.sidebar-sticky {
+    background: #FFD703 !important;
+    background-color: #FFD703 !important;
 }
 
 .chat-container { max-height: 520px; overflow-y: auto; padding: 15px; border: 1px solid #e9ecef; border-radius: 6px; margin-bottom: 25px; }
