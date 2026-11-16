@@ -792,53 +792,48 @@ body {
                     <strong><?php echo $e($service_name); ?></strong>
                 </td>
 
-              <td>
+              
+<td>
     <?php
-    // Get service category
-    $service_type = strtolower(trim($addon_service_name ?? ''));
+    // Use the correct service category variable
+    $service_type = strtolower(trim($service_name));
 
-    // Only Daily Deals and Flash Sales
-    $show_description = in_array(
-        $service_type,
-        ['daily deals', 'flash sales'],
-        TRUE
-    );
+    // Show description ONLY for Daily Deals and Flash Sales
+    if (
+        in_array($service_type, ['daily deals', 'flash sales'], TRUE)
+        && !empty($description)
+    ) {
 
-    if ($show_description):
+        $clean_description = html_entity_decode(
+            strip_tags($description),
+            ENT_QUOTES,
+            'UTF-8'
+        );
 
-        // Show short description only
-        if (!empty($description)):
+        $clean_description = trim(
+            preg_replace('/\s+/', ' ', $clean_description)
+        );
 
-            $clean_description = html_entity_decode(
-                strip_tags($description),
-                ENT_QUOTES,
-                'UTF-8'
-            );
+        // Remove the long promotional description
+        $parts = preg_split(
+            '/\s+Welcome to\b/i',
+            $clean_description,
+            2
+        );
 
-            $clean_description = trim(
-                preg_replace('/\s+/', ' ', $clean_description)
-            );
+        $clean_description = trim($parts[0]);
 
-            // Remove extra promotional text
-            $parts = preg_split(
-                '/\s+Welcome to\b/i',
-                $clean_description,
-                2
-            );
-
-            $clean_description = trim($parts[0]);
-
-            if (!empty($clean_description)):
+        if (!empty($clean_description)) {
     ?>
-                <span style="color:#52647b;">
-                    <?php echo $e($clean_description); ?>
-                </span>
+            <span style="color:#52647b;">
+                <?php echo $e($clean_description); ?>
+            </span>
     <?php
-            endif;
-        endif;
-    endif;
+        }
+    }
     ?>
 </td>
+
 
                 <td class="text-center">1</td>
 
