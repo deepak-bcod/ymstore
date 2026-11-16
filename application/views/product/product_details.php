@@ -752,11 +752,7 @@ $lang = $this->session->userdata('site_lang');
                                                             </p>
                                                             <h3><?= htmlspecialchars($review_title) ?></h3>
                                                             <p><?= nl2br(htmlspecialchars($rev->comments)) ?></p>
-                                                            <div class="helpful">
-                                                                <?= $this->lang->line('was_this_helpful') ?: 'Was this helpful?' ?> 
-                                                                <button type="button" class="btn-helpful" data-helpful aria-label="<?= htmlspecialchars($this->lang->line('helpful_review_label') ?: 'Helpful review', ENT_QUOTES, 'UTF-8') ?>" aria-pressed="false">↑</button>
-                                                                <button type="button" class="btn-helpful" data-helpful aria-label="<?= htmlspecialchars($this->lang->line('not_helpful_review_label') ?: 'Not helpful review', ENT_QUOTES, 'UTF-8') ?>" aria-pressed="false">↓</button>
-                                                            </div>
+                                                            
                                                         </article>
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
@@ -2435,7 +2431,6 @@ $lang = $this->session->userdata('site_lang');
 </script>
 
 <!-- Floating Reviews Ribbon -->
-<a class="reviews-ribbon" id="open-reviews-ribbon" href="#reviews" title="<?= htmlspecialchars($this->lang->line('reviews_ribbon_title') ?: 'View Customer Reviews', ENT_QUOTES, 'UTF-8') ?>"><?= $this->lang->line('reviews_ribbon') ?: 'REVIEWS' ?></a>
 
 <style>
 /* Reviews Tab Figma Wireframe Styles */
