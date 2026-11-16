@@ -17,7 +17,13 @@ class OrderResolutionModel extends CI_Model
     public function ensure_schema()
     {
         try {
-            if (empty($this->db) || empty($this->db->conn_id)) {
+            if (empty($this->db)) {
+                return;
+            }
+            if (empty($this->db->conn_id)) {
+                $this->db->initialize();
+            }
+            if (empty($this->db->conn_id)) {
                 return;
             }
 
@@ -32,26 +38,33 @@ class OrderResolutionModel extends CI_Model
                 }
             }
             if ($this->db->table_exists('order_resolutions')) {
+                $cols_res = $this->db->query("SHOW COLUMNS FROM `order_resolutions`")->result_array();
+                $existing_cols = !empty($cols_res) ? array_column($cols_res, 'Field') : [];
+
                 $cols_to_add = [
-                    'addon_service_id'               => "ALTER TABLE `order_resolutions` ADD COLUMN `addon_service_id` int(11) DEFAULT NULL",
-                    'refund_amount'                  => "ALTER TABLE `order_resolutions` ADD COLUMN `refund_amount` decimal(12,2) NOT NULL DEFAULT '0.00'",
-                    'resolution_status'              => "ALTER TABLE `order_resolutions` ADD COLUMN `resolution_status` enum('none','resolution_requested','resolution_approved','resolution_denied') NOT NULL DEFAULT 'none'",
-                    'admin_decision'                 => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision` varchar(50) DEFAULT 'pending'",
-                    'admin_decision_reason'          => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision_reason` text DEFAULT NULL",
-                    'admin_remedy'                   => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_remedy` varchar(50) DEFAULT 'none'",
-                    'merchant_return_confirmed'      => "ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_confirmed` tinyint(1) DEFAULT 0",
-                    'merchant_return_notes'          => "ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_notes` text DEFAULT NULL",
-                    'shopper_receipt_confirmed'      => "ALTER TABLE `order_resolutions` ADD COLUMN `shopper_receipt_confirmed` tinyint(1) DEFAULT 0",
-                    'admin_return_exception'         => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception` tinyint(1) DEFAULT 0",
-                    'admin_return_exception_notes'   => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception_notes` text DEFAULT NULL",
-                    'admin_replacement_exception'    => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception` tinyint(1) DEFAULT 0",
+                    'addon_service_id'                 => "ALTER TABLE `order_resolutions` ADD COLUMN `addon_service_id` int(11) DEFAULT NULL",
+                    'refund_amount'                    => "ALTER TABLE `order_resolutions` ADD COLUMN `refund_amount` decimal(12,2) NOT NULL DEFAULT '0.00'",
+                    'resolution_status'                => "ALTER TABLE `order_resolutions` ADD COLUMN `resolution_status` enum('none','resolution_requested','resolution_approved','resolution_denied') NOT NULL DEFAULT 'none'",
+                    'admin_decision'                   => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision` varchar(50) DEFAULT 'pending'",
+                    'admin_decision_reason'            => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_decision_reason` text DEFAULT NULL",
+                    'admin_remedy'                     => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_remedy` varchar(50) DEFAULT 'none'",
+                    'merchant_return_confirmed'        => "ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_confirmed` tinyint(1) DEFAULT 0",
+                    'merchant_return_notes'            => "ALTER TABLE `order_resolutions` ADD COLUMN `merchant_return_notes` text DEFAULT NULL",
+                    'shopper_receipt_confirmed'        => "ALTER TABLE `order_resolutions` ADD COLUMN `shopper_receipt_confirmed` tinyint(1) DEFAULT 0",
+                    'admin_return_exception'           => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception` tinyint(1) DEFAULT 0",
+                    'admin_return_exception_notes'     => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_return_exception_notes` text DEFAULT NULL",
+                    'admin_replacement_exception'      => "ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception` tinyint(1) DEFAULT 0",
                     'admin_replacement_exception_notes'=> "ALTER TABLE `order_resolutions` ADD COLUMN `admin_replacement_exception_notes` text DEFAULT NULL",
                 ];
 
                 foreach ($cols_to_add as $col => $sql) {
-                    if (!$this->db->field_exists($col, 'order_resolutions')) {
+                    if (!in_array($col, $existing_cols, true)) {
                         $this->db->query($sql);
+                        $existing_cols[] = $col;
                     }
+                }
+                if (isset($this->db->data_cache['field_names']['order_resolutions'])) {
+                    unset($this->db->data_cache['field_names']['order_resolutions']);
                 }
             }
             if ($this->db->table_exists('order_resolution_audit_log')) {
@@ -2087,15 +2100,34 @@ class OrderResolutionModel extends CI_Model
         $time = time();
         $is_received = ($received === 'yes' || $received === '1' || $received === true);
 
+        $this->ensure_schema();
+
         if ($is_received) {
-            $this->db->where('id', $res->id)->update('order_resolutions', [
-                'shopper_receipt_confirmed' => 1,
+            $update_data = [
                 'status'                    => 'Close (Final)',
                 'is_active_dispute'         => 0,
                 'closed_at'                 => $time,
                 'closed_by'                 => 'shopper_confirmation',
                 'updated_at'                => $time,
-            ]);
+            ];
+
+            // Safely verify if shopper_receipt_confirmed column exists in table before including in UPDATE
+            $has_shopper_receipt_col = false;
+            try {
+                $col_check = $this->db->query("SHOW COLUMNS FROM `order_resolutions` LIKE 'shopper_receipt_confirmed'")->row();
+                if ($col_check) {
+                    $has_shopper_receipt_col = true;
+                } else {
+                    $this->db->query("ALTER TABLE `order_resolutions` ADD COLUMN `shopper_receipt_confirmed` tinyint(1) DEFAULT 0");
+                    $has_shopper_receipt_col = true;
+                }
+            } catch (\Throwable $e) {}
+
+            if ($has_shopper_receipt_col) {
+                $update_data['shopper_receipt_confirmed'] = 1;
+            }
+
+            $this->db->where('id', $res->id)->update('order_resolutions', $update_data);
 
             // Locate and un-hold the specific ES order (b2b_orders) for this replacement ticket
             $b2b_targets = [];
@@ -3393,7 +3425,7 @@ class OrderResolutionModel extends CI_Model
             }
 
             $pair_ids = array_unique(array_filter([$oid, (int)$order['webshop_order_id']]));
-            $resolutions = $this->db->select('id, ticket_number, order_id, b2b_order_id, status, merchant_action, category, resolution_status, is_active_dispute, shopper_receipt_confirmed, admin_replacement_exception, admin_decision, admin_remedy')
+            $resolutions = $this->db->select('*')
                 ->from('order_resolutions')
                 ->group_start()
                     ->where_in('order_id', $pair_ids)
@@ -3425,7 +3457,7 @@ class OrderResolutionModel extends CI_Model
 
                 // Workflow 5B: For replacement disputes, payout release strictly requires confirmed shopper receipt or documented admin exception.
                 $is_replacement = ($r_cat === 'Replacement') || (($r['admin_remedy'] ?? '') === 'replacement') || in_array($r_act, ['replacement_completed', 'replacement_approved'], true);
-                $is_receipt_verified = !empty($r['shopper_receipt_confirmed']) || !empty($r['admin_replacement_exception']);
+                $is_receipt_verified = !empty($r['shopper_receipt_confirmed']) || !empty($r['admin_replacement_exception']) || ($r_st === 'Close (Final)' && ($r['closed_by'] ?? '') === 'shopper_confirmation');
 
                 $is_rep_comp = ($r_st === 'Close' || $r_st === 'Close (Final)') && $is_replacement && $is_receipt_verified;
                 $is_merch_won = ($r_st === 'Close (Final)' || $r_st === 'Close') &&

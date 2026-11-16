@@ -12593,7 +12593,7 @@ class B2BOrdersController extends CI_Controller
 		$has_active_resolution   = false;
 
 		if ($this->db->table_exists('order_resolutions')) {
-			$resolutions = $this->db->select('id, ticket_number, order_id, b2b_order_id, status, merchant_action, category, resolution_status, is_active_dispute')
+			$resolutions = $this->db->select('*')
 				->from('order_resolutions')
 				->group_start()
 					->where_in('order_id', $order_ids)
@@ -12623,8 +12623,9 @@ class B2BOrdersController extends CI_Controller
 						($r_action === 'refund_approved' || $r_res_status === 'resolution_approved' || $r_category === 'Refund');
 
 					// 2. Close â€“ Replacement Complete
+					$is_receipt_verified = !empty($res_row['shopper_receipt_confirmed']) || !empty($res_row['admin_replacement_exception']) || ($r_status === 'Close (Final)' && ($res_row['closed_by'] ?? '') === 'shopper_confirmation');
 					$is_replacement_complete = ($r_status === 'Close' || $r_status === 'Close (Final)') &&
-						(in_array($r_action, ['replacement_completed', 'replacement_approved'], true) || $r_category === 'Replacement');
+						(in_array($r_action, ['replacement_completed', 'replacement_approved'], true) || $r_category === 'Replacement' || ($res_row['admin_remedy'] ?? '') === 'replacement') && $is_receipt_verified;
 
 					$is_merchant_won = ($r_status === 'Close (Final)' || $r_status === 'Close') &&
 						(($res_row['admin_decision'] ?? '') === 'in_favour_merchant' || $r_res_status === 'resolution_denied');
