@@ -105,8 +105,9 @@ class ProductReviewController extends CI_Controller {
                     // Created date
                     $created_date = !empty($r['created_at']) ? date("d M Y, h:i A", strtotime($r['created_at'])) : '-';
 
-                    // Order link / display
+                    // Order link / display (with click to view review details)
                     $order_display = !empty($r['B2B_order_id']) ? htmlspecialchars($r['B2B_order_id']) : ('#' . ($r['order_id'] ?? ''));
+                    $order_link = '<a href="javascript:void(0)" onclick="viewOrderReviews(' . $parent_id . ')" title="Click to view review details" style="color:#007bff; font-weight:700; text-decoration:underline; cursor:pointer;">' . $order_display . '</a>';
 
                     // Action buttons (Independent Publish / Reject / Pending)
                     $action_btns = '<div class="btn-group btn-group-sm" role="group" style="gap:4px;">';
@@ -121,9 +122,6 @@ class ProductReviewController extends CI_Controller {
                     }
                     $action_btns .= '</div>';
 
-                    // View Details Button
-                    $view_btn = '<button type="button" class="btn btn-sm btn-info text-white" onclick="viewOrderReviews(' . $parent_id . ')" title="View Order Reviews" style="padding:4px 10px;font-size:12px;"><i class="fa fa-eye"></i> View</button>';
-
                     // Delete button
                     if (empty($this->session->userdata('userPermission')) || in_array('webshop/product_reviews/write', $this->session->userdata('userPermission'))) {
                         $delete_btn = '<a href="javascript:void(0)" onclick="deleteReviewItem(\'' . $type . '\', ' . $id . ')" class="text-danger" title="Delete Review"><i class="fa fa-trash-alt"></i></a>';
@@ -133,17 +131,10 @@ class ProductReviewController extends CI_Controller {
 
                     $data[] = array(
                         "id"            => '<input type="checkbox" name="chk_review[]" data-type="' . $type . '" value="' . $id . '">',
-                        "order_id"      => '<strong style="color:#007bff;">' . $order_display . '</strong>',
-                        "type"          => $type_badge,
-                        "target_name"   => '<strong>' . htmlspecialchars($r['target_name'] ?? '') . '</strong>',
-                        "customer_name" => htmlspecialchars($r['customer_name'] ?? ''),
-                        "email_id"      => htmlspecialchars($r['customer_email'] ?? ''),
+                        "order_id"      => $order_link,
                         "rating"        => $stars_html,
-                        "review"        => $comment_preview,
-                        "created_at"    => '<small>' . $created_date . '</small>',
                         "status"        => $status_badge,
                         "action"        => $action_btns,
-                        "view_url"      => $view_btn,
                         "delete"        => $delete_btn
                     );
                 }

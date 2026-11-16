@@ -61,16 +61,14 @@ function initReviewDataTable() {
             { data: 'id' },
             { data: 'order_id' },
             { data: 'rating' },
-            { data: 'created_at' },
             { data: 'status' },
             { data: 'action' },
-            { data: 'view_url' },
             { data: 'delete' }
         ],
-        'order': [[3, 'desc']],
+        'order': [[1, 'desc']],
         'columnDefs': [
-            { 'targets': [0, 5, 6, 7], 'orderable': false },
-            { 'className': 'text-center', 'targets': [0, 1, 2, 3, 4, 5, 6, 7] }
+            { 'targets': [0, 4, 5], 'orderable': false },
+            { 'className': 'text-center', 'targets': [0, 1, 2, 3, 4, 5] }
         ]
     });
 }

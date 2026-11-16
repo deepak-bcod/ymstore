@@ -4,12 +4,10 @@
             <th data-orderable="false" style="width: 35px; text-align: center;">
                 <input type="checkbox" id="ckbCheckAllReviews">
             </th>
-            <th style="min-width: 120px; text-align: center;">Sub-Order</th>
+            <th style="min-width: 130px; text-align: center;">Sub-Order</th>
             <th style="min-width: 140px; text-align: center;" id="col-rating-header">Service Rating</th>
-            <th style="min-width: 150px; text-align: center;">Submitted On</th>
             <th style="min-width: 120px; text-align: center;">Status</th>
             <th data-orderable="false" style="min-width: 190px; text-align: center;">Quick Action</th>
-            <th data-orderable="false" style="min-width: 80px; text-align: center;">Details</th>
             <th data-orderable="false" style="min-width: 50px; text-align: center;"><i class="fa fa-trash-alt text-muted"></i></th>
         </tr>
     </thead>
