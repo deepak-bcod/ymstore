@@ -620,16 +620,34 @@ body {
                     <strong><?php echo $e($service_name); ?></strong>
                 </td>
 
-                <td>
+                <td style="white-space:normal; vertical-align:top;">
 
     <strong><?php echo $e($addon_name); ?></strong>
 
-    <?php if ($show_description && !empty($description)): ?>
+   <?php if ($show_description && !empty($description)): ?>
 
     <br>
 
-    <span style="font-size:9px;color:#52647b;">
-        <?php echo $e(strip_tags($description)); ?>
+    <span style="
+        display:block;
+        font-size:9px;
+        color:#52647b;
+        white-space:normal;
+        word-wrap:break-word;
+        overflow-wrap:break-word;
+        line-height:1.4;
+        max-height:none;
+        overflow:visible;
+    ">
+        <?php
+            echo $e(
+                html_entity_decode(
+                    strip_tags($description),
+                    ENT_QUOTES,
+                    'UTF-8'
+                )
+            );
+        ?>
     </span>
 
 <?php endif; ?>
