@@ -655,7 +655,7 @@ body {
                     <?php endif; ?>
 
 
-                        <?php if (!empty($order_number)): ?>
+                        <!-- <?php if (!empty($order_number)): ?>
 
                             <br>
 
@@ -670,7 +670,7 @@ body {
 
                             </span>
 
-                        <?php endif; ?>
+                        <?php endif; ?> -->
 
                 </td>
 

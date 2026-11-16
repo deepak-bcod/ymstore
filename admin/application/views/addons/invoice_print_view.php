@@ -22,6 +22,48 @@ $merchant_brn = $addon_purchase->merchant_brn ?? '';
 $service_name = $addon_purchase->addon_service_name ?? '';
 $addon_name = $addon_purchase->addon_name ?? '';
 $description = $addon_purchase->addon_description ?? '';
+// Show description only for Daily Deals and Flash Sales
+$show_description = (
+    stripos($service_name, 'Daily Deals') !== false ||
+    stripos($service_name, 'Flash Sales') !== false ||
+    stripos($addon_name, 'Daily Deals') !== false ||
+    stripos($addon_name, 'Flash Sales') !== false
+);
+
+// Get first line dynamically from database
+$one_line_description = '';
+
+if ($show_description && !empty($description)) {
+
+    // Remove HTML tags but preserve line breaks
+    $plain_description = preg_replace(
+        '/<\s*br\s*\/?>|<\/\s*(p|div|li|h[1-6])\s*>/i',
+        "\n",
+        $description
+    );
+
+    $plain_description = html_entity_decode(
+        strip_tags($plain_description),
+        ENT_QUOTES,
+        'UTF-8'
+    );
+
+    // Get only the first non-empty line
+    $description_lines = preg_split(
+        '/\r\n|\r|\n/',
+        $plain_description
+    );
+
+    foreach ($description_lines as $line) {
+
+        $line = trim(preg_replace('/\s+/', ' ', $line));
+
+        if ($line !== '') {
+            $one_line_description = $line;
+            break;
+        }
+    }
+}
 
 $order_number = $addon_purchase->order_number ?? '';
 $ticket_number = $addon_purchase->ticket_number ?? '';
@@ -792,48 +834,38 @@ body {
                     <strong><?php echo $e($service_name); ?></strong>
                 </td>
 
-              
-<td>
-    <?php
-    // Use the correct service category variable
-    $service_type = strtolower(trim($service_name));
+                <td>
 
-    // Show description ONLY for Daily Deals and Flash Sales
-    if (
-        in_array($service_type, ['daily deals', 'flash sales'], TRUE)
-        && !empty($description)
-    ) {
+                    <strong><?php echo $e($addon_name); ?></strong>
 
-        $clean_description = html_entity_decode(
-            strip_tags($description),
-            ENT_QUOTES,
-            'UTF-8'
-        );
+                    <?php if ($show_description && !empty($one_line_description)): ?>
 
-        $clean_description = trim(
-            preg_replace('/\s+/', ' ', $clean_description)
-        );
+                        <br>
 
-        // Remove the long promotional description
-        $parts = preg_split(
-            '/\s+Welcome to\b/i',
-            $clean_description,
-            2
-        );
+                        <span style="color:#52647b; white-space:nowrap;">
+                            <?php echo $e($one_line_description); ?>
+                        </span>
 
-        $clean_description = trim($parts[0]);
+                    <?php endif; ?>
 
-        if (!empty($clean_description)) {
-    ?>
-            <span style="color:#52647b;">
-                <?php echo $e($clean_description); ?>
-            </span>
-    <?php
-        }
-    }
-    ?>
-</td>
+                    <!-- <?php if (!empty($order_number)): ?>
 
+                        <br>
+
+                        <span style="font-size:10px;color:#68778b;">
+
+                            Replacement Delivery for Order #
+                            <?php echo $e($order_number); ?>
+
+                            <?php if (!empty($ticket_number)): ?>
+                                (Ticket <?php echo $e($ticket_number); ?>)
+                            <?php endif; ?>
+
+                        </span>
+
+                    <?php endif; ?> -->
+
+                </td>
 
                 <td class="text-center">1</td>
 
