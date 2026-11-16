@@ -2841,9 +2841,9 @@ class OrderResolutionModel extends CI_Model
 
             if (!$ctx->has_variant) {
                 if ($ctx->product_type === 'conf-simple') {
-                    $ctx->variant_status_note = 'None recorded in item configuration';
+                    $ctx->variant_status_note = $this->lang->line('no_variant_recorded') ?: 'None recorded in item configuration';
                 } else {
-                    $ctx->variant_status_note = 'Standard / No variant options';
+                    $ctx->variant_status_note = $this->lang->line('standard_no_variant') ?: 'Standard / No variant options';
                 }
             }
 
@@ -2859,7 +2859,7 @@ class OrderResolutionModel extends CI_Model
                     $ctx->unit_price   = (float)(($p_row->special_price > 0) ? $p_row->special_price : $p_row->price);
                 }
             }
-            $ctx->variant_status_note = 'Historical item record not found';
+            $ctx->variant_status_note = $this->lang->line('historical_item_not_found') ?: 'Historical item record not found';
             $ctx->disputed_qty        = 1;
         }
 
@@ -2885,7 +2885,7 @@ class OrderResolutionModel extends CI_Model
             if ($rep) {
                 $ctx->has_historical_record = true;
                 $ctx->request_type          = 'replacement';
-                $ctx->request_type_label    = 'Replacement Request';
+                $ctx->request_type_label    = $this->lang->line('replacement_request') ?: 'Replacement Request';
                 $ctx->request_reference     = !empty($rep->replacement_order_increment_id) ? $rep->replacement_order_increment_id : (!empty($rep->replacement_order_barcode) ? $rep->replacement_order_barcode : '#' . $rep->replacement_order_id);
                 $ctx->request_date          = !empty($rep->created_at) ? $rep->created_at : null;
                 if (!empty($rep->reason_for_replacement)) {
@@ -2902,13 +2902,13 @@ class OrderResolutionModel extends CI_Model
                 }
                 $rep_status = (int)$rep->status;
                 if (in_array($rep_status, [4, 21], true)) {
-                    $ctx->rejection_status = 'Replacement Rejected by Merchant';
+                    $ctx->rejection_status = $this->lang->line('replacement_rejected_by_merchant') ?: 'Replacement Rejected by Merchant';
                 } elseif ($rep_status === 1) {
-                    $ctx->rejection_status = 'Approved (Own Replacement)';
+                    $ctx->rejection_status = $this->lang->line('approved_own_replacement') ?: 'Approved (Own Replacement)';
                 } elseif ($rep_status === 2) {
-                    $ctx->rejection_status = 'Escalated to YM Replacement';
+                    $ctx->rejection_status = $this->lang->line('escalated_ym_replacement') ?: 'Escalated to YM Replacement';
                 } elseif ($rep_status === 0) {
-                    $ctx->rejection_status = 'Pending Decision';
+                    $ctx->rejection_status = $this->lang->line('pending_decision') ?: 'Pending Decision';
                 }
                 $ctx->rejection_date = !empty($rep->status_updated_date) ? $rep->status_updated_date : (!empty($rep->updated_at) ? $rep->updated_at : null);
             }
@@ -2933,7 +2933,7 @@ class OrderResolutionModel extends CI_Model
             if ($ret) {
                 $ctx->has_historical_record = true;
                 $ctx->request_type          = 'return';
-                $ctx->request_type_label    = 'Return / Refund Request';
+                $ctx->request_type_label    = $this->lang->line('return_refund_request') ?: 'Return / Refund Request';
                 $ctx->request_reference     = !empty($ret->return_order_increment_id) ? $ret->return_order_increment_id : (!empty($ret->return_order_barcode) ? $ret->return_order_barcode : '#' . $ret->return_order_id);
                 $ctx->request_date          = !empty($ret->created_at) ? $ret->created_at : null;
                 if (!empty($ret->reason_for_return)) {
@@ -2953,7 +2953,7 @@ class OrderResolutionModel extends CI_Model
                 }
                 $ret_status = (int)$ret->status;
                 if (in_array($ret_status, [2, 5, 20], true) || (int)$ret->refund_status === 2) {
-                    $ctx->rejection_status = 'Return / Refund Rejected by Merchant';
+                    $ctx->rejection_status = $this->lang->line('return_refund_rejected_by_merchant') ?: 'Return / Refund Rejected by Merchant';
                 }
                 $ctx->rejection_date = !empty($ret->refund_approve_reject_date) ? $ret->refund_approve_reject_date : (!empty($ret->status_updated_date) ? $ret->status_updated_date : null);
             }
@@ -3022,22 +3022,22 @@ class OrderResolutionModel extends CI_Model
         // Distinguish missing historical data from empty fields
         if (empty($ctx->rejection_reason)) {
             if ($ctx->has_historical_record || !empty($ctx->rejection_status)) {
-                $ctx->rejection_reason = 'No written explanation entered by merchant at time of decision';
+                $ctx->rejection_reason = $this->lang->line('no_written_explanation_merchant') ?: 'No written explanation entered by merchant at time of decision';
             } else {
-                $ctx->rejection_reason = 'Historical rejection notes not recorded in database';
+                $ctx->rejection_reason = $this->lang->line('historical_rejection_not_recorded') ?: 'Historical rejection notes not recorded in database';
             }
         }
 
         if (empty($ctx->customer_reason)) {
-            $ctx->customer_reason = 'None recorded in original request submission';
+            $ctx->customer_reason = $this->lang->line('none_recorded_original_request') ?: 'None recorded in original request submission';
         }
 
         if (empty($ctx->rejection_status)) {
-            $ctx->rejection_status = 'Rejected by Merchant';
+            $ctx->rejection_status = $this->lang->line('rejected_by_merchant') ?: 'Rejected by Merchant';
         }
 
         if (empty($ctx->request_reference)) {
-            $ctx->request_reference = 'Historical request record not linked';
+            $ctx->request_reference = $this->lang->line('historical_request_not_linked') ?: 'Historical request record not linked';
         }
 
         return $ctx;
@@ -3569,155 +3569,163 @@ class OrderResolutionModel extends CI_Model
         $last_ts = !empty($resolution->updated_at) ? (int)$resolution->updated_at : (int)($resolution->created_at ?? time());
         
         // Defaults
-        $actor = 'Support (@Help)';
+        $actor = $this->lang->line('actor_support_help') ?: 'Support (@Help)';
         $actor_code = 'help';
         $badge_class = 'badge-info';
-        $action = 'Support (@Help) review in progress.';
-        $short_action = 'Under Review';
+        $action = $this->lang->line('guidance_support_review_progress') ?: 'Support (@Help) review in progress.';
+        $short_action = $this->lang->line('short_action_under_review') ?: 'Under Review';
         $status_label = $status;
 
         // 1. Permanently Closed or Finalized
         if ($status === 'Close (Final)' || ($status === 'Close' && $admin_dec === 'in_favour_merchant') || ($category === 'Replacement' && $is_receipt_confirmed && in_array($status, ['Close', 'Close (Final)'], true))) {
-            $actor = 'None (Closed)';
+            $actor = $this->lang->line('actor_none_closed') ?: 'None (Closed)';
             $actor_code = 'none';
             $badge_class = 'badge-secondary';
-            $status_label = 'Closed (Final)';
+            $status_label = $this->lang->line('status_close_final') ?: 'Closed (Final)';
             if ($admin_dec === 'in_favour_merchant' || $res_status === 'resolution_denied') {
-                $action = 'Dispute closed in favour of merchant. No further action required.';
-                $short_action = 'Resolved (Merchant Upheld)';
+                $action = $this->lang->line('guidance_merchant_upheld') ?: 'Dispute closed in favour of merchant. No further action required.';
+                $short_action = $this->lang->line('short_action_merchant_upheld') ?: 'Resolved (Merchant Upheld)';
             } elseif ($category === 'Replacement' || $is_receipt_confirmed) {
-                $action = 'Replacement physically received and verified. Dispute is finalized.';
-                $short_action = 'Resolved (Replacement Complete)';
+                $action = $this->lang->line('guidance_replacement_complete') ?: 'Replacement physically received and verified. Dispute is finalized.';
+                $short_action = $this->lang->line('short_action_replacement_complete') ?: 'Resolved (Replacement Complete)';
             } elseif ($status === 'Close (Final)') {
-                $action = 'Dispute resolution is permanently finalized. No further action required.';
-                $short_action = 'Resolved (Final)';
+                $action = $this->lang->line('guidance_resolved_final') ?: 'Dispute resolution is permanently finalized. No further action required.';
+                $short_action = $this->lang->line('short_action_resolved_final') ?: 'Resolved (Final)';
             } else {
-                $action = 'Case closed. No pending actions.';
-                $short_action = 'Closed';
+                $action = $this->lang->line('guidance_case_closed') ?: 'Case closed. No pending actions.';
+                $short_action = $this->lang->line('short_action_closed') ?: 'Closed';
             }
         }
         // 2. Initial Close (Settlement window open)
         elseif ($status === 'Close') {
             if ($category === 'Replacement' && !$is_receipt_confirmed) {
-                $actor = 'Shopper / Support';
+                $actor = $this->lang->line('actor_shopper_support') ?: 'Shopper / Support';
                 $actor_code = 'shopper';
                 $badge_class = 'badge-warning';
-                $action = 'Ticket closed. Awaiting shopper physical receipt confirmation or carrier delivery proof before payout release.';
-                $short_action = 'Awaiting Receipt Confirmation';
+                $action = $this->lang->line('guidance_awaiting_receipt_confirmation') ?: 'Ticket closed. Awaiting shopper physical receipt confirmation or carrier delivery proof before payout release.';
+                $short_action = $this->lang->line('short_action_awaiting_receipt_confirmation') ?: 'Awaiting Receipt Confirmation';
             } elseif (in_array($m_action, ['refund_denied', 'replacement_denied'], true)) {
-                $actor = 'Shopper';
+                $actor = $this->lang->line('actor_shopper') ?: 'Shopper';
                 $actor_code = 'shopper';
                 $badge_class = 'badge-warning';
-                $action = 'Ticket closed following merchant rejection. Shopper may request escalation if dissatisfied.';
-                $short_action = 'Shopper Escalation Window';
+                $action = $this->lang->line('guidance_shopper_escalation_window') ?: 'Ticket closed following merchant rejection. Shopper may request escalation if dissatisfied.';
+                $short_action = $this->lang->line('short_action_shopper_escalation_window') ?: 'Shopper Escalation Window';
             } else {
-                $actor = 'Support (@Help)';
+                $actor = $this->lang->line('actor_support_help') ?: 'Support (@Help)';
                 $actor_code = 'help';
                 $badge_class = 'badge-secondary';
-                $action = 'Ticket closed. Ready for final archive.';
-                $short_action = 'Ticket Closed';
+                $action = $this->lang->line('guidance_ticket_closed_archive') ?: 'Ticket closed. Ready for final archive.';
+                $short_action = $this->lang->line('short_action_ticket_closed') ?: 'Ticket Closed';
             }
         }
         // 3. Accounting Refund Completed (Done) -> Support must close ticket as Close (Final)
         elseif ($status === 'Done') {
-            $actor = 'Support (@Help)';
+            $actor = $this->lang->line('actor_support_help') ?: 'Support (@Help)';
             $actor_code = 'help';
             $badge_class = 'badge-success';
             $status_label = 'Refund Done (@Help Close)';
-            $action = 'Accounting (@Acct) has completed the refund from 14-day hold-back sales. Support (@Help) must close the ticket as Close (Final).';
-            $short_action = 'Final Closure Required';
+            $action = $this->lang->line('guidance_refund_done_help_close') ?: 'Accounting (@Acct) has completed the refund from 14-day hold-back sales. Support (@Help) must close the ticket as Close (Final).';
+            $short_action = $this->lang->line('short_action_final_closure_required') ?: 'Final Closure Required';
         }
         // 4. Processing State (Post-decision / In-progress)
         elseif ($status === 'Processing') {
             if ($category === 'Refund' || ($resolution->admin_remedy ?? '') === 'return_refund') {
                 if (!$is_return_confirmed) {
-                    $actor = 'Merchant';
+                    $actor = $this->lang->line('actor_merchant') ?: 'Merchant';
                     $actor_code = 'merchant';
                     $badge_class = 'badge-warning';
-                    $action = 'Merchant must inspect and confirm item return (or Support records carrier proof) before refund can be issued.';
-                    $short_action = 'Item Return Confirmation Required';
+                    $action = $this->lang->line('guidance_merchant_confirm_return') ?: 'Merchant must inspect and confirm item return (or Support records carrier proof) before refund can be issued.';
+                    $short_action = $this->lang->line('short_action_item_return_required') ?: 'Item Return Confirmation Required';
                 } else {
-                    $actor = 'Accounting (@Acct)';
+                    $actor = $this->lang->line('actor_accounting_acct') ?: 'Accounting (@Acct)';
                     $actor_code = 'acct';
                     $badge_class = 'badge-info';
-                    $action = 'Item return confirmed. Accounting (@Acct) must process refund from merchant 14-day hold-back sales.';
-                    $short_action = 'Accounting Refund Processing';
+                    $action = $this->lang->line('guidance_accounting_refund_processing') ?: 'Item return confirmed. Accounting (@Acct) must process refund from merchant 14-day hold-back sales.';
+                    $short_action = $this->lang->line('short_action_accounting_refund_processing') ?: 'Accounting Refund Processing';
                 }
             } else { // Replacement
                 if ($m_action === 'replacement_completed') {
-                    $actor = 'Shopper';
+                    $actor = $this->lang->line('actor_shopper') ?: 'Shopper';
                     $actor_code = 'shopper';
                     $badge_class = 'badge-warning';
-                    $action = 'Merchant has dispatched/delivered replacement. Shopper must confirm physical receipt.';
-                    $short_action = 'Shopper Receipt Confirmation Required';
+                    $action = $this->lang->line('guidance_shopper_receipt_required') ?: 'Merchant has dispatched/delivered replacement. Shopper must confirm physical receipt.';
+                    $short_action = $this->lang->line('short_action_shopper_receipt_required') ?: 'Shopper Receipt Confirmation Required';
                 } elseif ($delivery_opt === 'ym_delivery' && empty($resolution->addon_purchase_id)) {
-                    $actor = 'Merchant';
+                    $actor = $this->lang->line('actor_merchant') ?: 'Merchant';
                     $actor_code = 'merchant';
                     $badge_class = 'badge-warning';
-                    $action = 'Merchant must purchase YM Delivery AddOn Service so logistics can deliver replacement.';
-                    $short_action = 'Merchant AddOn Purchase Required';
+                    $action = $this->lang->line('guidance_merchant_addon_required') ?: 'Merchant must purchase YM Delivery AddOn Service so logistics can deliver replacement.';
+                    $short_action = $this->lang->line('short_action_merchant_addon_required') ?: 'Merchant AddOn Purchase Required';
                 } else {
-                    $actor = 'Merchant';
+                    $actor = $this->lang->line('actor_merchant') ?: 'Merchant';
                     $actor_code = 'merchant';
                     $badge_class = 'badge-primary';
-                    $action = 'Merchant must prepare and dispatch replacement product via ' . ucwords(str_replace('_', ' ', $delivery_opt ?: 'agreed method')) . '.';
-                    $short_action = 'Replacement Dispatch Pending';
+                    $del_name = ucwords(str_replace('_', ' ', $delivery_opt ?: 'agreed method'));
+                    $action = sprintf($this->lang->line('guidance_replacement_dispatch_pending') ?: 'Merchant must prepare and dispatch replacement product via %s.', $del_name);
+                    $short_action = $this->lang->line('short_action_replacement_dispatch_pending') ?: 'Replacement Dispatch Pending';
                 }
             }
         }
         // 5. Active Dispute Escalation (ReOpen / resolution_requested)
         elseif ($status === 'ReOpen' || $res_status === 'resolution_requested') {
-            $actor = 'Support (@Help)';
+            $actor = $this->lang->line('actor_support_help') ?: 'Support (@Help)';
             $actor_code = 'help';
             $badge_class = 'badge-danger';
             $status_label = 'Active Dispute (@Help)';
-            $action = 'Shopper escalated rejection. Support (@Help) must review case evidence and issue an official ruling (Approve / Deny).';
-            $short_action = 'Support Ruling Required';
+            $action = $this->lang->line('guidance_support_ruling_required') ?: 'Shopper escalated rejection. Support (@Help) must review case evidence and issue an official ruling (Approve / Deny).';
+            $short_action = $this->lang->line('short_action_support_ruling_required') ?: 'Support Ruling Required';
         }
         // 6. Open State (Lifecycle stage determines actor)
         elseif ($status === 'Open') {
             if ($m_action === 'replacement_completed') {
-                $actor = 'Shopper';
+                $actor = $this->lang->line('actor_shopper') ?: 'Shopper';
                 $actor_code = 'shopper';
                 $badge_class = 'badge-warning';
-                $action = 'Replacement marked delivered. Shopper must confirm physical receipt.';
-                $short_action = 'Shopper Receipt Confirmation Required';
+                $action = $this->lang->line('guidance_replacement_marked_delivered') ?: 'Replacement marked delivered. Shopper must confirm physical receipt.';
+                $short_action = $this->lang->line('short_action_shopper_receipt_required') ?: 'Shopper Receipt Confirmation Required';
             } elseif ($m_action === 'replacement_approved') {
                 if ($delivery_opt === 'ym_delivery' && empty($resolution->addon_purchase_id)) {
-                    $actor = 'Merchant';
+                    $actor = $this->lang->line('actor_merchant') ?: 'Merchant';
                     $actor_code = 'merchant';
                     $badge_class = 'badge-warning';
-                    $action = 'Merchant must purchase YM Delivery AddOn Service so logistics can deliver replacement.';
-                    $short_action = 'Merchant AddOn Purchase Required';
+                    $action = $this->lang->line('guidance_merchant_addon_required') ?: 'Merchant must purchase YM Delivery AddOn Service so logistics can deliver replacement.';
+                    $short_action = $this->lang->line('short_action_merchant_addon_required') ?: 'Merchant AddOn Purchase Required';
                 } else {
-                    $actor = 'Merchant';
+                    $actor = $this->lang->line('actor_merchant') ?: 'Merchant';
                     $actor_code = 'merchant';
                     $badge_class = 'badge-primary';
-                    $action = 'Merchant has approved replacement via ' . ucwords(str_replace('_', ' ', $delivery_opt ?: 'agreed method')) . '. Awaiting dispatch/collection.';
-                    $short_action = 'Merchant Fulfilment in Progress';
+                    $del_name = ucwords(str_replace('_', ' ', $delivery_opt ?: 'agreed method'));
+                    $action = sprintf($this->lang->line('guidance_merchant_fulfilment_progress') ?: 'Merchant has approved replacement via %s. Awaiting dispatch/collection.', $del_name);
+                    $short_action = $this->lang->line('short_action_merchant_fulfilment_in_progress') ?: 'Merchant Fulfilment in Progress';
                 }
             } elseif ($m_action === 'refund_approved') {
-                $actor = 'Accounting (@Acct)';
+                $actor = $this->lang->line('actor_accounting_acct') ?: 'Accounting (@Acct)';
                 $actor_code = 'acct';
                 $badge_class = 'badge-info';
-                $action = 'Merchant approved refund. Accounting (@Acct) must process refund from merchant 14-day hold-back balance.';
-                $short_action = 'Accounting Refund Processing';
+                $action = $this->lang->line('guidance_accounting_refund_approved') ?: 'Merchant approved refund. Accounting (@Acct) must process refund from merchant 14-day hold-back balance.';
+                $short_action = $this->lang->line('short_action_accounting_refund_processing') ?: 'Accounting Refund Processing';
             } elseif (in_array($m_action, ['refund_denied', 'replacement_denied'], true)) {
-                $actor = 'Shopper';
+                $actor = $this->lang->line('actor_shopper') ?: 'Shopper';
                 $actor_code = 'shopper';
                 $badge_class = 'badge-warning';
-                $action = 'Merchant denied request. Shopper may accept or escalate to Support (@Help) via Resolution Request.';
-                $short_action = 'Awaiting Shopper Escalation / Close';
+                $action = $this->lang->line('guidance_merchant_denied_shopper_escalate') ?: 'Merchant denied request. Shopper may accept or escalate to Support (@Help) via Resolution Request.';
+                $short_action = $this->lang->line('short_action_awaiting_shopper_escalation') ?: 'Awaiting Shopper Escalation / Close';
             } else {
-                $actor = 'Merchant';
+                $actor = $this->lang->line('actor_merchant') ?: 'Merchant';
                 $actor_code = 'merchant';
                 $badge_class = 'badge-warning';
-                $action = 'Merchant must review request and decide: Approve Refund/Replacement or Deny.';
-                $short_action = 'Merchant Decision Required';
+                $action = $this->lang->line('guidance_merchant_decision_required') ?: 'Merchant must review request and decide: Approve Refund/Replacement or Deny.';
+                $short_action = $this->lang->line('short_action_merchant_decision_required') ?: 'Merchant Decision Required';
             }
         }
 
-        $updated_text = (date('Y-m-d', $last_ts) === date('Y-m-d')) ? 'Today, ' . date('h:i A', $last_ts) . ' MUT' : ((date('Y-m-d', $last_ts) === date('Y-m-d', strtotime('-1 day'))) ? 'Yesterday, ' . date('h:i A', $last_ts) . ' MUT' : date('d M Y, h:i A', $last_ts) . ' MUT');
+        $today_label = $this->lang->line('time_today') ?: 'Today';
+        $yesterday_label = $this->lang->line('time_yesterday') ?: 'Yesterday';
+        $updated_text = (date('Y-m-d', $last_ts) === date('Y-m-d')) 
+            ? $today_label . ', ' . date('h:i A', $last_ts) . ' MUT' 
+            : ((date('Y-m-d', $last_ts) === date('Y-m-d', strtotime('-1 day'))) 
+                ? $yesterday_label . ', ' . date('h:i A', $last_ts) . ' MUT' 
+                : date('d M Y, h:i A', $last_ts) . ' MUT');
 
         return [
             'actor'            => $actor,

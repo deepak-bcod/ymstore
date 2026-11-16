@@ -46,11 +46,11 @@ span.label,
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-2 border-bottom">
                 <div>
                     <h1 class="h2 mb-1"><?php echo $this->lang->line('order_resolution') ?: 'Order Resolution'; ?></h1>
-                    <div class="text-muted small">Admin escalations and fulfilment</div>
+                    <div class="text-muted small"><?= $this->lang->line('admin_escalations_fulfilment') ?: 'Admin escalations and fulfilment'; ?></div>
                 </div>
                 <div>
                     <button type="button" class="btn btn-outline-dark btn-sm" data-toggle="modal" data-target="#rulesModal" data-bs-toggle="modal" data-bs-target="#rulesModal">
-                        <i class="fa fa-book"></i> Review approved workflow
+                        <i class="fa fa-book"></i> <?= $this->lang->line('review_approved_workflow') ?: 'Review approved workflow'; ?>
                     </button>
                 </div>
             </div>
@@ -76,19 +76,19 @@ span.label,
             <div class="row mb-3 mt-3">
                 <div class="col-md-4 col-sm-4 col-12 mb-2">
                     <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
-                        <span class="text-muted small text-uppercase font-weight-bold">Open</span>
+                        <span class="text-muted small text-uppercase font-weight-bold"><?= $this->lang->line('stat_open') ?: 'Open'; ?></span>
                         <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['open'] ?? 0; ?></h2>
                     </div>
                 </div>
                 <div class="col-md-4 col-sm-4 col-12 mb-2">
                     <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
-                        <span class="text-muted small text-uppercase font-weight-bold">Awaiting fulfilment</span>
+                        <span class="text-muted small text-uppercase font-weight-bold"><?= $this->lang->line('stat_awaiting_fulfilment') ?: 'Awaiting fulfilment'; ?></span>
                         <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['awaiting_fulfilment'] ?? 0; ?></h2>
                     </div>
                 </div>
                 <div class="col-md-4 col-sm-4 col-12 mb-2">
                     <div class="card p-3 shadow-sm border" style="border-radius: 9px; background: #fff;">
-                        <span class="text-muted small text-uppercase font-weight-bold">Closed</span>
+                        <span class="text-muted small text-uppercase font-weight-bold"><?= $this->lang->line('stat_closed') ?: 'Closed'; ?></span>
                         <h2 class="font-weight-bold text-dark mb-0 mt-1"><?= $stats['closed'] ?? 0; ?></h2>
                     </div>
                 </div>
@@ -102,15 +102,15 @@ span.label,
                             <div class="input-group-prepend">
                                 <span class="input-group-text bg-white border-right-0"><i class="fa fa-search text-muted"></i></span>
                             </div>
-                            <input type="text" id="merchantSearchInput" class="form-control border-left-0" placeholder="Search ticket, order, product or shopper..." oninput="filterMerchantTicketRows()">
+                            <input type="text" id="merchantSearchInput" class="form-control border-left-0" placeholder="<?= $this->lang->line('search_merchant_tickets_placeholder') ?: 'Search ticket, order, product or shopper...'; ?>" oninput="filterMerchantTicketRows()">
                         </div>
                     </div>
                     <div class="col-md-4 col-sm-12">
                         <select id="merchantWorkflowFilter" class="form-control bg-white" onchange="filterMerchantTicketRows()">
-                            <option value="">All statuses</option>
-                            <option value="admin_review">Admin Review</option>
-                            <option value="merchant_action">Merchant Action</option>
-                            <option value="closed">Closed</option>
+                            <option value=""><?= $this->lang->line('filter_all_statuses') ?: 'All statuses'; ?></option>
+                            <option value="admin_review"><?= $this->lang->line('filter_admin_review') ?: 'Admin Review'; ?></option>
+                            <option value="merchant_action"><?= $this->lang->line('filter_merchant_action') ?: 'Merchant Action'; ?></option>
+                            <option value="closed"><?= $this->lang->line('filter_closed') ?: 'Closed'; ?></option>
                         </select>
                     </div>
                 </div>
@@ -120,12 +120,12 @@ span.label,
                 <table class="table table-bordered table-hover text-center table-resolution-list" id="merchantTicketsTable">
                     <thead class="thead-light">
                         <tr>
-                            <th style="width: 15%;">Ticket ID</th>
-                            <th style="width: 25%;">Order / Item</th>
-                            <th style="width: 18%;">Shopper</th>
-                            <th style="width: 14%;">Request</th>
-                            <th style="width: 16%;">Status / Next</th>
-                            <th style="width: 12%;">Updated</th>
+                            <th style="width: 15%;"><?= $this->lang->line('ticket_no') ?: 'Ticket ID'; ?></th>
+                            <th style="width: 25%;"><?= $this->lang->line('order_item') ?: 'Order / Item'; ?></th>
+                            <th style="width: 18%;"><?= $this->lang->line('shopper') ?: 'Shopper'; ?></th>
+                            <th style="width: 14%;"><?= $this->lang->line('request') ?: 'Request'; ?></th>
+                            <th style="width: 16%;"><?= $this->lang->line('status_next') ?: 'Status / Next'; ?></th>
+                            <th style="width: 12%;"><?= $this->lang->line('updated') ?: 'Updated'; ?></th>
                             <!--th style="width: 10%;"><?= $this->lang->line('action') ?: 'Action'; ?></th-->
                         </tr>
                     </thead>
@@ -176,12 +176,12 @@ span.label,
                                     <td>
                                         <div>
                                             <span class="badge-status-<?= $status_slug; ?>">
-                                                <?= htmlspecialchars($res->status); ?>
+                                                <?= htmlspecialchars($this->lang->line($status_key) ?: $res->status); ?>
                                             </span>
                                         </div>
                                         <div class="mt-1">
                                             <span class="badge <?= $guidance['badge_class']; ?> text-nowrap" style="font-size: 11px;">
-                                                <i class="fa fa-user-circle"></i> Next: <?= htmlspecialchars($guidance['actor']); ?>
+                                                <i class="fa fa-user-circle"></i> <?= $this->lang->line('next_step') ?: 'Next'; ?>: <?= htmlspecialchars($guidance['actor']); ?>
                                             </span>
                                         </div>
                                         <div class="small text-muted mt-1 text-truncate" style="max-width: 170px;" title="<?= htmlspecialchars($guidance['action']); ?>">
@@ -218,17 +218,17 @@ span.label,
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-warning">
-                <h5 class="modal-title font-weight-bold text-dark" id="rulesModalTitle"><i class="fa fa-shield"></i> Approved Merchant-facing rules</h5>
+                <h5 class="modal-title font-weight-bold text-dark" id="rulesModalTitle"><i class="fa fa-shield"></i> <?= $this->lang->line('approved_merchant_rules_title') ?: 'Approved Merchant-facing rules'; ?></h5>
                 <button type="button" class="close text-dark" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body p-4" style="line-height: 1.6; font-size: 14px;">
-                <p><strong>Approved Order Resolution Workflow:</strong></p>
-                <p>Original Merchant rejection &rarr; direct Shopper escalation to YM Admin. Merchant communicates privately with Admin; cannot see Admin–Shopper messages. Decisions use “In Favour of Shopper/Merchant”. Replacement requires Shopper receipt confirmation. Return must be confirmed before refund, with documented Admin exceptions. Disputed item-level amounts are held; standard Merchant payout timing is 7 days after Completed.</p>
+                <p><strong><?= $this->lang->line('approved_workflow_title') ?: 'Approved Order Resolution Workflow:'; ?></strong></p>
+                <p><?= $this->lang->line('approved_workflow_desc') ?: 'Original Merchant rejection &rarr; direct Shopper escalation to YM Admin. Merchant communicates privately with Admin; cannot see Admin–Shopper messages. Decisions use “In Favour of Shopper/Merchant”. Replacement requires Shopper receipt confirmation. Return must be confirmed before refund, with documented Admin exceptions. Disputed item-level amounts are held; standard Merchant payout timing is 7 days after Completed.'; ?></p>
             </div>
             <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal"><?= $this->lang->line('close') ?: 'Close'; ?></button>
             </div>
         </div>
     </div>

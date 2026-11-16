@@ -343,12 +343,15 @@ $lang = $this->session->userdata('site_lang');
                                                                     } elseif ($avg_badge_val >= 2.5) {
                                                                         $badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
                                                                     } else {
-                                                                        $badge = base_url('uploads/trust_badges/ym_trusted_badges_1_stars.svg');
+                                                                        $badge = '';
                                                                     }
-                                                                    ?>
+    
+    if($badge != ''){
+    ?>
                                                                     <img src="<?= $badge; ?>"
                                                                         alt="<?php echo $this->lang->line('trust_badge'); ?>"
                                                                         width="100" class="badge-product-details">
+                                                                    <?php } ?>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -600,8 +603,7 @@ $lang = $this->session->userdata('site_lang');
                                                 $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
                                                 $m_badge_alt = 'Merchant 3 Stars Trusted Badge';
                                             } else {
-                                                $m_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
-                                                $m_badge_alt = 'Merchant Trusted Badge';
+                                                $m_badge_img = '';
                                             }
 
                                             // Determine Product Badge from uploads/trust_badges
@@ -615,8 +617,7 @@ $lang = $this->session->userdata('site_lang');
                                                 $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
                                                 $p_badge_alt = 'Product 3 Stars Trusted Badge';
                                             } else {
-                                                $p_badge_img = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
-                                                $p_badge_alt = 'Product Trusted Badge';
+                                                $p_badge_img = '';
                                             }
 
                                             // Featured testimony
@@ -658,8 +659,13 @@ $lang = $this->session->userdata('site_lang');
                                             </div>
 
                                             <div class="circle-pair" aria-label="Illustrative Merchant and Product badges">
+                                                <?php if($m_badge_img != ''){ ?>
                                                 <img src="<?= $m_badge_img ?>" width="120" height="120" alt="<?= $m_badge_alt ?>" title="Merchant Service Rating: <?= $merch_avg ?> / 5" style="width: 120px; height: 120px; object-fit: contain;">
+                                                <?php } ?>
+                                                
+                                                <?php if($p_badge_img != ''){ ?>
                                                 <img src="<?= $p_badge_img ?>" width="120" height="120" alt="<?= $p_badge_alt ?>" title="Product Rating: <?= $prod_avg ?> / 5" style="width: 120px; height: 120px; object-fit: contain;">
+                                                <?php } ?>
                                             </div>
 
                                             <div class="testimony">
