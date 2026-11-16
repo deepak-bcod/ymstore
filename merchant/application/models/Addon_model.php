@@ -141,6 +141,7 @@ public function get_service_by_id($service_id)
             DATE_FORMAT(p.created_at, "%d %M %Y") as date,
             p.status AS payment_status,
             ' . ($is_french ? 'COALESCE(NULLIF(c.name_fr, \'\'), c.name)' : 'c.name') . ' as addon_service_name,
+            c.name AS addon_category_name,
             ' . ($is_french ? 'COALESCE(NULLIF(s.title_fr, \'\'), s.title)' : 's.title') . ' as addon_name,
             ' . ($is_french
     ? 'COALESCE(NULLIF(s.description_fr, \'\'), s.description)'

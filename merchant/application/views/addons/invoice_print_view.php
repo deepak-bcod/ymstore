@@ -17,6 +17,16 @@ $merchant_brn = $addon_purchase->merchant_brn ?? '';
 $service_name = $addon_purchase->addon_service_name ?? '';
 $addon_name = $addon_purchase->addon_name ?? '';
 $description = $addon_purchase->addon_description ?? '';
+// Show description only for Daily Deals and Flash Sales
+$addon_category_name = strtolower(
+    trim($addon_purchase->addon_category_name ?? '')
+);
+
+$show_description = in_array(
+    $addon_category_name,
+    ['daily deals', 'flash sales'],
+    TRUE
+);
 
 $order_number = $addon_purchase->order_number ?? '';
 $ticket_number = $addon_purchase->ticket_number ?? '';
@@ -611,35 +621,57 @@ body {
                 </td>
 
                 <td>
+
     <strong><?php echo $e($addon_name); ?></strong>
 
-    <?php if (!empty($description)): ?>
-        <div style="
-            font-size:9px;
-            color:#52647b;
-            margin-top:3px;
-            white-space:nowrap;
-            overflow:hidden;
-            text-overflow:ellipsis;
-            max-width:250px;
-        ">
-            <?php
-                echo $e(
-                    trim(
-                        preg_replace(
-                            '/\s+/',
-                            ' ',
-                            html_entity_decode(
-                                strip_tags($description),
-                                ENT_QUOTES,
-                                'UTF-8'
-                            )
-                        )
-                    )
-                );
-            ?>
-        </div>
+  <?php if ($show_description && !empty($description)): ?>
+
+    <?php
+        $description_heading = '';
+
+        // Extract only the first bold heading from the description HTML
+        if (preg_match(
+            '/<(strong|b)\b[^>]*>(.*?)<\/\1>/is',
+            $description,
+            $matches
+        )) {
+            $description_heading = trim(
+                html_entity_decode(
+                    strip_tags($matches[2]),
+                    ENT_QUOTES,
+                    'UTF-8'
+                )
+            );
+        }
+    ?>
+
+    <?php if (!empty($description_heading)): ?>
+        <br>
+        <span style="font-size:9px;color:#52647b;">
+            <?php echo $e($description_heading); ?>
+        </span>
     <?php endif; ?>
+
+<?php endif; ?>
+
+
+    <?php if (!empty($order_number)): ?>
+
+        <br>
+
+        <span style="font-size:9px;color:#68778b;">
+
+            Replacement Delivery for Order #
+            <?php echo $e($order_number); ?>
+
+            <?php if (!empty($ticket_number)): ?>
+                (Ticket <?php echo $e($ticket_number); ?>)
+            <?php endif; ?>
+
+        </span>
+
+    <?php endif; ?>
+
 </td>
 
                 <td class="text-center">1</td>
