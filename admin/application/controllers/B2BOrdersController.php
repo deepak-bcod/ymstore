@@ -12593,7 +12593,7 @@ class B2BOrdersController extends CI_Controller
 		$has_active_resolution   = false;
 
 		if ($this->db->table_exists('order_resolutions')) {
-			$resolutions = $this->db->select('id, ticket_number, order_id, b2b_order_id, status, merchant_action, category, resolution_status, is_active_dispute')
+			$resolutions = $this->db->select('*')
 				->from('order_resolutions')
 				->group_start()
 					->where_in('order_id', $order_ids)
@@ -12617,38 +12617,58 @@ class B2BOrdersController extends CI_Controller
 						break;
 					}
 
-					// Approved Final States:
-					// 1. Close (Final) â€“ Refund Approved
-					$is_refund_approved = ($r_status === 'Close (Final)' || $r_status === 'Close') &&
-						($r_action === 'refund_approved' || $r_res_status === 'resolution_approved' || $r_category === 'Refund');
+					// Verify physical receipt of replacement item (by Shopper confirmation, Admin exception, or closed_by)
+					$is_receipt_verified = !empty($res_row['shopper_receipt_confirmed']) 
+						|| !empty($res_row['admin_replacement_exception']) 
+						|| ($r_status === 'Close (Final)' && ($res_row['closed_by'] ?? '') === 'shopper_confirmation');
 
-					// 2. Close â€“ Replacement Complete
-					$is_replacement_complete = ($r_status === 'Close' || $r_status === 'Close (Final)') &&
-						(in_array($r_action, ['replacement_completed', 'replacement_approved'], true) || $r_category === 'Replacement');
+					$is_replacement = ($r_category === 'Replacement') 
+						|| (($res_row['admin_remedy'] ?? '') === 'replacement') 
+						|| in_array($r_action, ['replacement_completed', 'replacement_approved'], true)
+						|| $is_receipt_verified;
 
-					$is_merchant_won = ($r_status === 'Close (Final)' || $r_status === 'Close') &&
-						(($res_row['admin_decision'] ?? '') === 'in_favour_merchant' || $r_res_status === 'resolution_denied');
+					if ($is_replacement) {
+						if (($r_status === 'Close' || $r_status === 'Close (Final)') && $is_receipt_verified) {
+							// Replacement received by shopper -> payout must be open / To Pay
+							$has_approved_resolution = true;
+						} elseif (($r_status === 'Close' || $r_status === 'Close (Final)') && (($res_row['admin_decision'] ?? '') === 'in_favour_merchant' || $r_res_status === 'resolution_denied')) {
+							// Dispute resolved in favour of merchant -> eligible for payout
+							$has_approved_resolution = true;
+						} else {
+							// Replacement in progress or awaiting shopper confirmation
+							$has_active_resolution = true;
+						}
+					} else {
+						// Pure refund resolution
+						$is_refund_approved = ($r_status === 'Close (Final)' || $r_status === 'Close' || $r_status === 'Done') &&
+							($r_action === 'refund_approved' || ($r_res_status === 'resolution_approved' && ($res_row['admin_remedy'] ?? '') !== 'replacement') || ($r_category === 'Refund' && $r_action !== 'refund_denied' && $r_res_status !== 'resolution_denied' && ($res_row['admin_decision'] ?? '') !== 'in_favour_merchant'));
 
-					if ($is_refund_approved) {
-						$has_refunded_resolution = true;
-					} elseif ($is_replacement_complete || $is_merchant_won) {
-						$has_approved_resolution = true;
+						$is_merchant_won = ($r_status === 'Close (Final)' || $r_status === 'Close') &&
+							(($res_row['admin_decision'] ?? '') === 'in_favour_merchant' || $r_res_status === 'resolution_denied');
+
+						if ($is_refund_approved) {
+							$has_refunded_resolution = true;
+						} elseif ($is_merchant_won) {
+							$has_approved_resolution = true;
+						}
 					}
 				}
 			}
 		}
 
-		if ($has_active_resolution) {
+		if ($has_approved_resolution) {
+			// Replacement complete / shopper received item -> payout is open / To Pay (overrides return/refund holds)
+			$is_on_hold = false;
+			$is_refund_done = false;
+			$hold_reason = '';
+		} elseif ($has_active_resolution) {
 			$is_on_hold = true;
 			$hold_reason = 'On Hold';
 		} elseif (!empty($has_refunded_resolution)) {
-			// Workflow 5A: Refunded amount must not be paid to Merchant
+			// Workflow 5A: Genuine refund processed to shopper
 			$is_on_hold = true;
 			$is_refund_done = true;
 			$hold_reason = 'Refunded to Shopper';
-		} elseif ($has_approved_resolution) {
-			// Workflow 5B/5C: Replacement complete or dispute resolved in favour of merchant -> eligible under payout schedule
-			$is_on_hold = false;
 		} else {
 			// 2. Check Return requests in sales_order_return
 			$returns = $this->db->select('return_order_id, status, refund_status')
