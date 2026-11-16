@@ -611,47 +611,36 @@ body {
                 </td>
 
                 <td>
+    <strong><?php echo $e($addon_name); ?></strong>
 
-                    <strong><?php echo $e($addon_name); ?></strong>
-
-                    <?php if (!empty($description)): ?>
-
-                        <br>
-
-                        <span style="color:#52647b;">
-                            <?php
-                            echo nl2br(
-                                $e(
-                                    html_entity_decode(
-                                        strip_tags($description),
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    )
-                                )
-                            );
-                            ?>
-                        </span>
-
-                    <?php endif; ?>
-
-                    <?php if (!empty($order_number)): ?>
-
-                        <br>
-
-                        <span style="font-size:9px;color:#68778b;">
-
-                            Replacement Delivery for Order #
-                            <?php echo $e($order_number); ?>
-
-                            <?php if (!empty($ticket_number)): ?>
-                                (Ticket <?php echo $e($ticket_number); ?>)
-                            <?php endif; ?>
-
-                        </span>
-
-                    <?php endif; ?>
-
-                </td>
+    <?php if (!empty($description)): ?>
+        <div style="
+            font-size:9px;
+            color:#52647b;
+            margin-top:3px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            max-width:250px;
+        ">
+            <?php
+                echo $e(
+                    trim(
+                        preg_replace(
+                            '/\s+/',
+                            ' ',
+                            html_entity_decode(
+                                strip_tags($description),
+                                ENT_QUOTES,
+                                'UTF-8'
+                            )
+                        )
+                    )
+                );
+            ?>
+        </div>
+    <?php endif; ?>
+</td>
 
                 <td class="text-center">1</td>
 
