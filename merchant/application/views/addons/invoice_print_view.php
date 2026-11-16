@@ -624,28 +624,15 @@ body {
 
     <strong><?php echo $e($addon_name); ?></strong>
 
-    <?php if (
-        $show_description &&
-        !empty(trim(strip_tags($description)))
-    ): ?>
+    <?php if ($show_description && !empty($description)): ?>
 
-        <br>
+    <br>
 
-        <span style="color:#52647b;">
-            <?php
-                echo nl2br(
-                    $e(
-                        html_entity_decode(
-                            strip_tags($description),
-                            ENT_QUOTES,
-                            'UTF-8'
-                        )
-                    )
-                );
-            ?>
-        </span>
+    <span style="font-size:9px;color:#52647b;">
+        <?php echo $e(strip_tags($description)); ?>
+    </span>
 
-    <?php endif; ?>
+<?php endif; ?>
 
 
     <?php if (!empty($order_number)): ?>
