@@ -713,8 +713,8 @@ body {
                         <br>
                     <?php endif; ?>
 
-                    <strong>Merchant reference:</strong>
-                    <?php echo $e($merchant_name); ?>
+                    <!-- <strong>Merchant reference:</strong>
+                    <?php echo $e($merchant_name); ?> -->
 
                 </td>
 
