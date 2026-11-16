@@ -200,11 +200,11 @@ class Shop_model extends CI_Model {
 
         $m_id = (int)$merchant_id;
 
-        // Query average rating and count of published merchant reviews
+        // Query average rating and count of published merchant reviews strictly
         $this->db->select('AVG(rating) AS avg_rating, COUNT(id) AS total_reviews');
         $this->db->from('ym_merchant_reviews');
         $this->db->where('merchant_id', $m_id);
-        $this->db->where('status', 'published');
+        $this->db->where("LOWER(status) = 'published'", NULL, FALSE);
         $row = $this->db->get()->row();
 
         $avg   = (!empty($row) && $row->avg_rating !== null) ? round((float)$row->avg_rating, 1) : 0.0;

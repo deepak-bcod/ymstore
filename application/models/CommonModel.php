@@ -1991,9 +1991,9 @@ class CommonModel extends CI_Model
 		$this->db->join('ym_merchant_reviews mr', 'mr.id = pr.review_id');
 		$this->db->where('pr.product_id', (int)$product_id);
 		if ($this->db->field_exists('status', 'ym_product_reviews')) {
-			$this->db->where('pr.status', 'published');
+			$this->db->where("LOWER(pr.status) = 'published'", NULL, FALSE);
 		} else {
-			$this->db->where('mr.status', 'published');
+			$this->db->where("LOWER(mr.status) = 'published'", NULL, FALSE);
 		}
 		$this->db->order_by('pr.created_at', 'DESC');
 		if (!empty($limit)) {
@@ -2011,13 +2011,13 @@ class CommonModel extends CI_Model
 			$this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
 			$this->db->from('ym_product_reviews');
 			$this->db->where('product_id', (int)$product_id);
-			$this->db->where('status', 'published');
+			$this->db->where("LOWER(status) = 'published'", NULL, FALSE);
 		} else {
 			$this->db->select('AVG(pr.rating) as avg_rating, COUNT(pr.id) as total_reviews');
 			$this->db->from('ym_product_reviews pr');
 			$this->db->join('ym_merchant_reviews mr', 'mr.id = pr.review_id');
 			$this->db->where('pr.product_id', (int)$product_id);
-			$this->db->where('mr.status', 'published');
+			$this->db->where("LOWER(mr.status) = 'published'", NULL, FALSE);
 		}
 		$row = $this->db->get()->row();
 		return array(
@@ -2034,7 +2034,7 @@ class CommonModel extends CI_Model
 		$this->db->select('mr.*');
 		$this->db->from('ym_merchant_reviews mr');
 		$this->db->where('mr.merchant_id', (int)$merchant_id);
-		$this->db->where('mr.status', 'published');
+		$this->db->where("LOWER(mr.status) = 'published'", NULL, FALSE);
 		$this->db->order_by('mr.created_at', 'DESC');
 		if (!empty($limit)) {
 			$this->db->limit((int)$limit);
@@ -2050,7 +2050,7 @@ class CommonModel extends CI_Model
 		$this->db->select('AVG(rating) as avg_rating, COUNT(id) as total_reviews');
 		$this->db->from('ym_merchant_reviews');
 		$this->db->where('merchant_id', (int)$merchant_id);
-		$this->db->where('status', 'published');
+		$this->db->where("LOWER(status) = 'published'", NULL, FALSE);
 		$row = $this->db->get()->row();
 		return array(
 			'avg_rating'    => !empty($row && $row->avg_rating) ? round((float)$row->avg_rating, 1) : 0,
