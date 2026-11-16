@@ -103,9 +103,9 @@
 										$badge = '';
 										if ($total_reviews > 0 && $avg >= 2.5) {
 											if ($avg >= 4.5) {
-												$badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.png');
+												$badge = base_url('uploads/trust_badges/ym_trusted_badges_5_stars.svg');
 											} elseif ($avg >= 3.5) {
-												$badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.png');
+												$badge = base_url('uploads/trust_badges/ym_trusted_badges_4_stars.svg');
 											} else {
 												$badge = base_url('uploads/trust_badges/ym_trusted_badges_3_stars.svg');
 											}
